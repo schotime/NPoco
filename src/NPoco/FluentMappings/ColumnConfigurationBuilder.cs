@@ -4,11 +4,11 @@ using System.Linq.Expressions;
 
 namespace NPoco.FluentMappings
 {
-    public class PetaPocoColumnConfigurationBuilder<T>
+    public class ColumnConfigurationBuilder<T>
     {
-        private readonly Dictionary<string, PetaPocoColumnDefinition> _columnDefinitions;
+        private readonly Dictionary<string, ColumnDefinition> _columnDefinitions;
 
-        public PetaPocoColumnConfigurationBuilder(Dictionary<string, PetaPocoColumnDefinition> columnDefinitions)
+        public ColumnConfigurationBuilder(Dictionary<string, ColumnDefinition> columnDefinitions)
         {
             _columnDefinitions = columnDefinitions;
         }
@@ -51,7 +51,7 @@ namespace NPoco.FluentMappings
         private void SetColumnDefinition(Expression<Func<T, object>> property, string dbColumnName, bool? ignoreColumn, bool? resultColumn, bool? versionColumn) 
         {
             var propertyInfo = PropertyHelper<T>.GetProperty(property);
-            _columnDefinitions[propertyInfo.Name] = new PetaPocoColumnDefinition
+            _columnDefinitions[propertyInfo.Name] = new ColumnDefinition
             {
                 PropertyInfo = propertyInfo, 
                 DbColumnName = dbColumnName,

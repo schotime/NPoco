@@ -3,21 +3,21 @@ using System.Collections.Generic;
 
 namespace NPoco.FluentMappings
 {
-    public class PetaPocoMappings
+    public class Mappings
     {
-        public Dictionary<Type, PetaPocoTypeDefinition> Config = new Dictionary<Type, PetaPocoTypeDefinition>();
+        public Dictionary<Type, TypeDefinition> Config = new Dictionary<Type, TypeDefinition>();
 
-        public PetaPocoMap<T> For<T>()
+        public Map<T> For<T>()
         {
-            var definition = new PetaPocoTypeDefinition(typeof(T));
-            var petaPocoMap = new PetaPocoMap<T>(definition);
+            var definition = new TypeDefinition(typeof(T));
+            var petaPocoMap = new Map<T>(definition);
             Config.Add(typeof(T), definition);
             return petaPocoMap;
         }
 
-        public static PetaPocoMappings BuildMappingsFromMaps(params IPetaPocoMap[] petaPocoMaps)
+        public static Mappings BuildMappingsFromMaps(params IMap[] petaPocoMaps)
         {
-            var petaPocoConfig = new PetaPocoMappings();
+            var petaPocoConfig = new Mappings();
             foreach (var petaPocoMap in petaPocoMaps)
             {
                 var type = petaPocoMap.TypeDefinition.Type;

@@ -4,16 +4,16 @@ using System.Reflection;
 
 namespace NPoco.FluentMappings
 {
-    public class PetaPocoConventionScannerSettings
+    public class ConventionScannerSettings
     {
-        public PetaPocoConventionScannerSettings()
+        public ConventionScannerSettings()
         {
             Assemblies = new HashSet<Assembly>();
             IgnorePropertiesWhere = new List<Func<PropertyInfo, bool>>();
             IncludeTypes = new List<Func<Type, bool>>();
         }
 
-        public PetaPocoMappings MappingOverrides { get; set; }
+        public Mappings MappingOverrides { get; set; }
 
         public HashSet<Assembly> Assemblies { get; set; }
         public bool TheCallingAssembly { get; set; }

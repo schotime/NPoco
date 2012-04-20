@@ -3,12 +3,12 @@ using System.Collections.Generic;
 
 namespace NPoco.FluentMappings
 {
-    public class PetaPocoTypeDefinition
+    public class TypeDefinition
     {
-        public PetaPocoTypeDefinition(Type type)
+        public TypeDefinition(Type type)
         {
             Type = type;
-            ColumnConfiguration = new Dictionary<string, PetaPocoColumnDefinition>();
+            ColumnConfiguration = new Dictionary<string, ColumnDefinition>();
         }
 
         public Type Type { get; set; }
@@ -17,6 +17,6 @@ namespace NPoco.FluentMappings
         public string SequenceName { get; set; }
         public bool? AutoIncrement { get; set; }
         public bool? ExplicitColumns { get; set; }
-        public Dictionary<string, PetaPocoColumnDefinition> ColumnConfiguration { get; set; }
+        public Dictionary<string, ColumnDefinition> ColumnConfiguration { get; set; }
     }
 }

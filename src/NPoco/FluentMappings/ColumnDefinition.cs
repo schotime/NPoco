@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace NPoco.FluentMappings
 {
-    public class PetaPocoColumnDefinition
+    public class ColumnDefinition
     {
         public PropertyInfo PropertyInfo { get; set; }
         public string DbColumnName { get; set; }

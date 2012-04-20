@@ -8,23 +8,23 @@ namespace NPoco.FluentMappings
 {
     public class FluentMappingConfiguration
     {
-        public static void Configure(params IPetaPocoMap[] petaPocoMaps)
+        public static void Configure(params IMap[] petaPocoMaps)
         {
-            var mappings = PetaPocoMappings.BuildMappingsFromMaps(petaPocoMaps);
+            var mappings = Mappings.BuildMappingsFromMaps(petaPocoMaps);
             SetFactory(mappings, null);
         }
 
-        public static void Configure(PetaPocoMappings mappings)
+        public static void Configure(Mappings mappings)
         {
             SetFactory(mappings, null);
         }
 
-        public static PetaPocoMappings Scan(Action<IPetaPocoConventionScanner> scanner)
+        public static Mappings Scan(Action<IConventionScanner> scanner)
         {
             var scannerSettings = ProcessSettings(scanner);
             if (scannerSettings.Lazy)
             {
-                var lazyPetaPocoMappings = new PetaPocoMappings();
+                var lazyPetaPocoMappings = new Mappings();
                 SetFactory(lazyPetaPocoMappings, scanner);
                 return lazyPetaPocoMappings;
             }
@@ -32,15 +32,15 @@ namespace NPoco.FluentMappings
             return CreateMappings(scannerSettings, null);
         }
 
-        private static PetaPocoMappings CreateMappings(PetaPocoConventionScannerSettings scannerSettings, Type[] typesOverride)
+        private static Mappings CreateMappings(ConventionScannerSettings scannerSettings, Type[] typesOverride)
         {
             var types = typesOverride ?? FindTypes(scannerSettings);
 
-            var config = new Dictionary<Type, PetaPocoTypeDefinition>();
+            var config = new Dictionary<Type, TypeDefinition>();
 
             foreach (var type in types)
             {
-                var petaPocoDefn = new PetaPocoTypeDefinition(type)
+                var petaPocoDefn = new TypeDefinition(type)
                 {
                     AutoIncrement = scannerSettings.PrimaryKeysAutoIncremented(type),
                     PrimaryKey = scannerSettings.PrimaryKeysNamed(type),
@@ -50,7 +50,7 @@ namespace NPoco.FluentMappings
 
                 foreach (var prop in type.GetProperties())
                 {
-                    var column = new PetaPocoColumnDefinition();
+                    var column = new ColumnDefinition();
                     column.PropertyInfo = prop;
                     column.DbColumnName = scannerSettings.PropertiesNamed(prop);
                     column.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(prop));
@@ -64,14 +64,14 @@ namespace NPoco.FluentMappings
 
             MergeOverrides(config, scannerSettings.MappingOverrides);
 
-            var petaPocoMappings = new PetaPocoMappings {Config = config};
+            var petaPocoMappings = new Mappings {Config = config};
             SetFactory(petaPocoMappings, null);
             return petaPocoMappings;
         }
 
-        private static PetaPocoConventionScannerSettings ProcessSettings(Action<IPetaPocoConventionScanner> scanner)
+        private static ConventionScannerSettings ProcessSettings(Action<IConventionScanner> scanner)
         {
-            var defaultScannerSettings = new PetaPocoConventionScannerSettings
+            var defaultScannerSettings = new ConventionScannerSettings
             {
                 PrimaryKeysAutoIncremented = x => true,
                 PrimaryKeysNamed = x => "ID",
@@ -83,11 +83,11 @@ namespace NPoco.FluentMappings
                 Lazy = false
             };
 
-            scanner.Invoke(new PetaPocoConventionScanner(defaultScannerSettings));
+            scanner.Invoke(new ConventionScanner(defaultScannerSettings));
             return defaultScannerSettings;
         }
 
-        private static IEnumerable<Type> FindTypes(PetaPocoConventionScannerSettings scannerSettings)
+        private static IEnumerable<Type> FindTypes(ConventionScannerSettings scannerSettings)
         {
             if (scannerSettings.TheCallingAssembly)
                 scannerSettings.Assemblies.Add(FindTheCallingAssembly());
@@ -95,11 +95,11 @@ namespace NPoco.FluentMappings
             var types = scannerSettings.Assemblies
                 .SelectMany(x => x.GetExportedTypes())
                 .Where(x => scannerSettings.IncludeTypes.All(y => y.Invoke(x)))
-                .Where(x => !x.IsNested && !typeof (PetaPocoMap<>).IsAssignableFrom(x) && !typeof (PetaPocoMappings).IsAssignableFrom(x));
+                .Where(x => !x.IsNested && !typeof (Map<>).IsAssignableFrom(x) && !typeof (Mappings).IsAssignableFrom(x));
             return types;
         }
 
-        private static void MergeOverrides(Dictionary<Type, PetaPocoTypeDefinition> config, PetaPocoMappings overrideMappings)
+        private static void MergeOverrides(Dictionary<Type, TypeDefinition> config, Mappings overrideMappings)
         {
             if (overrideMappings == null)
                 return;
@@ -130,7 +130,7 @@ namespace NPoco.FluentMappings
             }
         }
 
-        private static void SetFactory(PetaPocoMappings mappings, Action<IPetaPocoConventionScanner> scanner)
+        private static void SetFactory(Mappings mappings, Action<IConventionScanner> scanner)
         {
             var maps = mappings;
             var scana = scanner;

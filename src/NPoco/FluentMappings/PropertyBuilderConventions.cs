@@ -5,9 +5,9 @@ namespace NPoco.FluentMappings
 {
     public class PropertyBuilderConventions : IColumnsBuilderConventions
     {
-        private readonly PetaPocoConventionScannerSettings _scannerSettings;
+        private readonly ConventionScannerSettings _scannerSettings;
 
-        public PropertyBuilderConventions(PetaPocoConventionScannerSettings scannerSettings)
+        public PropertyBuilderConventions(ConventionScannerSettings scannerSettings)
         {
             _scannerSettings = scannerSettings;
         }

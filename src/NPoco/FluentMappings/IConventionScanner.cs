@@ -3,10 +3,10 @@ using System.Reflection;
 
 namespace NPoco.FluentMappings
 {
-    public interface IPetaPocoConventionScanner
+    public interface IConventionScanner
     {
-        void OverrideMappingsWith(PetaPocoMappings mappings);
-        void OverrideMappingsWith(params IPetaPocoMap[] maps);
+        void OverrideMappingsWith(Mappings mappings);
+        void OverrideMappingsWith(params IMap[] maps);
 
         void Assembly(Assembly assembly);
         void TheCallingAssembly();

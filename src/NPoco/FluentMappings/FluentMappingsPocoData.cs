@@ -6,7 +6,7 @@ namespace NPoco.FluentMappings
 {
     public class FluentMappingsPocoData : Database.PocoData
     {
-        public FluentMappingsPocoData(Type t, FluentMappings.PetaPocoTypeDefinition typeConfig)
+        public FluentMappingsPocoData(Type t, FluentMappings.TypeDefinition typeConfig)
         {
             type = t;
             TableInfo = new TableInfo();

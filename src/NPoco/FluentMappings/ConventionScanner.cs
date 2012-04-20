@@ -3,23 +3,23 @@ using System.Reflection;
 
 namespace NPoco.FluentMappings
 {
-    public class PetaPocoConventionScanner : IPetaPocoConventionScanner
+    public class ConventionScanner : IConventionScanner
     {
-        private readonly PetaPocoConventionScannerSettings _scannerSettings;
+        private readonly ConventionScannerSettings _scannerSettings;
 
-        public PetaPocoConventionScanner(PetaPocoConventionScannerSettings scannerSettings)
+        public ConventionScanner(ConventionScannerSettings scannerSettings)
         {
             _scannerSettings = scannerSettings;
         }
 
-        public void OverrideMappingsWith(PetaPocoMappings mappings)
+        public void OverrideMappingsWith(Mappings mappings)
         {
             _scannerSettings.MappingOverrides = mappings;
         }
 
-        public void OverrideMappingsWith(params IPetaPocoMap[] maps)
+        public void OverrideMappingsWith(params IMap[] maps)
         {
-            var mappings = PetaPocoMappings.BuildMappingsFromMaps(maps);
+            var mappings = Mappings.BuildMappingsFromMaps(maps);
             _scannerSettings.MappingOverrides = mappings;
         }
 
