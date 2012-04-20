@@ -1,3 +1,18 @@
+/* NPoco 1.0 - PetaPoco v4.0.3.12 - A Tiny ORMish thing for your POCO's.
+ * Copyright 2011-2012.  All Rights Reserved.
+ * 
+ * Apache License 2.0 - http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Originally created by Brad Robinson (@toptensoftware)
+ * 
+ * Special thanks to Rob Conery (@robconery) for original inspiration (ie:Massive) and for 
+ * use of Subsonic's T4 templates, Rob Sullivan (@DataChomp) for hard core DBA advice 
+ * and Adam Schroder (@schotime) for lots of suggestions, improvements and Oracle support
+ * 
+ * #define POCO_NO_DYNAMIC in your project settings on .NET 3.5
+ * 
+ */
+
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -1110,7 +1125,7 @@ namespace NPoco
         public TRet FetchMultiple<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, Sql sql) { return FetchMultiple<T1, T2, T3, DontMap, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, sql); }
         public TRet FetchMultiple<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, Sql sql) { return FetchMultiple<T1, T2, T3, T4, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, sql); }
 
-#if PETAPOCO_NO_DYNAMIC
+#if POCO_NO_DYNAMIC
         public Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, Tuple<List<T1>, List<T2>>>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, Tuple<List<T1>, List<T2>>>((y, z) => new Tuple<List<T1>, List<T2>>(y, z)), new Sql(sql, args)); }
         public Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(string sql, params object[] args) { return FetchMultiple<T1, T2, T3, DontMap, Tuple<List<T1>, List<T2>, List<T3>>>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, Tuple<List<T1>, List<T2>, List<T3>>>((x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>>(x, y, z)), new Sql(sql, args)); }
         public Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(string sql, params object[] args) { return FetchMultiple<T1, T2, T3, T4, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>((w, x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>, List<T4>>(w, x, y, z)), new Sql(sql, args)); }
@@ -1772,7 +1787,7 @@ namespace NPoco
             {
                 pk = pc.GetValue(poco);
             }
-#if !PETAPOCO_NO_DYNAMIC
+#if !POCO_NO_DYNAMIC
             else if (poco.GetType() == typeof(System.Dynamic.ExpandoObject))
             {
                 return true;
@@ -1937,7 +1952,7 @@ namespace NPoco
             public static PocoData ForObject(object o, string primaryKeyName)
             {
                 var t = o.GetType();
-#if !PETAPOCO_NO_DYNAMIC
+#if !POCO_NO_DYNAMIC
                 if (t == typeof(System.Dynamic.ExpandoObject))
                 {
                     var pd = new PocoData();
@@ -1960,7 +1975,7 @@ namespace NPoco
             static System.Threading.ReaderWriterLockSlim RWLock = new System.Threading.ReaderWriterLockSlim();
             public static PocoData ForType(Type t)
             {
-#if !PETAPOCO_NO_DYNAMIC
+#if !POCO_NO_DYNAMIC
                 if (t == typeof(System.Dynamic.ExpandoObject))
                     throw new InvalidOperationException("Can't use dynamic types with this method");
 #endif
@@ -2118,7 +2133,7 @@ namespace NPoco
                     var m = new DynamicMethod("petapoco_factory_" + PocoFactories.Count.ToString(), type, new Type[] { typeof(IDataReader), type }, true);
                     var il = m.GetILGenerator();
 
-#if !PETAPOCO_NO_DYNAMIC
+#if !POCO_NO_DYNAMIC
                     if (type == typeof(object))
                     {
                         // var poco=new T()

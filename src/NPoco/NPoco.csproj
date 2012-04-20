@@ -55,9 +55,9 @@
     <Compile Include="FluentMappings\ConventionExtensions.cs" />
     <Compile Include="FluentMappings\ConventionScanner.cs" />
     <Compile Include="FluentMappings\ConventionScannerSettings.cs" />
-    <Compile Include="FluentMappings\PetaPocoMap.cs" />
-    <Compile Include="FluentMappings\PetaPocoMappings.cs" />
-    <Compile Include="FluentMappings\PetaPocoTypeDefinition.cs" />
+    <Compile Include="FluentMappings\Map.cs" />
+    <Compile Include="FluentMappings\Mappings.cs" />
+    <Compile Include="FluentMappings\TypeDefinition.cs" />
     <Compile Include="FluentMappings\PropertyBuilderConventions.cs" />
     <Compile Include="FluentMappings\PropertyHelper.cs" />
     <Compile Include="IDatabase.cs" />
