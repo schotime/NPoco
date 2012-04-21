@@ -272,7 +272,7 @@ namespace NPoco
             return rxParams.Replace(_sql, m =>
             {
                 string param = m.Value.Substring(1);
-				
+                
                 object arg_val;
 
                 int paramIndex;
@@ -781,7 +781,7 @@ namespace NPoco
                         OnException(x);
                         throw;
                     }
-					
+                    
                     using (r)
                     {
                         var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, ForceDateTimesToUtc, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
@@ -1621,7 +1621,7 @@ namespace NPoco
 
             if (columns != null && columns.Any() && sb.Length == 0)
                 throw new ArgumentException("There were no columns in the columns list that matched your table", "columns");
-					    
+                        
             var sql = string.Format("UPDATE {0} SET {1} WHERE {2}", EscapeTableName(tableName), sb, BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
 
             rawvalues.AddRange(primaryKeyValuePairs.Select(keyValue => keyValue.Value));
@@ -1871,7 +1871,7 @@ namespace NPoco
             {
                 cmd.CommandTimeout = CommandTimeout;
             }
-			
+            
             // Call hook
             OnExecutingCommand(cmd);
 
@@ -1992,7 +1992,7 @@ namespace NPoco
                     RWLock.ExitReadLock();
                 }
 
-				
+                
                 // Cache it
                 RWLock.EnterWriteLock();
                 try
@@ -2031,7 +2031,7 @@ namespace NPoco
                 TableInfo.PrimaryKey = a.Length == 0 ? "ID" : (a[0] as PrimaryKeyAttribute).Value;
                 TableInfo.SequenceName = a.Length == 0 ? null : (a[0] as PrimaryKeyAttribute).sequenceName;
                 TableInfo.AutoIncrement = a.Length == 0 ? true : (a[0] as PrimaryKeyAttribute).autoIncrement;
-			    
+                
                 // Set autoincrement false if primary key has multiple columns
                 TableInfo.AutoIncrement = TableInfo.AutoIncrement ? !TableInfo.PrimaryKey.Contains(',') : TableInfo.AutoIncrement;
 
@@ -2128,7 +2128,7 @@ namespace NPoco
                     Delegate factory;
                     if (PocoFactories.TryGetValue(key, out factory))
                         return factory;
-			
+            
                     // Create the method
                     var m = new DynamicMethod("petapoco_factory_" + PocoFactories.Count.ToString(), type, new Type[] { typeof(IDataReader), type }, true);
                     var il = m.GetILGenerator();
@@ -2158,7 +2158,7 @@ namespace NPoco
 
                             // Setup stack for call to converter
                             AddConverterToStack(il, converter);
-		
+        
                             // r[i]
                             il.Emit(OpCodes.Ldarg_0);					// obj, obj, fieldname, converter?,    rdr
                             il.Emit(OpCodes.Ldc_I4, i);					// obj, obj, fieldname, converter?,  rdr,i
@@ -2520,7 +2520,7 @@ namespace NPoco
                 _lock.Dispose();
             }
         }
-		
+        
 
         // Member variables
         string _connectionString;
