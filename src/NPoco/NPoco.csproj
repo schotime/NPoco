@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="AnsiString.cs" />
     <Compile Include="ColumnAttribute.cs" />
+    <Compile Include="ColumnTypeAttribute.cs" />
     <Compile Include="Database.cs" />
     <Compile Include="DefaultMapper.cs" />
     <Compile Include="FluentMappings\FluentMappingConfiguration.cs" />
@@ -64,7 +65,6 @@
     <Compile Include="IDatabaseQuery.cs" />
     <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="IMapper.cs" />
-    <Compile Include="IMapper2.cs" />
     <Compile Include="Page.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
     <Compile Include="FluentMappings\FluentMappingsPocoData.cs" />
@@ -79,7 +79,9 @@
     <Compile Include="TableInfo.cs" />
     <Compile Include="TableNameAttribute.cs" />
     <Compile Include="Transaction.cs" />
+    <Compile Include="Tuple.cs" />
     <Compile Include="VersionColumnAttribute.cs" />
+    <Compile Include="VersionExceptionHandling.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

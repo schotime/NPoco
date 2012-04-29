@@ -345,9 +345,9 @@ namespace NPoco
         void AddParam(IDbCommand cmd, object item, string ParameterPrefix)
         {
             // Convert value to from poco type to db type
-            if (Database.Mapper != null && item!=null)
+            if (Mapper != null && item!=null)
             {
-                var fn = Database.Mapper.GetToDbConverter(item.GetType());
+                var fn = Mapper.GetToDbConverter(item.GetType());
                 if (fn!=null)
                     item = fn(item);
             }
@@ -627,11 +627,7 @@ namespace NPoco
             // Build the SQL for the actual final result
             if (_dbType == DBType.SqlServer || _dbType == DBType.Oracle)
             {
-                sqlSelectRemoved = rxOrderBy.Replace(sqlSelectRemoved, "");
-                if (rxDistinct.IsMatch(sqlSelectRemoved))
-                {
-                    sqlSelectRemoved = "peta_inner.* FROM (SELECT " + sqlSelectRemoved + ") peta_inner";
-                }
+                sqlSelectRemoved = "peta_inner.* FROM (SELECT " + rxOrderBy.Replace(sqlSelectRemoved, "") + ") peta_inner";
                 sqlPage = string.Format("SELECT * FROM (SELECT ROW_NUMBER() OVER ({0}) peta_rn, {1}) peta_paged WHERE peta_rn>@{2} AND peta_rn<=@{3}",
                                         sqlOrderBy==null ? "ORDER BY (SELECT NULL /*peta_dual*/)" : sqlOrderBy, sqlSelectRemoved, args.Length, args.Length + 1);
                 args = args.Concat(new object[] { skip, skip+take }).ToArray();
@@ -1120,45 +1116,12 @@ namespace NPoco
         public TRet FetchMultiple<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, Sql sql) { return FetchMultiple<T1, T2, T3, DontMap, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, sql); }
         public TRet FetchMultiple<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, Sql sql) { return FetchMultiple<T1, T2, T3, T4, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, sql); }
 
-#if POCO_NO_DYNAMIC
         public Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, Tuple<List<T1>, List<T2>>>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, Tuple<List<T1>, List<T2>>>((y, z) => new Tuple<List<T1>, List<T2>>(y, z)), new Sql(sql, args)); }
         public Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(string sql, params object[] args) { return FetchMultiple<T1, T2, T3, DontMap, Tuple<List<T1>, List<T2>, List<T3>>>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, Tuple<List<T1>, List<T2>, List<T3>>>((x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>>(x, y, z)), new Sql(sql, args)); }
         public Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(string sql, params object[] args) { return FetchMultiple<T1, T2, T3, T4, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>((w, x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>, List<T4>>(w, x, y, z)), new Sql(sql, args)); }
         public Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(Sql sql) { return FetchMultiple<T1, T2, DontMap, DontMap, Tuple<List<T1>, List<T2>>>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, Tuple<List<T1>, List<T2>>>((y, z) => new Tuple<List<T1>, List<T2>>(y, z)), sql); }
         public Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql) { return FetchMultiple<T1, T2, T3, DontMap, Tuple<List<T1>, List<T2>, List<T3>>>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, Tuple<List<T1>, List<T2>, List<T3>>>((x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>>(x, y, z)), sql); }
         public Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql) { return FetchMultiple<T1, T2, T3, T4, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>((w, x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>, List<T4>>(w, x, y, z)), sql); }
-
-        public class Tuple<T1, T2>
-        {
-            public T1 Item1 { get; set; }
-            public T2 Item2 { get; set; }
-            public Tuple(T1 item1, T2 item2) { Item1 = item1; Item2 = item2; }
-        }
-
-        public class Tuple<T1, T2, T3>
-        {
-            public T1 Item1 { get; set; }
-            public T2 Item2 { get; set; }
-            public T3 Item3 { get; set; }
-            public Tuple(T1 item1, T2 item2, T3 item3) { Item1 = item1; Item2 = item2; Item3 = item3; }
-        }
-
-        public class Tuple<T1, T2, T3, T4>
-        {
-            public T1 Item1 { get; set; }
-            public T2 Item2 { get; set; }
-            public T3 Item3 { get; set; }
-            public T4 Item4 { get; set; }
-            public Tuple(T1 item1, T2 item2, T3 item3, T4 item4) { Item1 = item1; Item2 = item2; Item3 = item3; Item4 = item4; }
-        }
-#else
-        public Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, Tuple<List<T1>, List<T2>>>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, Tuple<List<T1>, List<T2>>>((y, z) => new Tuple<List<T1>, List<T2>>(y, z)), new Sql(sql, args)); }
-        public Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(string sql, params object[] args) { return FetchMultiple<T1, T2, T3, DontMap, Tuple<List<T1>, List<T2>, List<T3>>>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, Tuple<List<T1>, List<T2>, List<T3>>>((x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>>(x, y, z)), new Sql(sql, args)); }
-        public Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(string sql, params object[] args) { return FetchMultiple<T1, T2, T3, T4, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>((w, x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>, List<T4>>(w, x, y, z)), new Sql(sql, args)); }
-        public Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(Sql sql) { return FetchMultiple<T1, T2, DontMap, DontMap, Tuple<List<T1>, List<T2>>>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, Tuple<List<T1>, List<T2>>>((y, z) => new Tuple<List<T1>, List<T2>>(y, z)), sql); }
-        public Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql) { return FetchMultiple<T1, T2, T3, DontMap, Tuple<List<T1>, List<T2>, List<T3>>>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, Tuple<List<T1>, List<T2>, List<T3>>>((x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>>(x, y, z)), sql); }
-        public Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql) { return FetchMultiple<T1, T2, T3, T4, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>((w, x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>, List<T4>>(w, x, y, z)), sql); }
-#endif
 
         public class DontMap {}
 
@@ -1402,6 +1365,13 @@ namespace NPoco
                         values.Add(string.Format("{0}{1}", _paramPrefix, index++));
 
                         object val = i.Value.GetValue(poco);
+                        if (Mapper != null)
+                        {
+                            var converter = Mapper.GetToDbConverter(i.Value.ColumnType, i.Value.PropertyInfo.PropertyType);
+                            if (converter != null)
+                                val = converter(val);
+                        }
+                        
                         if (i.Value.VersionColumn)
                         {
                             val = 1;
@@ -1598,6 +1568,12 @@ namespace NPoco
                     continue;
 
                 object value = i.Value.GetValue(poco);
+                if (Mapper != null)
+                {
+                    var converter = Mapper.GetToDbConverter(i.Value.ColumnType, i.Value.PropertyInfo.PropertyType);
+                    if (converter != null)
+                        value = converter(value);
+                }
 
                 if (i.Value.VersionColumn)
                 {
@@ -1905,12 +1881,6 @@ namespace NPoco
             return sb.ToString();
         }
 
-        public enum VersionExceptionHandling
-        {
-            Ignore,
-            Exception
-        }
-
         public static IMapper Mapper
         {
             get;
@@ -1923,6 +1893,12 @@ namespace NPoco
             public PropertyInfo PropertyInfo;
             public bool ResultColumn;
             public bool VersionColumn;
+            private Type _columnType;
+            public Type ColumnType
+            {
+                get { return _columnType ?? PropertyInfo.PropertyType; }
+                set { _columnType = value; }
+            }
             public virtual void SetValue(object target, object val) { PropertyInfo.SetValue(target, val, null); }
             public virtual object GetValue(object target) { return PropertyInfo.GetValue(target, null); }
             public virtual object ChangeType(object val) { return Convert.ChangeType(val, PropertyInfo.PropertyType); }
@@ -2071,6 +2047,12 @@ namespace NPoco
                         if (Database.Mapper != null && !Database.Mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
                             continue;
                     }
+
+                    var columnTypeAttr = pi.GetCustomAttributes(typeof (ColumnTypeAttribute), true);
+                    if (columnTypeAttr.Any())
+                    {
+                        pc.ColumnType = ((ColumnTypeAttribute) columnTypeAttr[0]).Type;
+                    }
                     
                     // Store it
                     Columns.Add(pc.ColumnName, pc);
@@ -2147,7 +2129,7 @@ namespace NPoco
                             // Get the converter
                             Func<object, object> converter = null;
                             if (Database.Mapper != null)
-                                converter = Database.Mapper.GetFromDbConverter(null, srcType);
+                                converter = Database.Mapper.GetFromDbConverter((Type)null, srcType);
                             if (ForceDateTimesToUtc && converter == null && srcType == typeof(DateTime))
                                 converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
 
@@ -2378,19 +2360,15 @@ namespace NPoco
                 Func<object, object> converter = null;
 
                 // Get converter from the mapper
-                if (Database.Mapper != null)
+                if (Mapper != null)
                 {
                     if (pc != null)
                     {
-                        converter = Database.Mapper.GetFromDbConverter(pc.PropertyInfo, srcType);
+                        converter = Mapper.GetFromDbConverter(pc.PropertyInfo, srcType);
                     }
                     else
                     {
-                        var m2 = Database.Mapper as IMapper2;
-                        if (m2 != null)
-                        {
-                            converter = m2.GetFromDbConverter(dstType, srcType);
-                        }
+                        converter = Mapper.GetFromDbConverter(dstType, srcType);
                     }
                 }
 
