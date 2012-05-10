@@ -517,18 +517,13 @@ namespace NPoco
                         object val = cmd.ExecuteScalar();
                         OnExecutedCommand(cmd);
 
+                        if (val == null || val == DBNull.Value)
+                            return default(T);
+
                         Type t = typeof(T);
                         Type u = Nullable.GetUnderlyingType(t);
-                        if (u != null)
-                        {
-                            if (val == null || val == DBNull.Value) 
-                                return default(T);
-                            return (T)Convert.ChangeType(val, u);
-                        }
-                        else
-                        {
-                            return (T)Convert.ChangeType(val, t);
-                        }  
+
+                        return u != null ? (T)Convert.ChangeType(val, u) : (T)Convert.ChangeType(val, t);
                     }
                 }
                 finally
