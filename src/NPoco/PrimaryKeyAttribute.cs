@@ -8,11 +8,11 @@ namespace NPoco
         public PrimaryKeyAttribute(string primaryKey)
         {
             Value = primaryKey;
-            autoIncrement = true;
+            AutoIncrement = true;
         }
 
         public string Value { get; private set; }
-        public string sequenceName { get; set; }
-        public bool autoIncrement { get; set; }
+        public string SequenceName { get; set; }
+        public bool AutoIncrement { get; set; }
     }
 }

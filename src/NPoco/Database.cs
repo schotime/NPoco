@@ -347,7 +347,7 @@ namespace NPoco
             // Convert value to from poco type to db type
             if (Mapper != null && item!=null)
             {
-                var fn = Mapper.GetToDbConverter(item.GetType());
+                var fn = Mapper.GetParameterConverter(item.GetType());
                 if (fn!=null)
                     item = fn(item);
             }
@@ -2000,8 +2000,8 @@ namespace NPoco
                 // Get the primary key
                 a = t.GetCustomAttributes(typeof(PrimaryKeyAttribute), true);
                 TableInfo.PrimaryKey = a.Length == 0 ? "ID" : (a[0] as PrimaryKeyAttribute).Value;
-                TableInfo.SequenceName = a.Length == 0 ? null : (a[0] as PrimaryKeyAttribute).sequenceName;
-                TableInfo.AutoIncrement = a.Length == 0 ? true : (a[0] as PrimaryKeyAttribute).autoIncrement;
+                TableInfo.SequenceName = a.Length == 0 ? null : (a[0] as PrimaryKeyAttribute).SequenceName;
+                TableInfo.AutoIncrement = a.Length == 0 ? true : (a[0] as PrimaryKeyAttribute).AutoIncrement;
                 
                 // Set autoincrement false if primary key has multiple columns
                 TableInfo.AutoIncrement = TableInfo.AutoIncrement ? !TableInfo.PrimaryKey.Contains(',') : TableInfo.AutoIncrement;

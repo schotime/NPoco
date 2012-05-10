@@ -62,9 +62,8 @@ namespace NPoco.FluentMappings
                     else if (colattr.VersionColumn.HasValue && colattr.VersionColumn.Value)
                         pc.VersionColumn = true;
 
-                    // Support for composite keys needed
-                    if (pc.ColumnName != null && pi.Name == TableInfo.PrimaryKey)
-                        TableInfo.PrimaryKey = pc.ColumnName;
+                    if (TableInfo.PrimaryKey.Split(',').Contains(pi.Name))
+                        TableInfo.PrimaryKey = (pc.ColumnName ?? pi.Name) + ",";
 
                 }
                 if (pc.ColumnName == null)
@@ -77,6 +76,9 @@ namespace NPoco.FluentMappings
                 // Store it
                 Columns.Add(pc.ColumnName, pc);
             }
+
+            // Trim trailing slash if built using Property names
+            TableInfo.PrimaryKey = TableInfo.PrimaryKey.TrimEnd(',');
 
             // Build column list for automatic select
             QueryColumns = (from c in Columns where !c.Value.ResultColumn select c.Key).ToArray();

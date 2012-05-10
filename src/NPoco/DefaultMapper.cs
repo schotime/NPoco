@@ -14,7 +14,7 @@ namespace NPoco
         {
             return pi != null ? GetFromDbConverter(pi.PropertyType, SourceType) : null;
         }
-        public virtual Func<object, object> GetToDbConverter(Type SourceType)
+        public virtual Func<object, object> GetParameterConverter(Type SourceType)
         {
             return null;
         }
