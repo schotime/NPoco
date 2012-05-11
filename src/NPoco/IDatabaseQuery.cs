@@ -76,20 +76,13 @@ namespace NPoco
         TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, Sql sql);
         TRet FetchMultiple<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, Sql sql);
         TRet FetchMultiple<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, Sql sql);
-#if POCO_NO_DYNAMIC
-        Database.Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(string sql, params object[] args);
-        Database.Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(string sql, params object[] args);
-        Database.Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(string sql, params object[] args);
-        Database.Tuple<List<T1>, List<T2>> FetchMultiple <T1, T2>(Sql sql);
-        Database.Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple <T1, T2, T3>(Sql sql);
-        Database.Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple <T1, T2, T3, T4>(Sql sql);
-#else
+
         Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(string sql, params object[] args);
         Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(string sql, params object[] args);
         Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(string sql, params object[] args);
         Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(Sql sql);
         Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql);
         Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql);
-#endif
+
     }
 }
