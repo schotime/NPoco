@@ -9,6 +9,5 @@ namespace NPoco
         public long TotalItems { get; set; }
         public long ItemsPerPage { get; set; }
         public List<T> Items { get; set; }
-        public object Context { get; set; }
     }
 }
