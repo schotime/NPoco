@@ -23,6 +23,20 @@ namespace NPoco.FluentMappings
             SetColumnDefinition(property, dbColumnName, null, null, null);
         }
 
+        public void ColumnType(Expression<Func<T, object>> property, Type type)
+        {
+            var propertyInfo = PropertyHelper<T>.GetProperty(property);
+            ColumnDefinition columnDefinition;
+            if (!_columnDefinitions.TryGetValue(propertyInfo.Name, out columnDefinition))
+            {
+                _columnDefinitions[propertyInfo.Name] = new ColumnDefinition
+                {
+                    PropertyInfo = propertyInfo,
+                    DbColumnType = type
+                };
+            }
+        }
+
         public void Result(Expression<Func<T, object>> property)
         {
             Result(property, null);
@@ -51,14 +65,18 @@ namespace NPoco.FluentMappings
         private void SetColumnDefinition(Expression<Func<T, object>> property, string dbColumnName, bool? ignoreColumn, bool? resultColumn, bool? versionColumn) 
         {
             var propertyInfo = PropertyHelper<T>.GetProperty(property);
-            _columnDefinitions[propertyInfo.Name] = new ColumnDefinition
+            ColumnDefinition columnDefinition;
+            if (!_columnDefinitions.TryGetValue(propertyInfo.Name, out columnDefinition))
             {
-                PropertyInfo = propertyInfo, 
-                DbColumnName = dbColumnName,
-                ResultColumn = resultColumn,
-                IgnoreColumn = ignoreColumn,
-                VersionColumn = versionColumn
-            };
+                columnDefinition = new ColumnDefinition();
+                _columnDefinitions[propertyInfo.Name] = columnDefinition;
+            }
+
+            columnDefinition.PropertyInfo = propertyInfo;
+            columnDefinition.DbColumnName = dbColumnName;
+            columnDefinition.ResultColumn = resultColumn;
+            columnDefinition.IgnoreColumn = ignoreColumn;
+            columnDefinition.VersionColumn = versionColumn;
         }
     }
 }

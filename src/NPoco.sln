@@ -1,7 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco", "NPoco/NPoco.csproj", "{BCCBF883-0C0D-40FF-95B6-A2777DFF63DC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco", "NPoco\NPoco.csproj", "{BCCBF883-0C0D-40FF-95B6-A2777DFF63DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco.Tests", "NPoco.Tests\NPoco.Tests.csproj", "{66821E67-2EBC-4497-AFF2-82022F95810C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,6 +15,10 @@ Global
 		{BCCBF883-0C0D-40FF-95B6-A2777DFF63DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCCBF883-0C0D-40FF-95B6-A2777DFF63DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BCCBF883-0C0D-40FF-95B6-A2777DFF63DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66821E67-2EBC-4497-AFF2-82022F95810C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66821E67-2EBC-4497-AFF2-82022F95810C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66821E67-2EBC-4497-AFF2-82022F95810C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66821E67-2EBC-4497-AFF2-82022F95810C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

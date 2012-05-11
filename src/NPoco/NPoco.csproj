@@ -46,6 +46,7 @@
     <Compile Include="ColumnTypeAttribute.cs" />
     <Compile Include="Database.cs" />
     <Compile Include="DefaultMapper.cs" />
+    <Compile Include="FluentMappings\ColumnConfigurationBuilder2.cs" />
     <Compile Include="FluentMappings\FluentMappingConfiguration.cs" />
     <Compile Include="FluentMappings\IColumnsBuilderConventions.cs" />
     <Compile Include="FluentMappings\Inflector.cs" />

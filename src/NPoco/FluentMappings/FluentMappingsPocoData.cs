@@ -65,6 +65,8 @@ namespace NPoco.FluentMappings
                     if (TableInfo.PrimaryKey.Split(',').Contains(pi.Name))
                         TableInfo.PrimaryKey = (pc.ColumnName ?? pi.Name) + ",";
 
+                    pc.ColumnType = colattr.DbColumnType;
+
                 }
                 if (pc.ColumnName == null)
                 {
