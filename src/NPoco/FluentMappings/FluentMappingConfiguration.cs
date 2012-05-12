@@ -8,9 +8,9 @@ namespace NPoco.FluentMappings
 {
     public class FluentMappingConfiguration
     {
-        public static void Configure(params IMap[] petaPocoMaps)
+        public static void Configure(params IMap[] pocoMaps)
         {
-            var mappings = Mappings.BuildMappingsFromMaps(petaPocoMaps);
+            var mappings = Mappings.BuildMappingsFromMaps(pocoMaps);
             SetFactory(mappings, null);
         }
 
@@ -24,9 +24,9 @@ namespace NPoco.FluentMappings
             var scannerSettings = ProcessSettings(scanner);
             if (scannerSettings.Lazy)
             {
-                var lazyPetaPocoMappings = new Mappings();
-                SetFactory(lazyPetaPocoMappings, scanner);
-                return lazyPetaPocoMappings;
+                var lazyPocoMappings = new Mappings();
+                SetFactory(lazyPocoMappings, scanner);
+                return lazyPocoMappings;
             }
             
             return CreateMappings(scannerSettings, null);
@@ -40,7 +40,7 @@ namespace NPoco.FluentMappings
 
             foreach (var type in types)
             {
-                var petaPocoDefn = new TypeDefinition(type)
+                var pocoDefn = new TypeDefinition(type)
                 {
                     AutoIncrement = scannerSettings.PrimaryKeysAutoIncremented(type),
                     PrimaryKey = scannerSettings.PrimaryKeysNamed(type),
@@ -56,17 +56,17 @@ namespace NPoco.FluentMappings
                     column.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(prop));
                     column.ResultColumn = scannerSettings.ResultPropertiesWhere(prop);
                     column.VersionColumn = scannerSettings.VersionPropertiesWhere(prop);
-                    petaPocoDefn.ColumnConfiguration.Add(prop.Name, column);
+                    pocoDefn.ColumnConfiguration.Add(prop.Name, column);
                 }
 
-                config.Add(type, petaPocoDefn);
+                config.Add(type, pocoDefn);
             }
 
             MergeOverrides(config, scannerSettings.MappingOverrides);
 
-            var petaPocoMappings = new Mappings {Config = config};
-            SetFactory(petaPocoMappings, null);
-            return petaPocoMappings;
+            var pocoMappings = new Mappings {Config = config};
+            SetFactory(pocoMappings, null);
+            return pocoMappings;
         }
 
         private static ConventionScannerSettings ProcessSettings(Action<IConventionScanner> scanner)
@@ -157,7 +157,7 @@ namespace NPoco.FluentMappings
         // Helper method if code is in seperate assembly
         private static Assembly FindTheCallingAssembly()
         {
-            if (!typeof(FluentMappingConfiguration).Assembly.FullName.StartsWith("PetaPoco,"))
+            if (!typeof(FluentMappingConfiguration).Assembly.FullName.StartsWith("NPoco,"))
                 return Assembly.GetCallingAssembly();
 
             var trace = new StackTrace(false);

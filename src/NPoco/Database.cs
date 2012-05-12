@@ -324,7 +324,7 @@ namespace NPoco
                     }
                     if (sb.Length == 0)
                     {
-                        sb.AppendFormat("select 1 /*peta_dual*/ where 1 = 0");
+                        sb.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
                     }
                     return sb.ToString();
                 }
@@ -440,7 +440,7 @@ namespace NPoco
                 cmd.GetType().GetProperty("BindByName").SetValue(cmd, true, null);
 
             if (_dbType == DBType.Oracle || _dbType == DBType.MySql)
-                cmd.CommandText = cmd.CommandText.Replace("/*peta_dual*/", "from dual");
+                cmd.CommandText = cmd.CommandText.Replace("/*poco_dual*/", "from dual");
 
             if (!String.IsNullOrEmpty(sql))
                 DoPreExecute(cmd);
@@ -629,7 +629,7 @@ namespace NPoco
             {
                 sqlSelectRemoved = "peta_inner.* FROM (SELECT " + rxOrderBy.Replace(sqlSelectRemoved, "") + ") peta_inner";
                 sqlPage = string.Format("SELECT * FROM (SELECT ROW_NUMBER() OVER ({0}) peta_rn, {1}) peta_paged WHERE peta_rn>@{2} AND peta_rn<=@{3}",
-                                        sqlOrderBy==null ? "ORDER BY (SELECT NULL /*peta_dual*/)" : sqlOrderBy, sqlSelectRemoved, args.Length, args.Length + 1);
+                                        sqlOrderBy==null ? "ORDER BY (SELECT NULL /*poco_dual*/)" : sqlOrderBy, sqlSelectRemoved, args.Length, args.Length + 1);
                 args = args.Concat(new object[] { skip, skip+take }).ToArray();
             }
             else if (_dbType == DBType.SqlServerCE)
@@ -877,7 +877,7 @@ namespace NPoco
                     return mapper;
 
                 // Create a method
-                var m = new DynamicMethod("petapoco_automapper", types[0], types, true);
+                var m = new DynamicMethod("poco_automapper", types[0], types, true);
                 var il = m.GetILGenerator();
 
                 for (int i = 1; i < types.Length; i++)
@@ -955,7 +955,7 @@ namespace NPoco
         // Create a multi-poco factory
         Func<IDataReader, object, TRet> CreateMultiPocoFactory<TRet>(Type[] types, string sql, IDataReader r)
         {
-            var m = new DynamicMethod("petapoco_multipoco_factory", typeof(TRet), new Type[] { typeof(MultiPocoFactory), typeof(IDataReader), typeof(object) }, typeof(MultiPocoFactory));
+            var m = new DynamicMethod("poco_multipoco_factory", typeof(TRet), new Type[] { typeof(MultiPocoFactory), typeof(IDataReader), typeof(object) }, typeof(MultiPocoFactory));
             var il = m.GetILGenerator();
 
             // Load the callback
@@ -2107,7 +2107,7 @@ namespace NPoco
                         return factory;
             
                     // Create the method
-                    var m = new DynamicMethod("petapoco_factory_" + PocoFactories.Count.ToString(), type, new Type[] { typeof(IDataReader), type }, true);
+                    var m = new DynamicMethod("poco_factory_" + PocoFactories.Count.ToString(), type, new Type[] { typeof(IDataReader), type }, true);
                     var il = m.GetILGenerator();
 
 #if !POCO_NO_DYNAMIC
