@@ -28,6 +28,7 @@ namespace NPoco.FluentMappings
     {
         IColumnBuilder WithName(string name);
         IColumnBuilder WithDbType(Type type);
+        IColumnBuilder WithDbType<T>();
         IColumnBuilder Version();
         IColumnBuilder Ignore();
         IColumnBuilder Result();
@@ -52,6 +53,11 @@ namespace NPoco.FluentMappings
         {
             _columnDefinition.DbColumnType = type;
             return this;
+        }
+
+        public IColumnBuilder WithDbType<T>()
+        {
+            return WithDbType(typeof (T));
         }
 
         public IColumnBuilder Version()

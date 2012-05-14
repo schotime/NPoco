@@ -32,6 +32,18 @@ namespace NPoco.Tests.FluentMappings
         }
 
         [Test]
+        public void WithGenericDbTypeReturnsDbTypeCorrectly()
+        {
+            var columnDefinitions = new Dictionary<string, ColumnDefinition>();
+            var columnBuilder = new ColumnConfigurationBuilder2<User>(columnDefinitions);
+
+            columnBuilder
+                .Column(x => x.UserId).WithDbType<long>();
+
+            Assert.AreEqual(typeof(long), columnDefinitions["UserId"].DbColumnType);
+        }
+
+        [Test]
         public void VersionReturnsVersionColumn()
         {
             var columnDefinitions = new Dictionary<string, ColumnDefinition>();
