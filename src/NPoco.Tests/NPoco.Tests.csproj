@@ -58,9 +58,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <WCFMetadata Include="Service References\" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\NPoco\NPoco.csproj">
       <Project>{BCCBF883-0C0D-40FF-95B6-A2777DFF63DC}</Project>
       <Name>NPoco</Name>
