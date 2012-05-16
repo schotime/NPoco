@@ -12,4 +12,8 @@ namespace NPoco.Tests
         public DateTime DateOfBirth { get; set; }
         public decimal Savings { get; set; }
     }
+
+    public class Admin : User
+    {
+    }
 }

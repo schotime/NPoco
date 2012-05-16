@@ -52,6 +52,7 @@
     <Compile Include="QueryTests\FetchAndQueryTests.cs" />
     <Compile Include="QueryTests\QueryTests.cs" />
     <Compile Include="QueryTests\SingleAndFirstQueryTests.cs" />
+    <Compile Include="SnapshotterTests.cs" />
     <Compile Include="User.cs" />
     <Compile Include="FluentMappings\ColumnConfigurationBuilderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

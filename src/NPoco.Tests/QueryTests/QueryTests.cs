@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using NPoco.FluentMappings;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -15,9 +16,11 @@ namespace NPoco.Tests.QueryTests
         [TestFixtureSetUp]
         public void SetUpFixture()
         {
+            var types = new[] {typeof (User)};
             FluentMappingConfiguration.Scan(s =>
             {
                 s.Assembly(typeof(User).Assembly);
+                s.IncludeTypes(types.Contains);
                 s.WithSmartConventions();
             });
 
