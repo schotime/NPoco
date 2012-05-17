@@ -25,11 +25,6 @@ namespace NPoco.Tests.Common
             Console.WriteLine("----------------------------");
             Console.WriteLine("Creating database schema...");
             Console.WriteLine("----------------------------");
-
-
-            Console.WriteLine("----------------------------");
-            Console.WriteLine("Schema created.");
-            Console.WriteLine("----------------------------");
         }
 
         private static readonly object _syncRoot = new object();
@@ -46,22 +41,6 @@ namespace NPoco.Tests.Common
                     }
                 }
             }
-        }
-
-        public IDataReader ExecuteReader(string sql)
-        {
-            EnsureConfigured();
-
-            var command = new SQLiteCommand(sql, (SQLiteConnection)Connection);
-            return command.ExecuteReader();
-        }
-
-        public object ExecuteScalar(string sql)
-        {
-            EnsureConfigured();
-
-            var command = new SQLiteCommand(sql, (SQLiteConnection)Connection);
-            return command.ExecuteScalar();
         }
 
         public void Dispose()

@@ -27,7 +27,7 @@ namespace NPoco.Tests.QueryTests
             InMemoryDB = new InMemoryDatabase();
             Database = new Database(InMemoryDB.Connection);
 
-            InMemoryDB.ExecuteReader("CREATE TABLE Users(UserId INTEGER PRIMARY KEY, Name nvarchar(200), Age int, DateOfBirth datetime, Savings Decimal(10,5));");
+            Database.Execute("CREATE TABLE Users(UserId INTEGER PRIMARY KEY, Name nvarchar(200), Age int, DateOfBirth datetime, Savings Decimal(10,5));");
 
             InsertData();
         }
