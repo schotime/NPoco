@@ -150,7 +150,7 @@ namespace NPoco.FluentMappings
                         return new FluentMappingsPocoData(t, typeMapping.Config[t]);
                     }
                 }
-                return new Database.PocoData(t);
+                return new PocoData(t);
             };
         }
 

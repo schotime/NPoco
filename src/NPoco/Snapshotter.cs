@@ -22,13 +22,13 @@ namespace NPoco
         static Func<T, T, List<Change>> differ;
         T memberWiseClone;
         T trackedObject;
-        Database.PocoData pocoData;
+        PocoData pocoData;
 
         public Snapshot(T original)
         {
             memberWiseClone = Clone(original);
             trackedObject = original;
-            pocoData = Database.PocoData.ForType(typeof(T));
+            pocoData = PocoData.ForType(typeof(T));
         }
 
         public class Change

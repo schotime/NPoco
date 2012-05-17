@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace NPoco.FluentMappings
 {
-    public class FluentMappingsPocoData : Database.PocoData
+    public class FluentMappingsPocoData : PocoData
     {
         public FluentMappingsPocoData(Type t, FluentMappings.TypeDefinition typeConfig)
         {
@@ -33,7 +33,7 @@ namespace NPoco.FluentMappings
 
             // Work out bound properties
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
-            Columns = new Dictionary<string, Database.PocoColumn>(StringComparer.OrdinalIgnoreCase);
+            Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
             foreach (var pi in t.GetProperties())
             {
                 // Work out if properties is to be included
@@ -49,7 +49,7 @@ namespace NPoco.FluentMappings
                         continue;
                 }
 
-                var pc = new Database.PocoColumn();
+                var pc = new PocoColumn();
                 pc.PropertyInfo = pi;
 
                 // Work out the DB column name

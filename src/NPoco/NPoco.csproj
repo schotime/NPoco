@@ -45,6 +45,8 @@
     <Compile Include="ColumnTypeAttribute.cs" />
     <Compile Include="Database.cs" />
     <Compile Include="DefaultMapper.cs" />
+    <Compile Include="EnumMapper.cs" />
+    <Compile Include="ExpandoColumn.cs" />
     <Compile Include="FluentMappings\ColumnConfigurationBuilder2.cs" />
     <Compile Include="FluentMappings\FluentMappingConfiguration.cs" />
     <Compile Include="FluentMappings\IColumnsBuilderConventions.cs" />
@@ -68,6 +70,8 @@
     <Compile Include="Page.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
     <Compile Include="FluentMappings\FluentMappingsPocoData.cs" />
+    <Compile Include="PocoColumn.cs" />
+    <Compile Include="PocoData.cs" />
     <Compile Include="RelationExtensions.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
