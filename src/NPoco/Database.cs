@@ -885,16 +885,16 @@ namespace NPoco
                     for (int j = i - 1; j >= 0; j--)
                     {
                         // Find the property
-                        var candidates = from p in types[j].GetProperties() where p.PropertyType == types[i] select p;
-                        if (candidates.Count() == 0)
+                        var candidates = types[j].GetProperties().Where(p => p.PropertyType == types[i]).ToList();
+                        if (candidates.Count == 0)
                             continue;
-                        if (candidates.Count() > 1)
+                        if (candidates.Count > 1)
                             throw new InvalidOperationException(string.Format("Can't auto join {0} as {1} has more than one property of type {0}", types[i], types[j]));
 
                         // Generate code
                         il.Emit(OpCodes.Ldarg_S, j);
                         il.Emit(OpCodes.Ldarg_S, i);
-                        il.Emit(OpCodes.Callvirt, candidates.First().GetSetMethod(true));
+                        il.Emit(OpCodes.Callvirt, candidates[0].GetSetMethod(true));
                         handled = true;
                     }
 
