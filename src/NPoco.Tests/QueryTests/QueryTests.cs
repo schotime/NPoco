@@ -11,12 +11,14 @@ namespace NPoco.Tests.QueryTests
     {
         public IDatabase Database { get; set; }
         public InMemoryDatabase InMemoryDB { get; set; }
+        
         public List<User> InMemoryUsers { get; set; }
+        public List<ExtraInfo> InMemoryExtraUserInfos { get; set; }
 
         [TestFixtureSetUp]
         public void SetUpFixture()
         {
-            var types = new[] {typeof (User)};
+            var types = new[] {typeof (User), typeof(ExtraInfo)};
             FluentMappingConfiguration.Scan(s =>
             {
                 s.Assembly(typeof(User).Assembly);
@@ -28,6 +30,7 @@ namespace NPoco.Tests.QueryTests
             Database = new Database(InMemoryDB.Connection);
 
             Database.Execute("CREATE TABLE Users(UserId INTEGER PRIMARY KEY, Name nvarchar(200), Age int, DateOfBirth datetime, Savings Decimal(10,5));");
+            Database.Execute("CREATE TABLE ExtraInfos(ExtraInfoId INTEGER PRIMARY KEY, UserId int, Email nvarchar(200), Children int);");
 
             InsertData();
         }
@@ -35,6 +38,7 @@ namespace NPoco.Tests.QueryTests
         private void InsertData()
         {
             InMemoryUsers = new List<User>();
+            InMemoryExtraUserInfos = new List<ExtraInfo>();
             for (int i = 0; i < 15; i++)
             {
                 var user = new User()
@@ -46,6 +50,15 @@ namespace NPoco.Tests.QueryTests
                 };
                 InMemoryUsers.Add(user);
                 Database.Insert(user);
+
+                var extra = new ExtraInfo()
+                {
+                    UserId = user.UserId,
+                    Email = "email@email.com" + (i + 1),
+                    Children = (i + 1)
+                };
+                InMemoryExtraUserInfos.Add(extra);
+                Database.Insert(extra);
             }
         }
 

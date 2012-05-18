@@ -48,7 +48,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common\InMemoryDatabase.cs" />
+    <Compile Include="ExtraUserInfo.cs" />
     <Compile Include="FluentMappings\MapTests.cs" />
+    <Compile Include="QueryTests\AdvancedFetchTests.cs" />
     <Compile Include="QueryTests\FetchAndQueryTests.cs" />
     <Compile Include="QueryTests\QueryTests.cs" />
     <Compile Include="QueryTests\SingleAndFirstQueryTests.cs" />

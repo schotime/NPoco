@@ -16,4 +16,9 @@ namespace NPoco.Tests
     public class Admin : User
     {
     }
+    
+    public class UserWithExtraInfo : User
+    {
+        public ExtraInfo ExtraInfo { get; set; }
+    }
 }
