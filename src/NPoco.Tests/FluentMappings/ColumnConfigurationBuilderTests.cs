@@ -11,7 +11,7 @@ namespace NPoco.Tests.FluentMappings
         public void WithNameReturnsDbColumnNameCorrectly()
         {
             var columnDefinitions = new Dictionary<string, ColumnDefinition>();
-            var columnBuilder = new ColumnConfigurationBuilder2<User>(columnDefinitions);
+            var columnBuilder = new ColumnConfigurationBuilder<User>(columnDefinitions);
 
             columnBuilder
                 .Column(x => x.UserId).WithName("Id");
@@ -23,7 +23,7 @@ namespace NPoco.Tests.FluentMappings
         public void WithDbTypeReturnsDbTypeCorrectly()
         {
             var columnDefinitions = new Dictionary<string, ColumnDefinition>();
-            var columnBuilder = new ColumnConfigurationBuilder2<User>(columnDefinitions);
+            var columnBuilder = new ColumnConfigurationBuilder<User>(columnDefinitions);
 
             columnBuilder
                 .Column(x => x.UserId).WithDbType(typeof(long));
@@ -35,7 +35,7 @@ namespace NPoco.Tests.FluentMappings
         public void WithGenericDbTypeReturnsDbTypeCorrectly()
         {
             var columnDefinitions = new Dictionary<string, ColumnDefinition>();
-            var columnBuilder = new ColumnConfigurationBuilder2<User>(columnDefinitions);
+            var columnBuilder = new ColumnConfigurationBuilder<User>(columnDefinitions);
 
             columnBuilder
                 .Column(x => x.UserId).WithDbType<long>();
@@ -47,7 +47,7 @@ namespace NPoco.Tests.FluentMappings
         public void VersionReturnsVersionColumn()
         {
             var columnDefinitions = new Dictionary<string, ColumnDefinition>();
-            var columnBuilder = new ColumnConfigurationBuilder2<User>(columnDefinitions);
+            var columnBuilder = new ColumnConfigurationBuilder<User>(columnDefinitions);
 
             columnBuilder
                 .Column(x => x.UserId).Version();
@@ -59,7 +59,7 @@ namespace NPoco.Tests.FluentMappings
         public void ResultReturnsResultColumn()
         {
             var columnDefinitions = new Dictionary<string, ColumnDefinition>();
-            var columnBuilder = new ColumnConfigurationBuilder2<User>(columnDefinitions);
+            var columnBuilder = new ColumnConfigurationBuilder<User>(columnDefinitions);
 
             columnBuilder
                 .Column(x => x.UserId).Result();
@@ -71,7 +71,7 @@ namespace NPoco.Tests.FluentMappings
         public void IgnoreReturnsIgnoreColumn()
         {
             var columnDefinitions = new Dictionary<string, ColumnDefinition>();
-            var columnBuilder = new ColumnConfigurationBuilder2<User>(columnDefinitions);
+            var columnBuilder = new ColumnConfigurationBuilder<User>(columnDefinitions);
 
             columnBuilder
                 .Column(x => x.UserId).Ignore();
@@ -83,7 +83,7 @@ namespace NPoco.Tests.FluentMappings
         public void MultpleOptionsChainedAreAllSet()
         {
             var columnDefinitions = new Dictionary<string, ColumnDefinition>();
-            var columnBuilder = new ColumnConfigurationBuilder2<User>(columnDefinitions);
+            var columnBuilder = new ColumnConfigurationBuilder<User>(columnDefinitions);
 
             columnBuilder
                 .Column(x => x.UserId)

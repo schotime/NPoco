@@ -22,15 +22,15 @@ namespace NPoco.FluentMappings
             return this;
         }
 
-        public Map<T> Columns(Action<ColumnConfigurationBuilder2<T>> columnConfiguration)
+        public Map<T> Columns(Action<ColumnConfigurationBuilder<T>> columnConfiguration)
         {
             return Columns(columnConfiguration, null);
         }
 
-        public Map<T> Columns(Action<ColumnConfigurationBuilder2<T>> columnConfiguration, bool? explicitColumns)
+        public Map<T> Columns(Action<ColumnConfigurationBuilder<T>> columnConfiguration, bool? explicitColumns)
         {
             _petaPocoTypeDefinition.ExplicitColumns = explicitColumns;
-            columnConfiguration(new ColumnConfigurationBuilder2<T>(_petaPocoTypeDefinition.ColumnConfiguration));
+            columnConfiguration(new ColumnConfigurationBuilder<T>(_petaPocoTypeDefinition.ColumnConfiguration));
             return this;
         }
 

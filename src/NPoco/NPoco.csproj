@@ -62,7 +62,6 @@
     <Compile Include="FluentMappings\Inflector.cs" />
     <Compile Include="FluentMappings\IConventionScanner.cs" />
     <Compile Include="FluentMappings\IMap.cs" />
-    <Compile Include="FluentMappings\ColumnConfigurationBuilder.cs" />
     <Compile Include="FluentMappings\ColumnDefinition.cs" />
     <Compile Include="FluentMappings\ConventionExtensions.cs" />
     <Compile Include="FluentMappings\ConventionScanner.cs" />

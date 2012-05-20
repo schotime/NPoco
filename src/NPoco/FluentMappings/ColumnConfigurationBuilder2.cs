@@ -5,11 +5,11 @@ using System.Reflection;
 
 namespace NPoco.FluentMappings
 {
-    public class ColumnConfigurationBuilder2<T>
+    public class ColumnConfigurationBuilder<T>
     {
         private readonly Dictionary<string, ColumnDefinition> _columnDefinitions;
 
-        public ColumnConfigurationBuilder2(Dictionary<string, ColumnDefinition> columnDefinitions)
+        public ColumnConfigurationBuilder(Dictionary<string, ColumnDefinition> columnDefinitions)
         {
             _columnDefinitions = columnDefinitions;
         }
