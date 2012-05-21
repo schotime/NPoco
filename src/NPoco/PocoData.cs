@@ -43,37 +43,8 @@ namespace NPoco
             if (t == typeof(System.Dynamic.ExpandoObject))
                 throw new InvalidOperationException("Can't use dynamic types with this method");
 #endif
-            // Check cache
-            RWLock.EnterReadLock();
-            PocoData pd;
-            try
-            {
-                if (m_PocoDatas.TryGetValue(t, out pd))
-                    return pd;
-            }
-            finally
-            {
-                RWLock.ExitReadLock();
-            }
-
-
-            // Cache it
-            RWLock.EnterWriteLock();
-            try
-            {
-                // Check again
-                if (m_PocoDatas.TryGetValue(t, out pd))
-                    return pd;
-
-                // Create it
-                pd = Database.PocoDataFactory(t);
-                m_PocoDatas.Add(t, pd);
-            }
-            finally
-            {
-                RWLock.ExitWriteLock();
-            }
-
+            
+            var pd = _pocoDatas.Get(t, () => Database.PocoDataFactory(t));
             return pd;
         }
 
@@ -176,31 +147,11 @@ namespace NPoco
         {
             // Check cache
             var key = string.Format("{0}:{1}:{2}:{3}:{4}:{5}", sql, connString, ForceDateTimesToUtc, firstColumn, countColumns, instance != GetDefault(type));
-            RWLock.EnterReadLock();
-            try
+ 
+            Func<Delegate> create = () =>
             {
-                // Have we already created it?
-                Delegate factory;
-                if (PocoFactories.TryGetValue(key, out factory))
-                    return factory;
-            }
-            finally
-            {
-                RWLock.ExitReadLock();
-            }
-
-            // Take the writer lock
-            RWLock.EnterWriteLock();
-
-            try
-            {
-                // Check again, just in case
-                Delegate factory;
-                if (PocoFactories.TryGetValue(key, out factory))
-                    return factory;
-
                 // Create the method
-                var m = new DynamicMethod("poco_factory_" + PocoFactories.Count.ToString(), type, new Type[] { typeof(IDataReader), type }, true);
+                var m = new DynamicMethod("poco_factory_" + _pocoFactories.Count, type, new Type[] { typeof(IDataReader), type }, true);
                 var il = m.GetILGenerator();
 
 #if !POCO_NO_DYNAMIC
@@ -310,7 +261,6 @@ namespace NPoco
 
                         var delegateType = typeof(Func<,,>).MakeGenericType(typeof(IDataReader), type, typeof(Dictionary<string, object>));
                         var localDel = Delegate.CreateDelegate(delegateType, func.Target, func.Method);
-                        PocoFactories.Add(key, localDel);
                         return localDel;
                     }
                     else if (type == typeof(object[]))
@@ -328,7 +278,6 @@ namespace NPoco
 
                         var delegateType = typeof(Func<,,>).MakeGenericType(typeof(IDataReader), type, typeof(object[]));
                         var localDel = Delegate.CreateDelegate(delegateType, func.Target, func.Method);
-                        PocoFactories.Add(key, localDel);
                         return localDel;
                     }
                     else
@@ -424,13 +373,11 @@ namespace NPoco
 
                 // Cache it, return it
                 var del = m.CreateDelegate(Expression.GetFuncType(typeof(IDataReader), type, type));
-                PocoFactories.Add(key, del);
                 return del;
-            }
-            finally
-            {
-                RWLock.ExitWriteLock();
-            }
+            };
+
+            var factory = _pocoFactories.Get(key, create);
+            return factory;
         }
 
         private static void AddConverterToStack(ILGenerator il, Func<object, object> converter)
@@ -510,7 +457,7 @@ namespace NPoco
         }
 
 
-        static Dictionary<Type, PocoData> m_PocoDatas = new Dictionary<Type, PocoData>();
+        static Cache<Type, PocoData> _pocoDatas = new Cache<Type, PocoData>();
         static List<Func<object, object>> m_Converters = new List<Func<object, object>>();
         static MethodInfo fnGetValue = typeof(IDataRecord).GetMethod("GetValue", new Type[] { typeof(int) });
         static MethodInfo fnIsDBNull = typeof(IDataRecord).GetMethod("IsDBNull");
@@ -521,6 +468,6 @@ namespace NPoco
         public string[] QueryColumns { get; protected set; }
         public TableInfo TableInfo { get; protected set; }
         public Dictionary<string, PocoColumn> Columns { get; protected set; }
-        Dictionary<string, Delegate> PocoFactories = new Dictionary<string, Delegate>();
+        Cache<string, Delegate> _pocoFactories = new Cache<string, Delegate>();
     }
 }
