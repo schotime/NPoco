@@ -68,6 +68,7 @@
     <Compile Include="IDatabaseQuery.cs" />
     <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="IMapper.cs" />
+    <Compile Include="MultiPocoFactory.cs" />
     <Compile Include="Page.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
     <Compile Include="FluentMappings\FluentMappingsPocoData.cs" />
