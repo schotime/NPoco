@@ -92,5 +92,21 @@ namespace NPoco.Tests.QueryTests
             var users = Database.SkipTake<User>(50, 10, "order by userid");
             Assert.AreEqual(0, users.Count);
         }
+
+        [Test]
+        public void ReturnObjectArray()
+        {
+            var data = Database.Fetch<object[]>("select userid, name from users where userid = 2");
+            Assert.AreEqual(2, data[0][0]);
+            Assert.AreEqual("Name2", data[0][1]);
+        }
+
+        [Test]
+        public void ReturnDictionaryStringObject()
+        {
+            var data = Database.Fetch<Dictionary<string, object>>("select userid, name from users where userid = 2");
+            Assert.AreEqual(2, data[0]["userid"]);
+            Assert.AreEqual("Name2", data[0]["name"]);
+        }
     }
 }
