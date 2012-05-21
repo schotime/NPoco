@@ -8,9 +8,7 @@ using System.Text;
 
 namespace NPoco
 {
-       
-        // Instance data used by the Multipoco factory delegate - essentially a list of the nested poco factories to call
-    class MultiPocoFactory
+    internal class MultiPocoFactory
     {
         public List<Delegate> m_Delegates;
         public Delegate GetItem(int index) { return m_Delegates[index]; }
@@ -19,13 +17,7 @@ namespace NPoco
         public static object GetAutoMapper(Type[] types)
         {
             // Build a key
-            var kb = new StringBuilder();
-            foreach (var t in types)
-            {
-                kb.Append(t.ToString());
-                kb.Append(":");
-            }
-            var key = kb.ToString();
+            var key = string.Join(":", types.AsEnumerable());
 
             return AutoMappers.Get(key, () =>
             {
@@ -144,12 +136,11 @@ namespace NPoco
             kb.Append(":");
             foreach (var t in types)
             {
-                kb.Append(":");
-                kb.Append(t.ToString());
+                kb.Append(":" + t);
             }
-            kb.Append(":"); kb.Append(connectionString);
-            kb.Append(":"); kb.Append(forceDateTimesToUtc);
-            kb.Append(":"); kb.Append(sql);
+            kb.Append(":" + connectionString);
+            kb.Append(":" + forceDateTimesToUtc);
+            kb.Append(":" + sql);
             string key = kb.ToString();
 
             return (Func<IDataReader, object, TRet>)MultiPocoFactories.Get(key, () => CreateMultiPocoFactory<TRet>(types, sql, connectionString, forceDateTimesToUtc, r));
