@@ -35,5 +35,11 @@ namespace NPoco.FluentMappings
             _scannerSettings.VersionPropertiesWhere = versionPropertiesWhereFunc;
             return this;
         }
+
+        public IColumnsBuilderConventions ForceDateTimesToUtcWhere(Func<PropertyInfo, bool> forceDateTimesToUtcWhereFunc)
+        {
+            _scannerSettings.ForceDateTimesToUtcWhere = forceDateTimesToUtcWhereFunc;
+            return this;
+        }
     }
 }

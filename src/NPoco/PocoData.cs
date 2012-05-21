@@ -55,76 +55,36 @@ namespace NPoco
         public PocoData(Type t)
         {
             type = t;
-            TableInfo = new TableInfo();
-
-            // Get the table name
-            var a = t.GetCustomAttributes(typeof(TableNameAttribute), true);
-            TableInfo.TableName = a.Length == 0 ? t.Name : (a[0] as TableNameAttribute).Value;
-
-            // Get the primary key
-            a = t.GetCustomAttributes(typeof(PrimaryKeyAttribute), true);
-            TableInfo.PrimaryKey = a.Length == 0 ? "ID" : (a[0] as PrimaryKeyAttribute).Value;
-            TableInfo.SequenceName = a.Length == 0 ? null : (a[0] as PrimaryKeyAttribute).SequenceName;
-            TableInfo.AutoIncrement = a.Length == 0 ? true : (a[0] as PrimaryKeyAttribute).AutoIncrement;
-
-            // Set autoincrement false if primary key has multiple columns
-            TableInfo.AutoIncrement = TableInfo.AutoIncrement ? !TableInfo.PrimaryKey.Contains(',') : TableInfo.AutoIncrement;
+            TableInfo = TableInfo.FromPoco(t);
 
             // Call column mapper
             if (Database.Mapper != null)
                 Database.Mapper.GetTableInfo(t, TableInfo);
 
             // Work out bound properties
-            bool ExplicitColumns = t.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Length > 0;
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
             foreach (var pi in t.GetProperties())
             {
-                // Work out if properties is to be included
-                var ColAttrs = pi.GetCustomAttributes(typeof(ColumnAttribute), true);
-                if (ExplicitColumns)
-                {
-                    if (ColAttrs.Length == 0)
-                        continue;
-                }
-                else
-                {
-                    if (pi.GetCustomAttributes(typeof(IgnoreAttribute), true).Length != 0)
-                        continue;
-                }
+                ColumnInfo ci = ColumnInfo.FromProperty(pi);
+                if (ci == null)
+                    continue;
 
                 var pc = new PocoColumn();
                 pc.PropertyInfo = pi;
+                pc.ColumnName = ci.ColumnName;
+                pc.ResultColumn = ci.ResultColumn;
+                pc.ForceToUtc = ci.ForceToUtc;
+                pc.ColumnType = ci.ColumnType;
 
-                // Work out the DB column name
-                if (ColAttrs.Length > 0)
-                {
-                    var colattr = (ColumnAttribute)ColAttrs[0];
-                    pc.ColumnName = colattr.Name;
-                    if ((colattr as ResultColumnAttribute) != null)
-                        pc.ResultColumn = true;
-                    if ((colattr as VersionColumnAttribute) != null)
-                        pc.VersionColumn = true;
-                }
-                if (pc.ColumnName == null)
-                {
-                    pc.ColumnName = pi.Name;
-                    if (Database.Mapper != null && !Database.Mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
-                        continue;
-                }
-
-                var columnTypeAttr = pi.GetCustomAttributes(typeof(ColumnTypeAttribute), true);
-                if (columnTypeAttr.Any())
-                {
-                    pc.ColumnType = ((ColumnTypeAttribute)columnTypeAttr[0]).Type;
-                }
+                if (Database.Mapper != null && !Database.Mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
+                    continue;
 
                 // Store it
                 Columns.Add(pc.ColumnName, pc);
             }
 
             // Build column list for automatic select
-            QueryColumns = (from c in Columns where !c.Value.ResultColumn select c.Key).ToArray();
-
+            QueryColumns = Columns.Where(c => !c.Value.ResultColumn).Select(c => c.Key).ToArray();
         }
 
         static bool IsIntegralType(Type t)
@@ -143,10 +103,10 @@ namespace NPoco
         }
 
         // Create factory function that can convert a IDataReader record into a POCO
-        public Delegate GetFactory(string sql, string connString, bool ForceDateTimesToUtc, int firstColumn, int countColumns, IDataReader r, object instance)
+        public Delegate GetFactory(string sql, string connString, int firstColumn, int countColumns, IDataReader r, object instance)
         {
             // Check cache
-            var key = string.Format("{0}:{1}:{2}:{3}:{4}:{5}", sql, connString, ForceDateTimesToUtc, firstColumn, countColumns, instance != GetDefault(type));
+            var key = string.Format("{0}:{1}:{2}:{3}:{4}", sql, connString, firstColumn, countColumns, instance != GetDefault(type));
  
             Func<Delegate> create = () =>
             {
@@ -174,8 +134,9 @@ namespace NPoco
                         Func<object, object> converter = null;
                         if (Database.Mapper != null)
                             converter = Database.Mapper.GetFromDbConverter((Type)null, srcType);
-                        if (ForceDateTimesToUtc && converter == null && srcType == typeof(DateTime))
-                            converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
+
+                        //if (ForceDateTimesToUtc && converter == null && srcType == typeof(DateTime))
+                        //    converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
 
                         // Setup stack for call to converter
                         AddConverterToStack(il, converter);
@@ -216,7 +177,7 @@ namespace NPoco
                     {
                         // Do we need to install a converter?
                         var srcType = r.GetFieldType(0);
-                        var converter = GetConverter(ForceDateTimesToUtc, null, srcType, type);
+                        var converter = GetConverter(null, srcType, type);
 
                         // "if (!rdr.IsDBNull(i))"
                         il.Emit(OpCodes.Ldarg_0);										// rdr
@@ -312,7 +273,7 @@ namespace NPoco
                             il.Emit(OpCodes.Dup);											// poco,poco
 
                             // Do we need to install a converter?
-                            var converter = GetConverter(ForceDateTimesToUtc, pc, srcType, dstType);
+                            var converter = GetConverter(pc, srcType, dstType);
 
                             // Fast
                             bool Handled = false;
@@ -395,49 +356,42 @@ namespace NPoco
             }
         }
 
-        public static Func<object, object> GetConverter(bool forceDateTimesToUtc, PocoColumn pc, Type srcType, Type dstType)
+        public static Func<object, object> GetConverter(PocoColumn pc, Type srcType, Type dstType)
         {
             Func<object, object> converter = null;
 
             // Get converter from the mapper
             if (Database.Mapper != null)
             {
-                if (pc != null)
-                {
-                    converter = Database.Mapper.GetFromDbConverter(pc.PropertyInfo, srcType);
-                }
-                else
-                {
-                    converter = Database.Mapper.GetFromDbConverter(dstType, srcType);
-                }
+                converter = pc != null ? Database.Mapper.GetFromDbConverter(pc.PropertyInfo, srcType) : Database.Mapper.GetFromDbConverter(dstType, srcType);
+                if (converter != null)
+                    return converter;
             }
 
             // Standard DateTime->Utc mapper
-            if (forceDateTimesToUtc && converter == null && srcType == typeof(DateTime) && (dstType == typeof(DateTime) || dstType == typeof(DateTime?)))
+            if (pc != null && pc.ForceToUtc && srcType == typeof(DateTime) && (dstType == typeof(DateTime) || dstType == typeof(DateTime?)))
             {
                 converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
+                return converter;
             }
 
             // Forced type conversion including integral types -> enum
-            if (converter == null)
+            if (dstType.IsEnum && IsIntegralType(srcType))
             {
-                if (dstType.IsEnum && IsIntegralType(srcType))
+                if (srcType != typeof(int))
                 {
-                    if (srcType != typeof(int))
-                    {
-                        converter = src => Convert.ChangeType(src, typeof(int), null);
-                    }
+                    converter = src => Convert.ChangeType(src, typeof(int), null);
                 }
-                else if (!dstType.IsAssignableFrom(srcType))
+            }
+            else if (!dstType.IsAssignableFrom(srcType))
+            {
+                if (dstType.IsEnum && srcType == typeof(string))
                 {
-                    if (dstType.IsEnum && srcType == typeof(string))
-                    {
-                        converter = src => EnumMapper.EnumFromString(dstType, (string)src);
-                    }
-                    else
-                    {
-                        converter = src => Convert.ChangeType(src, dstType, null);
-                    }
+                    converter = src => EnumMapper.EnumFromString(dstType, (string)src);
+                }
+                else
+                {
+                    converter = src => Convert.ChangeType(src, dstType, null);
                 }
             }
             return converter;
@@ -455,7 +409,6 @@ namespace NPoco
             }
             return default(T);
         }
-
 
         static Cache<Type, PocoData> _pocoDatas = new Cache<Type, PocoData>();
         static List<Func<object, object>> m_Converters = new List<Func<object, object>>();

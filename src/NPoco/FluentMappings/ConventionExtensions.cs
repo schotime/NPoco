@@ -1,3 +1,5 @@
+using System;
+
 namespace NPoco.FluentMappings
 {
     public static class ConventionExtensions
@@ -12,6 +14,7 @@ namespace NPoco.FluentMappings
             scanner.PrimaryKeysNamed(y => y.Name + "Id");
             scanner.TablesNamed(y => Inflector.MakePlural(y.Name));
             scanner.Columns.IgnoreComplex();
+            scanner.Columns.ForceDateTimesToUtcWhere(x => x.PropertyType == typeof(DateTime) || x.PropertyType == typeof(DateTime?));
         }
     }
 }

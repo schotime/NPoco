@@ -28,6 +28,7 @@ namespace NPoco.FluentMappings
         public List<Func<PropertyInfo, bool>> IgnorePropertiesWhere { get; set; }
         public Func<PropertyInfo, bool> VersionPropertiesWhere { get; set; }
         public Func<PropertyInfo, bool> ResultPropertiesWhere { get; set; }
+        public Func<PropertyInfo, bool> ForceDateTimesToUtcWhere { get; set; }
 
         public bool Lazy { get; set; }
     }

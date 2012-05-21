@@ -19,11 +19,8 @@ using System.Configuration;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection.Emit;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 
 namespace NPoco
 {
@@ -31,14 +28,14 @@ namespace NPoco
     {
         public const string MsSqlClientProvider = "System.Data.SqlClient";
 
-        public Database(IDbConnection connection) : this(connection, DBType.NotSet) {}
+        //public Database(IDbConnection connection) : this(connection, DBType.NotSet) {}
 
-        public Database(IDbConnection connection, DBType dbType)
+        public Database(IDbConnection connection)
         {
             _sharedConnection = connection;
             _connectionString = connection.ConnectionString;
             _sharedConnectionDepth = 2;		// Prevent closing external connection
-            _dbType = dbType;
+            //_dbType = dbType;
             CommonConstruct();
         }
 
@@ -91,7 +88,7 @@ namespace NPoco
             SQLite
         }
 
-        protected DBType _dbType = DBType.NotSet;
+        protected DatabaseType _dbType;
 
         // Common initialization
         private void CommonConstruct()
@@ -103,26 +100,12 @@ namespace NPoco
             if (_providerName != null)
                 _factory = DbProviderFactories.GetFactory(_providerName);
 
-            if (_dbType == DBType.NotSet)
-            {
-                _dbType = DBType.SqlServer;
-                string dbtype = (_factory == null ? _sharedConnection.GetType() : _factory.GetType()).Name;
-                if (dbtype.StartsWith("MySql"))
-                    _dbType = DBType.MySql;
-                else if (dbtype.StartsWith("SqlCe"))
-                    _dbType = DBType.SqlServerCE;
-                else if (dbtype.StartsWith("Npgsql"))
-                    _dbType = DBType.PostgreSQL;
-                else if (dbtype.StartsWith("Oracle"))
-                    _dbType = DBType.Oracle;
-                else if (dbtype.StartsWith("SQLite"))
-                    _dbType = DBType.SQLite;
-            }
+            string DBTypeName = (_factory == null ? _sharedConnection.GetType() : _factory.GetType()).Name;
+            _dbType = DatabaseType.Resolve(DBTypeName, _providerName);
 
-            if (_dbType == DBType.MySql && _connectionString != null && _connectionString.IndexOf("Allow User Variables=true") >= 0)
-                _paramPrefix = "?";
-            if (_dbType == DBType.Oracle)
-                _paramPrefix = ":";
+            // What character is used for delimiting parameters in SQL
+            _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
+
         }
 
         // Automatically close one open shared connection
@@ -265,18 +248,18 @@ namespace NPoco
         }
 
         // Add a parameter to a DB command
-        void AddParam(IDbCommand cmd, object item, string ParameterPrefix)
+        void AddParam(IDbCommand cmd, object value, string ParameterPrefix)
         {
             // Convert value to from poco type to db type
-            if (Mapper != null && item!=null)
+            if (Mapper != null && value!=null)
             {
-                var fn = Mapper.GetParameterConverter(item.GetType());
+                var fn = Mapper.GetParameterConverter(value.GetType());
                 if (fn!=null)
-                    item = fn(item);
+                    value = fn(value);
             }
 
             // Support passed in parameters
-            var idbParam = item as IDbDataParameter;
+            var idbParam = value as IDbDataParameter;
             if (idbParam != null)
             {
                 idbParam.ParameterName = string.Format("{0}{1}", ParameterPrefix, cmd.Parameters.Count);
@@ -286,53 +269,56 @@ namespace NPoco
             var p = cmd.CreateParameter();
             p.ParameterName = string.Format("{0}{1}", ParameterPrefix, cmd.Parameters.Count);
 
-            if (item == null)
+            if (value == null)
             {
                 p.Value = DBNull.Value;
             }
             else
             {
-                var t = item.GetType();
+                // Give the database type first crack at converting to DB required type
+                value = _dbType.MapParameterValue(value);
+
+                var t = value.GetType();
                 if (t.IsEnum)		// PostgreSQL .NET driver wont cast enum to int
                 {
-                    p.Value = (int)item;
+                    p.Value = (int)value;
                 }
                 else if (t == typeof(Guid))
                 {
-                    p.Value = item.ToString();
+                    p.Value = value.ToString();
                     p.DbType = DbType.String;
                     p.Size = 40;
                 }
                 else if (t == typeof(string))
                 {
-                    p.Size = Math.Max((item as string).Length + 1, 4000);		// Help query plan caching by using common size
-                    p.Value = item;
+                    // out of memory exception occurs if trying to save more than 4000 characters to SQL Server CE NText column. Set before attempting to set Size, or Size will always max out at 4000
+                    if ((value as string).Length + 1 > 4000 && p.GetType().Name == "SqlCeParameter")
+                        p.GetType().GetProperty("SqlDbType").SetValue(p, SqlDbType.NText, null); 
+
+                    p.Size = Math.Max((value as string).Length + 1, 4000);		// Help query plan caching by using common size
+                    p.Value = value;
                 }
                 else if (t == typeof(AnsiString))
                 {
                     // Thanks @DataChomp for pointing out the SQL Server indexing performance hit of using wrong string type on varchar
-                    p.Size = Math.Max((item as AnsiString).Value.Length + 1, 4000);
-                    p.Value = (item as AnsiString).Value;
+                    p.Size = Math.Max((value as AnsiString).Value.Length + 1, 4000);
+                    p.Value = (value as AnsiString).Value;
                     p.DbType = DbType.AnsiString;
                 }
-                else if (t == typeof(bool) && _dbType != DBType.PostgreSQL)
-                {
-                    p.Value = ((bool)item) ? 1 : 0;
-                }
-                else if (item.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
+                else if (value.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
                 {
                     p.GetType().GetProperty("UdtTypeName").SetValue(p, "geography", null); //geography is the equivalent SQL Server Type
-                    p.Value = item;
+                    p.Value = value;
                 }
 
-                else if (item.GetType().Name == "SqlGeometry") //SqlGeometry is a CLR Type
+                else if (value.GetType().Name == "SqlGeometry") //SqlGeometry is a CLR Type
                 {
                     p.GetType().GetProperty("UdtTypeName").SetValue(p, "geometry", null); //geography is the equivalent SQL Server Type
-                    p.Value = item;
+                    p.Value = value;
                 }
                 else
                 {
-                    p.Value = item;
+                    p.Value = value;
                 }
             }
 
@@ -359,11 +345,8 @@ namespace NPoco
                 AddParam(cmd, item, _paramPrefix);
             }
 
-            if (_dbType == DBType.Oracle)
-                cmd.GetType().GetProperty("BindByName").SetValue(cmd, true, null);
-
-            if (_dbType == DBType.Oracle || _dbType == DBType.MySql)
-                cmd.CommandText = cmd.CommandText.Replace("/*poco_dual*/", "from dual");
+            // Notify the DB type
+            _dbType.PreExecute(cmd);
 
             if (!String.IsNullOrEmpty(sql))
                 DoPreExecute(cmd);
@@ -471,8 +454,8 @@ namespace NPoco
             if (!rxSelect.IsMatch(sql))
             {
                 var pd = PocoData.ForType(typeof(T));
-                var tableName = EscapeTableName(pd.TableInfo.TableName);
-                string cols = string.Join(", ", (from c in pd.QueryColumns select EscapeSqlIdentifier(c)).ToArray());
+                var tableName = _dbType.EscapeTableName(pd.TableInfo.TableName);
+                string cols = string.Join(", ", (from c in pd.QueryColumns select _dbType.EscapeSqlIdentifier(c)).ToArray());
                 if (!rxFrom.IsMatch(sql))
                     sql = string.Format("SELECT {0} FROM {1} {2}", cols, tableName, sql);
                 else
@@ -500,72 +483,19 @@ namespace NPoco
             return Fetch<T>("");
         }
 
-        static Regex rxColumns = new Regex(@"\A\s*SELECT\s+((?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|.)*?)(?<!,\s+)\bFROM\b", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-        static Regex rxOrderBy = new Regex(@"\bORDER\s+BY\s+(?!.*?(?:\)|\s+)AS\s)(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\(\)\.])+(?:\s+(?:ASC|DESC))?(?:\s*,\s*(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\(\)\.])+(?:\s+(?:ASC|DESC))?)*", RegexOptions.RightToLeft | RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-        static Regex rxDistinct = new Regex(@"\ADISTINCT\s", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-        public static bool SplitSqlForPaging(string sql, out string sqlCount, out string sqlSelectRemoved, out string sqlOrderBy)
-        {
-            sqlSelectRemoved = null;
-            sqlCount = null;
-            sqlOrderBy = null;
-
-            // Extract the columns from "SELECT <whatever> FROM"
-            var m = rxColumns.Match(sql);
-            if (!m.Success)
-                return false;
-
-            // Save column list and replace with COUNT(*)
-            Group g = m.Groups[1];
-            sqlSelectRemoved = sql.Substring(g.Index);
-
-            if (rxDistinct.IsMatch(sqlSelectRemoved))
-                sqlCount = sql.Substring(0, g.Index) + "COUNT(" + m.Groups[1].ToString().Trim() + ") " + sql.Substring(g.Index + g.Length);
-            else
-                sqlCount = sql.Substring(0, g.Index) + "COUNT(*) " + sql.Substring(g.Index + g.Length);
-
-            // Look for an "ORDER BY <whatever>" clause
-            m = rxOrderBy.Match(sqlCount);
-            if (m.Success)
-            {
-                g = m.Groups[0];
-                sqlOrderBy = g.ToString();
-                sqlCount = sqlCount.Substring(0, g.Index) + sqlCount.Substring(g.Index + g.Length);
-            }
-
-            return true;
-        }
-
         public void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage) 
         {
             // Add auto select clause
-            sql=AddSelectClause<T>(sql);
+            if (EnableAutoSelect)
+                sql = AddSelectClause<T>(sql);
 
-            // Split the SQL into the bits we need
-            string sqlSelectRemoved, sqlOrderBy;
-            if (!SplitSqlForPaging(sql, out sqlCount, out sqlSelectRemoved, out sqlOrderBy))
+            // Split the SQL
+            PagingHelper.SQLParts parts;
+            if (!PagingHelper.SplitSQL(sql, out parts))
                 throw new Exception("Unable to parse SQL statement for paged query");
-            if (_dbType == DBType.Oracle && sqlSelectRemoved.StartsWith("*"))
-                throw new Exception("Query must alias '*' when performing a paged query.\neg. select t.* from table t order by t.id");
 
-            // Build the SQL for the actual final result
-            if (_dbType == DBType.SqlServer || _dbType == DBType.Oracle)
-            {
-                sqlSelectRemoved = "peta_inner.* FROM (SELECT " + rxOrderBy.Replace(sqlSelectRemoved, "") + ") peta_inner";
-                sqlPage = string.Format("SELECT * FROM (SELECT ROW_NUMBER() OVER ({0}) peta_rn, {1}) peta_paged WHERE peta_rn>@{2} AND peta_rn<=@{3}",
-                                        sqlOrderBy==null ? "ORDER BY (SELECT NULL /*poco_dual*/)" : sqlOrderBy, sqlSelectRemoved, args.Length, args.Length + 1);
-                args = args.Concat(new object[] { skip, skip+take }).ToArray();
-            }
-            else if (_dbType == DBType.SqlServerCE)
-            {
-                sqlPage = string.Format("{0}\nOFFSET @{1} ROWS FETCH NEXT @{2} ROWS ONLY", sql, args.Length, args.Length + 1);
-                args = args.Concat(new object[] { skip, take }).ToArray();
-            }
-            else
-            {
-                sqlPage = string.Format("{0}\nLIMIT @{1} OFFSET @{2}", sql, args.Length, args.Length + 1);
-                args = args.Concat(new object[] { take, skip }).ToArray();
-            }
-            
+            sqlPage = _dbType.BuildPageQuery(skip, take, parts, ref args);
+            sqlCount = parts.sqlCount;
         }
 
         // Fetch a page	
@@ -640,8 +570,8 @@ namespace NPoco
 
                 if (isConverterSet == false)
                 {
-                    converter1 = PocoData.GetConverter(ForceDateTimesToUtc, null, typeof (TKey), key.GetType()) ?? (x => x);
-                    converter2 = PocoData.GetConverter(ForceDateTimesToUtc, null, typeof (TValue), value.GetType()) ?? (x => x);
+                    converter1 = PocoData.GetConverter(null, typeof (TKey), key.GetType()) ?? (x => x);
+                    converter2 = PocoData.GetConverter(null, typeof (TValue), value.GetType()) ?? (x => x);
                     isConverterSet = true;
                 }
 
@@ -698,7 +628,7 @@ namespace NPoco
                     
                     using (r)
                     {
-                        var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, ForceDateTimesToUtc, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
+                        var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
                         while (true)
                         {
                             T poco;
@@ -785,7 +715,7 @@ namespace NPoco
                         OnException(x);
                         throw;
                     }
-                    var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(types, sql.SQL, _sharedConnection.ConnectionString, ForceDateTimesToUtc, r);
+                    var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(types, sql.SQL, _sharedConnection.ConnectionString, r);
                     if (cb == null)
                         cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
                     bool bNeedTerminator = false;
@@ -880,7 +810,7 @@ namespace NPoco
                                 break;
                             
                             var pd = PocoData.ForType(types[typeIndex-1]);
-                            var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, ForceDateTimesToUtc, 0, r.FieldCount, r, null);
+                            var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
                             
                             while (true)
                             {
@@ -1017,29 +947,6 @@ namespace NPoco
         {
             return Query<T>(instance, sql).FirstOrDefault();
         }
-        public string EscapeTableName(string str)
-        {
-            // Assume table names with "dot" are already escaped
-            return str.IndexOf('.') >= 0 ? str : EscapeSqlIdentifier(str);
-        }
-
-        public string EscapeSqlIdentifier(string str)
-        {
-            switch (_dbType)
-            {
-                case DBType.MySql:
-                    return string.Format("`{0}`", str);
-
-                case DBType.PostgreSQL:
-                    return string.Format("\"{0}\"", str);
-
-                case DBType.Oracle:
-                    return string.Format("\"{0}\"", str.ToUpperInvariant());
-
-                default:
-                    return string.Format("[{0}]", str);
-            }
-        }
 
         public object Insert(string tableName, string primaryKeyName, object poco)
         {
@@ -1072,15 +979,17 @@ namespace NPoco
                         // Don't insert the primary key (except under oracle where we need bring in the next sequence value)
                         if (autoIncrement && primaryKeyName != null && string.Compare(i.Key, primaryKeyName, true)==0)
                         {
-                            if (_dbType == DBType.Oracle && !string.IsNullOrEmpty(pd.TableInfo.SequenceName))
+                            // Setup auto increment expression
+                            string autoIncExpression = _dbType.GetAutoIncrementExpression(pd.TableInfo);
+                            if (autoIncExpression != null)
                             {
                                 names.Add(i.Key);
-                                values.Add(string.Format("{0}.nextval", pd.TableInfo.SequenceName));
+                                values.Add(autoIncExpression);
                             }
                             continue;
                         }
 
-                        names.Add(EscapeSqlIdentifier(i.Key));
+                        names.Add(_dbType.EscapeSqlIdentifier(i.Key));
                         values.Add(string.Format("{0}{1}", _paramPrefix, index++));
 
                         object val = i.Value.GetValue(poco);
@@ -1103,118 +1012,50 @@ namespace NPoco
                     using (var cmd = CreateCommand(_sharedConnection, ""))
                     {
                         var sql = string.Empty;
-                        if (names.Count > 0 || _dbType == DBType.MySql)
+                        var outputClause = String.Empty;
+                        if (autoIncrement)
                         {
-                            sql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})", EscapeTableName(tableName), string.Join(",", names.ToArray()), string.Join(",", values.ToArray()));
+                            outputClause = _dbType.GetInsertOutputClause(primaryKeyName);
+                        }
+
+                        if (names.Count != 0)
+                        {
+                            sql = string.Format("INSERT INTO {0} ({1}){2} VALUES ({3})",
+                                                _dbType.EscapeTableName(tableName),
+                                                string.Join(",", names.ToArray()),
+                                                outputClause,
+                                                string.Join(",", values.ToArray()));
                         }
                         else
                         {
-                            sql = string.Format("INSERT INTO {0} DEFAULT VALUES", EscapeTableName(tableName));
+                            sql = _dbType.GetDefaultInsertSql(tableName, names.ToArray(), values.ToArray());
                         }
 
                         cmd.CommandText = sql;
-                        rawvalues.ForEach(x=>AddParam(cmd, x, _paramPrefix));
-
-                        object id;
+                        rawvalues.ForEach(x => AddParam(cmd, x, _paramPrefix));
 
                         if (!autoIncrement)
                         {
                             DoPreExecute(cmd);
                             cmd.ExecuteNonQuery();
                             OnExecutedCommand(cmd);
-                            id = -1;
+
+                            PocoColumn pkColumn;
+                            if (primaryKeyName != null && pd.Columns.TryGetValue(primaryKeyName, out pkColumn))
+                                return pkColumn.GetValue(poco);
+                            else
+                                return null;
                         }
-                        else
+
+                        object id = _dbType.ExecuteInsert(this, cmd, primaryKeyName);
+
+                        // Assign the ID back to the primary key property
+                        if (primaryKeyName != null)
                         {
-
-                            switch (_dbType)
-                            {   
-                                case DBType.SqlServerCE:
-                                    DoPreExecute(cmd);
-                                    cmd.ExecuteNonQuery();
-                                    OnExecutedCommand(cmd);
-                                    id = ExecuteScalar<object>("SELECT @@@IDENTITY AS NewID;");
-                                    break;
-                                case DBType.SqlServer:
-                                    cmd.CommandText += ";\nSELECT SCOPE_IDENTITY() AS NewID;";
-                                    DoPreExecute(cmd);
-                                    id = cmd.ExecuteScalar();
-                                    OnExecutedCommand(cmd);
-                                    break;
-                                case DBType.MySql:
-                                    cmd.CommandText += ";\nSELECT LAST_INSERT_ID();";
-                                    DoPreExecute(cmd);
-                                    id = cmd.ExecuteScalar();
-                                    OnExecutedCommand(cmd);
-                                    break;
-                                case DBType.PostgreSQL:
-                                    if (primaryKeyName != null)
-                                    {
-                                        cmd.CommandText += string.Format(" returning {0} as NewID", EscapeSqlIdentifier(primaryKeyName));
-                                        DoPreExecute(cmd);
-                                        id = cmd.ExecuteScalar();
-                                    }
-                                    else
-                                    {
-                                        id = -1;
-                                        DoPreExecute(cmd);
-                                        cmd.ExecuteNonQuery();
-                                    }
-                                    OnExecutedCommand(cmd);
-                                    break;
-                                case DBType.Oracle:
-                                    if (primaryKeyName != null)
-                                    {
-                                        cmd.CommandText += string.Format(" returning {0} into :newid", EscapeSqlIdentifier(primaryKeyName));
-                                        var param = cmd.CreateParameter();
-                                        param.ParameterName = ":newid";
-                                        param.Value = DBNull.Value;
-                                        param.Direction = ParameterDirection.ReturnValue;
-                                        param.DbType = DbType.Int64;
-                                        cmd.Parameters.Add(param);
-                                        DoPreExecute(cmd);
-                                        cmd.ExecuteNonQuery();
-                                        id = param.Value;
-                                    }
-                                    else
-                                    {
-                                        id = -1;
-                                        DoPreExecute(cmd);
-                                        cmd.ExecuteNonQuery();
-                                    }
-                                    OnExecutedCommand(cmd);
-                                    break;
-                                case DBType.SQLite:
-                                    if (primaryKeyName != null)
-                                    {
-                                        cmd.CommandText += ";\nSELECT last_insert_rowid();";
-                                        DoPreExecute(cmd);
-                                        id = cmd.ExecuteScalar();
-                                    }
-                                    else
-                                    {
-                                        id = -1;
-                                        DoPreExecute(cmd);
-                                        cmd.ExecuteNonQuery();
-                                    }
-                                    OnExecutedCommand(cmd);
-                                    break;
-                                default:
-                                    cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
-                                    DoPreExecute(cmd);
-                                    id = cmd.ExecuteScalar();
-                                    OnExecutedCommand(cmd);
-                                    break;
-                            }
-
-                            // Assign the ID back to the primary key property
-                            if (primaryKeyName != null)
+                            PocoColumn pc;
+                            if (pd.Columns.TryGetValue(primaryKeyName, out pc))
                             {
-                                PocoColumn pc;
-                                if (pd.Columns.TryGetValue(primaryKeyName, out pc))
-                                {
-                                    pc.SetValue(poco, pc.ChangeType(id));
-                                }
+                                pc.SetValue(poco, pc.ChangeType(id));
                             }
                         }
 
@@ -1230,6 +1071,7 @@ namespace NPoco
 
                         return id;
                     }
+
                 }
                 finally
                 {
@@ -1304,7 +1146,7 @@ namespace NPoco
                 // Build the sql
                 if (index > 0)
                     sb.Append(", ");
-                sb.AppendFormat("{0} = @{1}", EscapeSqlIdentifier(i.Key), index++);
+                sb.AppendFormat("{0} = @{1}", _dbType.EscapeSqlIdentifier(i.Key), index++);
 
                 rawvalues.Add(value);
             }
@@ -1312,13 +1154,13 @@ namespace NPoco
             if (columns != null && columns.Any() && sb.Length == 0)
                 throw new ArgumentException("There were no columns in the columns list that matched your table", "columns");
                         
-            var sql = string.Format("UPDATE {0} SET {1} WHERE {2}", EscapeTableName(tableName), sb, BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
+            var sql = string.Format("UPDATE {0} SET {1} WHERE {2}", _dbType.EscapeTableName(tableName), sb, BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
 
             rawvalues.AddRange(primaryKeyValuePairs.Select(keyValue => keyValue.Value));
 
             if (!string.IsNullOrEmpty(versionName))
             {
-                sql += string.Format(" AND {0} = @{1}", EscapeSqlIdentifier(versionName), index++);
+                sql += string.Format(" AND {0} = @{1}", _dbType.EscapeSqlIdentifier(versionName), index++);
                 rawvalues.Add(versionValue); 
             }
 
@@ -1346,7 +1188,7 @@ namespace NPoco
         {
             var tempIndex = index;
             index += primaryKeyValuePair.Count;
-            return string.Join(" AND ", primaryKeyValuePair.Select((x, i) => string.Format("{0} = @{1}", EscapeSqlIdentifier(x.Key), tempIndex + i)).ToArray());
+            return string.Join(" AND ", primaryKeyValuePair.Select((x, i) => string.Format("{0} = @{1}", _dbType.EscapeSqlIdentifier(x.Key), tempIndex + i)).ToArray());
         }
 
         private Dictionary<string, object> GetPrimaryKeyValues(string primaryKeyName, object primaryKeyValue) 
@@ -1405,13 +1247,13 @@ namespace NPoco
         public int Update<T>(string sql, params object[] args)
         {
             var pd = PocoData.ForType(typeof(T));
-            return Execute(string.Format("UPDATE {0} {1}", EscapeTableName(pd.TableInfo.TableName), sql), args);
+            return Execute(string.Format("UPDATE {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
         }
 
         public int Update<T>(Sql sql)
         {
             var pd = PocoData.ForType(typeof(T));
-            return Execute(new Sql(string.Format("UPDATE {0}", EscapeTableName(pd.TableInfo.TableName))).Append(sql));
+            return Execute(new Sql(string.Format("UPDATE {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
         public int Delete(string tableName, string primaryKeyName, object poco)
@@ -1437,7 +1279,7 @@ namespace NPoco
 
             // Do it
             var index = 0;
-            var sql = string.Format("DELETE FROM {0} WHERE {1}", EscapeTableName(tableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
+            var sql = string.Format("DELETE FROM {0} WHERE {1}", _dbType.EscapeTableName(tableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
             return Execute(sql, primaryKeyValuePairs.Select(x=>x.Value).ToArray());
         }
 
@@ -1458,13 +1300,13 @@ namespace NPoco
         public int Delete<T>(string sql, params object[] args)
         {
             var pd = PocoData.ForType(typeof(T));
-            return Execute(string.Format("DELETE FROM {0} {1}", EscapeTableName(pd.TableInfo.TableName), sql), args);
+            return Execute(string.Format("DELETE FROM {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
         }
 
         public int Delete<T>(Sql sql)
         {
             var pd = PocoData.ForType(typeof(T));
-            return Execute(new Sql(string.Format("DELETE FROM {0}", EscapeTableName(pd.TableInfo.TableName))).Append(sql));
+            return Execute(new Sql(string.Format("DELETE FROM {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
         // Check if a poco represents a new record
@@ -1621,5 +1463,20 @@ namespace NPoco
         object[] _lastArgs;
         string _paramPrefix = "@";
         VersionExceptionHandling _versionException = VersionExceptionHandling.Ignore;
+
+        internal void ExecuteNonQueryHelper(IDbCommand cmd)
+        {
+            DoPreExecute(cmd);
+            cmd.ExecuteNonQuery();
+            OnExecutedCommand(cmd);
+        }
+
+        internal object ExecuteScalarHelper(IDbCommand cmd)
+        {
+            DoPreExecute(cmd);
+            object r = cmd.ExecuteScalar();
+            OnExecutedCommand(cmd);
+            return r;
+        }
     }
 }

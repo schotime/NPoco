@@ -56,6 +56,7 @@ namespace NPoco.FluentMappings
                     column.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(prop));
                     column.ResultColumn = scannerSettings.ResultPropertiesWhere(prop);
                     column.VersionColumn = scannerSettings.VersionPropertiesWhere(prop);
+                    column.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(prop);
                     pocoDefn.ColumnConfiguration.Add(prop.Name, column);
                 }
 
@@ -79,6 +80,7 @@ namespace NPoco.FluentMappings
                 PropertiesNamed = x => x.Name,
                 ResultPropertiesWhere = x => false,
                 VersionPropertiesWhere = x => false,
+                ForceDateTimesToUtcWhere = x => false,
                 SequencesNamed = x => null,
                 Lazy = false
             };

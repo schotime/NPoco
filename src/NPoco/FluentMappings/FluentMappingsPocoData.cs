@@ -62,6 +62,9 @@ namespace NPoco.FluentMappings
                     else if (colattr.VersionColumn.HasValue && colattr.VersionColumn.Value)
                         pc.VersionColumn = true;
 
+                    if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)
+                        pc.ForceToUtc = true;
+
                     if (TableInfo.PrimaryKey.Split(',').Contains(pi.Name))
                         TableInfo.PrimaryKey = (pc.ColumnName ?? pi.Name) + ",";
 
