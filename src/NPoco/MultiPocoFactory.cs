@@ -17,7 +17,7 @@ namespace NPoco
         public static object GetAutoMapper(Type[] types)
         {
             // Build a key
-            var key = string.Join(":", types.AsEnumerable());
+            var key = string.Join(":", types.Select(x=>x.ToString()).ToArray());
 
             return AutoMappers.Get(key, () =>
             {
