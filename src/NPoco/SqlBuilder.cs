@@ -32,7 +32,7 @@ namespace NPoco
             {
                 foreach (var item in this)
                 {
-                    item.Sql = Database.ProcessParams(item.Sql, item.Parameters.ToArray(), finalParams);
+                    item.Sql = ParameterHelper.ProcessParams(item.Sql, item.Parameters.ToArray(), finalParams);
                 }
                 return prefix + string.Join(joiner, this.Select(c => c.Sql).ToArray()) + postfix;
             }
@@ -47,7 +47,7 @@ namespace NPoco
 
             public Template(SqlBuilder builder, string sql, params object[] parameters)
             {
-                this.sql = Database.ProcessParams(sql, parameters, finalParams);
+                this.sql = ParameterHelper.ProcessParams(sql, parameters, finalParams);
                 this.builder = builder;
             }
 

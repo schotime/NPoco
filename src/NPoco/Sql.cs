@@ -114,7 +114,7 @@ namespace NPoco
                     sb.Append("\n");
                 }
 
-                var sql = Database.ProcessParams(_sql, _args, args);
+                var sql = ParameterHelper.ProcessParams(_sql, _args, args);
 
                 if (Is(lhs, "WHERE ") && Is(this, "WHERE "))
                     sql = "AND " + sql.Substring(6);
