@@ -4,9 +4,9 @@ namespace NPoco.DatabaseTypes
 {
     class MySqlDatabaseType : DatabaseType
     {
-        public override string GetParameterPrefix(string ConnectionString)
+        public override string GetParameterPrefix(string connectionString)
         {
-            if (ConnectionString != null && ConnectionString.IndexOf("Allow User Variables=true") >= 0)
+            if (connectionString != null && connectionString.IndexOf("Allow User Variables=true") >= 0)
                 return "?";
             else
                 return "@";

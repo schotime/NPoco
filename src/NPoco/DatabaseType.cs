@@ -15,9 +15,9 @@ namespace NPoco
         /// <summary>
         /// Returns the prefix used to delimit parameters in SQL query strings.
         /// </summary>
-        /// <param name="ConnectionString"></param>
+        /// <param name="connectionString"></param>
         /// <returns></returns>
-        public virtual string GetParameterPrefix(string ConnectionString)
+        public virtual string GetParameterPrefix(string connectionString)
         {
             return "@";
         }
@@ -119,9 +119,9 @@ namespace NPoco
         /// </summary>
         /// <param name="db">The calling Database object</param>
         /// <param name="cmd">The insert command to be executed</param>
-        /// <param name="PrimaryKeyName">The primary key of the table being inserted into</param>
+        /// <param name="primaryKeyName">The primary key of the table being inserted into</param>
         /// <returns>The ID of the newly inserted record</returns>
-        public virtual object ExecuteInsert(Database db, IDbCommand cmd, string PrimaryKeyName)
+        public virtual object ExecuteInsert(Database db, IDbCommand cmd, string primaryKeyName)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return db.ExecuteScalarHelper(cmd);
@@ -131,35 +131,35 @@ namespace NPoco
         /// <summary>
         /// Look at the type and provider name being used and instantiate a suitable DatabaseType instance.
         /// </summary>
-        /// <param name="TypeName"></param>
-        /// <param name="ProviderName"></param>
+        /// <param name="typeName"></param>
+        /// <param name="providerName"></param>
         /// <returns></returns>
-        public static DatabaseType Resolve(string TypeName, string ProviderName)
+        public static DatabaseType Resolve(string typeName, string providerName)
         {
             // Try using type name first (more reliable)
-            if (TypeName.StartsWith("MySql"))
+            if (typeName.StartsWith("MySql"))
                 return Singleton<MySqlDatabaseType>.Instance;
-            if (TypeName.StartsWith("SqlCe"))
+            if (typeName.StartsWith("SqlCe"))
                 return Singleton<SqlServerCEDatabaseType>.Instance;
-            if (TypeName.StartsWith("Npgsql") || TypeName.StartsWith("PgSql"))
+            if (typeName.StartsWith("Npgsql") || typeName.StartsWith("PgSql"))
                 return Singleton<PostgreSQLDatabaseType>.Instance;
-            if (TypeName.StartsWith("Oracle"))
+            if (typeName.StartsWith("Oracle"))
                 return Singleton<OracleDatabaseType>.Instance;
-            if (TypeName.StartsWith("SQLite"))
+            if (typeName.StartsWith("SQLite"))
                 return Singleton<SQLiteDatabaseType>.Instance;
-            if (TypeName.StartsWith("System.Data.SqlClient."))
+            if (typeName.StartsWith("System.Data.SqlClient."))
                 return Singleton<SqlServerDatabaseType>.Instance;
 
             // Try again with provider name
-            if (ProviderName.IndexOf("MySql", StringComparison.InvariantCultureIgnoreCase) >= 0)
+            if (providerName.IndexOf("MySql", StringComparison.InvariantCultureIgnoreCase) >= 0)
                 return Singleton<MySqlDatabaseType>.Instance;
-            if (ProviderName.IndexOf("SqlServerCe", StringComparison.InvariantCultureIgnoreCase) >= 0)
+            if (providerName.IndexOf("SqlServerCe", StringComparison.InvariantCultureIgnoreCase) >= 0)
                 return Singleton<SqlServerCEDatabaseType>.Instance;
-            if (ProviderName.IndexOf("pgsql", StringComparison.InvariantCultureIgnoreCase) >= 0)
+            if (providerName.IndexOf("pgsql", StringComparison.InvariantCultureIgnoreCase) >= 0)
                 return Singleton<PostgreSQLDatabaseType>.Instance;
-            if (ProviderName.IndexOf("Oracle", StringComparison.InvariantCultureIgnoreCase) >= 0)
+            if (providerName.IndexOf("Oracle", StringComparison.InvariantCultureIgnoreCase) >= 0)
                 return Singleton<OracleDatabaseType>.Instance;
-            if (ProviderName.IndexOf("SQLite", StringComparison.InvariantCultureIgnoreCase) >= 0)
+            if (providerName.IndexOf("SQLite", StringComparison.InvariantCultureIgnoreCase) >= 0)
                 return Singleton<SQLiteDatabaseType>.Instance;
 
             // Assume SQL Server

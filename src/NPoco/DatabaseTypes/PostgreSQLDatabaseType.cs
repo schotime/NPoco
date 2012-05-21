@@ -18,11 +18,11 @@ namespace NPoco.DatabaseTypes
             return string.Format("\"{0}\"", str);
         }
 
-        public override object ExecuteInsert(Database db, IDbCommand cmd, string PrimaryKeyName)
+        public override object ExecuteInsert(Database db, IDbCommand cmd, string primaryKeyName)
         {
-            if (PrimaryKeyName != null)
+            if (primaryKeyName != null)
             {
-                cmd.CommandText += string.Format("returning {0} as NewID", EscapeSqlIdentifier(PrimaryKeyName));
+                cmd.CommandText += string.Format("returning {0} as NewID", EscapeSqlIdentifier(primaryKeyName));
                 return db.ExecuteScalarHelper(cmd);
             }
             else

@@ -16,7 +16,7 @@ namespace NPoco.DatabaseTypes
             return sqlPage;
         }
 
-        public override object ExecuteInsert(Database db, IDbCommand cmd, string PrimaryKeyName)
+        public override object ExecuteInsert(Database db, IDbCommand cmd, string primaryKeyName)
         {
             return db.ExecuteScalarHelper(cmd);
         }

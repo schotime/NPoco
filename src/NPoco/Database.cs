@@ -28,14 +28,11 @@ namespace NPoco
     {
         public const string MsSqlClientProvider = "System.Data.SqlClient";
 
-        //public Database(IDbConnection connection) : this(connection, DBType.NotSet) {}
-
         public Database(IDbConnection connection)
         {
             _sharedConnection = connection;
             _connectionString = connection.ConnectionString;
             _sharedConnectionDepth = 2;		// Prevent closing external connection
-            //_dbType = dbType;
             CommonConstruct();
         }
 
@@ -77,18 +74,7 @@ namespace NPoco
             CommonConstruct();
         }
 
-        public enum DBType
-        {
-            NotSet,
-            SqlServer,
-            SqlServerCE,
-            MySql,
-            PostgreSQL,
-            Oracle,
-            SQLite
-        }
-
-        protected DatabaseType _dbType;
+        private DatabaseType _dbType;
 
         // Common initialization
         private void CommonConstruct()
@@ -105,7 +91,6 @@ namespace NPoco
 
             // What character is used for delimiting parameters in SQL
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
-
         }
 
         // Automatically close one open shared connection
@@ -326,12 +311,11 @@ namespace NPoco
         }
 
         // Create a command
-        static Regex rxParamsPrefix = new Regex(@"(?<!@)@\w+", RegexOptions.Compiled);
         IDbCommand CreateCommand(IDbConnection connection, string sql, params object[] args)
         {
             // Perform parameter prefix replacements
             if (_paramPrefix != "@")
-                sql = rxParamsPrefix.Replace(sql, m => _paramPrefix + m.Value.Substring(1));
+                sql = ParameterHelper.rxParamsPrefix.Replace(sql, m => _paramPrefix + m.Value.Substring(1));
             sql = sql.Replace("@@", "@");		   // <- double @@ escapes a single @
 
             // Create the command and add parameters

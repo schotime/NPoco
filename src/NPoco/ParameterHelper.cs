@@ -10,11 +10,11 @@ namespace NPoco
     public class ParameterHelper
     {
         // Helper to handle named parameters from object properties
-        public static Regex rxParams = new Regex(@"(?<!@)@\w+", RegexOptions.Compiled);
+        public static Regex rxParamsPrefix = new Regex(@"(?<!@)@\w+", RegexOptions.Compiled);
 
         public static string ProcessParams(string _sql, object[] args_src, List<object> args_dest)
         {
-            return rxParams.Replace(_sql, m =>
+            return rxParamsPrefix.Replace(_sql, m =>
             {
                 string param = m.Value.Substring(1);
 

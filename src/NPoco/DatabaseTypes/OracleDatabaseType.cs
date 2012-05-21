@@ -7,7 +7,7 @@ namespace NPoco.DatabaseTypes
 {
     class OracleDatabaseType : DatabaseType
     {
-        public override string GetParameterPrefix(string ConnectionString)
+        public override string GetParameterPrefix(string connectionString)
         {
             return ":";
         }
@@ -40,11 +40,11 @@ namespace NPoco.DatabaseTypes
             return null;
         }
 
-        public override object ExecuteInsert(Database db, IDbCommand cmd, string PrimaryKeyName)
+        public override object ExecuteInsert(Database db, IDbCommand cmd, string primaryKeyName)
         {
-            if (PrimaryKeyName != null)
+            if (primaryKeyName != null)
             {
-                cmd.CommandText += string.Format(" returning {0} into :newid", EscapeSqlIdentifier(PrimaryKeyName));
+                cmd.CommandText += string.Format(" returning {0} into :newid", EscapeSqlIdentifier(primaryKeyName));
                 var param = cmd.CreateParameter();
                 param.ParameterName = ":newid";
                 param.Value = DBNull.Value;

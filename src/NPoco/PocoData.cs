@@ -36,7 +36,7 @@ namespace NPoco
 #endif
                 return ForType(t);
         }
-        static System.Threading.ReaderWriterLockSlim RWLock = new System.Threading.ReaderWriterLockSlim();
+
         public static PocoData ForType(Type t)
         {
 #if !POCO_NO_DYNAMIC
@@ -108,7 +108,7 @@ namespace NPoco
             // Check cache
             var key = string.Format("{0}:{1}:{2}:{3}:{4}", sql, connString, firstColumn, countColumns, instance != GetDefault(type));
  
-            Func<Delegate> create = () =>
+            Func<Delegate> createFactory = () =>
             {
                 // Create the method
                 var m = new DynamicMethod("poco_factory_" + _pocoFactories.Count, type, new Type[] { typeof(IDataReader), type }, true);
@@ -337,8 +337,8 @@ namespace NPoco
                 return del;
             };
 
-            var factory = _pocoFactories.Get(key, create);
-            return factory;
+            var fac = _pocoFactories.Get(key, createFactory);
+            return fac;
         }
 
         private static void AddConverterToStack(ILGenerator il, Func<object, object> converter)
