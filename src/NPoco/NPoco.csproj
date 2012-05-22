@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AnsiString.cs" />
+    <Compile Include="AutoSelectHelper.cs" />
     <Compile Include="Cache.cs" />
     <Compile Include="ColumnAttribute.cs" />
     <Compile Include="ColumnInfo.cs" />

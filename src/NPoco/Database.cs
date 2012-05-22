@@ -428,26 +428,6 @@ namespace NPoco
             }
         }
 
-        static Regex rxSelect = new Regex(@"\A\s*(SELECT|EXECUTE|CALL|EXEC)\s", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Multiline);
-        static Regex rxFrom = new Regex(@"\A\s*FROM\s", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Multiline);
-        string AddSelectClause<T>(string sql)
-        {
-            if (sql.StartsWith(";"))
-                return sql.Substring(1);
-
-            if (!rxSelect.IsMatch(sql))
-            {
-                var pd = PocoData.ForType(typeof(T));
-                var tableName = _dbType.EscapeTableName(pd.TableInfo.TableName);
-                string cols = string.Join(", ", (from c in pd.QueryColumns select _dbType.EscapeSqlIdentifier(c)).ToArray());
-                if (!rxFrom.IsMatch(sql))
-                    sql = string.Format("SELECT {0} FROM {1} {2}", cols, tableName, sql);
-                else
-                    sql = string.Format("SELECT {0} {1}", cols, sql);
-            }
-            return sql;
-        }
-
         public bool ForceDateTimesToUtc { get; set; }
         public bool EnableAutoSelect { get; set; }
 
@@ -471,7 +451,7 @@ namespace NPoco
         {
             // Add auto select clause
             if (EnableAutoSelect)
-                sql = AddSelectClause<T>(sql);
+                sql = AutoSelectHelper.AddSelectClause<T>(_dbType, sql);
 
             // Split the SQL
             PagingHelper.SQLParts parts;
@@ -590,7 +570,7 @@ namespace NPoco
             var args = Sql.Arguments;
 
             if (EnableAutoSelect)
-                sql = AddSelectClause<T>(sql);
+                sql = AutoSelectHelper.AddSelectClause<T>(_dbType, sql);
 
             OpenSharedConnection();
             try
