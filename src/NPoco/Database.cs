@@ -75,6 +75,7 @@ namespace NPoco
         }
 
         private DatabaseType _dbType;
+        public DatabaseType DatabaseType { get { return _dbType; } }
 
         // Common initialization
         private void CommonConstruct()
@@ -1406,11 +1407,7 @@ namespace NPoco
             return sb.ToString();
         }
 
-        public static IMapper Mapper
-        {
-            get;
-            set;
-        }
+        public static IMapper Mapper { get; set; }
 
         public static Func<Type, PocoData> PocoDataFactory = type => new PocoData(type);
 
