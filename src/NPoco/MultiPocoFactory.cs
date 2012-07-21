@@ -134,6 +134,8 @@ namespace NPoco
             var kb = new StringBuilder();
             kb.Append(typeof(TRet).ToString());
             kb.Append(":");
+            kb.Append(r.FieldCount);
+            kb.Append(":");
             foreach (var t in types)
             {
                 kb.Append(":" + t);
