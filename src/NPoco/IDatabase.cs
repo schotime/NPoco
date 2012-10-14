@@ -11,6 +11,7 @@ namespace NPoco
         IDataParameter CreateParameter();
         Transaction GetTransaction();
         Transaction GetTransaction(IsolationLevel? isolationLevel);
+        IDatabase SetTransaction(IDbTransaction tran);
         void BeginTransaction();
         void BeginTransaction(IsolationLevel? isolationLevel);
         void AbortTransaction();

@@ -147,20 +147,23 @@ namespace NPoco
                 return Singleton<OracleDatabaseType>.Instance;
             if (typeName.StartsWith("SQLite"))
                 return Singleton<SQLiteDatabaseType>.Instance;
-            if (typeName.StartsWith("System.Data.SqlClient."))
+            if (typeName.StartsWith("SqlConnection"))
                 return Singleton<SqlServerDatabaseType>.Instance;
 
-            // Try again with provider name
-            if (providerName.IndexOf("MySql", StringComparison.InvariantCultureIgnoreCase) >= 0)
-                return Singleton<MySqlDatabaseType>.Instance;
-            if (providerName.IndexOf("SqlServerCe", StringComparison.InvariantCultureIgnoreCase) >= 0)
-                return Singleton<SqlServerCEDatabaseType>.Instance;
-            if (providerName.IndexOf("pgsql", StringComparison.InvariantCultureIgnoreCase) >= 0)
-                return Singleton<PostgreSQLDatabaseType>.Instance;
-            if (providerName.IndexOf("Oracle", StringComparison.InvariantCultureIgnoreCase) >= 0)
-                return Singleton<OracleDatabaseType>.Instance;
-            if (providerName.IndexOf("SQLite", StringComparison.InvariantCultureIgnoreCase) >= 0)
-                return Singleton<SQLiteDatabaseType>.Instance;
+            if (!string.IsNullOrEmpty(providerName))
+            {
+                // Try again with provider name
+                if (providerName.IndexOf("MySql", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    return Singleton<MySqlDatabaseType>.Instance;
+                if (providerName.IndexOf("SqlServerCe", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    return Singleton<SqlServerCEDatabaseType>.Instance;
+                if (providerName.IndexOf("pgsql", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    return Singleton<PostgreSQLDatabaseType>.Instance;
+                if (providerName.IndexOf("Oracle", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    return Singleton<OracleDatabaseType>.Instance;
+                if (providerName.IndexOf("SQLite", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    return Singleton<SQLiteDatabaseType>.Instance;
+            }
 
             // Assume SQL Server
             return Singleton<SqlServerDatabaseType>.Instance;
