@@ -224,22 +224,34 @@ namespace NPoco
                         var localDel = Delegate.CreateDelegate(delegateType, func.Target, func.Method);
                         return localDel;
                     }
-                    else if (type == typeof(object[]))
+                    else if (type.IsArray)
                     {
-                        Func<IDataReader, object, object[]> func = (reader, inst) =>
-                        {
-                            var obj = new object[countColumns - firstColumn];
-                            for (int i = firstColumn; i < firstColumn + countColumns; i++)
-                            {
-                                var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                                obj[i - firstColumn] = value;
-                            }
-                            return obj;
-                        };
+                        il.Emit(OpCodes.Ldc_I4_S, countColumns - firstColumn);
+                        il.Emit(OpCodes.Newarr, type.GetElementType());
 
-                        var delegateType = typeof(Func<,,>).MakeGenericType(typeof(IDataReader), type, typeof(object[]));
-                        var localDel = Delegate.CreateDelegate(delegateType, func.Target, func.Method);
-                        return localDel;
+                        var valueset = typeof(Array).GetMethod("SetValue", new[] { typeof(object), typeof(int) });
+
+                        for (int i = firstColumn; i < firstColumn + countColumns; i++)
+                        {
+                            // "if (!rdr.IsDBNull(i))"
+                            il.Emit(OpCodes.Ldarg_0);									// arr,rdr
+                            il.Emit(OpCodes.Ldc_I4, i);									// arr,rdr,i
+                            il.Emit(OpCodes.Callvirt, fnIsDBNull);						// arr,bool
+                            var lblNext = il.DefineLabel();
+                            il.Emit(OpCodes.Brtrue_S, lblNext);							// arr
+
+                            il.Emit(OpCodes.Dup);		                                    // arr,arr
+                            il.Emit(OpCodes.Ldarg_0);										// arr,arr,rdr
+                            il.Emit(OpCodes.Ldc_I4, i - firstColumn);						// arr,arr,rdr,i
+                            il.Emit(OpCodes.Callvirt, fnGetValue);							// arr,arr,value
+
+                            il.Emit(OpCodes.Ldc_I4, i - firstColumn);                       // arr,arr,value,i
+                            il.Emit(OpCodes.Callvirt, valueset);                            // arr
+
+                            il.MarkLabel(lblNext);                  
+                        }
+
+                        il.Emit(OpCodes.Castclass, type);
                     }
                     else
                     {
