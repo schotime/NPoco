@@ -18,6 +18,7 @@ namespace NPoco.DatabaseTypes
 
         public override object ExecuteInsert(Database db, IDbCommand cmd, string primaryKeyName)
         {
+            cmd.CommandText = "DECLARE @idt table(id bigint);" + cmd.CommandText + ";SELECT id FROM @idt";
             return db.ExecuteScalarHelper(cmd);
         }
 
@@ -28,7 +29,7 @@ namespace NPoco.DatabaseTypes
 
         public override string GetInsertOutputClause(string primaryKeyName)
         {
-            return String.Format(" OUTPUT INSERTED.[{0}]", primaryKeyName);
+            return String.Format(" OUTPUT INSERTED.[{0}] into @idt", primaryKeyName);
         }
     }
 }
