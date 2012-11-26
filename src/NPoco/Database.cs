@@ -1282,12 +1282,12 @@ namespace NPoco
         }
 
         // Check if a poco represents a new record
-        public bool IsNew(string primaryKeyName, object poco)
+        public bool IsNew<T>(object poco)
         {
-            var pd = PocoData.ForObject(poco, primaryKeyName);
+            var pd = PocoData.ForType(poco.GetType());
             object pk;
             PocoColumn pc;
-            if (pd.Columns.TryGetValue(primaryKeyName, out pc))
+            if (pd.Columns.TryGetValue(pd.TableInfo.PrimaryKey, out pc))
             {
                 pk = pc.GetValue(poco);
             }
@@ -1299,65 +1299,44 @@ namespace NPoco
 #endif
             else
             {
-                var pi = poco.GetType().GetProperty(primaryKeyName);
-                if (pi == null)
-                    throw new ArgumentException(string.Format("The object doesn't have a property matching the primary key column name '{0}'", primaryKeyName));
+                var pi = poco.GetType().GetProperty(pd.TableInfo.PrimaryKey);
+                if (pi == null) throw new ArgumentException(string.Format("The object doesn't have a property matching the primary key column name '{0}'", pd.TableInfo.PrimaryKey));
                 pk = pi.GetValue(poco, null);
             }
 
-            if (pk == null)
-                return true;
+            if (pk == null) return true;
+            if (!pd.TableInfo.AutoIncrement) return !Exists<T>(pk);
 
             var type = pk.GetType();
 
             if (type.IsValueType)
             {
                 // Common primary key types
-                if (type == typeof(long))
-                    return (long)pk == default(long);
-                else if (type == typeof(ulong))
-                    return (ulong)pk == default(ulong);
-                else if (type == typeof(int))
-                    return (int)pk == default(int);
-                else if (type == typeof(uint))
-                    return (uint)pk == default(uint);
-                else if (type == typeof(Guid))
-                    return (Guid)pk == default(Guid);
+                if (type == typeof(long)) return (long)pk == default(long);
+                if (type == typeof(ulong)) return (ulong)pk == default(ulong);
+                if (type == typeof(int)) return (int)pk == default(int);
+                if (type == typeof(uint)) return (uint)pk == default(uint);
+                if (type == typeof(Guid)) return (Guid)pk == default(Guid);
 
                 // Create a default instance and compare
                 return pk == Activator.CreateInstance(pk.GetType());
             }
-            else
-            {
-                return pk == null;
-            }
-        }
 
-        public bool IsNew(object poco)
-        {
-            var pd = PocoData.ForType(poco.GetType());
-            if (!pd.TableInfo.AutoIncrement)
-                throw new InvalidOperationException("IsNew() and Save() are only supported on tables with auto-increment/identity primary key columns");
-            return IsNew(pd.TableInfo.PrimaryKey, poco);
+            return false;
         }
 
         // Insert new record or Update existing record
-        public void Save(string tableName, string primaryKeyName, object poco)
+        public void Save<T>(object poco)
         {
-            if (IsNew(primaryKeyName, poco))
+            var pd = PocoData.ForType(poco.GetType());
+            if (IsNew<T>(poco))
             {
-                Insert(tableName, primaryKeyName, true, poco);
+                Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
             }
             else
             {
-                Update(tableName, primaryKeyName, poco);
+                Update(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco);
             }
-        }
-
-        public void Save(object poco)
-        {
-            var pd = PocoData.ForType(poco.GetType());
-            Save(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco);
         }
 
         public int CommandTimeout { get; set; }
