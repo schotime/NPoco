@@ -1,9 +1,10 @@
 ﻿using System.Data;
+using NPoco.Tests.Common;
 using NUnit.Framework;
 
-namespace NPoco.Tests.QueryTests
+namespace NPoco.Tests.DecoratedTests.QueryTests
 {
-    public class PagingTests : QueryTests
+    public class PagingDecoratedTest : BaseDBDecoratedTest
     {
         [Test]
         public void Page()
@@ -21,7 +22,7 @@ namespace NPoco.Tests.QueryTests
                         break;
                     }
                 }
-                if (!found) Assert.Fail("Could not find use '" + user.Name + "' in InMemoryUsers." );
+                if (!found) Assert.Fail("Could not find use '" + user.Name + "' in InMemoryUsers.");
             }
 
             // Check other stats

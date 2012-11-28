@@ -514,7 +514,7 @@ namespace NPoco
             long offset = 0;
             if (CalculatePagingAsPagesNotRecords)
             {
-                offset = (page - 1)*itemsPerPage;
+                offset = (page - 1) * itemsPerPage;
             }
             else
             {

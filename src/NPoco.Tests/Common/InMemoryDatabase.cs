@@ -37,7 +37,7 @@ namespace NPoco.Tests.Common
             cmd.CommandText = "CREATE TABLE Users(UserId INTEGER PRIMARY KEY, Name nvarchar(200), Age int, DateOfBirth datetime, Savings Decimal(10,5));";
             cmd.ExecuteNonQuery();
 
-            cmd.CommandText = "CREATE TABLE ExtraInfos(ExtraInfoId INTEGER PRIMARY KEY, UserId int, Email nvarchar(200), Children int);";
+            cmd.CommandText = "CREATE TABLE ExtraUserInfos(ExtraUserInfoId INTEGER PRIMARY KEY, UserId int, Email nvarchar(200), Children int);";
             cmd.ExecuteNonQuery();
 
             cmd.Dispose();
@@ -46,14 +46,14 @@ namespace NPoco.Tests.Common
         public override void CleanupDataBase()
         {
             base.CleanupDataBase();
-            
+
             if (Connection == null) return;
 
             var cmd = Connection.CreateCommand();
             cmd.CommandText = "DROP TABLE Users;";
             cmd.ExecuteNonQuery();
 
-            cmd.CommandText = "DROP TABLE ExtraInfos;";
+            cmd.CommandText = "DROP TABLE ExtraUserInfos;";
             cmd.ExecuteNonQuery();
 
             cmd.Dispose();

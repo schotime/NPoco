@@ -1,8 +1,6 @@
-﻿using System;
-using System.Linq;
-using System.Text;
+using System;
 
-namespace NPoco.Tests
+namespace NPoco.Tests.Common
 {
     public class User
     {
@@ -16,9 +14,9 @@ namespace NPoco.Tests
     public class Admin : User
     {
     }
-    
+
     public class UserWithExtraInfo : User
     {
-        public ExtraInfo ExtraInfo { get; set; }
+        public ExtraUserInfo ExtraUserInfo { get; set; }
     }
 }

@@ -73,13 +73,29 @@ namespace NPoco.Tests.Common
             cmd.ExecuteNonQuery();
 
             cmd.CommandText = @"
-                CREATE TABLE ExtraInfos(
-                    ExtraInfoId int IDENTITY(1,1) PRIMARY KEY NOT NULL, 
+                CREATE TABLE ExtraUserInfos(
+                    ExtraUserInfoId int IDENTITY(1,1) PRIMARY KEY NOT NULL, 
                     UserId int NOT NULL, 
                     Email nvarchar(200) NULL, 
                     Children int NULL
                 );
             ";
+            cmd.ExecuteNonQuery();
+
+            cmd.Dispose();
+        }
+
+        public override void CleanupDataBase()
+        {
+            base.CleanupDataBase();
+
+            if (Connection == null) return;
+
+            var cmd = Connection.CreateCommand();
+            cmd.CommandText = "DROP TABLE Users;";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = "DROP TABLE ExtraUserInfos;";
             cmd.ExecuteNonQuery();
 
             cmd.Dispose();

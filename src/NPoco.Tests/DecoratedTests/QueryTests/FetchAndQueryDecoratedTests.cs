@@ -1,18 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
+using NPoco.Tests.Common;
 using NUnit.Framework;
 
-namespace NPoco.Tests.QueryTests
+namespace NPoco.Tests.DecoratedTests.QueryTests
 {
     [TestFixture]
-    public class FetchAndQueryTests : QueryTests
+    public class FetchAndQueryDecoratedTest : BaseDBDecoratedTest
     {
         [Test]
         public void FetchAll()
         {
-            var users = Database.Fetch<User>();
+            var users = Database.Fetch<UserDecorated>();
 
             Assert.AreEqual(InMemoryUsers.Count, users.Count);
             for (int i = 0; i < InMemoryUsers.Count; i++)
@@ -24,7 +22,7 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void FetchAllWithSql()
         {
-            var users = Database.Fetch<User>("select * from users order by userid");
+            var users = Database.Fetch<UserDecorated>("select * from users order by userid");
 
             Assert.AreEqual(InMemoryUsers.Count, users.Count);
             for (int i = 0; i < InMemoryUsers.Count; i++)
@@ -36,7 +34,7 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void FetchWithWhere()
         {
-            var users = Database.Fetch<User>("where userid > 10 order by userid");
+            var users = Database.Fetch<UserDecorated>("where userid > 10 order by userid");
 
             Assert.AreEqual(5, users.Count);
             for (int i = 0; i < users.Count; i++)
@@ -48,7 +46,7 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void FetchWithPaging()
         {
-            var users = Database.Fetch<User>(2, 5, "where userid > 0 order by userid");
+            var users = Database.Fetch<UserDecorated>(2, 5, "where userid > 0 order by userid");
 
             Assert.AreEqual(5, users.Count);
             for (int i = 0; i < users.Count; i++)
@@ -60,7 +58,7 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void BasicPaging()
         {
-            var users = Database.Page<User>(3, 5, "order by userid");
+            var users = Database.Page<UserDecorated>(3, 5, "order by userid");
 
             Assert.AreEqual(5, users.Items.Count);
             for (int i = 0; i < users.Items.Count; i++)
@@ -77,7 +75,7 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void BasicSkipTake()
         {
-            var users = Database.SkipTake<User>(3, 2, "order by userid");
+            var users = Database.SkipTake<UserDecorated>(3, 2, "order by userid");
 
             Assert.AreEqual(2, users.Count);
             for (int i = 0; i < users.Count; i++)
@@ -89,7 +87,7 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void BasicSkipTakeWithNoResults()
         {
-            var users = Database.SkipTake<User>(50, 10, "order by userid");
+            var users = Database.SkipTake<UserDecorated>(50, 10, "order by userid");
             Assert.AreEqual(0, users.Count);
         }
 

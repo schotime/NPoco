@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using NPoco.FluentMappings;
+using NPoco.Tests.Common;
 using NUnit.Framework;
 
 namespace NPoco.Tests
@@ -27,14 +26,14 @@ namespace NPoco.Tests
         [Test]
         public void BasicDiffUsingSnapshotter()
         {
-            var user = new Admin() { UserId = 1 };
+            var user = new Admin { UserId = 1 };
             var snap = Snapshotter.Start(user);
-            
+
             user.Name = "Name1";
             user.Savings = 50.50m;
             user.DateOfBirth = new DateTime(2001, 1, 1);
             user.Age = 21;
-            
+
             Assert.AreEqual(4, snap.Changes().Count);
             Assert.AreEqual(4, snap.UpdatedColumns().Count);
         }
@@ -42,7 +41,7 @@ namespace NPoco.Tests
         [Test]
         public void ValuesAlreadySetUsingSnapshotter()
         {
-            var user = new Admin() { UserId = 1 };
+            var user = new Admin { UserId = 1 };
             user.Name = "Name1";
             user.Savings = 50.50m;
             user.DateOfBirth = new DateTime(2001, 1, 1);
@@ -61,7 +60,7 @@ namespace NPoco.Tests
         [Test]
         public void NoChangesUsingSnapshotter()
         {
-            var user = new Admin() { UserId = 1 };
+            var user = new Admin { UserId = 1 };
             var snap = Snapshotter.Start(user);
 
             Assert.AreEqual(0, snap.Changes().Count);

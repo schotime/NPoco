@@ -1,33 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
 using NPoco.DatabaseTypes;
-using NPoco.FluentMappings;
-using NPoco.Tests.Common;
 using NUnit.Framework;
 
-namespace NPoco.Tests.QueryTests
+namespace NPoco.Tests.Common
 {
-    public class QueryTests
+    public class BaseDBDecoratedTest : BaseDBTest
     {
-        public IDatabase Database { get; set; }
-        public TestDatabase TestDatabase { get; set; }
-
-        public List<User> InMemoryUsers { get; set; }
-        public List<ExtraInfo> InMemoryExtraUserInfos { get; set; }
+        public List<UserDecorated> InMemoryUsers { get; set; }
+        public List<ExtraUserInfoDecorated> InMemoryExtraUserInfos { get; set; }
 
         [SetUp]
-        public void SetUpFixture()
+        public void SetUp()
         {
-            var types = new[] { typeof(User), typeof(ExtraInfo) };
-            FluentMappingConfiguration.Scan(s =>
-            {
-                s.Assembly(typeof(User).Assembly);
-                s.IncludeTypes(types.Contains);
-                s.WithSmartConventions();
-            });
-
             var testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
             switch (testDBType)
             {
@@ -57,7 +43,7 @@ namespace NPoco.Tests.QueryTests
         }
 
         [TearDown]
-        public void CleanUpFixture()
+        public void CleanUp()
         {
             if (TestDatabase == null) return;
 
@@ -65,13 +51,13 @@ namespace NPoco.Tests.QueryTests
             TestDatabase.Dispose();
         }
 
-        private void InsertData()
+        protected void InsertData()
         {
-            InMemoryUsers = new List<User>();
-            InMemoryExtraUserInfos = new List<ExtraInfo>();
-            for (int i = 0; i < 15; i++)
+            InMemoryUsers = new List<UserDecorated>();
+            InMemoryExtraUserInfos = new List<ExtraUserInfoDecorated>();
+            for (var i = 0; i < 15; i++)
             {
-                var user = new User()
+                var user = new UserDecorated
                 {
                     Name = "Name" + (i + 1),
                     Age = 20 + (i + 1),
@@ -81,7 +67,7 @@ namespace NPoco.Tests.QueryTests
                 InMemoryUsers.Add(user);
                 Database.Insert(user);
 
-                var extra = new ExtraInfo()
+                var extra = new ExtraUserInfoDecorated
                 {
                     UserId = user.UserId,
                     Email = "email@email.com" + (i + 1),
@@ -92,7 +78,7 @@ namespace NPoco.Tests.QueryTests
             }
         }
 
-        protected void AssertUserValues(User expected, User actual)
+        protected void AssertUserValues(UserDecorated expected, UserDecorated actual)
         {
             Assert.AreEqual(expected.UserId, actual.UserId);
             Assert.AreEqual(expected.Name, actual.Name);
