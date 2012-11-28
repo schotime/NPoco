@@ -1,5 +1,4 @@
-﻿using System;
-using System.Data;
+﻿using System.Data;
 using NUnit.Framework;
 
 namespace NPoco.Tests.QueryTests
@@ -44,7 +43,7 @@ namespace NPoco.Tests.QueryTests
         public void Page_Distinct()
         {
             // Fetch em
-            var page = Database.Page<User>(2, 5, "SELECT DISTINCT Name FROM Users  WHERE UserID <= 15 ORDER BY UserID");
+            var page = Database.Page<User>(2, 5, "SELECT DISTINCT * FROM Users  WHERE UserID <= 15 ORDER BY UserID");
 
             // Check em
             foreach (var user in page.Items)
@@ -76,7 +75,7 @@ namespace NPoco.Tests.QueryTests
             // exactly pagesize*N records.
 
             // Fetch em
-            var page = Database.Page<User>(3, 5, "SELECT DISTINCT Name FROM Users  WHERE UserID <= 15 ORDER BY UserID");
+            var page = Database.Page<User>(3, 5, "SELECT DISTINCT * FROM Users  WHERE UserID <= 15 ORDER BY UserID");
 
             // Check other stats
             Assert.AreEqual(page.Items.Count, 5);

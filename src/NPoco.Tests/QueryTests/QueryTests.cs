@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
+using NPoco.DatabaseTypes;
 using NPoco.FluentMappings;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -10,15 +12,15 @@ namespace NPoco.Tests.QueryTests
     public class QueryTests
     {
         public IDatabase Database { get; set; }
-        public InMemoryDatabase InMemoryDB { get; set; }
-        
+        public TestDatabase TestDatabase { get; set; }
+
         public List<User> InMemoryUsers { get; set; }
         public List<ExtraInfo> InMemoryExtraUserInfos { get; set; }
 
-        [TestFixtureSetUp]
+        [SetUp]
         public void SetUpFixture()
         {
-            var types = new[] {typeof (User), typeof(ExtraInfo)};
+            var types = new[] { typeof(User), typeof(ExtraInfo) };
             FluentMappingConfiguration.Scan(s =>
             {
                 s.Assembly(typeof(User).Assembly);
@@ -26,13 +28,41 @@ namespace NPoco.Tests.QueryTests
                 s.WithSmartConventions();
             });
 
-            InMemoryDB = new InMemoryDatabase();
-            Database = new Database(InMemoryDB.Connection);
+            var testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
+            switch (testDBType)
+            {
+                case 1: // SQLite In-Memory
+                    TestDatabase = new InMemoryDatabase();
+                    Database = new Database(TestDatabase.Connection);
+                    break;
 
-            Database.Execute("CREATE TABLE Users(UserId INTEGER PRIMARY KEY, Name nvarchar(200), Age int, DateOfBirth datetime, Savings Decimal(10,5));");
-            Database.Execute("CREATE TABLE ExtraInfos(ExtraInfoId INTEGER PRIMARY KEY, UserId int, Email nvarchar(200), Children int);");
+                case 2: // SQL Local DB
+                case 3: // SQL Server
+                    TestDatabase = new SQLLocalDatabase();
+                    Database = new Database(TestDatabase.Connection, new SqlServer2012DatabaseType());
+                    break;
+
+                case 4:
+                case 5:
+                case 6:
+                    Assert.Fail("Database platform not supported for unit testing");
+                    return;
+
+                default:
+                    Assert.Fail("Unknown database platform specified");
+                    return;
+            }
 
             InsertData();
+        }
+
+        [TearDown]
+        public void CleanUpFixture()
+        {
+            if (TestDatabase == null) return;
+
+            TestDatabase.CleanupDataBase();
+            TestDatabase.Dispose();
         }
 
         private void InsertData()

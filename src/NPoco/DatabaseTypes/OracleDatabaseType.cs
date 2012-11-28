@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Text;
 
 namespace NPoco.DatabaseTypes
 {
-    class OracleDatabaseType : DatabaseType
+    public class OracleDatabaseType : DatabaseType
     {
         public override string GetParameterPrefix(string connectionString)
         {
@@ -54,12 +52,9 @@ namespace NPoco.DatabaseTypes
                 db.ExecuteNonQueryHelper(cmd);
                 return param.Value;
             }
-            else
-            {
-                db.ExecuteNonQueryHelper(cmd);
-                return -1;
-            }
-        }
 
+            db.ExecuteNonQueryHelper(cmd);
+            return -1;
+        }
     }
 }

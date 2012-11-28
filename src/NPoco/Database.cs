@@ -20,7 +20,6 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace NPoco
 {
@@ -36,10 +35,27 @@ namespace NPoco
             CommonConstruct();
         }
 
+        public Database(IDbConnection connection, DatabaseType dbType)
+        {
+            _sharedConnection = connection;
+            _connectionString = connection.ConnectionString;
+            _sharedConnectionDepth = 2;		// Prevent closing external connection
+            _dbType = dbType;
+            CommonConstruct();
+        }
+
         public Database(string connectionString, string providerName)
         {
             _connectionString = connectionString;
             _providerName = providerName;
+            CommonConstruct();
+        }
+
+        public Database(string connectionString, string providerName, DatabaseType dbType)
+        {
+            _connectionString = connectionString;
+            _providerName = providerName;
+            _dbType = dbType;
             CommonConstruct();
         }
 
@@ -83,12 +99,16 @@ namespace NPoco
             _transactionDepth = 0;
             ForceDateTimesToUtc = true;
             EnableAutoSelect = true;
+            CalculatePagingAsPagesNotRecords = true;
 
             if (_providerName != null)
                 _factory = DbProviderFactories.GetFactory(_providerName);
 
-            string DBTypeName = (_factory == null ? _sharedConnection.GetType() : _factory.GetType()).Name;
-            _dbType = DatabaseType.Resolve(DBTypeName, _providerName);
+            if (_dbType == null)
+            {
+                string DBTypeName = (_factory == null ? _sharedConnection.GetType() : _factory.GetType()).Name;
+                _dbType = DatabaseType.Resolve(DBTypeName, _providerName);
+            }
 
             // What character is used for delimiting parameters in SQL
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
@@ -244,10 +264,10 @@ namespace NPoco
         void AddParam(IDbCommand cmd, object value, string ParameterPrefix)
         {
             // Convert value to from poco type to db type
-            if (Mapper != null && value!=null)
+            if (Mapper != null && value != null)
             {
                 var fn = Mapper.GetParameterConverter(value.GetType());
-                if (fn!=null)
+                if (fn != null)
                     value = fn(value);
             }
 
@@ -286,7 +306,7 @@ namespace NPoco
                 {
                     // out of memory exception occurs if trying to save more than 4000 characters to SQL Server CE NText column. Set before attempting to set Size, or Size will always max out at 4000
                     if ((value as string).Length + 1 > 4000 && p.GetType().Name == "SqlCeParameter")
-                        p.GetType().GetProperty("SqlDbType").SetValue(p, SqlDbType.NText, null); 
+                        p.GetType().GetProperty("SqlDbType").SetValue(p, SqlDbType.NText, null);
 
                     p.Size = Math.Max((value as string).Length + 1, 4000);		// Help query plan caching by using common size
                     p.Value = value;
@@ -354,10 +374,25 @@ namespace NPoco
         }
 
         // Override this to log commands, or modify command before execution
-        public virtual IDbConnection OnConnectionOpened(IDbConnection conn) { return conn; }
-        public virtual void OnConnectionClosing(IDbConnection conn) { }
-        public virtual void OnExecutingCommand(IDbCommand cmd) { }
-        public virtual void OnExecutedCommand(IDbCommand cmd) { }
+        public virtual IDbConnection OnConnectionOpened(IDbConnection conn)
+        {
+            return conn;
+        }
+
+        public virtual void OnConnectionClosing(IDbConnection conn)
+        {
+
+        }
+
+        public virtual void OnExecutingCommand(IDbCommand cmd)
+        {
+
+        }
+
+        public virtual void OnExecutedCommand(IDbCommand cmd)
+        {
+            System.Diagnostics.Debug.WriteLine(LastCommand);
+        }
 
         // Execute a non-query command
         public int Execute(string sql, params object[] args)
@@ -438,14 +473,15 @@ namespace NPoco
 
         public bool ForceDateTimesToUtc { get; set; }
         public bool EnableAutoSelect { get; set; }
+        public bool CalculatePagingAsPagesNotRecords { get; set; }
 
         // Return a typed list of pocos
-        public List<T> Fetch<T>(string sql, params object[] args) 
+        public List<T> Fetch<T>(string sql, params object[] args)
         {
             return Fetch<T>(new Sql(sql, args));
         }
-            
-        public List<T> Fetch<T>(Sql sql) 
+
+        public List<T> Fetch<T>(Sql sql)
         {
             return Query<T>(sql).ToList();
         }
@@ -455,7 +491,7 @@ namespace NPoco
             return Fetch<T>("");
         }
 
-        public void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage) 
+        public void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage)
         {
             // Add auto select clause
             if (EnableAutoSelect)
@@ -471,10 +507,21 @@ namespace NPoco
         }
 
         // Fetch a page	
-        public Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args) 
+        public Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
             string sqlCount, sqlPage;
-            BuildPageQueries<T>((page-1)*itemsPerPage, itemsPerPage, sql, ref args, out sqlCount, out sqlPage);
+
+            long offset = 0;
+            if (CalculatePagingAsPagesNotRecords)
+            {
+                offset = (page - 1)*itemsPerPage;
+            }
+            else
+            {
+                offset = page;
+            }
+
+            BuildPageQueries<T>(offset, itemsPerPage, sql, ref args, out sqlCount, out sqlPage);
 
             // Save the one-time command time out and use it for both queries
             int saveTimeout = OneTimeCommandTimeout;
@@ -497,7 +544,7 @@ namespace NPoco
             return result;
         }
 
-        public Page<T> Page<T>(long page, long itemsPerPage, Sql sql) 
+        public Page<T> Page<T>(long page, long itemsPerPage, Sql sql)
         {
             return Page<T>(page, itemsPerPage, sql.SQL, sql.Arguments);
         }
@@ -542,14 +589,14 @@ namespace NPoco
 
                 if (isConverterSet == false)
                 {
-                    converter1 = PocoData.GetConverter(null, typeof (TKey), key.GetType()) ?? (x => x);
-                    converter2 = PocoData.GetConverter(null, typeof (TValue), value.GetType()) ?? (x => x);
+                    converter1 = PocoData.GetConverter(null, typeof(TKey), key.GetType()) ?? (x => x);
+                    converter2 = PocoData.GetConverter(null, typeof(TValue), value.GetType()) ?? (x => x);
                     isConverterSet = true;
                 }
 
-                var keyConverted = (TKey) Convert.ChangeType(converter1(key), typeof (TKey));
+                var keyConverted = (TKey)Convert.ChangeType(converter1(key), typeof(TKey));
 
-                var valueType = Nullable.GetUnderlyingType(typeof (TValue)) ?? typeof (TValue);
+                var valueType = Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
                 var valConv = converter2(value);
                 var valConverted = valConv != null ? (TValue)Convert.ChangeType(valConv, valueType) : default(TValue);
 
@@ -572,7 +619,7 @@ namespace NPoco
             return Query<T>(default(T), Sql);
         }
 
-        private IEnumerable<T> Query<T>(T instance, Sql Sql) 
+        private IEnumerable<T> Query<T>(T instance, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -597,7 +644,7 @@ namespace NPoco
                         OnException(x);
                         throw;
                     }
-                    
+
                     using (r)
                     {
                         var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
@@ -667,7 +714,7 @@ namespace NPoco
         public IEnumerable<T1> Query<T1, T2, T3>(Sql sql) { return Query<T1>(new Type[] { typeof(T1), typeof(T2), typeof(T3) }, null, sql); }
         public IEnumerable<T1> Query<T1, T2, T3, T4>(Sql sql) { return Query<T1>(new Type[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, sql); }
 
-   
+
         // Actual implementation of the multi-poco query
         public IEnumerable<TRet> Query<TRet>(Type[] types, object cb, Sql sql)
         {
@@ -744,7 +791,7 @@ namespace NPoco
         public Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql) { return FetchMultiple<T1, T2, T3, DontMap, Tuple<List<T1>, List<T2>, List<T3>>>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, Tuple<List<T1>, List<T2>, List<T3>>>((x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>>(x, y, z)), sql); }
         public Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql) { return FetchMultiple<T1, T2, T3, T4, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>((w, x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>, List<T4>>(w, x, y, z)), sql); }
 
-        public class DontMap {}
+        public class DontMap { }
 
         // Actual implementation of the multi query
         private TRet FetchMultiple<T1, T2, T3, T4, TRet>(Type[] types, object cb, Sql Sql)
@@ -780,10 +827,10 @@ namespace NPoco
                         {
                             if (typeIndex > types.Length)
                                 break;
-                            
-                            var pd = PocoData.ForType(types[typeIndex-1]);
+
+                            var pd = PocoData.ForType(types[typeIndex - 1]);
                             var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
-                            
+
                             while (true)
                             {
                                 try
@@ -837,25 +884,25 @@ namespace NPoco
             }
         }
 
-        public bool Exists<T>(object primaryKey) 
+        public bool Exists<T>(object primaryKey)
         {
             var index = 0;
             var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
             return FirstOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) != null;
         }
-        public T SingleById<T>(object primaryKey) 
+        public T SingleById<T>(object primaryKey)
         {
             var index = 0;
             var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
             return Single<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
-        public T SingleOrDefaultById<T>(object primaryKey) 
+        public T SingleOrDefaultById<T>(object primaryKey)
         {
             var index = 0;
             var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
             return SingleOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
-        public T Single<T>(string sql, params object[] args) 
+        public T Single<T>(string sql, params object[] args)
         {
             return Query<T>(sql, args).Single();
         }
@@ -863,7 +910,7 @@ namespace NPoco
         {
             return Query<T>(instance, new Sql(sql, args)).Single();
         }
-        public T SingleOrDefault<T>(string sql, params object[] args) 
+        public T SingleOrDefault<T>(string sql, params object[] args)
         {
             return Query<T>(sql, args).SingleOrDefault();
         }
@@ -871,7 +918,7 @@ namespace NPoco
         {
             return Query<T>(instance, new Sql(sql, args)).SingleOrDefault();
         }
-        public T First<T>(string sql, params object[] args) 
+        public T First<T>(string sql, params object[] args)
         {
             return Query<T>(sql, args).First();
         }
@@ -879,7 +926,7 @@ namespace NPoco
         {
             return Query<T>(instance, new Sql(sql, args)).First();
         }
-        public T FirstOrDefault<T>(string sql, params object[] args) 
+        public T FirstOrDefault<T>(string sql, params object[] args)
         {
             return Query<T>(sql, args).FirstOrDefault();
         }
@@ -887,7 +934,7 @@ namespace NPoco
         {
             return Query<T>(instance, new Sql(sql, args)).FirstOrDefault();
         }
-        public T Single<T>(Sql sql) 
+        public T Single<T>(Sql sql)
         {
             return Query<T>(sql).Single();
         }
@@ -895,7 +942,7 @@ namespace NPoco
         {
             return Query<T>(instance, sql).Single();
         }
-        public T SingleOrDefault<T>(Sql sql) 
+        public T SingleOrDefault<T>(Sql sql)
         {
             return Query<T>(sql).SingleOrDefault();
         }
@@ -903,7 +950,7 @@ namespace NPoco
         {
             return Query<T>(instance, sql).SingleOrDefault();
         }
-        public T First<T>(Sql sql) 
+        public T First<T>(Sql sql)
         {
             return Query<T>(sql).First();
         }
@@ -911,7 +958,7 @@ namespace NPoco
         {
             return Query<T>(instance, sql).First();
         }
-        public T FirstOrDefault<T>(Sql sql) 
+        public T FirstOrDefault<T>(Sql sql)
         {
             return Query<T>(sql).FirstOrDefault();
         }
@@ -949,7 +996,7 @@ namespace NPoco
                             continue;
 
                         // Don't insert the primary key (except under oracle where we need bring in the next sequence value)
-                        if (autoIncrement && primaryKeyName != null && string.Compare(i.Key, primaryKeyName, true)==0)
+                        if (autoIncrement && primaryKeyName != null && string.Compare(i.Key, primaryKeyName, true) == 0)
                         {
                             // Setup auto increment expression
                             string autoIncExpression = _dbType.GetAutoIncrementExpression(pd.TableInfo);
@@ -971,7 +1018,7 @@ namespace NPoco
                             if (converter != null)
                                 val = converter(val);
                         }
-                        
+
                         if (i.Value.VersionColumn)
                         {
                             val = 1;
@@ -1078,7 +1125,7 @@ namespace NPoco
             var sb = new StringBuilder();
             var index = 0;
             var rawvalues = new List<object>();
-            var pd = PocoData.ForObject(poco,primaryKeyName);
+            var pd = PocoData.ForObject(poco, primaryKeyName);
             string versionName = null;
             object versionValue = null;
 
@@ -1125,7 +1172,7 @@ namespace NPoco
 
             if (columns != null && columns.Any() && sb.Length == 0)
                 throw new ArgumentException("There were no columns in the columns list that matched your table", "columns");
-                        
+
             var sql = string.Format("UPDATE {0} SET {1} WHERE {2}", _dbType.EscapeTableName(tableName), sb, BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
 
             rawvalues.AddRange(primaryKeyValuePairs.Select(keyValue => keyValue.Value));
@@ -1133,7 +1180,7 @@ namespace NPoco
             if (!string.IsNullOrEmpty(versionName))
             {
                 sql += string.Format(" AND {0} = @{1}", _dbType.EscapeSqlIdentifier(versionName), index++);
-                rawvalues.Add(versionValue); 
+                rawvalues.Add(versionValue);
             }
 
             var result = Execute(sql, rawvalues.ToArray());
@@ -1163,7 +1210,7 @@ namespace NPoco
             return string.Join(" AND ", primaryKeyValuePair.Select((x, i) => string.Format("{0} = @{1}", _dbType.EscapeSqlIdentifier(x.Key), tempIndex + i)).ToArray());
         }
 
-        private Dictionary<string, object> GetPrimaryKeyValues(string primaryKeyName, object primaryKeyValue) 
+        private Dictionary<string, object> GetPrimaryKeyValues(string primaryKeyName, object primaryKeyValue)
         {
             Dictionary<string, object> primaryKeyValues;
 
@@ -1245,14 +1292,14 @@ namespace NPoco
                     if (primaryKeyValuePairs.ContainsKey(i.Key))
                     {
                         primaryKeyValuePairs[i.Key] = i.Value.GetValue(poco);
-                    }   
+                    }
                 }
             }
 
             // Do it
             var index = 0;
             var sql = string.Format("DELETE FROM {0} WHERE {1}", _dbType.EscapeTableName(tableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
-            return Execute(sql, primaryKeyValuePairs.Select(x=>x.Value).ToArray());
+            return Execute(sql, primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
 
         public int Delete(object poco)
@@ -1350,11 +1397,11 @@ namespace NPoco
                 cmd.CommandTimeout = OneTimeCommandTimeout;
                 OneTimeCommandTimeout = 0;
             }
-            else if (CommandTimeout!=0)
+            else if (CommandTimeout != 0)
             {
                 cmd.CommandTimeout = CommandTimeout;
             }
-            
+
             // Call hook
             OnExecutingCommand(cmd);
 

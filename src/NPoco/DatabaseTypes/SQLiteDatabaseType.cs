@@ -1,10 +1,10 @@
 namespace NPoco.DatabaseTypes
 {
-    class SQLiteDatabaseType : DatabaseType
+    public class SQLiteDatabaseType : DatabaseType
     {
         public override object MapParameterValue(object value)
         {
-            if (value.GetType() == typeof(uint))
+            if (value is uint)
                 return (long)((uint)value);
 
             return base.MapParameterValue(value);
@@ -17,17 +17,14 @@ namespace NPoco.DatabaseTypes
                 cmd.CommandText += ";\nSELECT last_insert_rowid();";
                 return db.ExecuteScalarHelper(cmd);
             }
-            else
-            {
-                db.ExecuteNonQueryHelper(cmd);
-                return -1;
-            }
+
+            db.ExecuteNonQueryHelper(cmd);
+            return -1;
         }
 
         public override string GetExistsSql()
         {
             return "SELECT EXISTS (SELECT 1 FROM {0} WHERE {1})";
         }
-
     }
 }

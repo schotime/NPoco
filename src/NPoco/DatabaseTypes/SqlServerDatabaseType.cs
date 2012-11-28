@@ -1,10 +1,9 @@
-using System;
 using System.Data;
 using System.Linq;
 
 namespace NPoco.DatabaseTypes
 {
-    class SqlServerDatabaseType : DatabaseType
+    public class SqlServerDatabaseType : DatabaseType
     {
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
@@ -18,7 +17,9 @@ namespace NPoco.DatabaseTypes
 
         public override object ExecuteInsert(Database db, IDbCommand cmd, string primaryKeyName)
         {
-            cmd.CommandText = "DECLARE @idt table(id bigint);" + cmd.CommandText + ";SELECT id FROM @idt";
+            // Ah this doesn't work on SQL 2012 so using the normal method for getting the identity back out instead
+            //cmd.CommandText = "DECLARE @idt table(id bigint);" + cmd.CommandText + ";SELECT id FROM @idt";
+            cmd.CommandText = cmd.CommandText + ";SELECT @@IDENTITY;";
             return db.ExecuteScalarHelper(cmd);
         }
 
@@ -27,9 +28,13 @@ namespace NPoco.DatabaseTypes
             return "IF EXISTS (SELECT 1 FROM {0} WHERE {1}) SELECT 1 ELSE SELECT 0";
         }
 
+        /* Like the @idt stuff in EsxecuteInsert I cannot get any SQL generated using this statement to execute in SQL 2005 or 
+         * SQL 2012 and give back the identity so using the standard @@identity code
+         * 
         public override string GetInsertOutputClause(string primaryKeyName)
         {
             return String.Format(" OUTPUT INSERTED.[{0}] into @idt", primaryKeyName);
         }
+        */
     }
 }

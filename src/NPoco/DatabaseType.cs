@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Text;
 using NPoco.DatabaseTypes;
 
 namespace NPoco
@@ -30,7 +28,7 @@ namespace NPoco
         public virtual object MapParameterValue(object value)
         {
             // Cast bools to integer
-            if (value.GetType() == typeof(bool))
+            if (value is bool)
             {
                 return ((bool)value) ? 1 : 0;
             }

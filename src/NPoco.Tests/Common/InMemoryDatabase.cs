@@ -1,59 +1,62 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Data;
 using System.Data.SQLite;
 
 namespace NPoco.Tests.Common
 {
-    public class InMemoryDatabase : IDisposable
+    public class InMemoryDatabase : TestDatabase
     {
-        public static string ConnectionString = "Data Source=:memory:;Version=3;";
-
-        public IDbConnection Connection { get; protected set; }
-
         public InMemoryDatabase()
         {
-            EnsureConfigured();
-
+            ConnectionString = "Data Source=:memory:;Version=3;";
             RecreateDataBase();
         }
 
-        private void RecreateDataBase()
+        public override void EnsureConfigured()
         {
-            Console.WriteLine("----------------------------");
-            Console.WriteLine("Creating database schema...");
-            Console.WriteLine("----------------------------");
-        }
+            if (Connection != null) return;
 
-        private static readonly object _syncRoot = new object();
-        private void EnsureConfigured()
-        {
-            if (Connection == null)
+            lock (_syncRoot)
             {
-                lock (_syncRoot)
-                {
-                    if (Connection == null)
-                    {
-                        Connection = new SQLiteConnection(ConnectionString);
-                        Connection.Open();
-                    }
-                }
+                Connection = new SQLiteConnection(ConnectionString);
+                Connection.Open();
             }
         }
 
-        public void Dispose()
+        public override void RecreateDataBase()
         {
             Console.WriteLine("----------------------------");
-            Console.WriteLine("Disposing connection...");
+            Console.WriteLine("Using SQLite In-Memory DB   ");
             Console.WriteLine("----------------------------");
 
-            if (Connection != null)
-            {
-                Connection.Close();
-                Connection.Dispose();
-            }
+            base.RecreateDataBase();
+
+            if (Connection == null) EnsureConfigured();
+            if (Connection == null) throw new Exception("Database conneciton failed.");
+
+            var cmd = Connection.CreateCommand();
+            cmd.CommandText = "CREATE TABLE Users(UserId INTEGER PRIMARY KEY, Name nvarchar(200), Age int, DateOfBirth datetime, Savings Decimal(10,5));";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = "CREATE TABLE ExtraInfos(ExtraInfoId INTEGER PRIMARY KEY, UserId int, Email nvarchar(200), Children int);";
+            cmd.ExecuteNonQuery();
+
+            cmd.Dispose();
+        }
+
+        public override void CleanupDataBase()
+        {
+            base.CleanupDataBase();
+            
+            if (Connection == null) return;
+
+            var cmd = Connection.CreateCommand();
+            cmd.CommandText = "DROP TABLE Users;";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = "DROP TABLE ExtraInfos;";
+            cmd.ExecuteNonQuery();
+
+            cmd.Dispose();
         }
     }
 }

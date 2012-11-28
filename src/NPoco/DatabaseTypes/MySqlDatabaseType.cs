@@ -2,14 +2,14 @@ using System.Data;
 
 namespace NPoco.DatabaseTypes
 {
-    class MySqlDatabaseType : DatabaseType
+    public class MySqlDatabaseType : DatabaseType
     {
         public override string GetParameterPrefix(string connectionString)
         {
             if (connectionString != null && connectionString.IndexOf("Allow User Variables=true") >= 0)
                 return "?";
-            else
-                return "@";
+
+            return "@";
         }
 
         public override void PreExecute(IDbCommand cmd)
