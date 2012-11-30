@@ -92,6 +92,7 @@
     <Compile Include="Snapshotter.cs" />
     <Compile Include="Sql.cs" />
     <Compile Include="SqlBuilder.cs" />
+    <Compile Include="SqlBulkCopyHelper.cs" />
     <Compile Include="SqlExtensions.cs" />
     <Compile Include="TableInfo.cs" />
     <Compile Include="TableNameAttribute.cs" />

@@ -127,6 +127,13 @@ namespace NPoco
             return db.ExecuteScalarHelper(cmd);
         }
 
+        public virtual void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
+        {
+            foreach (var poco in pocos)
+            {
+                db.Insert(poco);
+            }
+        }
 
         /// <summary>
         /// Look at the type and provider name being used and instantiate a suitable DatabaseType instance.

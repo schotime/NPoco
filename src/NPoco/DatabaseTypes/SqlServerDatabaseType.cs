@@ -27,5 +27,10 @@ namespace NPoco.DatabaseTypes
         {
             return "IF EXISTS (SELECT 1 FROM {0} WHERE {1}) SELECT 1 ELSE SELECT 0";
         }
+
+        public override void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
+        {
+            SqlBulkCopyHelper.BulkInsert(db, pocos);
+        }
     }
 }

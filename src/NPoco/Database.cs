@@ -1057,6 +1057,11 @@ namespace NPoco
             }
         }
 
+        public void InsertBulk<T>(IEnumerable<T> pocos)
+        {
+            _dbType.InsertBulk(this, pocos);
+        }
+
         // Insert an annotated poco object
         public object Insert(object poco)
         {

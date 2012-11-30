@@ -19,6 +19,7 @@ namespace NPoco
         object Insert(string tableName, string primaryKeyName, bool autoIncrement, object poco);
         object Insert(string tableName, string primaryKeyName, object poco);
         object Insert(object poco);
+        void InsertBulk<T>(IEnumerable<T> pocos);
         int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
         int Update(string tableName, string primaryKeyName, object poco);
         int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns);
