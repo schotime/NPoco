@@ -1,3 +1,5 @@
+using System.Data;
+
 namespace NPoco.DatabaseTypes
 {
     public class SQLiteDatabaseType : DatabaseType
@@ -25,6 +27,26 @@ namespace NPoco.DatabaseTypes
         public override string GetExistsSql()
         {
             return "SELECT EXISTS (SELECT 1 FROM {0} WHERE {1})";
+        }
+
+        public override IsolationLevel GetDefaultTransactionIsolationLevel()
+        {
+            return IsolationLevel.ReadCommitted;
+        }
+
+        public override string GetSQLForTransactionLevel(IsolationLevel isolationLevel)
+        {
+            switch (isolationLevel)
+            {
+                case IsolationLevel.ReadCommitted:
+                    return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
+
+                case IsolationLevel.Serializable:
+                    return "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;";
+
+                default:
+                    return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
+            }
         }
     }
 }

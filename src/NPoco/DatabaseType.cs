@@ -171,5 +171,39 @@ namespace NPoco
         {
             return string.Format("INSERT INTO {0} DEFAULT VALUES", EscapeTableName(tableName));
         }
+
+        public virtual IsolationLevel GetDefaultTransactionIsolationLevel()
+        {
+            return IsolationLevel.ReadCommitted;
+        }
+
+        public virtual string GetSQLForTransactionLevel(IsolationLevel isolationLevel)
+        {
+            switch (isolationLevel)
+            {
+                case IsolationLevel.ReadCommitted:
+                    return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
+
+                case IsolationLevel.ReadUncommitted:
+                    return "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;";
+
+                case IsolationLevel.RepeatableRead:
+                    return "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;";
+
+                case IsolationLevel.Serializable:
+                    return "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;";
+
+                case IsolationLevel.Snapshot:
+                    return "SET TRANSACTION ISOLATION LEVEL SNAPSHOT;";
+
+                default:
+                    return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
+            }
+        }
+
+        public virtual string GetProviderName()
+        {
+            return "System.Data.SqlClient";
+        }
     }
 }

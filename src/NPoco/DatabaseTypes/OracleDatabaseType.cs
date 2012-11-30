@@ -56,5 +56,10 @@ namespace NPoco.DatabaseTypes
             db.ExecuteNonQueryHelper(cmd);
             return -1;
         }
+
+        public override string GetProviderName()
+        {
+            return "System.Data.OracleClient";
+        }
     }
 }

@@ -61,11 +61,13 @@
     <Compile Include="Common\TestDatabase.cs" />
     <Compile Include="Common\User.cs" />
     <Compile Include="Common\UserDecorated.cs" />
+    <Compile Include="ConstructorTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\AdvancedFetchDecoratedTest.cs" />
     <Compile Include="DecoratedTests\QueryTests\ConverterDecoratedTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\FetchAndQueryDecoratedTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\PagingDecoratedTest.cs" />
     <Compile Include="DecoratedTests\QueryTests\SingleAndFirstQueryDecoratedTest.cs" />
+    <Compile Include="DecoratedTests\TransactionDecoratedTests.cs" />
     <Compile Include="FluentMappings\MapTests.cs" />
     <Compile Include="FluentTests\QueryTests\AdvancedFetchFluentTest.cs" />
     <Compile Include="FluentTests\QueryTests\ConverterFluentTest.cs" />

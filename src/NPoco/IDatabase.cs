@@ -10,10 +10,10 @@ namespace NPoco
         IDbTransaction Transaction { get; }
         IDataParameter CreateParameter();
         Transaction GetTransaction();
-        Transaction GetTransaction(IsolationLevel? isolationLevel);
-        IDatabase SetTransaction(IDbTransaction tran);
+        Transaction GetTransaction(IsolationLevel isolationLevel);
+        void SetTransaction(IDbTransaction tran);
         void BeginTransaction();
-        void BeginTransaction(IsolationLevel? isolationLevel);
+        void BeginTransaction(IsolationLevel isolationLevel);
         void AbortTransaction();
         void CompleteTransaction();
         object Insert(string tableName, string primaryKeyName, bool autoIncrement, object poco);

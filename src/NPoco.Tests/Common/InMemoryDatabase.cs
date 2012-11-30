@@ -8,10 +8,11 @@ namespace NPoco.Tests.Common
         public InMemoryDatabase()
         {
             ConnectionString = "Data Source=:memory:;Version=3;";
-            RecreateDataBase();
+            ProviderName = "Npgsql2";
+            EnsureSharedConnectionConfigured();
         }
 
-        public override void EnsureConfigured()
+        public override void EnsureSharedConnectionConfigured()
         {
             if (Connection != null) return;
 
@@ -29,9 +30,6 @@ namespace NPoco.Tests.Common
             Console.WriteLine("----------------------------");
 
             base.RecreateDataBase();
-
-            if (Connection == null) EnsureConfigured();
-            if (Connection == null) throw new Exception("Database conneciton failed.");
 
             var cmd = Connection.CreateCommand();
             cmd.CommandText = "CREATE TABLE Users(UserId INTEGER PRIMARY KEY, Name nvarchar(200), Age int, DateOfBirth datetime, Savings Decimal(10,5));";

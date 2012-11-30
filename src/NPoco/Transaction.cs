@@ -5,9 +5,7 @@ namespace NPoco
 {
     public class Transaction : IDisposable
     {
-        public Transaction(Database db) : this(db, null) { }
-
-        public Transaction(Database db, IsolationLevel? isolationLevel)
+        public Transaction(Database db, IsolationLevel isolationLevel)
         {
             _db = db;
             _db.BeginTransaction(isolationLevel);
@@ -21,8 +19,7 @@ namespace NPoco
 
         public void Dispose()
         {
-            if (_db != null)
-                _db.AbortTransaction();
+            if (_db != null) _db.AbortTransaction();
         }
 
         Database _db;

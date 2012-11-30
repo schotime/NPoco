@@ -17,5 +17,15 @@ namespace NPoco.DatabaseTypes
             db.ExecuteNonQueryHelper(cmd);
             return db.ExecuteScalar<object>("SELECT @@@IDENTITY AS NewID;");
         }
+
+        public override IsolationLevel GetDefaultTransactionIsolationLevel()
+        {
+            return IsolationLevel.ReadCommitted;
+        }
+
+        public override string GetProviderName()
+        {
+            return "System.Data.SqlServerCe.4.0";
+        }
     }
 }

@@ -74,17 +74,17 @@ namespace NPoco.Tests.Common
                     DateOfBirth = new DateTime(1970, 1, 1).AddYears(i + 1),
                     Savings = 50.00m + (1.01m * (i + 1))
                 };
-                InMemoryUsers.Add(user);
                 Database.Insert(user);
+                InMemoryUsers.Add(user);
 
                 var extra = new ExtraUserInfo
                 {
                     UserId = user.UserId,
-                    Email = "email@email.com" + (i + 1),
+                    Email = "email" + (i + 1) + "@email.com",
                     Children = (i + 1)
                 };
-                InMemoryExtraUserInfos.Add(extra);
                 Database.Insert(extra);
+                InMemoryExtraUserInfos.Add(extra);
             }
         }
 

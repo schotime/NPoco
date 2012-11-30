@@ -31,5 +31,10 @@ namespace NPoco.DatabaseTypes
         {
             return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", EscapeTableName(tableName), string.Join(",", names), string.Join(",", parameters));
         }
+
+        public override string GetProviderName()
+        {
+            return "MySql.Data.MySQLClient";
+        }
     }
 }

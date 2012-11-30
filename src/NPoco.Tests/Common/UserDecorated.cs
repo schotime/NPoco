@@ -23,14 +23,14 @@ namespace NPoco.Tests.Common
         public decimal Savings { get; set; }
     }
 
-    [TableName("Users")]
+    [TableName("TEST_Users")]
     [PrimaryKey("UserId")]
     [ExplicitColumns]
     public class AdminDecorated : UserDecorated
     {
     }
 
-    [TableName("Users")]
+    [TableName("TEST_Users")]
     [PrimaryKey("UserId")]
     [ExplicitColumns]
     public class UserDecoratedWithExtraInfo : UserDecorated

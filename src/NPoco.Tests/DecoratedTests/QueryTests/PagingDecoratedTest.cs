@@ -4,6 +4,8 @@ using NUnit.Framework;
 
 namespace NPoco.Tests.DecoratedTests.QueryTests
 {
+    [TestFixture]
+    //[NUnit.Framework.Ignore("Appearently the decorated syntax and fluent syntax are some how conflicting.")]
     public class PagingDecoratedTest : BaseDBDecoratedTest
     {
         [Test]

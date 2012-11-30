@@ -16,7 +16,7 @@ namespace NPoco.Tests.Common
             Console.WriteLine("Creating database schema... ");
         }
 
-        public abstract void EnsureConfigured();
+        public abstract void EnsureSharedConnectionConfigured();
 
         public virtual void CleanupDataBase()
         {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data;
 using NPoco.DatabaseTypes;
 using NUnit.Framework;
 
@@ -23,14 +24,15 @@ namespace NPoco.Tests.Common
                     break;
 
                 case 2: // SQL Local DB
-                case 3: // SQL Server
                     TestDatabase = new SQLLocalDatabase();
-                    Database = new Database(TestDatabase.Connection, new SqlServer2012DatabaseType());
+                    Database = new Database(TestDatabase.Connection, new SqlServer2012DatabaseType(), IsolationLevel.ReadUncommitted); // Need read uncommitted for the transaction tests
                     break;
 
-                case 4:
-                case 5:
-                case 6:
+                case 3: // SQL Server
+                case 4: // SQL CE
+                case 5: // MySQL
+                case 6: // Oracle
+                case 7: // Postgres
                     Assert.Fail("Database platform not supported for unit testing");
                     return;
 
@@ -39,6 +41,7 @@ namespace NPoco.Tests.Common
                     return;
             }
 
+            // Insert test data
             InsertData();
         }
 
@@ -64,17 +67,17 @@ namespace NPoco.Tests.Common
                     DateOfBirth = new DateTime(1970, 1, 1).AddYears(i + 1),
                     Savings = 50.00m + (1.01m * (i + 1))
                 };
-                InMemoryUsers.Add(user);
                 Database.Insert(user);
+                InMemoryUsers.Add(user);
 
                 var extra = new ExtraUserInfoDecorated
                 {
                     UserId = user.UserId,
-                    Email = "email@email.com" + (i + 1),
+                    Email = "email" + (i + 1) + "@email.com",
                     Children = (i + 1)
                 };
-                InMemoryExtraUserInfos.Add(extra);
                 Database.Insert(extra);
+                InMemoryExtraUserInfos.Add(extra);
             }
         }
 
