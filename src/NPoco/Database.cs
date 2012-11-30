@@ -587,8 +587,7 @@ namespace NPoco
 
             // Split the SQL
             PagingHelper.SQLParts parts;
-            if (!PagingHelper.SplitSQL(sql, out parts))
-                throw new Exception("Unable to parse SQL statement for paged query");
+            if (!PagingHelper.SplitSQL(sql, out parts)) throw new Exception("Unable to parse SQL statement for paged query");
 
             sqlPage = _dbType.BuildPageQuery(skip, take, parts, ref args);
             sqlCount = parts.sqlCount;

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace NPoco
 {
@@ -39,7 +35,6 @@ namespace NPoco
             if (rxDistinct.IsMatch(parts.sqlSelectRemoved))
             {
                 parts.sqlCount = sql.Substring(0, g.Index) + "COUNT(" + m.Groups[1].ToString().Trim() + ") " + sql.Substring(g.Index + g.Length);
-                parts.sqlCount = parts.sqlCount.Replace("DISTINCT", String.Empty);
             }
             else
             {
