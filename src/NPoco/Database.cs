@@ -58,12 +58,12 @@ namespace NPoco
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
 
             // Cause it is an external connection ensure that the isolation level matches ours
-            using (var cmd = _sharedConnection.CreateCommand())
-            {
-                cmd.CommandTimeout = CommandTimeout;
-                cmd.CommandText = _dbType.GetSQLForTransactionLevel(_isolationLevel);
-                cmd.ExecuteNonQuery();
-            }
+            //using (var cmd = _sharedConnection.CreateCommand())
+            //{
+            //    cmd.CommandTimeout = CommandTimeout;
+            //    cmd.CommandText = _dbType.GetSQLForTransactionLevel(_isolationLevel);
+            //    cmd.ExecuteNonQuery();
+            //}
         }
 
         public Database(string connectionString, string providerName)
@@ -200,12 +200,12 @@ namespace NPoco
             {
                 _sharedConnection.Open();
 
-                using (var cmd = _sharedConnection.CreateCommand())
-                {
-                    cmd.CommandTimeout = CommandTimeout;
-                    cmd.CommandText = _dbType.GetSQLForTransactionLevel(_isolationLevel);
-                    cmd.ExecuteNonQuery();
-                }
+                //using (var cmd = _sharedConnection.CreateCommand())
+                //{
+                //    cmd.CommandTimeout = CommandTimeout;
+                //    cmd.CommandText = _dbType.GetSQLForTransactionLevel(_isolationLevel);
+                //    cmd.ExecuteNonQuery();
+                //}
             }
 
             OnConnectionOpened(_sharedConnection);
@@ -1509,6 +1509,8 @@ namespace NPoco
         }
 
         public static IMapper Mapper { get; set; }
+
+        public Transaction BaseTransaction { get; set; }
 
         public static Func<Type, PocoData> PocoDataFactory = type => new PocoData(type);
 

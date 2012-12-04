@@ -9,17 +9,29 @@ namespace NPoco
         {
             _db = db;
             _db.BeginTransaction(isolationLevel);
+            if (_db.BaseTransaction == null)
+            {
+                _db.BaseTransaction = this;
+            }
         }
 
         public virtual void Complete()
         {
-            _db.CompleteTransaction();
-            _db = null;
+            if (_db.BaseTransaction == this)
+            {
+                _db.BaseTransaction = null;
+                _db.CompleteTransaction();
+                _db = null;
+            }
         }
 
         public void Dispose()
         {
-            if (_db != null) _db.AbortTransaction();
+            if (_db != null && _db.BaseTransaction == this)
+            {
+                _db.BaseTransaction = null;
+                _db.AbortTransaction();
+            }
         }
 
         Database _db;

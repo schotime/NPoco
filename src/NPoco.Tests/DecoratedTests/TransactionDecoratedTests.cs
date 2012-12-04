@@ -45,27 +45,10 @@ namespace NPoco.Tests.DecoratedTests
         {
             using (var scope = Database.GetTransaction())
             {
-                var user = new UserDecorated
-                {
-                    Name = "Name" + 16,
-                    Age = 20 + 16,
-                    DateOfBirth = new DateTime(1970, 1, 1).AddYears(16),
-                    Savings = 50.00m + (1.01m * 16)
-                };
-                InMemoryUsers.Add(user);
-                Database.Insert(user);
-
-                var extra = new ExtraUserInfoDecorated
-                {
-                    UserId = user.UserId,
-                    Email = "email" + 16 + "@email.com",
-                    Children = 16
-                };
-                InMemoryExtraUserInfos.Add(extra);
-                Database.Insert(extra);
-
                 using (var scope2 = Database.GetTransaction())
                 {
+                    
+
                     var user1 = new UserDecorated
                     {
                         Name = "Name" + 16,
@@ -86,7 +69,28 @@ namespace NPoco.Tests.DecoratedTests
                     Database.Insert(extra1);
                 }
 
-                scope.Complete();
+                var user = new UserDecorated
+                {
+                    Name = "Name" + 16,
+                    Age = 20 + 16,
+                    DateOfBirth = new DateTime(1970, 1, 1).AddYears(16),
+                    Savings = 50.00m + (1.01m * 16)
+                };
+                InMemoryUsers.Add(user);
+                Database.Insert(user);
+
+                var extra = new ExtraUserInfoDecorated
+                {
+                    UserId = user.UserId,
+                    Email = "email" + 16 + "@email.com",
+                    Children = 16
+                };
+                InMemoryExtraUserInfos.Add(extra);
+                Database.Insert(extra);
+
+                
+
+                //scope.Complete();
             }
 
             var count = Database.ExecuteScalar<long>("SELECT COUNT(*) FROM Users");

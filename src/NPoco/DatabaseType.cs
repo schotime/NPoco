@@ -11,6 +11,17 @@ namespace NPoco
     /// </summary>
     public abstract class DatabaseType
     {
+        // Helper Properties
+        public static DatabaseType SqlServer2012 { get { return Singleton<SqlServer2012DatabaseType>.Instance; } }
+        public static DatabaseType SqlServer2008 { get { return Singleton<SqlServer2008DatabaseType>.Instance; } }
+        public static DatabaseType SqlServer2005 { get { return Singleton<SqlServerDatabaseType>.Instance; } }
+        public static DatabaseType SqlServer2000 { get { return Singleton<SqlServerDatabaseType>.Instance; } }
+        public static DatabaseType PostgresSQL { get { return Singleton<PostgreSQLDatabaseType>.Instance; } }
+        public static DatabaseType Oracle { get { return Singleton<OracleDatabaseType>.Instance; } }
+        public static DatabaseType MySQL { get { return Singleton<MySqlDatabaseType>.Instance; } }
+        public static DatabaseType SQLite { get { return Singleton<SQLiteDatabaseType>.Instance; } }
+        public static DatabaseType SQLCe { get { return Singleton<SqlServerCEDatabaseType>.Instance; } }
+
         /// <summary>
         /// Returns the prefix used to delimit parameters in SQL query strings.
         /// </summary>
