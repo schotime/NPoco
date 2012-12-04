@@ -10,8 +10,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>NPoco.Tests</RootNamespace>
     <AssemblyName>NPoco.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -22,6 +23,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -30,12 +32,14 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="nunit.framework">
       <HintPath>..\..\lib\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.SQLite">
       <HintPath>..\..\lib\System.Data.SQLite.dll</HintPath>
@@ -47,16 +51,30 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\BaseDBDecoratedTest.cs" />
+    <Compile Include="Common\BaseDBFuentTest.cs" />
+    <Compile Include="Common\BaseDBTest.cs" />
+    <Compile Include="Common\ExtraUserInfoDecorated.cs" />
+    <Compile Include="Common\ExtraUserInfo.cs" />
     <Compile Include="Common\InMemoryDatabase.cs" />
-    <Compile Include="ExtraUserInfo.cs" />
+    <Compile Include="Common\SQLLocalDatabase.cs" />
+    <Compile Include="Common\TestDatabase.cs" />
+    <Compile Include="Common\User.cs" />
+    <Compile Include="Common\UserDecorated.cs" />
+    <Compile Include="ConstructorTests.cs" />
+    <Compile Include="DecoratedTests\QueryTests\AdvancedFetchDecoratedTest.cs" />
+    <Compile Include="DecoratedTests\QueryTests\ConverterDecoratedTests.cs" />
+    <Compile Include="DecoratedTests\QueryTests\FetchAndQueryDecoratedTests.cs" />
+    <Compile Include="DecoratedTests\QueryTests\PagingDecoratedTest.cs" />
+    <Compile Include="DecoratedTests\QueryTests\SingleAndFirstQueryDecoratedTest.cs" />
+    <Compile Include="DecoratedTests\TransactionDecoratedTests.cs" />
     <Compile Include="FluentMappings\MapTests.cs" />
-    <Compile Include="QueryTests\AdvancedFetchTests.cs" />
-    <Compile Include="QueryTests\ConverterTests.cs" />
-    <Compile Include="QueryTests\FetchAndQueryTests.cs" />
-    <Compile Include="QueryTests\QueryTests.cs" />
-    <Compile Include="QueryTests\SingleAndFirstQueryTests.cs" />
+    <Compile Include="FluentTests\QueryTests\AdvancedFetchFluentTest.cs" />
+    <Compile Include="FluentTests\QueryTests\ConverterFluentTest.cs" />
+    <Compile Include="FluentTests\QueryTests\FetchAndQueryFluentTest.cs" />
+    <Compile Include="FluentTests\QueryTests\PagingFluentTest.cs" />
+    <Compile Include="FluentTests\QueryTests\SingleAndFirstQueryFluentTest.cs" />
     <Compile Include="SnapshotterTests.cs" />
-    <Compile Include="User.cs" />
     <Compile Include="FluentMappings\ColumnConfigurationBuilderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -66,6 +84,12 @@
       <Name>NPoco</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NPoco.FluentMappings;
+using NPoco.Tests.Common;
 using NUnit.Framework;
 
 namespace NPoco.Tests.FluentMappings

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Text;
 using NPoco.DatabaseTypes;
 
 namespace NPoco
@@ -30,7 +29,7 @@ namespace NPoco
         public virtual object MapParameterValue(object value)
         {
             // Cast bools to integer
-            if (value.GetType() == typeof(bool))
+            if (value is bool)
             {
                 return ((bool)value) ? 1 : 0;
             }
@@ -179,6 +178,40 @@ namespace NPoco
         public virtual string GetDefaultInsertSql(string tableName, string[] names, string[] parameters)
         {
             return string.Format("INSERT INTO {0} DEFAULT VALUES", EscapeTableName(tableName));
+        }
+
+        public virtual IsolationLevel GetDefaultTransactionIsolationLevel()
+        {
+            return IsolationLevel.ReadCommitted;
+        }
+
+        public virtual string GetSQLForTransactionLevel(IsolationLevel isolationLevel)
+        {
+            switch (isolationLevel)
+            {
+                case IsolationLevel.ReadCommitted:
+                    return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
+
+                case IsolationLevel.ReadUncommitted:
+                    return "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;";
+
+                case IsolationLevel.RepeatableRead:
+                    return "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;";
+
+                case IsolationLevel.Serializable:
+                    return "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;";
+
+                case IsolationLevel.Snapshot:
+                    return "SET TRANSACTION ISOLATION LEVEL SNAPSHOT;";
+
+                default:
+                    return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
+            }
+        }
+
+        public virtual string GetProviderName()
+        {
+            return "System.Data.SqlClient";
         }
     }
 }

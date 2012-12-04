@@ -2,14 +2,14 @@ using System.Data;
 
 namespace NPoco.DatabaseTypes
 {
-    class MySqlDatabaseType : DatabaseType
+    public class MySqlDatabaseType : DatabaseType
     {
         public override string GetParameterPrefix(string connectionString)
         {
             if (connectionString != null && connectionString.IndexOf("Allow User Variables=true") >= 0)
                 return "?";
-            else
-                return "@";
+
+            return "@";
         }
 
         public override void PreExecute(IDbCommand cmd)
@@ -30,6 +30,11 @@ namespace NPoco.DatabaseTypes
         public override string GetDefaultInsertSql(string tableName, string[] names, string[] parameters)
         {
             return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", EscapeTableName(tableName), string.Join(",", names), string.Join(",", parameters));
+        }
+
+        public override string GetProviderName()
+        {
+            return "MySql.Data.MySQLClient";
         }
     }
 }

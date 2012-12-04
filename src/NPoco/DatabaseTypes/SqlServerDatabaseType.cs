@@ -1,11 +1,10 @@
-using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 
 namespace NPoco.DatabaseTypes
 {
-    class SqlServerDatabaseType : DatabaseType
+    public class SqlServerDatabaseType : DatabaseType
     {
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
@@ -31,6 +30,16 @@ namespace NPoco.DatabaseTypes
         public override void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
         {
             SqlBulkCopyHelper.BulkInsert(db, pocos);
+        }
+
+        public override IsolationLevel GetDefaultTransactionIsolationLevel()
+        {
+            return IsolationLevel.ReadCommitted;
+        }
+
+        public override string GetProviderName()
+        {
+            return "System.Data.SqlClient";
         }
     }
 }

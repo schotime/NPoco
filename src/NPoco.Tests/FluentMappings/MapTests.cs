@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using NPoco.FluentMappings;
+﻿using NPoco.FluentMappings;
+using NPoco.Tests.Common;
 using NUnit.Framework;
 
 namespace NPoco.Tests.FluentMappings
@@ -13,7 +10,7 @@ namespace NPoco.Tests.FluentMappings
         [Test]
         public void PrimaryKeyValueSetToPropertyName()
         {
-            var typeDefinition = new TypeDefinition(typeof (User));
+            var typeDefinition = new TypeDefinition(typeof(User));
             var map = new Map<User>(typeDefinition);
             map.PrimaryKey(x => x.UserId);
             Assert.AreEqual("UserId", typeDefinition.PrimaryKey);

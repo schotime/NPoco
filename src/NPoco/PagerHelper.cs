@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace NPoco
 {
@@ -37,9 +33,13 @@ namespace NPoco
             parts.sqlSelectRemoved = sql.Substring(g.Index);
 
             if (rxDistinct.IsMatch(parts.sqlSelectRemoved))
+            {
                 parts.sqlCount = sql.Substring(0, g.Index) + "COUNT(" + m.Groups[1].ToString().Trim() + ") " + sql.Substring(g.Index + g.Length);
+            }
             else
+            {
                 parts.sqlCount = sql.Substring(0, g.Index) + "COUNT(*) " + sql.Substring(g.Index + g.Length);
+            }
 
             // Look for the last "ORDER BY <whatever>" clause not part of a ROW_NUMBER expression
             m = rxOrderBy.Match(parts.sqlCount);

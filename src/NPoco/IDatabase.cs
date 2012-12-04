@@ -10,14 +10,13 @@ namespace NPoco
         IDbTransaction Transaction { get; }
         IDataParameter CreateParameter();
         Transaction GetTransaction();
-        Transaction GetTransaction(IsolationLevel? isolationLevel);
-        IDatabase SetTransaction(IDbTransaction tran);
+        Transaction GetTransaction(IsolationLevel isolationLevel);
+        void SetTransaction(IDbTransaction tran);
         void BeginTransaction();
-        void BeginTransaction(IsolationLevel? isolationLevel);
+        void BeginTransaction(IsolationLevel isolationLevel);
         void AbortTransaction();
         void CompleteTransaction();
         object Insert(string tableName, string primaryKeyName, bool autoIncrement, object poco);
-        object Insert(string tableName, string primaryKeyName, object poco);
         object Insert(object poco);
         void InsertBulk<T>(IEnumerable<T> pocos);
         int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
@@ -36,7 +35,7 @@ namespace NPoco
         int Delete<T>(string sql, params object[] args);
         int Delete<T>(Sql sql);
         int Delete<T>(object pocoOrPrimaryKey);
-        void Save(string tableName, string primaryKeyName, object poco);
-        void Save(object poco);
+        void Save<T>(object poco);
+        bool IsNew<T>(object poco);
     }
 }

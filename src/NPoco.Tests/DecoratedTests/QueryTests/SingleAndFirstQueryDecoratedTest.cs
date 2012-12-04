@@ -1,15 +1,17 @@
-using System;
+﻿using System;
+using NPoco.Tests.Common;
 using NUnit.Framework;
 
-namespace NPoco.Tests.QueryTests
+namespace NPoco.Tests.DecoratedTests.QueryTests
 {
     [TestFixture]
-    public class SingleAndFirstQueryTests : QueryTests
+    //[NUnit.Framework.Ignore("Appearently the decorated syntax and fluent syntax are some how conflicting.")]
+    public class SingleAndFirstQueryDecoratedTest : BaseDBDecoratedTest
     {
         [Test]
         public void SingleOrDefaultById()
         {
-            var user = Database.SingleOrDefaultById<User>(1);
+            var user = Database.SingleOrDefaultById<UserDecorated>(1);
 
             Assert.NotNull(user);
             AssertUserValues(InMemoryUsers[0], user);
@@ -18,14 +20,14 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void SingleOrDefaultByIdWithNoRecord()
         {
-            var user = Database.SingleOrDefaultById<User>(-1);
+            var user = Database.SingleOrDefaultById<UserDecorated>(-1);
             Assert.Null(user);
         }
 
         [Test]
         public void SingleById()
         {
-            var user = Database.SingleById<User>(1);
+            var user = Database.SingleById<UserDecorated>(1);
 
             Assert.NotNull(user);
             AssertUserValues(InMemoryUsers[0], user);
@@ -34,30 +36,30 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void SingleByIdWithNoRecord()
         {
-            Assert.Throws<InvalidOperationException>(() => Database.SingleById<User>(-1));
+            Assert.Throws<InvalidOperationException>(() => Database.SingleById<UserDecorated>(-1));
         }
 
         [Test]
         public void SingleInto()
         {
-            var u = new User();
+            var u = new UserDecorated();
             var user = Database.SingleInto(u, "select u.* from users u where u.userid = 1");
 
             AssertUserValues(InMemoryUsers[0], user);
             Assert.AreEqual(u, user);
         }
-        
+
         [Test]
         public void SingleIntoWithNoRecord()
         {
-            var u = new User();
-            Assert.Throws<InvalidOperationException>(() => Database.SingleInto<User>(u, "select u.* from users u where u.userid = -1"));
+            var u = new UserDecorated();
+            Assert.Throws<InvalidOperationException>(() => Database.SingleInto(u, "select u.* from users u where u.userid = -1"));
         }
 
         [Test]
         public void SingleOrDefaultInto()
         {
-            var u = new User();
+            var u = new UserDecorated();
             var user = Database.SingleOrDefaultInto(u, "select u.* from users u where u.userid = 1");
 
             AssertUserValues(InMemoryUsers[0], u);
@@ -67,17 +69,17 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void SingleOrDefaultIntoWithNoRecord()
         {
-            var u = new User();
+            var u = new UserDecorated();
             var user = Database.SingleOrDefaultInto(u, "select u.* from users u where u.userid = -1");
 
-            AssertUserValues(u, new User());
+            AssertUserValues(u, new UserDecorated());
             Assert.Null(user);
         }
 
         [Test]
         public void SingleSql()
         {
-            var user = Database.Single<User>("select u.* from users u where u.userid = 1");
+            var user = Database.Single<UserDecorated>("select u.* from users u where u.userid = 1");
 
             Assert.NotNull(user);
             AssertUserValues(InMemoryUsers[0], user);
@@ -86,13 +88,13 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void SingleSqlWithNoRecord()
         {
-            Assert.Throws<InvalidOperationException>(() => Database.Single<User>("select u.* from users u where u.userid = -1"));
+            Assert.Throws<InvalidOperationException>(() => Database.Single<UserDecorated>("select u.* from users u where u.userid = -1"));
         }
 
         [Test]
         public void SingleOrDefaultSql()
         {
-            var user = Database.SingleOrDefault<User>("select u.* from users u where u.userid = 1");
+            var user = Database.SingleOrDefault<UserDecorated>("select u.* from users u where u.userid = 1");
 
             Assert.NotNull(user);
             AssertUserValues(InMemoryUsers[0], user);
@@ -101,14 +103,14 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void SingleOrDefaultSqlWithNoRecord()
         {
-            var user = Database.SingleOrDefault<User>("select u.* from users u where u.userid = -1");
+            var user = Database.SingleOrDefault<UserDecorated>("select u.* from users u where u.userid = -1");
             Assert.Null(user);
         }
 
         [Test]
         public void FirstSql()
         {
-            var user = Database.First<User>("select u.* from users u order by u.userid");
+            var user = Database.First<UserDecorated>("select u.* from users u order by u.userid");
 
             Assert.NotNull(user);
             AssertUserValues(InMemoryUsers[0], user);
@@ -117,13 +119,13 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void FirstSqlWithNoRecord()
         {
-            Assert.Throws<InvalidOperationException>(() => Database.First<User>("select u.* from users u where u.userid < 0"));
+            Assert.Throws<InvalidOperationException>(() => Database.First<UserDecorated>("select u.* from users u where u.userid < 0"));
         }
 
         [Test]
         public void FirstOrDefaultSql()
         {
-            var user = Database.FirstOrDefault<User>("select u.* from users u order by u.userid");
+            var user = Database.FirstOrDefault<UserDecorated>("select u.* from users u order by u.userid");
 
             Assert.NotNull(user);
             AssertUserValues(InMemoryUsers[0], user);
@@ -132,7 +134,7 @@ namespace NPoco.Tests.QueryTests
         [Test]
         public void FirstOrDefaultSqlWithNoRecord()
         {
-            var user = Database.FirstOrDefault<User>("select u.* from users u where u.userid < 0");
+            var user = Database.FirstOrDefault<UserDecorated>("select u.* from users u where u.userid < 0");
             Assert.Null(user);
         }
     }

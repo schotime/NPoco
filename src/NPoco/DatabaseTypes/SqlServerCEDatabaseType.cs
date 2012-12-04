@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace NPoco.DatabaseTypes
 {
-    class SqlServerCEDatabaseType : DatabaseType
+    public class SqlServerCEDatabaseType : DatabaseType
     {
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
@@ -18,5 +18,14 @@ namespace NPoco.DatabaseTypes
             return db.ExecuteScalar<object>("SELECT @@@IDENTITY AS NewID;");
         }
 
+        public override IsolationLevel GetDefaultTransactionIsolationLevel()
+        {
+            return IsolationLevel.ReadCommitted;
+        }
+
+        public override string GetProviderName()
+        {
+            return "System.Data.SqlServerCe.4.0";
+        }
     }
 }

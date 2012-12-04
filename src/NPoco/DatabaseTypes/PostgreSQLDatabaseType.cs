@@ -2,13 +2,12 @@ using System.Data;
 
 namespace NPoco.DatabaseTypes
 {
-    class PostgreSQLDatabaseType : DatabaseType
+    public class PostgreSQLDatabaseType : DatabaseType
     {
         public override object MapParameterValue(object value)
         {
             // Don't map bools to ints in PostgreSQL
-            if (value.GetType() == typeof(bool))
-                return value;
+            if (value is bool) return value;
 
             return base.MapParameterValue(value);
         }
@@ -25,11 +24,14 @@ namespace NPoco.DatabaseTypes
                 cmd.CommandText += string.Format("returning {0} as NewID", EscapeSqlIdentifier(primaryKeyName));
                 return db.ExecuteScalarHelper(cmd);
             }
-            else
-            {
-                db.ExecuteNonQueryHelper(cmd);
-                return -1;
-            }
+
+            db.ExecuteNonQueryHelper(cmd);
+            return -1;
+        }
+
+        public override string GetProviderName()
+        {
+            return "Npgsql2";
         }
     }
 }
