@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NPoco.FluentMappings;
 
 namespace NPoco
 {
@@ -19,7 +20,7 @@ namespace NPoco
 
         public Database Build(Database database)
         {
-            if (database.Mapper != null)
+            if (_options.Mapper != null)
                 database.Mapper = _options.Mapper;
 
             if (_options.PocoDataFactory != null)
@@ -67,9 +68,9 @@ namespace NPoco
             return this;
         }
 
-        public DatabaseFactoryConfig WithFluentConfig(Func<IMapper, Func<Type, PocoData>> pocoDataFactory)
+        public DatabaseFactoryConfig WithFluentConfig(FluentConfig pocoDataFactory)
         {
-            _options.PocoDataFactory = pocoDataFactory(_options.Mapper);
+            _options.PocoDataFactory = pocoDataFactory.Config(_options.Mapper);
             return this;
         }
     }

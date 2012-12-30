@@ -15,8 +15,7 @@ namespace NPoco
         public static DatabaseType SqlServer2012 { get { return Singleton<SqlServer2012DatabaseType>.Instance; } }
         public static DatabaseType SqlServer2008 { get { return Singleton<SqlServer2008DatabaseType>.Instance; } }
         public static DatabaseType SqlServer2005 { get { return Singleton<SqlServerDatabaseType>.Instance; } }
-        public static DatabaseType SqlServer2000 { get { return Singleton<SqlServerDatabaseType>.Instance; } }
-        public static DatabaseType PostgresSQL { get { return Singleton<PostgreSQLDatabaseType>.Instance; } }
+        public static DatabaseType PostgreSQL { get { return Singleton<PostgreSQLDatabaseType>.Instance; } }
         public static DatabaseType Oracle { get { return Singleton<OracleDatabaseType>.Instance; } }
         public static DatabaseType MySQL { get { return Singleton<MySqlDatabaseType>.Instance; } }
         public static DatabaseType SQLite { get { return Singleton<SQLiteDatabaseType>.Instance; } }

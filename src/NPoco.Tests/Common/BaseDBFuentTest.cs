@@ -17,25 +17,28 @@ namespace NPoco.Tests.Common
         public void SetUp()
         {
             var types = new[] { typeof(User), typeof(ExtraUserInfo) };
-            FluentMappingConfiguration.Scan(s =>
-            {
-                s.Assembly(typeof(User).Assembly);
-                s.IncludeTypes(types.Contains);
-                s.WithSmartConventions();
-            });
+            var dbFactory = new DatabaseFactory();
+            dbFactory.Config().WithFluentConfig(
+                FluentMappingConfiguration.Scan(s =>
+                {
+                    s.Assembly(typeof (User).Assembly);
+                    s.IncludeTypes(types.Contains);
+                    s.WithSmartConventions();
+                })
+            );
 
             var testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
             switch (testDBType)
             {
                 case 1: // SQLite In-Memory
                     TestDatabase = new InMemoryDatabase();
-                    Database = new Database(TestDatabase.Connection);
+                    Database = dbFactory.Build(new Database(TestDatabase.Connection));
                     break;
 
                 case 2: // SQL Local DB
                 case 3: // SQL Server
                     TestDatabase = new SQLLocalDatabase();
-                    Database = new Database(TestDatabase.Connection, new SqlServer2012DatabaseType());
+                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2012DatabaseType()));
                     break;
 
                 case 4:

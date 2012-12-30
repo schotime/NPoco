@@ -6,20 +6,30 @@ using System.Reflection;
 
 namespace NPoco.FluentMappings
 {
+    public class FluentConfig
+    {
+        public FluentConfig(Func<IMapper, Func<Type, PocoData>> config)
+        {
+            Config = config;
+        }
+
+        public Func<IMapper, Func<Type, PocoData>> Config { get; private set; }
+    }
+
     public class FluentMappingConfiguration
     {
-        public static Func<IMapper, Func<Type, PocoData>> Configure(params IMap[] pocoMaps)
+        public static FluentConfig Configure(params IMap[] pocoMaps)
         {
             var mappings = Mappings.BuildMappingsFromMaps(pocoMaps);
             return Configure(mappings);
         }
 
-        public static Func<IMapper, Func<Type, PocoData>> Configure(Mappings mappings)
+        public static FluentConfig Configure(Mappings mappings)
         {
             return SetFactory(mappings, null);
         }
 
-        public static Func<IMapper, Func<Type, PocoData>> Scan(Action<IConventionScanner> scanner)
+        public static FluentConfig Scan(Action<IConventionScanner> scanner)
         {
             var scannerSettings = ProcessSettings(scanner);
             if (scannerSettings.Lazy)
@@ -130,11 +140,11 @@ namespace NPoco.FluentMappings
             }
         }
 
-        private static Func<IMapper, Func<Type, PocoData>> SetFactory(Mappings mappings, Action<IConventionScanner> scanner)
+        private static FluentConfig SetFactory(Mappings mappings, Action<IConventionScanner> scanner)
         {
             var maps = mappings;
             var scana = scanner;
-            return mapper => t =>
+            return new FluentConfig(mapper => t =>
             {
                 if (maps != null)
                 {
@@ -151,7 +161,7 @@ namespace NPoco.FluentMappings
                     }
                 }
                 return new PocoData(t, mapper);
-            };
+            });
         }
 
         // Helper method if code is in seperate assembly
