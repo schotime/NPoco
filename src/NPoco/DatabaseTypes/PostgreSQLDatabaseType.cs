@@ -21,7 +21,7 @@ namespace NPoco.DatabaseTypes
         {
             if (primaryKeyName != null)
             {
-                cmd.CommandText += string.Format("returning {0} as NewID", EscapeSqlIdentifier(primaryKeyName));
+                cmd.CommandText += string.Format(" returning {0} as NewID", EscapeSqlIdentifier(primaryKeyName));
                 return db.ExecuteScalarHelper(cmd);
             }
 
