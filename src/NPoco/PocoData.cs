@@ -11,9 +11,10 @@ namespace NPoco
 {
     public class PocoData
     {
+        private readonly IMapper _mapper;
         static readonly EnumMapper EnumMapper = new EnumMapper();
 
-        public static PocoData ForObject(object o, string primaryKeyName)
+        public static PocoData ForObject(object o, string primaryKeyName, Func<Type, PocoData> factory)
         {
             var t = o.GetType();
 #if !POCO_NO_DYNAMIC
@@ -34,32 +35,33 @@ namespace NPoco
             }
             else
 #endif
-                return ForType(t);
+                return ForType(t, factory);
         }
 
-        public static PocoData ForType(Type t)
+        public static PocoData ForType(Type t, Func<Type, PocoData> factory)
         {
 #if !POCO_NO_DYNAMIC
             if (t == typeof(System.Dynamic.ExpandoObject))
                 throw new InvalidOperationException("Can't use dynamic types with this method");
 #endif
             
-            var pd = _pocoDatas.Get(t, () => Database.PocoDataFactory(t));
+            var pd = _pocoDatas.Get(t, () => factory(t));
             return pd;
         }
 
-        public PocoData()
+        protected PocoData()
         {
         }
 
-        public PocoData(Type t)
+        public PocoData(Type t, IMapper mapper)
         {
             type = t;
+            _mapper = mapper;
             TableInfo = TableInfo.FromPoco(t);
 
             // Call column mapper
-            if (Database.Mapper != null)
-                Database.Mapper.GetTableInfo(t, TableInfo);
+            if (_mapper != null)
+                _mapper.GetTableInfo(t, TableInfo);
 
             // Work out bound properties
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
@@ -76,7 +78,7 @@ namespace NPoco
                 pc.ForceToUtc = ci.ForceToUtc;
                 pc.ColumnType = ci.ColumnType;
 
-                if (Database.Mapper != null && !Database.Mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
+                if (_mapper != null && !_mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;
 
                 // Store it
@@ -132,8 +134,8 @@ namespace NPoco
 
                         // Get the converter
                         Func<object, object> converter = null;
-                        if (Database.Mapper != null)
-                            converter = Database.Mapper.GetFromDbConverter((Type)null, srcType);
+                        if (_mapper != null)
+                            converter = _mapper.GetFromDbConverter((Type)null, srcType);
 
                         //if (ForceDateTimesToUtc && converter == null && srcType == typeof(DateTime))
                         //    converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
@@ -177,7 +179,7 @@ namespace NPoco
                     {
                         // Do we need to install a converter?
                         var srcType = r.GetFieldType(0);
-                        var converter = GetConverter(null, srcType, type);
+                        var converter = GetConverter(_mapper, null, srcType, type);
 
                         // "if (!rdr.IsDBNull(i))"
                         il.Emit(OpCodes.Ldarg_0);										// rdr
@@ -285,7 +287,7 @@ namespace NPoco
                             il.Emit(OpCodes.Dup);											// poco,poco
 
                             // Do we need to install a converter?
-                            var converter = GetConverter(pc, srcType, dstType);
+                            var converter = GetConverter(_mapper, pc, srcType, dstType);
 
                             // Fast
                             bool Handled = false;
@@ -368,14 +370,14 @@ namespace NPoco
             }
         }
 
-        public static Func<object, object> GetConverter(PocoColumn pc, Type srcType, Type dstType)
+        public static Func<object, object> GetConverter(IMapper mapper, PocoColumn pc, Type srcType, Type dstType)
         {
             Func<object, object> converter = null;
 
             // Get converter from the mapper
-            if (Database.Mapper != null)
+            if (mapper != null)
             {
-                converter = pc != null ? Database.Mapper.GetFromDbConverter(pc.PropertyInfo, srcType) : Database.Mapper.GetFromDbConverter(dstType, srcType);
+                converter = pc != null ? mapper.GetFromDbConverter(pc.PropertyInfo, srcType) : mapper.GetFromDbConverter(dstType, srcType);
                 if (converter != null)
                     return converter;
             }

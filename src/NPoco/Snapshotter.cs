@@ -10,9 +10,9 @@ namespace NPoco
     // http://code.google.com/p/stack-exchange-data-explorer/source/browse/App/StackExchange.DataExplorer/Dapper/Snapshotter.cs
     public static class Snapshotter
     {
-        public static Snapshot<T> Start <T>(T obj)
+        public static Snapshot<T> StartSnapshot<T>(this IDatabase d, T obj)
         {
-            return new Snapshot<T>(obj);
+            return new Snapshot<T>(d, obj);
         }
     }
 
@@ -24,11 +24,11 @@ namespace NPoco
         T trackedObject;
         PocoData pocoData;
 
-        public Snapshot(T original)
+        public Snapshot(IDatabase d, T original)
         {
             memberWiseClone = Clone(original);
             trackedObject = original;
-            pocoData = PocoData.ForType(typeof(T));
+            pocoData = PocoData.ForType(typeof(T), ((IDatabaseConfig)d).PocoDataFactory);
         }
 
         public class Change

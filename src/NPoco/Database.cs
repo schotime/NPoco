@@ -24,7 +24,7 @@ using System.Text;
 
 namespace NPoco
 {
-    public class Database : IDisposable, IDatabase
+    public class Database : IDisposable, IDatabase, IDatabaseConfig
     {
         public const bool DefaultForceDateTimesToUtc = true;
         public const bool DefaultEnableAutoSelect = true;
@@ -583,7 +583,7 @@ namespace NPoco
         {
             // Add auto select clause
             if (EnableAutoSelect)
-                sql = AutoSelectHelper.AddSelectClause<T>(_dbType, sql);
+                sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
 
             // Split the SQL
             PagingHelper.SQLParts parts;
@@ -676,8 +676,8 @@ namespace NPoco
 
                 if (isConverterSet == false)
                 {
-                    converter1 = PocoData.GetConverter(null, typeof(TKey), key.GetType()) ?? (x => x);
-                    converter2 = PocoData.GetConverter(null, typeof(TValue), value.GetType()) ?? (x => x);
+                    converter1 = PocoData.GetConverter(Mapper, null, typeof(TKey), key.GetType()) ?? (x => x);
+                    converter2 = PocoData.GetConverter(Mapper, null, typeof(TValue), value.GetType()) ?? (x => x);
                     isConverterSet = true;
                 }
 
@@ -711,13 +711,13 @@ namespace NPoco
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
-            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause<T>(_dbType, sql);
+            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
 
             OpenSharedConnection();
             using (var cmd = CreateCommand(_sharedConnection, sql, args))
             {
                 IDataReader r;
-                var pd = PocoData.ForType(typeof(T));
+                var pd = PocoData.ForType(typeof(T), PocoDataFactory);
                 try
                 {
                     r = cmd.ExecuteReader();
@@ -810,7 +810,7 @@ namespace NPoco
                     OnException(x);
                     throw;
                 }
-                var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(types, sql.SQL, _sharedConnection.ConnectionString, r);
+                var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, sql.SQL, _sharedConnection.ConnectionString, r);
                 if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
                 var bNeedTerminator = false;
                 using (r)
@@ -903,7 +903,7 @@ namespace NPoco
                         if (typeIndex > types.Length)
                             break;
 
-                        var pd = PocoData.ForType(types[typeIndex - 1]);
+                        var pd = PocoData.ForType(types[typeIndex - 1], PocoDataFactory);
                         var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
 
                         while (true)
@@ -957,19 +957,19 @@ namespace NPoco
         public bool Exists<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T), PocoDataFactory).TableInfo.PrimaryKey, primaryKey);
             return FirstOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) != null;
         }
         public T SingleById<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T), PocoDataFactory).TableInfo.PrimaryKey, primaryKey);
             return Single<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
         public T SingleOrDefaultById<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T), PocoDataFactory).TableInfo.PrimaryKey, primaryKey);
             return SingleOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
         public T Single<T>(string sql, params object[] args)
@@ -1051,7 +1051,7 @@ namespace NPoco
             {
                 OpenSharedConnection();
 
-                var pd = PocoData.ForObject(poco, primaryKeyName);
+                var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
                 var names = new List<string>();
                 var values = new List<string>();
                 var rawvalues = new List<object>();
@@ -1175,7 +1175,7 @@ namespace NPoco
         // Insert an annotated poco object
         public object Insert(object poco)
         {
-            var pd = PocoData.ForType(poco.GetType());
+            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
             return Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
         }
 
@@ -1192,7 +1192,7 @@ namespace NPoco
             var sb = new StringBuilder();
             var index = 0;
             var rawvalues = new List<object>();
-            var pd = PocoData.ForObject(poco, primaryKeyName);
+            var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
             string versionName = null;
             object versionValue = null;
 
@@ -1327,19 +1327,19 @@ namespace NPoco
 
         public int Update(object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            var pd = PocoData.ForType(poco.GetType());
+            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
             return Update(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco, primaryKeyValue, columns);
         }
 
         public int Update<T>(string sql, params object[] args)
         {
-            var pd = PocoData.ForType(typeof(T));
+            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
             return Execute(string.Format("UPDATE {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
         }
 
         public int Update<T>(Sql sql)
         {
-            var pd = PocoData.ForType(typeof(T));
+            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
             return Execute(new Sql(string.Format("UPDATE {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
@@ -1354,7 +1354,7 @@ namespace NPoco
             // If primary key value not specified, pick it up from the object
             if (primaryKeyValue == null)
             {
-                var pd = PocoData.ForObject(poco, primaryKeyName);
+                var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
                 foreach (var i in pd.Columns)
                 {
                     if (primaryKeyValuePairs.ContainsKey(i.Key))
@@ -1372,7 +1372,7 @@ namespace NPoco
 
         public int Delete(object poco)
         {
-            var pd = PocoData.ForType(poco.GetType());
+            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
             return Delete(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco);
         }
 
@@ -1380,26 +1380,26 @@ namespace NPoco
         {
             if (pocoOrPrimaryKey.GetType() == typeof(T))
                 return Delete(pocoOrPrimaryKey);
-            var pd = PocoData.ForType(typeof(T));
+            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
             return Delete(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, null, pocoOrPrimaryKey);
         }
 
         public int Delete<T>(string sql, params object[] args)
         {
-            var pd = PocoData.ForType(typeof(T));
+            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
             return Execute(string.Format("DELETE FROM {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
         }
 
         public int Delete<T>(Sql sql)
         {
-            var pd = PocoData.ForType(typeof(T));
+            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
             return Execute(new Sql(string.Format("DELETE FROM {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
         // Check if a poco represents a new record
         public bool IsNew<T>(object poco)
         {
-            var pd = PocoData.ForType(poco.GetType());
+            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
             object pk;
             PocoColumn pc;
             if (pd.Columns.TryGetValue(pd.TableInfo.PrimaryKey, out pc))
@@ -1443,7 +1443,7 @@ namespace NPoco
         // Insert new record or Update existing record
         public void Save<T>(object poco)
         {
-            var pd = PocoData.ForType(poco.GetType());
+            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
             if (IsNew<T>(poco))
             {
                 Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
@@ -1508,12 +1508,22 @@ namespace NPoco
             return sb.ToString();
         }
 
-        public static IMapper Mapper { get; set; }
-
         public Transaction BaseTransaction { get; set; }
 
-        public static Func<Type, PocoData> PocoDataFactory = type => new PocoData(type);
+        public IMapper Mapper { get; set; }
 
+        private Func<Type, PocoData> _pocoDataFactory;
+        public Func<Type, PocoData> PocoDataFactory
+        {
+            get
+            {
+                if (_pocoDataFactory == null)
+                    return type => new PocoData(type, Mapper);
+                return _pocoDataFactory;
+            }
+            set { _pocoDataFactory = value; }
+        }
+        
         // Member variables
         private readonly string _connectionString;
         private readonly string _providerName;
@@ -1540,5 +1550,11 @@ namespace NPoco
             OnExecutedCommand(cmd);
             return r;
         }
+    }
+
+    public interface IDatabaseConfig
+    {
+        IMapper Mapper { get; set; }
+        Func<Type, PocoData> PocoDataFactory { get; set; }
     }
 }

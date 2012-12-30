@@ -13,7 +13,7 @@ namespace NPoco
         {
             using (var bulkCopy = new SqlBulkCopy((SqlConnection)db.Connection, SqlBulkCopyOptions.Default, (SqlTransaction)db.Transaction))
             {
-                var pocoData = PocoData.ForType(typeof(T));
+                var pocoData = PocoData.ForType(typeof(T), ((IDatabaseConfig)db).PocoDataFactory);
 
                 bulkCopy.BatchSize = 4096;
                 bulkCopy.DestinationTableName = pocoData.TableInfo.TableName;

@@ -8,15 +8,15 @@ namespace NPoco.FluentMappings
 {
     public class FluentMappingConfiguration
     {
-        public static void Configure(params IMap[] pocoMaps)
+        public static Func<IMapper, Func<Type, PocoData>> Configure(params IMap[] pocoMaps)
         {
             var mappings = Mappings.BuildMappingsFromMaps(pocoMaps);
-            SetFactory(mappings, null);
+            return SetFactory(mappings, null);
         }
 
-        public static void Configure(Mappings mappings)
+        public static Func<IMapper, Func<Type, PocoData>> Configure(Mappings mappings)
         {
-            SetFactory(mappings, null);
+            return SetFactory(mappings, null);
         }
 
         public static Mappings Scan(Action<IConventionScanner> scanner)
@@ -132,27 +132,27 @@ namespace NPoco.FluentMappings
             }
         }
 
-        private static void SetFactory(Mappings mappings, Action<IConventionScanner> scanner)
+        private static Func<IMapper, Func<Type, PocoData>> SetFactory(Mappings mappings, Action<IConventionScanner> scanner)
         {
             var maps = mappings;
             var scana = scanner;
-            Database.PocoDataFactory = t =>
+            return mapper => t =>
             {
                 if (maps != null)
                 {
                     if (maps.Config.ContainsKey(t))
                     {
-                        return new FluentMappingsPocoData(t, mappings.Config[t]);
+                        return new FluentMappingsPocoData(t, mappings.Config[t], mapper);
                     }
 
                     if (scana != null)
                     {
                         var settings = ProcessSettings(scana);
                         var typeMapping = CreateMappings(settings, new[] { t });
-                        return new FluentMappingsPocoData(t, typeMapping.Config[t]);
+                        return new FluentMappingsPocoData(t, typeMapping.Config[t], mapper);
                     }
                 }
-                return new PocoData(t);
+                return new PocoData(t, mapper);
             };
         }
 

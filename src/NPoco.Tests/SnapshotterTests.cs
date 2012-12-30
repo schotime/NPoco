@@ -9,10 +9,17 @@ namespace NPoco.Tests
     [TestFixture]
     public class SnapshotterTests
     {
+        private IDatabase _database;
+
         [TestFixtureSetUp]
         public void Setup()
         {
-            FluentMappingConfiguration.Configure(new MyMappings());
+            var dbfactory = new DatabaseFactory();
+            dbfactory
+                .UsingDatabase(new Database(""))
+                .WithFluentConfig(FluentMappingConfiguration.Configure(new MyMappings()));
+            
+            _database = dbfactory.GetDatabase();
         }
 
         public class MyMappings : Mappings
@@ -27,7 +34,7 @@ namespace NPoco.Tests
         public void BasicDiffUsingSnapshotter()
         {
             var user = new Admin { UserId = 1 };
-            var snap = Snapshotter.Start(user);
+            var snap = _database.StartSnapshot(user);
 
             user.Name = "Name1";
             user.Savings = 50.50m;
@@ -47,7 +54,7 @@ namespace NPoco.Tests
             user.DateOfBirth = new DateTime(2001, 1, 1);
             user.Age = 21;
 
-            var snap = Snapshotter.Start(user);
+            var snap = _database.StartSnapshot(user);
             user.Age = 22;
 
             Assert.AreEqual("Age", snap.Changes().First().Name);
@@ -61,7 +68,7 @@ namespace NPoco.Tests
         public void NoChangesUsingSnapshotter()
         {
             var user = new Admin { UserId = 1 };
-            var snap = Snapshotter.Start(user);
+            var snap = _database.StartSnapshot(user);
 
             Assert.AreEqual(0, snap.Changes().Count);
             Assert.AreEqual(0, snap.UpdatedColumns().Count);

@@ -50,6 +50,8 @@
     <Compile Include="ColumnInfo.cs" />
     <Compile Include="ColumnTypeAttribute.cs" />
     <Compile Include="Database.cs" />
+    <Compile Include="DatabaseFactory.cs" />
+    <Compile Include="DatabaseFactoryConfig.cs" />
     <Compile Include="DatabaseType.cs" />
     <Compile Include="DatabaseTypes\MySqlDatabaseType.cs" />
     <Compile Include="DatabaseTypes\OracleDatabaseType.cs" />

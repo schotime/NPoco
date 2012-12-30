@@ -6,7 +6,7 @@ namespace NPoco.FluentMappings
 {
     public class FluentMappingsPocoData : PocoData
     {
-        public FluentMappingsPocoData(Type t, FluentMappings.TypeDefinition typeConfig)
+        public FluentMappingsPocoData(Type t, TypeDefinition typeConfig, IMapper mapper)
         {
             type = t;
             TableInfo = new TableInfo();
@@ -28,8 +28,8 @@ namespace NPoco.FluentMappings
             TableInfo.AutoIncrement = TableInfo.AutoIncrement ? !TableInfo.PrimaryKey.Contains(',') : TableInfo.AutoIncrement;
 
             // Call column mapper
-            if (Database.Mapper != null)
-                Database.Mapper.GetTableInfo(t, TableInfo);
+            if (mapper != null)
+                mapper.GetTableInfo(t, TableInfo);
 
             // Work out bound properties
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
@@ -74,7 +74,7 @@ namespace NPoco.FluentMappings
                 if (pc.ColumnName == null)
                 {
                     pc.ColumnName = pi.Name;
-                    if (Database.Mapper != null && !Database.Mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
+                    if (mapper != null && !mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
                         continue;
                 }
 
