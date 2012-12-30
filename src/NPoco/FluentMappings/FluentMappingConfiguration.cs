@@ -11,7 +11,7 @@ namespace NPoco.FluentMappings
         public static Func<IMapper, Func<Type, PocoData>> Configure(params IMap[] pocoMaps)
         {
             var mappings = Mappings.BuildMappingsFromMaps(pocoMaps);
-            return SetFactory(mappings, null);
+            return Configure(mappings);
         }
 
         public static Func<IMapper, Func<Type, PocoData>> Configure(Mappings mappings)
@@ -19,17 +19,16 @@ namespace NPoco.FluentMappings
             return SetFactory(mappings, null);
         }
 
-        public static Mappings Scan(Action<IConventionScanner> scanner)
+        public static Func<IMapper, Func<Type, PocoData>> Scan(Action<IConventionScanner> scanner)
         {
             var scannerSettings = ProcessSettings(scanner);
             if (scannerSettings.Lazy)
             {
                 var lazyPocoMappings = new Mappings();
-                SetFactory(lazyPocoMappings, scanner);
-                return lazyPocoMappings;
+                return SetFactory(lazyPocoMappings, scanner);
             }
             
-            return CreateMappings(scannerSettings, null);
+            return Configure(CreateMappings(scannerSettings, null));
         }
 
         private static Mappings CreateMappings(ConventionScannerSettings scannerSettings, Type[] typesOverride)
@@ -66,7 +65,6 @@ namespace NPoco.FluentMappings
             MergeOverrides(config, scannerSettings.MappingOverrides);
 
             var pocoMappings = new Mappings {Config = config};
-            SetFactory(pocoMappings, null);
             return pocoMappings;
         }
 

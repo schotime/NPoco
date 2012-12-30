@@ -9,38 +9,67 @@ namespace NPoco
 {
     public class DatabaseFactory
     {
-        private Database _database;
+        private DatabaseFactoryConfigOptions _options;
 
-        public DatabaseFactoryConfig UsingDatabase(Database database)
+        public DatabaseFactoryConfig Config()
         {
-            _database = database;
-            return new DatabaseFactoryConfig(database);
+            _options = new DatabaseFactoryConfigOptions();
+            return new DatabaseFactoryConfig(_options);
         }
 
-        public IDatabase GetDatabase()
+        public Database Build(Database database)
         {
-            return _database; 
+            if (database.Mapper != null)
+                database.Mapper = _options.Mapper;
+
+            if (_options.PocoDataFactory != null)
+                database.PocoDataFactory = _options.PocoDataFactory;
+
+            return database;
         }
+
+        public Database GetDatabase()
+        {
+            if (_options.Database == null)
+                throw new NullReferenceException("Database cannot be null. Use UsingDatabase()");
+
+            var db = _options.Database();
+            Build(db);
+            return db; 
+        }
+    }
+
+    public class DatabaseFactoryConfigOptions
+    {
+        public Func<Database> Database { get; set; }
+        public IMapper Mapper { get; set; }
+        public Func<Type, PocoData> PocoDataFactory { get; set; }
     }
 
     public class DatabaseFactoryConfig
     {
-        private readonly Database _database;
-
-        public DatabaseFactoryConfig(Database database)
+        private readonly DatabaseFactoryConfigOptions _options;
+        
+        public DatabaseFactoryConfig(DatabaseFactoryConfigOptions options)
         {
-            _database = database;
+            _options = options;
+        }
+        
+        public DatabaseFactoryConfig UsingDatabase(Func<Database> database)
+        {
+            _options.Database = database;
+            return this;
         }
 
         public DatabaseFactoryConfig WithMapper(IMapper mapper)
         {
-            _database.Mapper = mapper;
+            _options.Mapper = mapper;
             return this;
         }
 
         public DatabaseFactoryConfig WithFluentConfig(Func<IMapper, Func<Type, PocoData>> pocoDataFactory)
         {
-            _database.PocoDataFactory = pocoDataFactory(_database.Mapper);
+            _options.PocoDataFactory = pocoDataFactory(_options.Mapper);
             return this;
         }
     }

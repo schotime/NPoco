@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data.SqlClient;
 using System.Linq;
 using NPoco.FluentMappings;
 using NPoco.Tests.Common;
@@ -16,7 +17,8 @@ namespace NPoco.Tests
         {
             var dbfactory = new DatabaseFactory();
             dbfactory
-                .UsingDatabase(new Database(""))
+                .Config()
+                .UsingDatabase(() => new Database(""))
                 .WithFluentConfig(FluentMappingConfiguration.Configure(new MyMappings()));
             
             _database = dbfactory.GetDatabase();
