@@ -38,7 +38,7 @@ namespace NPoco
         IEnumerable<T1> Query<T1, T2>(string sql, params object[] args);
         IEnumerable<T1> Query<T1, T2, T3>(string sql, params object[] args);
         IEnumerable<T1> Query<T1, T2, T3, T4>(string sql, params object[] args);
-        IEnumerable<TRet> Query<TRet>(Type[] types, object cb, Sql sql);
+        IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql);
         List<T1> Fetch<T1, T2>(Sql sql);
         List<T1> Fetch<T1, T2, T3>(Sql sql);
         List<T1> Fetch<T1, T2, T3, T4>(Sql sql);

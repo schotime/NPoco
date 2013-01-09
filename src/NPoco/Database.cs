@@ -794,7 +794,7 @@ namespace NPoco
 
 
         // Actual implementation of the multi-poco query
-        public IEnumerable<TRet> Query<TRet>(Type[] types, object cb, Sql sql)
+        public IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql)
         {
             OpenSharedConnection();
             using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
@@ -840,7 +840,7 @@ namespace NPoco
                     }
                     if (bNeedTerminator)
                     {
-                        var poco = (TRet)(cb as Delegate).DynamicInvoke(new object[types.Length]);
+                        var poco = (TRet)cb.DynamicInvoke(new object[types.Length]);
                         if (poco != null)
                         {
                             yield return poco;

@@ -10,11 +10,46 @@ namespace NPoco
 {
     internal class MultiPocoFactory
     {
-        public List<Delegate> m_Delegates;
-        public Delegate GetItem(int index) { return m_Delegates[index]; }
+        public MultiPocoFactory(IEnumerable<Delegate> dels)
+        {
+            Delegates = new List<Delegate>(dels);
+        }
+        private List<Delegate> Delegates { get; set; }
+        private Delegate GetItem(int index) { return Delegates[index]; }
+
+        /// <summary>
+        /// Calls the delegate at the specified index and returns its values
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="reader"></param>
+        /// <returns></returns>
+        private object CallDelegate(int index, IDataReader reader)
+        {
+            var d = GetItem(index);
+            var output = d.DynamicInvoke(reader, null);
+            return output;
+        }
+
+        /// <summary>
+        /// Calls the callback delegate and passes in the output of all delegates as the parameters
+        /// </summary>
+        /// <typeparam name="TRet"></typeparam>
+        /// <param name="callback"></param>
+        /// <param name="dr"></param>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public TRet CallCallback<TRet>(Delegate callback, IDataReader dr, int count)
+        {
+            var args = new List<object>();
+            for (var i = 0; i < count; i++)
+            {
+                args.Add(CallDelegate(i, dr));
+            }
+            return (TRet)callback.DynamicInvoke(args.ToArray());
+        }
 
         // Automagically guess the property relationships between various POCOs and create a delegate that will set them up
-        public static object GetAutoMapper(Type[] types)
+        public static Delegate GetAutoMapper(Type[] types)
         {
             // Build a key
             var key = string.Join(":", types.Select(x=>x.ToString()).ToArray());
@@ -86,49 +121,28 @@ namespace NPoco
         }
 
         // Create a multi-poco factory
-        static Func<IDataReader, object, TRet> CreateMultiPocoFactory<TRet>(Database database, Type[] types, string sql, string connectionString, IDataReader r)
+        static Func<IDataReader, Delegate, TRet> CreateMultiPocoFactory<TRet>(Database database, Type[] types, string sql, string connectionString, IDataReader r)
         {
-            var m = new DynamicMethod("poco_multipoco_factory", typeof(TRet), new Type[] { typeof(MultiPocoFactory), typeof(IDataReader), typeof(object) }, typeof(MultiPocoFactory));
-            var il = m.GetILGenerator();
-
-            // Load the callback
-            il.Emit(OpCodes.Ldarg_2);
-
             // Call each delegate
             var dels = new List<Delegate>();
             int pos = 0;
-            for (int i=0; i<types.Length; i++)
+            for (int i = 0; i < types.Length; i++)
             {
                 // Add to list of delegates to call
                 var del = FindSplitPoint(database, types[i], i + 1 < types.Length ? types[i + 1] : null, sql, connectionString, r, ref pos);
                 dels.Add(del);
-
-                // Get the delegate
-                il.Emit(OpCodes.Ldarg_0);													// callback,this
-                il.Emit(OpCodes.Ldc_I4, i);													// callback,this,Index
-                il.Emit(OpCodes.Callvirt, typeof(MultiPocoFactory).GetMethod("GetItem"));	// callback,Delegate
-                il.Emit(OpCodes.Ldarg_1);													// callback,delegate, datareader
-                il.Emit(OpCodes.Ldnull);                                                    // callback,delegate, datareader,null
-
-                // Call Invoke
-                var tDelInvoke = del.GetType().GetMethod("Invoke");
-                il.Emit(OpCodes.Callvirt, tDelInvoke);										// Poco left on stack
             }
 
-            // By now we should have the callback and the N pocos all on the stack.  Call the callback and we're done
-            il.Emit(OpCodes.Callvirt, Expression.GetFuncType(types.Concat(new Type[] { typeof(TRet) }).ToArray()).GetMethod("Invoke"));
-            il.Emit(OpCodes.Ret);
-
-            // Finish up
-            return (Func<IDataReader, object, TRet>)m.CreateDelegate(typeof(Func<IDataReader, object, TRet>), new MultiPocoFactory() { m_Delegates = dels });
+            var mpFactory = new MultiPocoFactory(dels);
+            return (reader, arg3) => mpFactory.CallCallback<TRet>(arg3, reader, types.Length);
         }
 
         // Various cached stuff
         static Cache<string, object> MultiPocoFactories = new Cache<string, object>();
-        static Cache<string, object> AutoMappers = new Cache<string, object>();
+        static Cache<string, Delegate> AutoMappers = new Cache<string, Delegate>();
 
         // Get (or create) the multi-poco factory for a query
-        public static Func<IDataReader, object, TRet> GetMultiPocoFactory<TRet>(Database database, Type[] types, string sql, string connectionString, IDataReader r)
+        public static Func<IDataReader, Delegate, TRet> GetMultiPocoFactory<TRet>(Database database, Type[] types, string sql, string connectionString, IDataReader r)
         {
             // Build a key string  (this is crap, should address this at some point)
             var kb = new StringBuilder();
@@ -144,7 +158,7 @@ namespace NPoco
             kb.Append(":" + sql);
             string key = kb.ToString();
 
-            return (Func<IDataReader, object, TRet>)MultiPocoFactories.Get(key, () => CreateMultiPocoFactory<TRet>(database, types, sql, connectionString, r));
+            return (Func<IDataReader, Delegate, TRet>)MultiPocoFactories.Get(key, () => CreateMultiPocoFactory<TRet>(database, types, sql, connectionString, r));
         }
     }
 

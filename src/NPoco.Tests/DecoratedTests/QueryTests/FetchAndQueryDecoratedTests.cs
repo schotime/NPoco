@@ -101,6 +101,14 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         }
 
         [Test]
+        public void ReturnStringArray()
+        {
+            var data = Database.Fetch<string[]>("select name, 'test' from users where userid = 2");
+            Assert.AreEqual("Name2", data[0][0]);
+            Assert.AreEqual("test", data[0][1]);
+        }
+        
+        [Test]
         public void ReturnDictionaryStringObject()
         {
             var data = Database.Fetch<Dictionary<string, object>>("select userid, name from users where userid = 2");
