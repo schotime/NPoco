@@ -120,48 +120,72 @@ namespace NPoco
             { "select", "1" }
         };
 
+        /// <summary>
+        /// Replaces the Select columns. Uses /**select**/
+        /// </summary>
         public SqlBuilder Select(params string[] columns)
         {
             AddClause("select", string.Join(", ", columns), new object[] { }, ", ", "", "");
             return this;
         }
 
+        /// <summary>
+        /// Adds an Inner Join. Uses /**join**/
+        /// </summary>
         public SqlBuilder Join(string sql, params object[] parameters)
         {
             AddClause("join", sql, parameters, "\nINNER JOIN ", "\nINNER JOIN ", "\n");
             return this;
         }
 
+        /// <summary>
+        /// Adds a Left Join. Uses /**leftjoin**/
+        /// </summary>
         public SqlBuilder LeftJoin(string sql, params object[] parameters)
         {
             AddClause("leftjoin", sql, parameters, "\nLEFT JOIN ", "\nLEFT JOIN ", "\n");
             return this;
         }
 
+        /// <summary>
+        /// Adds an filter. The Where keyword still needs to be specified. Uses /**where**/
+        /// </summary>
         public SqlBuilder Where(string sql, params object[] parameters)
         {
             AddClause("where", sql, parameters, " AND ", " ( ", " )\n");
             return this;
         }
 
+        /// <summary>
+        /// Adds an Order By clause. Uses /**orderby**/
+        /// </summary>
         public SqlBuilder OrderBy(string sql, params object[] parameters)
         {
             AddClause("orderby", sql, parameters, ", ", "ORDER BY ", "\n");
             return this;
         }
 
+        /// <summary>
+        /// Adds columns in the Order By clause. Uses /**orderbycols**/
+        /// </summary>
         public SqlBuilder OrderByCols(params string[] columns)
         {
             AddClause("orderbycols", string.Join(", ", columns), new object[] { }, ", ", ", ", "");
             return this;
         }
 
+        /// <summary>
+        /// Adds an Group By clause. Uses /**groupby**/
+        /// </summary>
         public SqlBuilder GroupBy(string sql, params object[] parameters)
         {
             AddClause("groupby", sql, parameters, " , ", "\nGROUP BY ", "\n");
             return this;
         }
 
+        /// <summary>
+        /// Adds a Having clause. Uses /**having**/
+        /// </summary>
         public SqlBuilder Having(string sql, params object[] parameters)
         {
             AddClause("having", sql, parameters, "\nAND ", "HAVING ", "\n");

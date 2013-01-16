@@ -18,7 +18,6 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.Common;
-using System.Dynamic;
 using System.Linq;
 using System.Text;
 
@@ -208,7 +207,7 @@ namespace NPoco
                 //}
             }
 
-            OnConnectionOpened(_sharedConnection);
+            _sharedConnection = OnConnectionOpened(_sharedConnection);
         }
 
         // Close a previously opened connection
@@ -474,9 +473,9 @@ namespace NPoco
         }
 
         // Override this to log commands, or modify command before execution
-        public virtual void OnConnectionOpened(IDbConnection conn)
+        public virtual IDbConnection OnConnectionOpened(IDbConnection conn)
         {
-
+            return conn;
         }
 
         public virtual void OnConnectionClosing(IDbConnection conn)
@@ -1407,7 +1406,7 @@ namespace NPoco
                 pk = pc.GetValue(poco);
             }
 #if !POCO_NO_DYNAMIC
-            else if (poco is ExpandoObject)
+            else if (poco is System.Dynamic.ExpandoObject)
             {
                 return true;
             }
