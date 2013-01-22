@@ -148,7 +148,7 @@ namespace NPoco
         }
 
         /// <summary>
-        /// Adds an filter. The Where keyword still needs to be specified. Uses /**where**/
+        /// Adds a filter. The Where keyword still needs to be specified. Uses /**where**/
         /// </summary>
         public SqlBuilder Where(string sql, params object[] parameters)
         {
@@ -175,7 +175,7 @@ namespace NPoco
         }
 
         /// <summary>
-        /// Adds an Group By clause. Uses /**groupby**/
+        /// Adds a Group By clause. Uses /**groupby**/
         /// </summary>
         public SqlBuilder GroupBy(string sql, params object[] parameters)
         {
