@@ -11,7 +11,7 @@ namespace NPoco
 {
     public class PocoData
     {
-        private readonly IMapper _mapper;
+        protected IMapper Mapper;
         static readonly EnumMapper EnumMapper = new EnumMapper();
 
         public static PocoData ForObject(object o, string primaryKeyName, Func<Type, PocoData> factory)
@@ -56,12 +56,12 @@ namespace NPoco
         public PocoData(Type t, IMapper mapper)
         {
             type = t;
-            _mapper = mapper;
+            Mapper = mapper;
             TableInfo = TableInfo.FromPoco(t);
 
             // Call column mapper
-            if (_mapper != null)
-                _mapper.GetTableInfo(t, TableInfo);
+            if (Mapper != null)
+                Mapper.GetTableInfo(t, TableInfo);
 
             // Work out bound properties
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
@@ -78,7 +78,7 @@ namespace NPoco
                 pc.ForceToUtc = ci.ForceToUtc;
                 pc.ColumnType = ci.ColumnType;
 
-                if (_mapper != null && !_mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
+                if (Mapper != null && !Mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;
 
                 // Store it
@@ -134,8 +134,8 @@ namespace NPoco
 
                         // Get the converter
                         Func<object, object> converter = null;
-                        if (_mapper != null)
-                            converter = _mapper.GetFromDbConverter((Type)null, srcType);
+                        if (Mapper != null)
+                            converter = Mapper.GetFromDbConverter((Type)null, srcType);
 
                         //if (ForceDateTimesToUtc && converter == null && srcType == typeof(DateTime))
                         //    converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
@@ -179,7 +179,7 @@ namespace NPoco
                     {
                         // Do we need to install a converter?
                         var srcType = r.GetFieldType(0);
-                        var converter = GetConverter(_mapper, null, srcType, type);
+                        var converter = GetConverter(Mapper, null, srcType, type);
 
                         // "if (!rdr.IsDBNull(i))"
                         il.Emit(OpCodes.Ldarg_0);										// rdr
@@ -287,7 +287,7 @@ namespace NPoco
                             il.Emit(OpCodes.Dup);											// poco,poco
 
                             // Do we need to install a converter?
-                            var converter = GetConverter(_mapper, pc, srcType, dstType);
+                            var converter = GetConverter(Mapper, pc, srcType, dstType);
 
                             // Fast
                             bool Handled = false;

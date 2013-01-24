@@ -8,6 +8,7 @@ namespace NPoco.FluentMappings
     {
         public FluentMappingsPocoData(Type t, TypeDefinition typeConfig, IMapper mapper)
         {
+            Mapper = mapper;
             type = t;
             TableInfo = new TableInfo();
 

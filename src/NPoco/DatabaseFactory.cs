@@ -23,7 +23,7 @@ namespace NPoco
                 database.Mapper = _options.Mapper;
 
             if (_options.PocoDataFactory != null)
-                database.PocoDataFactory = _options.PocoDataFactory;
+                database.PocoDataFactory = _options.PocoDataFactory.Config(database.Mapper);
 
             return database;
         }
@@ -43,7 +43,7 @@ namespace NPoco
     {
         public Func<Database> Database { get; set; }
         public IMapper Mapper { get; set; }
-        public Func<Type, PocoData> PocoDataFactory { get; set; }
+        public FluentConfig PocoDataFactory { get; set; }
     }
 
     public class DatabaseFactoryConfig
@@ -69,7 +69,7 @@ namespace NPoco
 
         public DatabaseFactoryConfig WithFluentConfig(FluentConfig pocoDataFactory)
         {
-            _options.PocoDataFactory = pocoDataFactory.Config(_options.Mapper);
+            _options.PocoDataFactory = pocoDataFactory;
             return this;
         }
     }
