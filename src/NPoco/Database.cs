@@ -23,7 +23,7 @@ using System.Text;
 
 namespace NPoco
 {
-    public class Database : IDisposable, IDatabase, IDatabaseConfig
+    public class Database : IDisposable, IDatabase
     {
         public const bool DefaultForceDateTimesToUtc = true;
         public const bool DefaultEnableAutoSelect = true;
@@ -1549,11 +1549,5 @@ namespace NPoco
             OnExecutedCommand(cmd);
             return r;
         }
-    }
-
-    public interface IDatabaseConfig
-    {
-        IMapper Mapper { get; set; }
-        Func<Type, PocoData> PocoDataFactory { get; set; }
     }
 }

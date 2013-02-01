@@ -28,7 +28,7 @@ namespace NPoco
         {
             memberWiseClone = Clone(original);
             trackedObject = original;
-            pocoData = PocoData.ForType(typeof(T), ((IDatabaseConfig)d).PocoDataFactory);
+            pocoData = PocoData.ForType(typeof(T), d.PocoDataFactory);
         }
 
         public class Change

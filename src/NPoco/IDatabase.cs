@@ -1,9 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Data;
 
 namespace NPoco
 {
-    public interface IDatabase : IDatabaseQuery
+    public interface IDatabase : IDatabaseQuery, IDatabaseConfig
     {
         void Dispose();
         IDbConnection Connection { get; }
@@ -37,5 +38,11 @@ namespace NPoco
         int Delete<T>(object pocoOrPrimaryKey);
         void Save<T>(object poco);
         bool IsNew<T>(object poco);
+    }
+
+    public interface IDatabaseConfig
+    {
+        IMapper Mapper { get; set; }
+        Func<Type, PocoData> PocoDataFactory { get; set; }
     }
 }
