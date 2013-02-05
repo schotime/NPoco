@@ -45,8 +45,8 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void Page_Distinct()
         {
-            // Fetch em
-            var page = Database.Page<User>(2, 5, "SELECT DISTINCT * FROM Users  WHERE UserID <= 15 ORDER BY UserID");
+            // Fetch em (SELECT COUNT(DISTINCT *) is not valid in SQL so locking to a column query
+            var page = Database.Page<User>(2, 5, "SELECT DISTINCT Name FROM Users  WHERE UserID <= 15 ORDER BY Name");
 
             // Check em
             foreach (var user in page.Items)
@@ -78,7 +78,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             // exactly pagesize*N records.
 
             // Fetch em
-            var page = Database.Page<User>(3, 5, "SELECT DISTINCT * FROM Users  WHERE UserID <= 15 ORDER BY UserID");
+            var page = Database.Page<User>(3, 5, "SELECT * FROM Users  WHERE UserID <= 15 ORDER BY UserID");
 
             // Check other stats
             Assert.AreEqual(page.Items.Count, 5);
