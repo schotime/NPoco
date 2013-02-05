@@ -57,12 +57,12 @@ namespace NPoco
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
 
             // Cause it is an external connection ensure that the isolation level matches ours
-            //using (var cmd = _sharedConnection.CreateCommand())
-            //{
-            //    cmd.CommandTimeout = CommandTimeout;
-            //    cmd.CommandText = _dbType.GetSQLForTransactionLevel(_isolationLevel);
-            //    cmd.ExecuteNonQuery();
-            //}
+            using (var cmd = _sharedConnection.CreateCommand())
+            {
+                cmd.CommandTimeout = CommandTimeout;
+                cmd.CommandText = _dbType.GetSQLForTransactionLevel(_isolationLevel);
+                cmd.ExecuteNonQuery();
+            }
         }
 
         public Database(string connectionString, string providerName)
@@ -199,12 +199,13 @@ namespace NPoco
             {
                 _sharedConnection.Open();
 
-                //using (var cmd = _sharedConnection.CreateCommand())
-                //{
-                //    cmd.CommandTimeout = CommandTimeout;
-                //    cmd.CommandText = _dbType.GetSQLForTransactionLevel(_isolationLevel);
-                //    cmd.ExecuteNonQuery();
-                //}
+	            // Cause it is an external connection ensure that the isolation level matches ours
+	            using (var cmd = _sharedConnection.CreateCommand())
+                {
+                    cmd.CommandTimeout = CommandTimeout;
+                    cmd.CommandText = _dbType.GetSQLForTransactionLevel(_isolationLevel);
+                    cmd.ExecuteNonQuery();
+                }
             }
 
             _sharedConnection = OnConnectionOpened(_sharedConnection);
