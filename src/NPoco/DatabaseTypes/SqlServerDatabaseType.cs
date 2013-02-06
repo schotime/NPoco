@@ -34,7 +34,7 @@ namespace NPoco.DatabaseTypes
 
 		public override IsolationLevel GetDefaultTransactionIsolationLevel()
 		{
-			return IsolationLevel.ReadCommitted;
+			return IsolationLevel.ReadUncommitted;
 		}
 
 		public override string GetProviderName()
