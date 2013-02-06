@@ -25,9 +25,9 @@ namespace NPoco
 {
 	public class Database : IDisposable, IDatabase
 	{
-		public const bool DefaultForceDateTimesToUtc = true;
+		public const bool DefaultForceDateTimesToUtc = false;
 		public const bool DefaultEnableAutoSelect = true;
-		public const bool DefaultCalculatePagingAsPagesNotRecords = true;
+		public const bool DefaultCalculatePagingAsPagesNotRecords = false;
 
 		public Database(IDbConnection connection)
 			: this(connection, DatabaseType.Resolve(connection.GetType().ToString(), null))
