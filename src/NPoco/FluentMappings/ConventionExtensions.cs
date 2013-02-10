@@ -11,10 +11,21 @@ namespace NPoco.FluentMappings
 
         public static void WithSmartConventions(this IConventionScanner scanner)
         {
-            scanner.PrimaryKeysNamed(y => y.Name + "Id");
-            scanner.TablesNamed(y => Inflector.MakePlural(y.Name));
+            scanner.WithSmartConventions(false);
+        }
+
+        public static void WithSmartConventions(this IConventionScanner scanner, bool lowercase)
+        {
+            scanner.PrimaryKeysNamed(y => ToLowerIf(y.Name + "Id", lowercase));
+            scanner.TablesNamed(y => ToLowerIf(Inflector.MakePlural(y.Name), lowercase));
+            scanner.Columns.Named(x => ToLowerIf(x.Name, lowercase));
             scanner.Columns.IgnoreComplex();
             scanner.Columns.ForceDateTimesToUtcWhere(x => x.PropertyType == typeof(DateTime) || x.PropertyType == typeof(DateTime?));
+        }
+
+        private static string ToLowerIf(string s, bool clause)
+        {
+            return clause ? s.ToLowerInvariant() : s;
         }
     }
 }

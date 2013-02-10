@@ -488,6 +488,21 @@ namespace NPoco
 
         }
 
+        public virtual bool OnInserting(InsertContext insertContext)
+        {
+            return true;
+        }
+
+        public virtual bool OnUpdating(UpdateContext updateContext)
+        {
+            return true;
+        }
+
+        public virtual bool OnDeleting(DeleteContext deleteContext)
+        {
+            return true;
+        }
+
         public virtual void OnExecutedCommand(IDbCommand cmd)
         {
 #if DEBUG
@@ -1046,6 +1061,8 @@ namespace NPoco
         // the new id is returned.
         public object Insert(string tableName, string primaryKeyName, bool autoIncrement, object poco)
         {
+            if (!OnInserting(new InsertContext(poco, tableName, autoIncrement, primaryKeyName))) return 0;
+
             try
             {
                 OpenSharedConnection();
@@ -1186,6 +1203,8 @@ namespace NPoco
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
         public int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
+            if (!OnUpdating(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns))) return 0;
+
             if (columns != null && !columns.Any()) return 0;
 
             var sb = new StringBuilder();
@@ -1349,6 +1368,8 @@ namespace NPoco
 
         public int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
+            if (!OnDeleting(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) return 0;
+
             var primaryKeyValuePairs = GetPrimaryKeyValues(primaryKeyName, primaryKeyValue);
             // If primary key value not specified, pick it up from the object
             if (primaryKeyValue == null)

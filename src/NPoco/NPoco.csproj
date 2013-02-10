@@ -62,6 +62,7 @@
     <Compile Include="DatabaseTypes\SqlServerCEDatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerDatabaseType.cs" />
     <Compile Include="DefaultMapper.cs" />
+    <Compile Include="DeleteContext.cs" />
     <Compile Include="EnumMapper.cs" />
     <Compile Include="ExpandoColumn.cs" />
     <Compile Include="FluentMappings\ColumnConfigurationBuilder.cs" />
@@ -83,6 +84,7 @@
     <Compile Include="IDatabaseQuery.cs" />
     <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="IMapper.cs" />
+    <Compile Include="InsertContext.cs" />
     <Compile Include="MultiPocoFactory.cs" />
     <Compile Include="Page.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
@@ -105,6 +107,7 @@
     <Compile Include="TableNameAttribute.cs" />
     <Compile Include="Transaction.cs" />
     <Compile Include="Tuple.cs" />
+    <Compile Include="UpdateContext.cs" />
     <Compile Include="VersionColumnAttribute.cs" />
     <Compile Include="VersionExceptionHandling.cs" />
   </ItemGroup>
