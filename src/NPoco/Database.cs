@@ -456,9 +456,6 @@ namespace NPoco
             // Notify the DB type
             _dbType.PreExecute(cmd);
 
-            if (!String.IsNullOrEmpty(sql))
-                DoPreExecute(cmd);
-
             return cmd;
         }
 
@@ -526,8 +523,7 @@ namespace NPoco
                 OpenSharedConnection();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
-                    var result = cmd.ExecuteNonQuery();
-                    OnExecutedCommand(cmd);
+                    var result = ExecuteNonQueryHelper(cmd);
                     return result;
                 }
             }
@@ -1106,43 +1102,48 @@ namespace NPoco
 
                     if (i.Value.VersionColumn)
                     {
-                        val = 1;
+                        val = (long)val > 0 ? val : 1;
                         versionName = i.Key;
                     }
 
                     rawvalues.Add(val);
                 }
 
-                using (var cmd = CreateCommand(_sharedConnection, ""))
+                var sql = string.Empty;
+                var outputClause = String.Empty;
+                if (autoIncrement)
                 {
-                    var sql = string.Empty;
-                    var outputClause = String.Empty;
-                    if (autoIncrement)
-                    {
-                        outputClause = _dbType.GetInsertOutputClause(primaryKeyName);
-                    }
+                    outputClause = _dbType.GetInsertOutputClause(primaryKeyName);
+                }
 
-                    if (names.Count != 0)
-                    {
-                        sql = string.Format("INSERT INTO {0} ({1}){2} VALUES ({3})",
-                                            _dbType.EscapeTableName(tableName),
-                                            string.Join(",", names.ToArray()),
-                                            outputClause,
-                                            string.Join(",", values.ToArray()));
-                    }
-                    else
-                    {
-                        sql = _dbType.GetDefaultInsertSql(tableName, names.ToArray(), values.ToArray());
-                    }
+                if (names.Count != 0)
+                {
+                    sql = string.Format("INSERT INTO {0} ({1}){2} VALUES ({3})",
+                                        _dbType.EscapeTableName(tableName),
+                                        string.Join(",", names.ToArray()),
+                                        outputClause,
+                                        string.Join(",", values.ToArray()));
+                }
+                else
+                {
+                    sql = _dbType.GetDefaultInsertSql(tableName, names.ToArray(), values.ToArray());
+                }
 
-                    cmd.CommandText = sql;
-                    rawvalues.ForEach(x => AddParam(cmd, x, _paramPrefix));
+                using (var cmd = CreateCommand(_sharedConnection, sql, rawvalues.ToArray()))
+                {
+                    // Assign the Version column
+                    if (!string.IsNullOrEmpty(versionName))
+                    {
+                        PocoColumn pc;
+                        if (pd.Columns.TryGetValue(versionName, out pc))
+                        {
+                            pc.SetValue(poco, pc.ChangeType(1));
+                        }
+                    }
 
                     if (!autoIncrement)
                     {
-                        DoPreExecute(cmd);
-                        cmd.ExecuteNonQuery();
-                        OnExecutedCommand(cmd);
+                        ExecuteNonQueryHelper(cmd);
 
                         PocoColumn pkColumn;
                         if (primaryKeyName != null && pd.Columns.TryGetValue(primaryKeyName, out pkColumn))
@@ -1160,16 +1161,6 @@ namespace NPoco
                         if (pd.Columns.TryGetValue(primaryKeyName, out pc))
                         {
                             pc.SetValue(poco, pc.ChangeType(id));
-                        }
-                    }
-
-                    // Assign the Version column
-                    if (!string.IsNullOrEmpty(versionName))
-                    {
-                        PocoColumn pc;
-                        if (pd.Columns.TryGetValue(versionName, out pc))
-                        {
-                            pc.SetValue(poco, pc.ChangeType(1));
                         }
                     }
 
@@ -1556,11 +1547,12 @@ namespace NPoco
         private string _paramPrefix = "@";
         private VersionExceptionHandling _versionException = VersionExceptionHandling.Ignore;
 
-        internal void ExecuteNonQueryHelper(IDbCommand cmd)
+        internal int ExecuteNonQueryHelper(IDbCommand cmd)
         {
             DoPreExecute(cmd);
-            cmd.ExecuteNonQuery();
+            var result = cmd.ExecuteNonQuery();
             OnExecutedCommand(cmd);
+            return result;
         }
 
         internal object ExecuteScalarHelper(IDbCommand cmd)
