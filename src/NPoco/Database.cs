@@ -1423,15 +1423,30 @@ namespace NPoco
                 return true;
             }
 #endif
+            else if (pd.TableInfo.PrimaryKey.Contains(","))
+            {
+                return pd.TableInfo.PrimaryKey.Split(',')
+                    .Select(pkPart => GetValue(pkPart, poco))
+                    .Any(pkValue => IsDefaultOrNull<T>(pkValue, pd.TableInfo.AutoIncrement));
+            }
             else
             {
-                var pi = poco.GetType().GetProperty(pd.TableInfo.PrimaryKey);
-                if (pi == null) throw new ArgumentException(string.Format("The object doesn't have a property matching the primary key column name '{0}'", pd.TableInfo.PrimaryKey));
-                pk = pi.GetValue(poco, null);
+                pk = GetValue(pd.TableInfo.PrimaryKey, poco);
             }
+            return IsDefaultOrNull<T>(pk, pd.TableInfo.AutoIncrement);
+        }
 
+        private object GetValue(string primaryKeyName, object poco)
+        {
+            var pi = poco.GetType().GetProperty(primaryKeyName);
+            if (pi == null) throw new ArgumentException(string.Format("The object doesn't have a property matching the primary key column name '{0}'", primaryKeyName));
+            return pi.GetValue(poco, null);
+        }
+
+        private bool IsDefaultOrNull<T>(object pk, bool AutoIncrement)
+        {
             if (pk == null) return true;
-            if (!pd.TableInfo.AutoIncrement) return !Exists<T>(pk);
+            if (!AutoIncrement) return !Exists<T>(pk);
 
             var type = pk.GetType();
 
