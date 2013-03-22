@@ -46,6 +46,7 @@
     <Compile Include="AnsiString.cs" />
     <Compile Include="AutoSelectHelper.cs" />
     <Compile Include="Cache.cs" />
+    <Compile Include="CacheableAttribute.cs" />
     <Compile Include="ColumnAttribute.cs" />
     <Compile Include="ColumnInfo.cs" />
     <Compile Include="ColumnTypeAttribute.cs" />
