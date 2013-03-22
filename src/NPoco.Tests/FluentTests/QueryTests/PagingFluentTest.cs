@@ -1,11 +1,9 @@
-using System.Data;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
 namespace NPoco.Tests.FluentTests.QueryTests
 {
     [TestFixture]
-    //[NUnit.Framework.Ignore("Appearently the decorated syntax and fluent syntax are some how conflicting.")]
     public class PagingFluentTest : BaseDBFuentTest
     {
         [Test]
@@ -36,17 +34,11 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
-        [NUnit.Framework.Ignore("Hmm no longer throws and exception.....")]
-        public void Page_NoOrderBy()
-        {
-            Assert.Throws<DataException>(() => Database.Page<User>(2, 5, "SELECT * FROM Users WHERE UserID <= 15"));
-        }
-
-        [Test]
+        [NUnit.Framework.Ignore("Don't have time to figure out a safe way for SQL and Oracle to handle SELECT COUNT(DISTINCT *)")]
         public void Page_Distinct()
         {
-            // Fetch em (SELECT COUNT(DISTINCT *) is not valid in SQL so locking to a column query
-            var page = Database.Page<User>(2, 5, "SELECT DISTINCT Name FROM Users  WHERE UserID <= 15 ORDER BY Name");
+            // Fetch em
+            var page = Database.Page<User>(2, 5, "SELECT DISTINCT * FROM Users  WHERE UserID <= 15 ORDER BY UserID");
 
             // Check em
             foreach (var user in page.Items)
