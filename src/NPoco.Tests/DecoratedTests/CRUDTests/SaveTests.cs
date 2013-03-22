@@ -24,7 +24,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
 
             Assert.IsTrue(poco.UserId > 0, "POCO failed to Save.");
 
-            var verify = Database.SingleOrDefaultById<UserDecorated>(poco.UserId);
+            var verify = Database.SingleById<UserDecorated>(poco.UserId);
             Assert.IsNotNull(verify);
 
             Assert.AreEqual(poco.UserId, verify.UserId);
@@ -36,14 +36,14 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         [Test]
         public void SavePrimaryKeyAutoIncrementExisting()
         {
-            var poco = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            var poco = Database.SingleById<UserDecorated>(InMemoryUsers[1].UserId);
             Assert.IsNotNull(poco);
 
             poco.Age = InMemoryUsers[1].Age + 100;
             poco.Savings = (Decimal)1234.23;
             Database.Save<UserDecorated>(poco);
 
-            var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            var verify = Database.SingleById<UserDecorated>(InMemoryUsers[1].UserId);
             Assert.IsNotNull(verify);
 
             Assert.AreEqual(InMemoryUsers[1].UserId, verify.UserId);
@@ -71,7 +71,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
 
             Assert.IsTrue(poco.Key1ID > 0, "POCO failed to Save.");
 
-            var verify = Database.SingleOrDefaultById<AssignedPKObjectDecorated>(poco.Key1ID);
+            var verify = Database.SingleById<AssignedPKObjectDecorated>(poco.Key1ID);
             Assert.IsNotNull(verify);
 
             Assert.AreEqual(dataKey1ID, verify.Key1ID);
@@ -85,13 +85,13 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         {
             const string dataTextData = "This is some updated text data.";
 
-            var poco = Database.SingleOrDefaultById<AssignedPKObjectDecorated>(InMemoryCompositeObjects[1].Key1ID);
+            var poco = Database.SingleById<AssignedPKObjectDecorated>(InMemoryCompositeObjects[1].Key1ID);
             Assert.IsNotNull(poco);
 
             poco.TextData = dataTextData;
             Database.Save<AssignedPKObjectDecorated>(poco);
 
-            var verify = Database.SingleOrDefaultById<AssignedPKObjectDecorated>(InMemoryCompositeObjects[1].Key1ID);
+            var verify = Database.SingleById<AssignedPKObjectDecorated>(InMemoryCompositeObjects[1].Key1ID);
             Assert.IsNotNull(verify);
 
             Assert.AreEqual(InMemoryCompositeObjects[1].Key1ID, verify.Key1ID);
@@ -118,7 +118,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             poco.DateEntered = dataDateCreated;
             Database.Save<CompositeObjectDecorated>(poco);
 
-            var verify = Database.SingleOrDefault<CompositeObjectDecorated>(@"
+            var verify = Database.Single<CompositeObjectDecorated>(@"
                 SELECT * 
                 FROM CompositeObjects
                 WHERE Key1ID = @0 AND Key2ID = @1 AND Key3ID = @2
@@ -136,7 +136,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         {
             const string dataTextData = "This is some updated text data.";
 
-            var poco = Database.SingleOrDefault<CompositeObjectDecorated>(@"
+            var poco = Database.Single<CompositeObjectDecorated>(@"
                 SELECT * 
                 FROM CompositeObjects
                 WHERE Key1ID = @0 AND Key2ID = @1 AND Key3ID = @2
@@ -146,7 +146,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             poco.TextData = dataTextData;
             Database.Save<CompositeObjectDecorated>(poco);
 
-            var verify = Database.SingleOrDefault<CompositeObjectDecorated>(@"
+            var verify = Database.Single<CompositeObjectDecorated>(@"
                 SELECT * 
                 FROM CompositeObjects
                 WHERE Key1ID = @0 AND Key2ID = @1 AND Key3ID = @2

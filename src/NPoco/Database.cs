@@ -545,8 +545,7 @@ namespace NPoco
                 OpenSharedConnection();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
-                    object val = cmd.ExecuteScalar();
-                    OnExecutedCommand(cmd);
+                    object val = ExecuteScalarHelper(cmd);
 
                     if (val == null || val == DBNull.Value)
                         return default(T);
@@ -716,8 +715,7 @@ namespace NPoco
                 var pd = PocoData.ForType(typeof(T), PocoDataFactory);
                 try
                 {
-                    r = cmd.ExecuteReader();
-                    OnExecutedCommand(cmd);
+                    r = ExecuteReaderHelper(cmd);
                 }
                 catch (Exception x)
                 {
@@ -798,8 +796,7 @@ namespace NPoco
                 IDataReader r;
                 try
                 {
-                    r = cmd.ExecuteReader();
-                    OnExecutedCommand(cmd);
+                    r = ExecuteReaderHelper(cmd);
                 }
                 catch (Exception x)
                 {
@@ -878,8 +875,7 @@ namespace NPoco
                 IDataReader r;
                 try
                 {
-                    r = cmd.ExecuteReader();
-                    OnExecutedCommand(cmd);
+                    r = ExecuteReaderHelper(cmd);
                 }
                 catch (Exception x)
                 {
@@ -1095,7 +1091,7 @@ namespace NPoco
                     rawvalues.Add(val);
                 }
 
-                var sql = string.Empty;
+                string sql;
                 var outputClause = String.Empty;
                 if (autoIncrement)
                 {
@@ -1550,6 +1546,14 @@ namespace NPoco
         private object[] _lastArgs;
         private string _paramPrefix = "@";
         private VersionExceptionHandling _versionException = VersionExceptionHandling.Ignore;
+
+        internal IDataReader ExecuteReaderHelper(IDbCommand cmd)
+        {
+            DoPreExecute(cmd);
+            var result = cmd.ExecuteReader();
+            OnExecutedCommand(cmd);
+            return result;
+        }
 
         internal int ExecuteNonQueryHelper(IDbCommand cmd)
         {
