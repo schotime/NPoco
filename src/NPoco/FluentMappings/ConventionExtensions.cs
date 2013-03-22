@@ -13,6 +13,7 @@ namespace NPoco.FluentMappings
         {
             scanner.WithSmartConventions(false);
         }
+
         public static void WithSmartConventions(this IConventionScanner scanner, bool lowercase)
         {
             scanner.PrimaryKeysNamed(y => ToLowerIf(y.Name + "Id", lowercase));
@@ -21,6 +22,7 @@ namespace NPoco.FluentMappings
             scanner.Columns.IgnoreComplex();
             scanner.Columns.ForceDateTimesToUtcWhere(x => x.PropertyType == typeof(DateTime) || x.PropertyType == typeof(DateTime?));
         }
+
         private static string ToLowerIf(string s, bool clause)
         {
             return clause ? s.ToLowerInvariant() : s;

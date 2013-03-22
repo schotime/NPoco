@@ -135,7 +135,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.IgnoreColumn = overrideColumnDefinition.Value.IgnoreColumn ?? convColDefinition.IgnoreColumn;
                     convColDefinition.ResultColumn = overrideColumnDefinition.Value.ResultColumn ?? convColDefinition.ResultColumn;
                     convColDefinition.VersionColumn = overrideColumnDefinition.Value.VersionColumn ?? convColDefinition.VersionColumn;
-                    convColDefinition.PropertyInfo = overrideColumnDefinition.Value.PropertyInfo ?? convColDefinition.PropertyInfo;    
+                    convColDefinition.PropertyInfo = overrideColumnDefinition.Value.PropertyInfo ?? convColDefinition.PropertyInfo;
                     convColDefinition.ForceUtc = overrideColumnDefinition.Value.ForceUtc ?? convColDefinition.ForceUtc;
                 }
             }
