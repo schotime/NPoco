@@ -11,6 +11,7 @@ namespace NPoco.Tests.Common
     {
         public List<UserDecorated> InMemoryUsers { get; set; }
         public List<ExtraUserInfoDecorated> InMemoryExtraUserInfos { get; set; }
+        public List<CompositeObjectDecorated> InMemoryCompositeObjects { get; set; }
 
         [SetUp]
         public void SetUp()
@@ -58,27 +59,58 @@ namespace NPoco.Tests.Common
         {
             InMemoryUsers = new List<UserDecorated>();
             InMemoryExtraUserInfos = new List<ExtraUserInfoDecorated>();
+            InMemoryCompositeObjects = new List<CompositeObjectDecorated>();
+            
             for (var i = 0; i < 15; i++)
             {
+                var pos = i + 1;
+
                 var user = new UserDecorated
                 {
-                    Name = "Name" + (i + 1),
-                    Age = 20 + (i + 1),
-                    DateOfBirth = new DateTime(1970, 1, 1).AddYears(i + 1),
-                    Savings = 50.00m + (1.01m * (i + 1))
+                    Name = "Name" + pos,
+                    Age = 20 + pos,
+                    DateOfBirth = new DateTime(1970, 1, 1).AddYears(pos),
+                    Savings = 50.00m + (1.01m * pos)
                 };
                 Database.Insert(user);
+                Assert.IsTrue(user.UserId > 0, "Failed to save User #" + pos);
                 InMemoryUsers.Add(user);
 
                 var extra = new ExtraUserInfoDecorated
                 {
                     UserId = user.UserId,
-                    Email = "email" + (i + 1) + "@email.com",
-                    Children = (i + 1)
+                    Email = "email" + pos + "@email.com",
+                    Children = pos
                 };
                 Database.Insert(extra);
+                Assert.IsTrue(extra.ExtraUserInfoId > 0, "Failed to save Extra User Info #" + pos);
                 InMemoryExtraUserInfos.Add(extra);
+
+                var composite = new CompositeObjectDecorated
+                {
+                    Key1ID = pos,
+                    Key2ID = i + 2,
+                    Key3ID = i + 4,
+                    TextData = "This is some text data.",
+                    DateEntered = DateTime.Now
+                };
+                Database.Insert(composite);
+                InMemoryCompositeObjects.Add(composite);
             }
+
+            // Verify DB record counts
+            var userCount = Database.ExecuteScalar<int>("SELECT COUNT(UserId) FROM Users");
+            Assert.AreEqual(InMemoryUsers.Count, userCount, "Test User Data not in sync db has " + userCount + " records, but the in memory copy has only " + InMemoryUsers.Count + " records.");
+            System.Diagnostics.Debug.WriteLine("Created " + userCount + " test users for the unit tests.");
+
+            var userExtraInfoCount = Database.ExecuteScalar<int>("SELECT COUNT(ExtraUserInfoId) FROM ExtraUserInfos");
+            Assert.AreEqual(InMemoryExtraUserInfos.Count, userExtraInfoCount, "Test User Extra Info Data not in sync db has " + userExtraInfoCount + " records, but the in memory copy has only " + InMemoryExtraUserInfos.Count + " records.");
+            System.Diagnostics.Debug.WriteLine("Created " + userExtraInfoCount + " test extra user info records for the unit tests.");
+            
+            var compositeObjectCount = Database.ExecuteScalar<int>("SELECT COUNT(Key1ID) FROM CompositeObjects");
+            Assert.AreEqual(InMemoryCompositeObjects.Count, compositeObjectCount, "Test Composite Object Data not in sync db has " + compositeObjectCount + " records, but the in memory copy has only " + InMemoryCompositeObjects.Count + " records.");
+            System.Diagnostics.Debug.WriteLine("Created " + compositeObjectCount + " test composite PK objects for the unit tests.");
+
         }
 
         protected void AssertUserValues(UserDecorated expected, UserDecorated actual)

@@ -38,6 +38,9 @@ namespace NPoco.Tests.Common
             cmd.CommandText = "CREATE TABLE ExtraUserInfos(ExtraUserInfoId INTEGER PRIMARY KEY, UserId int, Email nvarchar(200), Children int);";
             cmd.ExecuteNonQuery();
 
+            cmd.CommandText = "CREATE TABLE CompositeObjects(Key1ID INTEGER PRIMARY KEY, Key2ID int, Key3ID int, TextData nvarchar(512), DateEntered datetime, DateUpdated datetime);";
+            cmd.ExecuteNonQuery();
+
             cmd.Dispose();
         }
 
