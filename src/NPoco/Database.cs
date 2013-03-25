@@ -19,7 +19,9 @@ using System.Configuration;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
+using NPoco.Expressions;
 
 namespace NPoco
 {
@@ -587,6 +589,20 @@ namespace NPoco
         public List<T> Fetch<T>()
         {
             return Fetch<T>("");
+        }
+
+        public List<T> FetchWhere<T>(Expression<Func<T, bool>> expression)
+        {
+            var ev = _dbType.ExpressionVisitor<T>(this, PocoData.ForType(typeof(T), PocoDataFactory));
+            var sql = ev.Where(expression).ToWhereStatement();
+            return Fetch<T>(sql, ev.Params.ToArray());
+        }
+
+        public List<T> FetchBy<T>(Func<SqlExpressionVisitor<T>, SqlExpressionVisitor<T>> expression)
+        {
+            var ev = _dbType.ExpressionVisitor<T>(this, PocoData.ForType(typeof(T), PocoDataFactory));
+            var sql = expression(ev).ToSelectStatement();
+            return Fetch<T>(sql, ev.Params.ToArray());
         }
 
         public void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage)

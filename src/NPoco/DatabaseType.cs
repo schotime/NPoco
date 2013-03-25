@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using NPoco.DatabaseTypes;
+using NPoco.Expressions;
 
 namespace NPoco
 {
@@ -217,6 +218,11 @@ namespace NPoco
                 default:
                     return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
             }
+        }
+
+        public virtual SqlExpressionVisitor<T> ExpressionVisitor<T>(Database db, PocoData pocoData)
+        {
+            return new DefaultSqlExpressionVisitor<T>(db, pocoData);
         }
 
         public virtual string GetProviderName()

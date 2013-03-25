@@ -87,7 +87,8 @@ namespace NPoco.Tests.Common
                     Name nvarchar(200) NULL, 
                     Age int NULL, 
                     DateOfBirth datetime NULL, 
-                    Savings decimal(10,5) NULL
+                    Savings decimal(10,5) NULL,
+                    IsMale tinyint
                 );
             ";
             cmd.ExecuteNonQuery();

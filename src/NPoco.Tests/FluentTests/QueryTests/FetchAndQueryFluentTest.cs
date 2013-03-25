@@ -107,5 +107,25 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(2, data[0]["userid"]);
             Assert.AreEqual("Name2", data[0]["name"]);
         }
+
+        [Test]
+        public void FetchWithWhereExpressionAdvanced()
+        {
+            var users = Database.FetchBy<User>(y => y.Where(x => x.UserId > 10));
+
+            Assert.AreEqual(5, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(InMemoryUsers[i + 10], users[i]);
+            }
+        }
+
+        [Test]
+        public void FetchWithWhereExpression()
+        {
+            var users = Database.FetchWhere<User>(y => y.UserId == 2 && !y.IsMale);
+
+            Assert.AreEqual(1, users.Count);
+        }
     }
 }

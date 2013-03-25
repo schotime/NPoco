@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using NPoco.Expressions;
 
 namespace NPoco
 {
@@ -16,6 +18,8 @@ namespace NPoco
         List<T> Fetch<T>(Sql sql);
         List<T> Fetch<T>(long page, long itemsPerPage, string sql, params object[] args);
         List<T> Fetch<T>(long page, long itemsPerPage, Sql sql);
+        List<T> FetchBy<T>(Func<SqlExpressionVisitor<T>, SqlExpressionVisitor<T>> expression);
+        List<T> FetchWhere<T>(Expression<Func<T, bool>> expression);
         Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args);
         Page<T> Page<T>(long page, long itemsPerPage, Sql sql);
         List<T> SkipTake<T>(long skip, long take, string sql, params object[] args);

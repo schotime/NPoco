@@ -9,6 +9,7 @@ namespace NPoco.Tests.Common
         public int Age { get; set; }
         public DateTime DateOfBirth { get; set; }
         public decimal Savings { get; set; }
+        public bool IsMale { get; set; }
     }
 
     public class Admin : User
