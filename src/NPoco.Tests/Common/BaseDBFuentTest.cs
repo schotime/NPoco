@@ -24,6 +24,7 @@ namespace NPoco.Tests.Common
                     s.Assembly(typeof (User).Assembly);
                     s.IncludeTypes(types.Contains);
                     s.WithSmartConventions();
+                    s.OverrideMappingsWith(new FluentMappingOverrides());
                 })
             );
 
@@ -99,6 +100,14 @@ namespace NPoco.Tests.Common
             Assert.AreEqual(expected.Age, actual.Age);
             Assert.AreEqual(expected.DateOfBirth, actual.DateOfBirth);
             Assert.AreEqual(expected.Savings, actual.Savings);
+        }
+    }
+
+    public class FluentMappingOverrides : Mappings
+    {
+        public FluentMappingOverrides()
+        {
+            For<User>().Columns(x => x.Column(y => y.IsMale).WithName("is_male"));
         }
     }
 }

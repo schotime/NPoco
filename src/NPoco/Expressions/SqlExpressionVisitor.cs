@@ -23,7 +23,6 @@ namespace NPoco.Expressions
         IList<string> insertFields = new List<string>();
 
         private string sep = string.Empty;
-        private bool useFieldName = false;
         private PocoData modelDef;
         private readonly Database _database;
         private readonly DatabaseType _databaseType;
@@ -78,7 +77,6 @@ namespace NPoco.Expressions
         public virtual SqlExpressionVisitor<T> Select<TKey>(Expression<Func<T, TKey>> fields)
         {
             sep = string.Empty;
-            useFieldName = true;
             BuildSelectExpression(Visit(fields).ToString(), false);
             return this;
         }
@@ -86,7 +84,6 @@ namespace NPoco.Expressions
         public virtual SqlExpressionVisitor<T> SelectDistinct<TKey>(Expression<Func<T, TKey>> fields)
         {
             sep = string.Empty;
-            useFieldName = true;
             BuildSelectExpression(Visit(fields).ToString(), true);
             return this;
         }
@@ -153,7 +150,6 @@ namespace NPoco.Expressions
 
         private void ProcessInternalExpression()
         {
-            useFieldName = true;
             sep = " ";
             whereExpression = Visit(underlyingExpression).ToString();
             if (!string.IsNullOrEmpty(whereExpression)) whereExpression = (WhereStatementWithoutWhereString ? "" : "WHERE ") + whereExpression;
@@ -173,7 +169,6 @@ namespace NPoco.Expressions
         public virtual SqlExpressionVisitor<T> GroupBy<TKey>(Expression<Func<T, TKey>> keySelector)
         {
             sep = string.Empty;
-            useFieldName = true;
             groupBy = Visit(keySelector).ToString();
             if (!string.IsNullOrEmpty(groupBy)) groupBy = string.Format("GROUP BY {0}", groupBy);
             return this;
@@ -197,7 +192,6 @@ namespace NPoco.Expressions
 
             if (predicate != null)
             {
-                useFieldName = true;
                 sep = " ";
                 havingExpression = Visit(predicate).ToString();
                 if (!string.IsNullOrEmpty(havingExpression)) havingExpression = "HAVING " + havingExpression;
@@ -225,7 +219,6 @@ namespace NPoco.Expressions
         public virtual SqlExpressionVisitor<T> OrderBy<TKey>(Expression<Func<T, TKey>> keySelector)
         {
             sep = string.Empty;
-            useFieldName = true;
             orderByProperties.Clear();
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " ASC");
@@ -236,7 +229,6 @@ namespace NPoco.Expressions
         public virtual SqlExpressionVisitor<T> ThenBy<TKey>(Expression<Func<T, TKey>> keySelector)
         {
             sep = string.Empty;
-            useFieldName = true;
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " ASC");
             BuildOrderByClauseInternal();
@@ -246,7 +238,6 @@ namespace NPoco.Expressions
         public virtual SqlExpressionVisitor<T> OrderByDescending<TKey>(Expression<Func<T, TKey>> keySelector)
         {
             sep = string.Empty;
-            useFieldName = true;
             orderByProperties.Clear();
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " DESC");
@@ -257,7 +248,6 @@ namespace NPoco.Expressions
         public virtual SqlExpressionVisitor<T> ThenByDescending<TKey>(Expression<Func<T, TKey>> keySelector)
         {
             sep = string.Empty;
-            useFieldName = true;
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " DESC");
             BuildOrderByClauseInternal();
@@ -576,18 +566,6 @@ namespace NPoco.Expressions
             set
             {
                 modelDef = value;
-            }
-        }
-
-        protected internal bool UseFieldName
-        {
-            get
-            {
-                return useFieldName;
-            }
-            set
-            {
-                useFieldName = value;
             }
         }
 
@@ -953,17 +931,9 @@ namespace NPoco.Expressions
 
         protected virtual string GetQuotedColumnName(string memberName)
         {
-
-            if (useFieldName)
-            {
-                var fd = modelDef.Columns.Keys.FirstOrDefault(x => x == memberName);
-                string fn = fd != null ? modelDef.Columns[fd].ColumnName : memberName;
-                return _databaseType.EscapeSqlIdentifier(fn);
-            }
-            else
-            {
-                return memberName;
-            }
+            var fd = modelDef.Columns.Values.FirstOrDefault(x => x.PropertyInfo.Name == memberName);
+            string fn = fd != null ? fd.ColumnName : memberName;
+            return _databaseType.EscapeSqlIdentifier(fn);
         }
 
         protected string RemoveQuoteFromAlias(string exp)

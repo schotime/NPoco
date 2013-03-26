@@ -109,9 +109,9 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
-        public void FetchWithWhereExpressionAdvanced()
+        public void FetchByExpressionAdvanced()
         {
-            var users = Database.FetchBy<User>(y => y.Where(x => x.UserId > 10));
+            var users = Database.FetchBy<User>(y => y.Where(x => x.UserId > 10).OrderBy(x=>x.UserId));
 
             Assert.AreEqual(5, users.Count);
             for (int i = 0; i < users.Count; i++)
@@ -121,11 +121,17 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
-        public void FetchWithWhereExpression()
+        public void FetchWhereExpression()
         {
             var users = Database.FetchWhere<User>(y => y.UserId == 2 && !y.IsMale);
-
             Assert.AreEqual(1, users.Count);
+        }
+
+        [Test]
+        public void FetchByExpressionAndColumnAlias()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.IsMale).OrderBy(x => x.UserId));
+            Assert.AreEqual(8, users.Count);
         }
     }
 }

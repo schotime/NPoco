@@ -21,6 +21,9 @@ namespace NPoco.Tests.Common
 
         [Column("Savings")]
         public decimal Savings { get; set; }
+
+        [Column("is_male")]
+        public bool IsMale { get; set; }
     }
 
     [TableName("TEST_Users")]

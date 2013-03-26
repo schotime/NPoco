@@ -115,5 +115,12 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             Assert.AreEqual(2, data[0]["userid"]);
             Assert.AreEqual("Name2", data[0]["name"]);
         }
+
+        [Test]
+        public void FetchWithWhereExpression()
+        {
+            var users = Database.FetchBy<UserDecorated>(y=>y.Where(x=>x.IsMale).OrderBy(x=>x.UserId));
+            Assert.AreEqual(8, users.Count);
+        }
     }
 }
