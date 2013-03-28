@@ -139,7 +139,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public void FetchWithWhereExpressionContains()
         {
             var list = new [] {1, 2, 3, 4};
-            var users = Database.FetchBy<User>(y => y.Where(x => S.In(x.UserId, list)));
+            var users = Database.FetchBy<User>(y => y.Where(x => list.Contains(x.UserId)));
 
             Assert.AreEqual(4, users.Count);
             for (int i = 0; i < users.Count; i++)

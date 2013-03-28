@@ -746,8 +746,7 @@ namespace NPoco
                 var pd = PocoData.ForType(typeof(T), PocoDataFactory);
                 try
                 {
-                    r = cmd.ExecuteReader();
-                    OnExecutedCommand(cmd);
+                    r = ExecuteReaderHelper(cmd);
                 }
                 catch (Exception x)
                 {
@@ -828,8 +827,7 @@ namespace NPoco
                 IDataReader r;
                 try
                 {
-                    r = cmd.ExecuteReader();
-                    OnExecutedCommand(cmd);
+                    r = ExecuteReaderHelper(cmd);
                 }
                 catch (Exception x)
                 {
@@ -908,8 +906,7 @@ namespace NPoco
                 IDataReader r;
                 try
                 {
-                    r = cmd.ExecuteReader();
-                    OnExecutedCommand(cmd);
+                    r = ExecuteReaderHelper(cmd);
                 }
                 catch (Exception x)
                 {
@@ -1575,6 +1572,14 @@ namespace NPoco
         {
             DoPreExecute(cmd);
             object r = cmd.ExecuteScalar();
+            OnExecutedCommand(cmd);
+            return r;
+        }
+
+        internal IDataReader ExecuteReaderHelper(IDbCommand cmd)
+        {
+            DoPreExecute(cmd);
+            IDataReader r = cmd.ExecuteReader();
             OnExecutedCommand(cmd);
             return r;
         }
