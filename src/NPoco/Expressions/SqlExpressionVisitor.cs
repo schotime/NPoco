@@ -84,7 +84,8 @@ namespace NPoco.Expressions
         public virtual SqlExpressionVisitor<T> SelectDistinct<TKey>(Expression<Func<T, TKey>> fields)
         {
             sep = string.Empty;
-            BuildSelectExpression(Visit(fields).ToString(), true);
+            var exp = PartialEvaluator.Eval(fields, CanBeEvaluatedLocally);
+            BuildSelectExpression(Visit(exp).ToString(), true);
             return this;
         }
         
@@ -151,8 +152,33 @@ namespace NPoco.Expressions
         private void ProcessInternalExpression()
         {
             sep = " ";
-            whereExpression = Visit(underlyingExpression).ToString();
+            var exp = PartialEvaluator.Eval(underlyingExpression, CanBeEvaluatedLocally);
+            whereExpression = Visit(exp).ToString();
             if (!string.IsNullOrEmpty(whereExpression)) whereExpression = (WhereStatementWithoutWhereString ? "" : "WHERE ") + whereExpression;
+        }
+
+        private bool CanBeEvaluatedLocally(Expression expression)
+        {
+            // any operation on a query can't be done locally
+            ConstantExpression cex = expression as ConstantExpression;
+            if (cex != null)
+            {
+                IQueryable query = cex.Value as IQueryable;
+                if (query != null && query.Provider == this)
+                    return false;
+            }
+            MethodCallExpression mc = expression as MethodCallExpression;
+            if (mc != null &&
+                (mc.Method.DeclaringType == typeof(Enumerable) ||
+                 mc.Method.DeclaringType == typeof(Queryable)))
+            {
+                return false;
+            }
+            if (expression.NodeType == ExpressionType.Convert &&
+                expression.Type == typeof(object))
+                return true;
+            return expression.NodeType != ExpressionType.Parameter &&
+                   expression.NodeType != ExpressionType.Lambda;
         }
 
         public virtual SqlExpressionVisitor<T> GroupBy()
@@ -756,7 +782,6 @@ namespace NPoco.Expressions
 
         protected virtual object VisitNew(NewExpression nex)
         {
-            // TODO : check !
             var member = Expression.Convert(nex, typeof(object));
             var lambda = Expression.Lambda<Func<object>>(member);
             try
@@ -765,14 +790,12 @@ namespace NPoco.Expressions
                 return getter();
             }
             catch (System.InvalidOperationException)
-            { // FieldName ?
+            { 
                 List<Object> exprs = VisitExpressionList(nex.Arguments);
                 StringBuilder r = new StringBuilder();
                 foreach (Object e in exprs)
                 {
-                    r.AppendFormat("{0}{1}",
-                                   r.Length > 0 ? "," : "",
-                                   e);
+                    r.AppendFormat("{0}{1}", r.Length > 0 ? "," : "",e);
                 }
                 return r.ToString();
             }
@@ -840,7 +863,7 @@ namespace NPoco.Expressions
 
         protected virtual object VisitMethodCall(MethodCallExpression m)
         {
-            if (m.Method.DeclaringType == typeof(Sql))
+            if (m.Method.DeclaringType == typeof(S))
                 return VisitSqlMethodCall(m);
 
             if (IsArrayMethod(m))
@@ -1010,10 +1033,14 @@ namespace NPoco.Expressions
 
         private bool IsArrayMethod(MethodCallExpression m)
         {
-            if (m.Object == null && m.Method.Name == "Contains")
+            if (typeof(IEnumerable).IsAssignableFrom(m.Method.DeclaringType) || typeof(Enumerable).IsAssignableFrom(m.Method.DeclaringType))
             {
-                if (m.Arguments.Count == 2)
+                if (m.Method.Name == "Contains")
+                {
                     return true;
+                }
+
+                throw new NotSupportedException(string.Format("Subqueries with {0} are not currently supported", m.Method.Name));
             }
 
             return false;
@@ -1026,39 +1053,25 @@ namespace NPoco.Expressions
             switch (m.Method.Name)
             {
                 case "Contains":
-                    List<Object> args = this.VisitExpressionList(m.Arguments);
-                    object quotedColName = args[1];
-
-                    var memberExpr = m.Arguments[0];
-                    if (memberExpr.NodeType == ExpressionType.MemberAccess)
-                        memberExpr = (m.Arguments[0] as MemberExpression);
-
-                    var member = Expression.Convert(memberExpr, typeof(object));
-                    var lambda = Expression.Lambda<Func<object>>(member);
-                    var getter = lambda.Compile();
-
-                    var inArgs = getter() as object[];
-
-                    StringBuilder sIn = new StringBuilder();
-                    foreach (Object e in inArgs)
+                    object[] collection;
+                    object member;
+                    if (m.Arguments.Count == 2)
                     {
-                        if (e.GetType().ToString() != "System.Collections.Generic.List`1[System.Object]")
-                        {
-                            sIn.AppendFormat("{0}{1}",
-                                         sIn.Length > 0 ? "," : "", CreateParam(e));
-                        }
-                        else
-                        {
-                            var listArgs = e as IList<Object>;
-                            foreach (Object el in listArgs)
-                            {
-                                sIn.AppendFormat("{0}{1}",
-                                         sIn.Length > 0 ? "," : "", CreateParam(el));
-                            }
-                        }
+                        collection = m.Arguments[0].GetConstantValue<IEnumerable>().Cast<object>().ToArray();
+                        member = Visit(m.Arguments[1]);
+                    }
+                    else
+                    {
+                        collection = m.Object.GetConstantValue<IEnumerable>().Cast<object>().ToArray();
+                        member = Visit(m.Arguments[0]);
+                    }
+                    StringBuilder sIn = new StringBuilder();
+                    foreach (var e in collection)
+                    {
+                        sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(e));
                     }
 
-                    statement = string.Format("{0} {1} ({2})", quotedColName, "In", sIn.ToString());
+                    statement = string.Format("{0} {1} ({2})", member, "IN", sIn);
                     break;
 
                 default:
@@ -1105,7 +1118,7 @@ namespace NPoco.Expressions
                         }
                     }
 
-                    statement = string.Format("{0} {1} ({2})", quotedColName, m.Method.Name, sIn.ToString());
+                    statement = string.Format("{0} {1} ({2})", quotedColName, m.Method.Name.ToUpper(), sIn.ToString());
                     break;
                 case "Desc":
                     statement = string.Format("{0} DESC", quotedColName);
@@ -1159,13 +1172,13 @@ namespace NPoco.Expressions
                     if (args.Count == 2)
                     {
                         var length = Int32.Parse(args[1].ToString());
-                        statement = string.Format("substring({0} from {1} for {2})",
+                        statement = string.Format("substring({0},{1},{2})",
                                                   quotedColName,
                                                   startIndex,
                                                   length);
                     }
                     else
-                        statement = string.Format("substring({0} from {1})",
+                        statement = string.Format("substring({0},{1},8000)",
                                          quotedColName,
                                          startIndex);
                     break;
@@ -1200,6 +1213,27 @@ namespace NPoco.Expressions
         }
 
         public Type EnumType { get; private set; }
+    }
+
+    public static class LinqExtensions
+    {
+        /// <summary>
+        /// Gets the constant value.
+        /// </summary>
+        /// <param retval="exp">The exp.</param>
+        /// <returns>The get constant value.</returns>
+        public static T GetConstantValue<T>(this Expression exp)
+        {
+            T result = default(T);
+            if (exp is ConstantExpression)
+            {
+                var c = (ConstantExpression) exp;
+
+                result = (T) c.Value;
+            }
+
+            return result;
+        }
     }
 
 }

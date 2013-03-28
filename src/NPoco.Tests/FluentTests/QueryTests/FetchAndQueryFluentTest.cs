@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using NPoco.Expressions;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -133,5 +135,18 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.IsMale).OrderBy(x => x.UserId));
             Assert.AreEqual(8, users.Count);
         }
+        [Test]
+        public void FetchWithWhereExpressionContains()
+        {
+            var list = new [] {1, 2, 3, 4};
+            var users = Database.FetchBy<User>(y => y.Where(x => S.In(x.UserId, list)));
+
+            Assert.AreEqual(4, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(InMemoryUsers[i], users[i]);
+            }
+        }
+
     }
 }

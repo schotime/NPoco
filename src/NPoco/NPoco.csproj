@@ -66,9 +66,11 @@
     <Compile Include="DeleteContext.cs" />
     <Compile Include="EnumMapper.cs" />
     <Compile Include="ExpandoColumn.cs" />
+    <Compile Include="Expressions\PartialEvaluator.cs" />
     <Compile Include="Expressions\PredicateBuilder.cs" />
     <Compile Include="Expressions\ExpressionVisitor.cs" />
     <Compile Include="Expressions\ParameterRebinder.cs" />
+    <Compile Include="Expressions\S.cs" />
     <Compile Include="Expressions\SqlExpressionVisitor.cs" />
     <Compile Include="FluentMappings\ColumnConfigurationBuilder.cs" />
     <Compile Include="FluentMappings\FluentMappingConfiguration.cs" />
