@@ -208,7 +208,11 @@ namespace NPoco.Expressions
 
         public virtual SqlExpressionVisitor<T> Having(string sqlFilter, params object[] filterParams)
         {
-            //havingExpression = !string.IsNullOrEmpty(sqlFilter) ? sqlFilter.SqlFormat(filterParams) : string.Empty;
+            havingExpression = !string.IsNullOrEmpty(sqlFilter) ? sqlFilter : string.Empty;
+            foreach (var filterParam in filterParams)
+            {
+                CreateParam(filterParam);
+            }
             if (!string.IsNullOrEmpty(havingExpression)) havingExpression = "HAVING " + havingExpression;
             return this;
         }
