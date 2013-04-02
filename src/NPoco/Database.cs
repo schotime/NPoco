@@ -19,7 +19,9 @@ using System.Configuration;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
+using NPoco.Expressions;
 
 namespace NPoco
 {
@@ -589,6 +591,20 @@ namespace NPoco
             return Fetch<T>("");
         }
 
+        public List<T> FetchWhere<T>(Expression<Func<T, bool>> expression)
+        {
+            var ev = _dbType.ExpressionVisitor<T>(this, PocoData.ForType(typeof(T), PocoDataFactory));
+            var sql = ev.Where(expression).ToWhereStatement();
+            return Fetch<T>(sql, ev.Params.ToArray());
+        }
+
+        public List<T> FetchBy<T>(Func<SqlExpressionVisitor<T>, SqlExpressionVisitor<T>> expression)
+        {
+            var ev = _dbType.ExpressionVisitor<T>(this, PocoData.ForType(typeof(T), PocoDataFactory));
+            var sql = expression(ev).ToSelectStatement();
+            return Fetch<T>(sql, ev.Params.ToArray());
+        }
+
         public void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage)
         {
             // Add auto select clause
@@ -730,8 +746,7 @@ namespace NPoco
                 var pd = PocoData.ForType(typeof(T), PocoDataFactory);
                 try
                 {
-                    r = cmd.ExecuteReader();
-                    OnExecutedCommand(cmd);
+                    r = ExecuteReaderHelper(cmd);
                 }
                 catch (Exception x)
                 {
@@ -812,8 +827,7 @@ namespace NPoco
                 IDataReader r;
                 try
                 {
-                    r = cmd.ExecuteReader();
-                    OnExecutedCommand(cmd);
+                    r = ExecuteReaderHelper(cmd);
                 }
                 catch (Exception x)
                 {
@@ -892,8 +906,7 @@ namespace NPoco
                 IDataReader r;
                 try
                 {
-                    r = cmd.ExecuteReader();
-                    OnExecutedCommand(cmd);
+                    r = ExecuteReaderHelper(cmd);
                 }
                 catch (Exception x)
                 {
@@ -1574,6 +1587,14 @@ namespace NPoco
         {
             DoPreExecute(cmd);
             object r = cmd.ExecuteScalar();
+            OnExecutedCommand(cmd);
+            return r;
+        }
+
+        internal IDataReader ExecuteReaderHelper(IDbCommand cmd)
+        {
+            DoPreExecute(cmd);
+            IDataReader r = cmd.ExecuteReader();
             OnExecutedCommand(cmd);
             return r;
         }

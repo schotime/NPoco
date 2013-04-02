@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using NPoco.Expressions;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -107,5 +109,44 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(2, data[0]["userid"]);
             Assert.AreEqual("Name2", data[0]["name"]);
         }
+
+        [Test]
+        public void FetchByExpressionAdvanced()
+        {
+            var users = Database.FetchBy<User>(y => y.Where(x => x.UserId > 10).OrderBy(x=>x.UserId));
+
+            Assert.AreEqual(5, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(InMemoryUsers[i + 10], users[i]);
+            }
+        }
+
+        [Test]
+        public void FetchWhereExpression()
+        {
+            var users = Database.FetchWhere<User>(y => y.UserId == 2 && !y.IsMale);
+            Assert.AreEqual(1, users.Count);
+        }
+
+        [Test]
+        public void FetchByExpressionAndColumnAlias()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.IsMale).OrderBy(x => x.UserId));
+            Assert.AreEqual(8, users.Count);
+        }
+        [Test]
+        public void FetchWithWhereExpressionContains()
+        {
+            var list = new [] {1, 2, 3, 4};
+            var users = Database.FetchBy<User>(y => y.Where(x => list.Contains(x.UserId)));
+
+            Assert.AreEqual(4, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(InMemoryUsers[i], users[i]);
+            }
+        }
+
     }
 }
