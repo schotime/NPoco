@@ -1440,13 +1440,15 @@ namespace NPoco
             {
                 return pd.TableInfo.PrimaryKey.Split(',')
                     .Select(pkPart => GetValue(pkPart, poco))
-                    .Any(pkValue => IsDefaultOrNull<T>(pkValue, pd.TableInfo.AutoIncrement));
+                    .Any(pkValue => IsDefaultOrNull<T>(pkValue));
             }
             else
             {
                 pk = GetValue(pd.TableInfo.PrimaryKey, poco);
             }
-            return IsDefaultOrNull<T>(pk, pd.TableInfo.AutoIncrement);
+            if (pk == null) return true;
+            if (!pd.TableInfo.AutoIncrement) return !Exists<T>(pk);
+            return IsDefaultOrNull<T>(pk);
         }
 
         private object GetValue(string primaryKeyName, object poco)
@@ -1456,11 +1458,9 @@ namespace NPoco
             return pi.GetValue(poco, null);
         }
 
-        private bool IsDefaultOrNull<T>(object pk, bool AutoIncrement)
+        private bool IsDefaultOrNull<T>(object pk)
         {
             if (pk == null) return true;
-            if (!AutoIncrement) return !Exists<T>(pk);
-
             var type = pk.GetType();
 
             if (type.IsValueType)
