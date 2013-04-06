@@ -552,8 +552,7 @@ namespace NPoco
                 OpenSharedConnection();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
-                    object val = cmd.ExecuteScalar();
-                    OnExecutedCommand(cmd);
+                    object val = ExecuteScalarHelper(cmd);
 
                     if (val == null || val == DBNull.Value)
                         return default(T);
