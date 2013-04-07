@@ -36,6 +36,7 @@ namespace NPoco.Expressions
             _databaseType = database.DatabaseType;
             PrefixFieldWithTableName = false;
             WhereStatementWithoutWhereString = false;
+            paramPrefix = _databaseType.GetParameterPrefix(_database.Connection.ConnectionString);
         }
 
         /// <summary>
@@ -813,6 +814,7 @@ namespace NPoco.Expressions
 
         public List<object> Params = new List<object>();
         int paramCounter = 0;
+        private string paramPrefix;
 
         protected virtual object VisitConstant(ConstantExpression c)
         {
@@ -824,7 +826,7 @@ namespace NPoco.Expressions
 
         private string CreateParam(object value)
         {
-            string paramPlaceholder = _databaseType.GetParameterPrefix(_database.Connection.ConnectionString) + paramCounter++;
+            string paramPlaceholder = paramPrefix + paramCounter++;
             Params.Add(value);
             return paramPlaceholder;
         }
