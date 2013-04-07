@@ -135,6 +135,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.IsMale).OrderBy(x => x.UserId));
             Assert.AreEqual(8, users.Count);
         }
+
+        [Test]
+        public void FetchByExpressionAndLimit()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.OrderBy(x => x.UserId).Limit(5, 5));
+            Assert.AreEqual(5, users.Count);
+        }
+
         [Test]
         public void FetchWithWhereExpressionContains()
         {

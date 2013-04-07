@@ -1033,7 +1033,6 @@ namespace NPoco.Expressions
             Params.Clear();
             Params.AddRange(parms);
 
-            //sql = sql + (string.IsNullOrEmpty(LimitExpression) ? "" : "\n" + LimitExpression);
             return sqlPage;
         }
 
