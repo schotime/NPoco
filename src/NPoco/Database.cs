@@ -597,7 +597,7 @@ namespace NPoco
             return Fetch<T>(sql, ev.Params.ToArray());
         }
 
-        public List<T> FetchBy<T>(Func<SqlExpressionVisitor<T>, SqlExpressionVisitor<T>> expression)
+        public List<T> FetchBy<T>(Func<SqlExpression<T>, SqlExpression<T>> expression)
         {
             var ev = _dbType.ExpressionVisitor<T>(this, PocoData.ForType(typeof(T), PocoDataFactory));
             var sql = expression(ev).ToSelectStatement();
