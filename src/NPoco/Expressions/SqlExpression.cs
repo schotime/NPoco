@@ -798,9 +798,15 @@ namespace NPoco.Expressions
             { 
                 List<Object> exprs = VisitExpressionList(nex.Arguments);
                 StringBuilder r = new StringBuilder();
-                foreach (Object e in exprs)
+                for (int i = 0; i < exprs.Count; i++)
                 {
-                    r.AppendFormat("{0}{1}", r.Length > 0 ? "," : "",e);
+                    r.AppendFormat("{0}{1}", r.Length > 0 ? "," : "", exprs[i]);
+                    if (nex.Members[i] != null )
+                    {
+                        var memberName = _databaseType.EscapeSqlIdentifier(nex.Members[i].Name);
+                        if (memberName != exprs[i].ToString())
+                            r.AppendFormat(" AS {0}", memberName);
+                    }
                 }
                 return r.ToString();
             }
@@ -872,12 +878,12 @@ namespace NPoco.Expressions
             if (m.Method.DeclaringType == typeof(S))
                 return VisitSqlMethodCall(m);
 
-            if (IsArrayMethod(m))
-                return VisitArrayMethodCall(m);
-
             if (IsColumnAccess(m))
                 return VisitColumnAccessMethod(m);
 
+            if (IsArrayMethod(m))
+                return VisitArrayMethodCall(m);
+            
             return Expression.Lambda(m).Compile().DynamicInvoke();
         }
 
@@ -895,6 +901,16 @@ namespace NPoco.Expressions
                 else
                     list.Add(Visit(original[i]));
 
+            }
+            return list;
+        }
+
+        protected virtual List<Object> VisitConstantList(ReadOnlyCollection<Expression> original)
+        {
+            List<Object> list = new List<Object>();
+            for (int i = 0, n = original.Count; i < n; i++)
+            {
+                list.Add(original[i].GetConstantValue<object>());
             }
             return list;
         }
@@ -1088,7 +1104,7 @@ namespace NPoco.Expressions
 
         protected virtual object VisitSqlMethodCall(MethodCallExpression m)
         {
-            List<Object> args = this.VisitExpressionList(m.Arguments);
+            List<Object> args = this.VisitConstantList(m.Arguments);
             object quotedColName = args[0];
             args.RemoveAt(0);
 
@@ -1138,7 +1154,7 @@ namespace NPoco.Expressions
                 case "Max":
                 case "Avg":
                     statement = string.Format("{0}({1}{2})",
-                                         m.Method.Name,
+                                         m.Method.Name.ToUpper(),
                                          quotedColName,
                                          args.Count == 1 ? string.Format(",{0}", args[0]) : "");
                     break;
@@ -1151,7 +1167,7 @@ namespace NPoco.Expressions
 
         protected virtual object VisitColumnAccessMethod(MethodCallExpression m)
         {
-            List<Object> args = this.VisitExpressionList(m.Arguments);
+            List<Object> args = this.VisitConstantList(m.Arguments);
             var quotedColName = Visit(m.Object);
             var statement = "";
 

@@ -144,6 +144,76 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchByExpressionAndSubstringInWhere()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Where(x=>x.Name.Substring(0, 4) == "Name"));
+            Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void FetchByExpressionAndSubstringAndUpper()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.Name.ToUpper().Substring(0, 4) == "NAME"));
+            Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void FetchByExpressionAndLower()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.Name.ToLower() == "name1"));
+            Assert.AreEqual(1, users.Count);
+        }
+
+        [Test]
+        public void FetchByExpressionAndContains()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.Name.Contains("ame")));
+            Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void FetchByExpressionAndStartsWith()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.Name.StartsWith("Na")));
+            Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void FetchByExpressionAndEndsWith()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.Name.EndsWith("e2")));
+            Assert.AreEqual(1, users.Count);
+        }
+
+        [Test]
+        public void FetchByExpressionAndSelectWithSubstring()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x=>new { Name = x.Name.Substring(0,2)}));
+            Assert.AreEqual("Na", users[0].Name);
+        }
+
+        [Test]
+        public void FetchByExpressionAndSelectWithLower()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new { Name = x.Name.ToLower() }));
+            Assert.AreEqual("name1", users[0].Name);
+        }
+
+        [Test]
+        public void FetchByExpressionAndSelectWithUpper()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new { Name = x.Name.ToUpper() }));
+            Assert.AreEqual("NAME1", users[0].Name);
+        }
+
+        [Test]
+        public void FetchByExpressionAndSelect()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new { x.Name }));
+            Assert.AreEqual("Name1", users[0].Name);
+        }
+
+        [Test]
         public void FetchWithWhereExpressionContains()
         {
             var list = new [] {1, 2, 3, 4};
