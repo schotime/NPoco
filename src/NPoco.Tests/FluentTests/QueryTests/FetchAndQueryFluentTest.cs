@@ -226,5 +226,31 @@ namespace NPoco.Tests.FluentTests.QueryTests
             }
         }
 
+        [Test]
+        public void FetchWithWhereExpressionInAsExtensionMethod()
+        {
+            var list = new[] { 1, 2, 3, 4 };
+            var users = Database.FetchBy<User>(y => y.Where(x => x.UserId.In(list)));
+
+            Assert.AreEqual(4, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(InMemoryUsers[i], users[i]);
+            }
+        }
+
+        [Test]
+        public void FetchWithWhereExpressionInAsStaticMethod()
+        {
+            var list = new[] { 1, 2, 3, 4 };
+            var users = Database.FetchBy<User>(y => y.Where(x => S.In(x.UserId, list)));
+
+            Assert.AreEqual(4, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(InMemoryUsers[i], users[i]);
+            }
+        }
+
     }
 }

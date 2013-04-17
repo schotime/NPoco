@@ -1118,6 +1118,9 @@ namespace NPoco.Expressions
                     var lambda = Expression.Lambda<Func<object>>(member);
                     var getter = lambda.Compile();
 
+                    if (quotedColName == null)
+                        quotedColName = Visit(m.Arguments[0]);
+
                     var inArgs = getter() as object[];
 
                     StringBuilder sIn = new StringBuilder();
@@ -1125,16 +1128,14 @@ namespace NPoco.Expressions
                     {
                         if (!typeof(ICollection).IsAssignableFrom(e.GetType()))
                         {
-                            sIn.AppendFormat("{0}{1}",
-                                         sIn.Length > 0 ? "," : "", CreateParam(e));
+                            sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(e));
                         }
                         else
                         {
                             var listArgs = e as ICollection;
                             foreach (Object el in listArgs)
                             {
-                                sIn.AppendFormat("{0}{1}",
-                                         sIn.Length > 0 ? "," : "", CreateParam(el));
+                                sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(el));
                             }
                         }
                     }
@@ -1193,15 +1194,10 @@ namespace NPoco.Expressions
                     if (args.Count == 2)
                     {
                         var length = Int32.Parse(args[1].ToString());
-                        statement = string.Format("substring({0},{1},{2})",
-                                                  quotedColName,
-                                                  startIndex,
-                                                  length);
+                        statement = string.Format("substring({0},{1},{2})",quotedColName,startIndex,length);
                     }
                     else
-                        statement = string.Format("substring({0},{1},8000)",
-                                         quotedColName,
-                                         startIndex);
+                        statement = string.Format("substring({0},{1},8000)",quotedColName,startIndex);
                     break;
                 default:
                     throw new NotSupportedException();
