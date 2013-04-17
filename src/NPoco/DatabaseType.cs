@@ -130,8 +130,10 @@ namespace NPoco
         /// <param name="db">The calling Database object</param>
         /// <param name="cmd">The insert command to be executed</param>
         /// <param name="primaryKeyName">The primary key of the table being inserted into</param>
+        /// <param name="poco"></param>
+        /// <param name="args"></param>
         /// <returns>The ID of the newly inserted record</returns>
-        public virtual object ExecuteInsert(Database db, IDbCommand cmd, string primaryKeyName)
+        public virtual object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco1, object[] args)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return db.ExecuteScalarHelper(cmd);

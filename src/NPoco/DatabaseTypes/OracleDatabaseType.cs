@@ -38,7 +38,7 @@ namespace NPoco.DatabaseTypes
             return null;
         }
 
-        public override object ExecuteInsert(Database db, IDbCommand cmd, string primaryKeyName)
+        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {

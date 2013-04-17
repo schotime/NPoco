@@ -1044,7 +1044,14 @@ namespace NPoco
             return Query(instance, sql).FirstOrDefault();
         }
 
-        public object Insert(string tableName, string primaryKeyName, object poco)
+        // Insert an annotated poco object
+        public object Insert<T>(T poco)
+        {
+            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            return Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
+        }
+
+        public object Insert<T>(string tableName, string primaryKeyName, T poco)
         {
             return Insert(tableName, primaryKeyName, true, poco);
         }
@@ -1052,7 +1059,7 @@ namespace NPoco
         // Insert a poco into a table.  If the poco has a property with the same name 
         // as the primary key the id of the new record is assigned to it.  Either way,
         // the new id is returned.
-        public object Insert(string tableName, string primaryKeyName, bool autoIncrement, object poco)
+        public object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
             if (!OnInserting(new InsertContext(poco, tableName, autoIncrement, primaryKeyName))) return 0;
 
@@ -1149,10 +1156,10 @@ namespace NPoco
                             return null;
                     }
 
-                    object id = _dbType.ExecuteInsert(this, cmd, primaryKeyName);
+                    object id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, poco, rawvalues.ToArray());
 
                     // Assign the ID back to the primary key property
-                    if (primaryKeyName != null)
+                    if (primaryKeyName != null && id != null && id.GetType().IsValueType)
                     {
                         PocoColumn pc;
                         if (pd.Columns.TryGetValue(primaryKeyName, out pc))
@@ -1174,13 +1181,6 @@ namespace NPoco
         public void InsertBulk<T>(IEnumerable<T> pocos)
         {
             _dbType.InsertBulk(this, pocos);
-        }
-
-        // Insert an annotated poco object
-        public object Insert(object poco)
-        {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
-            return Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
         }
 
         public int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue)

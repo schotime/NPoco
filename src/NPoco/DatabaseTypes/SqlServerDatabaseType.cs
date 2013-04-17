@@ -16,9 +16,12 @@ namespace NPoco.DatabaseTypes
             return sqlPage;
         }
 
-        public override object ExecuteInsert(Database db, IDbCommand cmd, string primaryKeyName)
+        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
         {
-            cmd.CommandText = cmd.CommandText + ";SELECT SCOPE_IDENTITY();";
+            //var pocodata = PocoData.ForType(typeof(T), db.PocoDataFactory);
+            //var sql = string.Format("SELECT * FROM {0} WHERE {1} = SCOPE_IDENTITY()", EscapeTableName(pocodata.TableInfo.TableName), EscapeSqlIdentifier(primaryKeyName));
+            //return db.SingleInto(poco, ";" + cmd.CommandText + ";" + sql, args);
+            cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
             return db.ExecuteScalarHelper(cmd);
         }
 
