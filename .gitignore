@@ -5,3 +5,4 @@ obj
 *.nupkg
 *.user
 _ReSharper*
+src/TestResults
