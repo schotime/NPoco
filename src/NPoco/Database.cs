@@ -29,25 +29,23 @@ namespace NPoco
     {
         public const bool DefaultForceDateTimesToUtc = true;
         public const bool DefaultEnableAutoSelect = true;
-        public const bool DefaultCalculatePagingAsPagesNotRecords = true;
 
         public Database(IDbConnection connection)
             : this(connection, DatabaseType.Resolve(connection.GetType().ToString(), null))
         { }
 
         public Database(IDbConnection connection, DatabaseType dbType)
-            : this(connection, dbType, null, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect, DefaultCalculatePagingAsPagesNotRecords)
+            : this(connection, dbType, null, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
         { }
 
         public Database(IDbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel)
-            : this(connection, dbType, isolationLevel, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect, DefaultCalculatePagingAsPagesNotRecords)
+            : this(connection, dbType, isolationLevel, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
         { }
 
-        public Database(IDbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel, bool forceDateTimesToUtc, bool enableAutoSelect, bool calculatePagingAsPagesNotRecords)
+        public Database(IDbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel, bool forceDateTimesToUtc, bool enableAutoSelect)
         {
             ForceDateTimesToUtc = forceDateTimesToUtc;
             EnableAutoSelect = enableAutoSelect;
-            CalculatePagingAsPagesNotRecords = calculatePagingAsPagesNotRecords;
             KeepConnectionAlive = true;
 
             _sharedConnection = connection;
@@ -68,14 +66,13 @@ namespace NPoco
         }
 
         public Database(string connectionString, string providerName)
-            : this(connectionString, providerName, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect, DefaultCalculatePagingAsPagesNotRecords)
+            : this(connectionString, providerName, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
         { }
 
-        public Database(string connectionString, string providerName, bool forceDateTimesToUtc, bool enableAutoSelect, bool calculatePagingAsPagesNotRecords)
+        public Database(string connectionString, string providerName, bool forceDateTimesToUtc, bool enableAutoSelect)
         {
             ForceDateTimesToUtc = forceDateTimesToUtc;
             EnableAutoSelect = enableAutoSelect;
-            CalculatePagingAsPagesNotRecords = calculatePagingAsPagesNotRecords;
             KeepConnectionAlive = false;
 
             _connectionString = connectionString;
@@ -88,18 +85,17 @@ namespace NPoco
         }
 
         public Database(string connectionString, DatabaseType dbType)
-            : this(connectionString, dbType, null, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect, DefaultCalculatePagingAsPagesNotRecords)
+            : this(connectionString, dbType, null, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
         { }
 
         public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel)
-            : this(connectionString, dbType, isolationLevel, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect, DefaultCalculatePagingAsPagesNotRecords)
+            : this(connectionString, dbType, isolationLevel, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
         { }
 
-        public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel, bool forceDateTimesToUtc, bool enableAutoSelect, bool calculatePagingAsPagesNotRecords)
+        public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel, bool forceDateTimesToUtc, bool enableAutoSelect)
         {
             ForceDateTimesToUtc = forceDateTimesToUtc;
             EnableAutoSelect = enableAutoSelect;
-            CalculatePagingAsPagesNotRecords = calculatePagingAsPagesNotRecords;
             KeepConnectionAlive = false;
 
             _connectionString = connectionString;
@@ -111,14 +107,13 @@ namespace NPoco
         }
 
         public Database(string connectionString, DbProviderFactory provider)
-            : this(connectionString, provider, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect, DefaultCalculatePagingAsPagesNotRecords)
+            : this(connectionString, provider, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
         { }
 
-        public Database(string connectionString, DbProviderFactory provider, bool forceDateTimesToUtc, bool enableAutoSelect, bool calculatePagingAsPagesNotRecords)
+        public Database(string connectionString, DbProviderFactory provider, bool forceDateTimesToUtc, bool enableAutoSelect)
         {
             ForceDateTimesToUtc = forceDateTimesToUtc;
             EnableAutoSelect = enableAutoSelect;
-            CalculatePagingAsPagesNotRecords = calculatePagingAsPagesNotRecords;
             KeepConnectionAlive = false;
 
             _connectionString = connectionString;
@@ -131,14 +126,13 @@ namespace NPoco
         }
 
         public Database(string connectionStringName)
-            : this(connectionStringName, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect, DefaultCalculatePagingAsPagesNotRecords)
+            : this(connectionStringName, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
         { }
 
-        public Database(string connectionStringName, bool forceDateTimesToUtc, bool enableAutoSelect, bool calculatePagingAsPagesNotRecords)
+        public Database(string connectionStringName, bool forceDateTimesToUtc, bool enableAutoSelect)
         {
             ForceDateTimesToUtc = forceDateTimesToUtc;
             EnableAutoSelect = enableAutoSelect;
-            CalculatePagingAsPagesNotRecords = calculatePagingAsPagesNotRecords;
             KeepConnectionAlive = false;
 
             // Use first?
@@ -1435,6 +1429,17 @@ namespace NPoco
                 return true;
             }
 #endif
+            else if (pd.TableInfo.PrimaryKey.Contains(","))
+            {
+                foreach (var compositeKey in pd.TableInfo.PrimaryKey.Split(','))
+                {
+                    var keyName = compositeKey.Trim();
+                    var pi = poco.GetType().GetProperty(keyName);
+                    if (pi == null) throw new ArgumentException(string.Format("The object doesn't have a property matching the composite primary key column name '{0}'", compositeKey));
+                }
+
+                return !Exists<T>(poco);
+            }
             else
             {
                 var pi = poco.GetType().GetProperty(pd.TableInfo.PrimaryKey);
