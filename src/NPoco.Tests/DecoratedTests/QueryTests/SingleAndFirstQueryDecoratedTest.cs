@@ -137,5 +137,12 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             var user = Database.FirstOrDefault<UserDecorated>("select u.* from users u where u.userid < 0");
             Assert.Null(user);
         }
+
+        [Test]
+        public void SingleByIdWithCompositePrimaryKey()
+        {
+            var user = Database.SingleById<CompositeObjectDecorated>(new { Key1ID = 1, Key2ID = 2, Key3ID = 4 });
+            Assert.NotNull(user);
+        }
     }
 }

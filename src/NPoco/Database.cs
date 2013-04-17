@@ -566,7 +566,6 @@ namespace NPoco
 
         public bool ForceDateTimesToUtc { get; set; }
         public bool EnableAutoSelect { get; set; }
-        public bool CalculatePagingAsPagesNotRecords { get; set; }
 
         // Return a typed list of pocos
         public List<T> Fetch<T>(string sql, params object[] args)
@@ -617,15 +616,7 @@ namespace NPoco
         {
             string sqlCount, sqlPage;
 
-            long offset = 0;
-            if (CalculatePagingAsPagesNotRecords)
-            {
-                offset = (page - 1) * itemsPerPage;
-            }
-            else
-            {
-                offset = page;
-            }
+            long offset = (page - 1) * itemsPerPage;
 
             BuildPageQueries<T>(offset, itemsPerPage, sql, ref args, out sqlCount, out sqlPage);
 
