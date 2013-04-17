@@ -103,6 +103,18 @@ namespace NPoco.Tests.Common
             ";
             cmd.ExecuteNonQuery();
 
+            cmd.CommandText = @"
+                CREATE TABLE CompositeObjects(
+                    Key1ID int PRIMARY KEY NOT NULL, 
+                    Key2ID int NOT NULL, 
+                    Key3ID int NOT NULL, 
+                    TextData nvarchar(512) NULL, 
+                    DateEntered datetime NOT NULL,
+                    DateUpdated datetime NULL 
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
             Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
             var dt = conn.GetSchema("Tables");
             foreach (DataRow row in dt.Rows)

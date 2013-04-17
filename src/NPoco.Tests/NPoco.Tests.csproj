@@ -51,6 +51,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\CompositeObjectDecorated.cs" />
+    <Compile Include="Common\AssignedPkObjectDecorated.cs" />
     <Compile Include="Common\BaseDBDecoratedTest.cs" />
     <Compile Include="Common\BaseDBFuentTest.cs" />
     <Compile Include="Common\BaseDBTest.cs" />
@@ -62,6 +64,9 @@
     <Compile Include="Common\User.cs" />
     <Compile Include="Common\UserDecorated.cs" />
     <Compile Include="ConstructorTests.cs" />
+    <Compile Include="DecoratedTests\CRUDTests\InsertTests.cs" />
+    <Compile Include="DecoratedTests\CRUDTests\SaveTests.cs" />
+    <Compile Include="DecoratedTests\CRUDTests\UpdateTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\AdvancedFetchDecoratedTest.cs" />
     <Compile Include="DecoratedTests\QueryTests\ConverterDecoratedTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\FetchAndQueryDecoratedTests.cs" />
