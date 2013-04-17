@@ -1295,7 +1295,7 @@ namespace NPoco
         {
             var tempIndex = index;
             index += primaryKeyValuePair.Count;
-            return string.Join(" AND ", primaryKeyValuePair.Select((x, i) => string.Format("{0} = @{1}", _dbType.EscapeSqlIdentifier(x.Key), tempIndex + i)).ToArray());
+            return string.Join(" AND ", primaryKeyValuePair.Select((x, i) => x.Value == null || x.Value == DBNull.Value ? string.Format("{0} IS NULL", _dbType.EscapeSqlIdentifier(x.Key)) : string.Format("{0} = @{1}", _dbType.EscapeSqlIdentifier(x.Key), tempIndex + i)).ToArray());
         }
 
         private Dictionary<string, object> GetPrimaryKeyValues(string primaryKeyName, object primaryKeyValue)
