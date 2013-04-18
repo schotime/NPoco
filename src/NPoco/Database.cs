@@ -1296,6 +1296,10 @@ namespace NPoco
                 }
                 else
                 {
+                    var dict = primaryKeyValue as Dictionary<string, object>;
+                    if (dict != null)
+                        return dict;
+                    
                     primaryKeyValues = multiplePrimaryKeysNames.ToDictionary(x => x, x => primaryKeyValue.GetType().GetProperties().Single(y => string.Equals(x, y.Name, StringComparison.OrdinalIgnoreCase)).GetValue(primaryKeyValue, null), StringComparer.OrdinalIgnoreCase);
                 }
             }
