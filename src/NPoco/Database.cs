@@ -1,4 +1,4 @@
-/* NPoco 1.0 - PetaPoco v4.0.3.12 - A Tiny ORMish thing for your POCO's.
+/* NPoco 2.0 - PetaPoco v4.0.3.12 - A Tiny ORMish thing for your POCO's.
  * Copyright 2011-2012.  All Rights Reserved.
  * 
  * Apache License 2.0 - http://www.apache.org/licenses/LICENSE-2.0
