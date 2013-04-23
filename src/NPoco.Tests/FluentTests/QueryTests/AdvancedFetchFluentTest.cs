@@ -19,5 +19,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(InMemoryExtraUserInfos[0].Email, user.ExtraUserInfo.Email);
             Assert.AreEqual(InMemoryExtraUserInfos[0].Children, user.ExtraUserInfo.Children);
         }
+
+        [Test]
+        public void FetchWithComplexReturnsNullExtraUserInfoPropertyIfAllColumnsNull()
+        {
+            var user = Database.Fetch<UserWithExtraInfo, ExtraUserInfo>("select u.*, e.* from users u left join extrauserinfos e on u.userid = -1 where u.userid = 1").Single();
+
+            Assert.Null(user.ExtraUserInfo);
+            Assert.True(user.UserId > 0);
+        }
     }
 }

@@ -263,6 +263,10 @@ namespace NPoco
                             // var poco=new T()
                             il.Emit(OpCodes.Newobj, type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null));
 
+                        LocalBuilder a = il.DeclareLocal(typeof(Int32));
+                        il.Emit(OpCodes.Ldc_I4, 0);
+                        il.Emit(OpCodes.Stloc, a);
+
                         // Enumerate all fields generating a set assignment for the column
                         for (int i = firstColumn; i < firstColumn + countColumns; i++)
                         {
@@ -329,9 +333,14 @@ namespace NPoco
                                     il.Emit(OpCodes.Callvirt, fnInvoke);
 
                                 // Assign it
-                                il.Emit(OpCodes.Unbox_Any, pc.PropertyInfo.PropertyType);		// poco,poco,value
+                                il.Emit(OpCodes.Unbox_Any, pc.PropertyInfo.PropertyType);		    // poco,poco,value
                                 il.Emit(OpCodes.Callvirt, pc.PropertyInfo.GetSetMethod(true));		// poco
                             }
+
+                            il.Emit(OpCodes.Ldloc, a);  // poco, a
+                            il.Emit(OpCodes.Ldc_I4, 1); // poco, a, 1
+                            il.Emit(OpCodes.Add);       // poco, a+1
+                            il.Emit(OpCodes.Stloc, a);  // poco
 
                             il.MarkLabel(lblNext);
                         }
@@ -342,6 +351,22 @@ namespace NPoco
                             il.Emit(OpCodes.Dup);
                             il.Emit(OpCodes.Callvirt, fnOnLoaded);
                         }
+
+                        var lblNull = il.DefineLabel();
+                        var lblElse = il.DefineLabel();
+
+                        il.Emit(OpCodes.Ldc_I4_0);          // poco, 0
+                        il.Emit(OpCodes.Ldloc, a);          // poco, 0, a
+
+                        il.Emit(OpCodes.Beq, lblNull);      // poco
+                        il.Emit(OpCodes.Br_S, lblElse);
+
+                        il.MarkLabel(lblNull);
+
+                        il.Emit(OpCodes.Pop);             // 
+                        il.Emit(OpCodes.Ldnull);          // null
+                        
+                        il.MarkLabel(lblElse);
                     }
 
                 il.Emit(OpCodes.Ret);
