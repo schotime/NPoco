@@ -40,12 +40,19 @@ namespace NPoco
 
         public static PocoData ForType(Type t, Func<Type, PocoData> factory)
         {
+            return ForType(t, false, factory);
+        }
+
+        public static PocoData ForType(Type t, bool emptyNestedObjectNull, Func<Type, PocoData> factory)
+        {
+            
 #if !POCO_NO_DYNAMIC
             if (t == typeof(System.Dynamic.ExpandoObject))
                 throw new InvalidOperationException("Can't use dynamic types with this method");
 #endif
-            
+
             var pd = _pocoDatas.Get(t, () => factory(t));
+            pd._emptyNestedObjectNull = emptyNestedObjectNull;
             return pd;
         }
 
@@ -108,7 +115,7 @@ namespace NPoco
         public Delegate GetFactory(string sql, string connString, int firstColumn, int countColumns, IDataReader r, object instance)
         {
             // Check cache
-            var key = string.Format("{0}:{1}:{2}:{3}:{4}", sql, connString, firstColumn, countColumns, instance != GetDefault(type));
+            var key = string.Format("{0}:{1}:{2}:{3}:{4}:{5}", sql, connString, firstColumn, countColumns, instance != GetDefault(type), _emptyNestedObjectNull);
  
             Func<Delegate> createFactory = () =>
             {
@@ -264,8 +271,11 @@ namespace NPoco
                             il.Emit(OpCodes.Newobj, type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null));
 
                         LocalBuilder a = il.DeclareLocal(typeof(Int32));
-                        il.Emit(OpCodes.Ldc_I4, 0);
-                        il.Emit(OpCodes.Stloc, a);
+                        if (_emptyNestedObjectNull)
+                        {
+                            il.Emit(OpCodes.Ldc_I4, 0);
+                            il.Emit(OpCodes.Stloc, a);
+                        }
 
                         // Enumerate all fields generating a set assignment for the column
                         for (int i = firstColumn; i < firstColumn + countColumns; i++)
@@ -337,11 +347,13 @@ namespace NPoco
                                 il.Emit(OpCodes.Callvirt, pc.PropertyInfo.GetSetMethod(true));		// poco
                             }
 
-                            il.Emit(OpCodes.Ldloc, a);  // poco, a
-                            il.Emit(OpCodes.Ldc_I4, 1); // poco, a, 1
-                            il.Emit(OpCodes.Add);       // poco, a+1
-                            il.Emit(OpCodes.Stloc, a);  // poco
-
+                            if (_emptyNestedObjectNull)
+                            {
+                                il.Emit(OpCodes.Ldloc, a); // poco, a
+                                il.Emit(OpCodes.Ldc_I4, 1); // poco, a, 1
+                                il.Emit(OpCodes.Add); // poco, a+1
+                                il.Emit(OpCodes.Stloc, a); // poco
+                            }
                             il.MarkLabel(lblNext);
                         }
 
@@ -352,21 +364,24 @@ namespace NPoco
                             il.Emit(OpCodes.Callvirt, fnOnLoaded);
                         }
 
-                        var lblNull = il.DefineLabel();
-                        var lblElse = il.DefineLabel();
+                        if (_emptyNestedObjectNull)
+                        {
+                            var lblNull = il.DefineLabel();
+                            var lblElse = il.DefineLabel();
 
-                        il.Emit(OpCodes.Ldc_I4_0);          // poco, 0
-                        il.Emit(OpCodes.Ldloc, a);          // poco, 0, a
+                            il.Emit(OpCodes.Ldc_I4_0); // poco, 0
+                            il.Emit(OpCodes.Ldloc, a); // poco, 0, a
 
-                        il.Emit(OpCodes.Beq, lblNull);      // poco
-                        il.Emit(OpCodes.Br_S, lblElse);
+                            il.Emit(OpCodes.Beq, lblNull); // poco
+                            il.Emit(OpCodes.Br_S, lblElse);
 
-                        il.MarkLabel(lblNull);
+                            il.MarkLabel(lblNull);
 
-                        il.Emit(OpCodes.Pop);             // 
-                        il.Emit(OpCodes.Ldnull);          // null
-                        
-                        il.MarkLabel(lblElse);
+                            il.Emit(OpCodes.Pop); // 
+                            il.Emit(OpCodes.Ldnull); // null
+
+                            il.MarkLabel(lblElse);
+                        }
                     }
 
                 il.Emit(OpCodes.Ret);
@@ -456,7 +471,8 @@ namespace NPoco
         static FieldInfo fldConverters = typeof(PocoData).GetField("m_Converters", BindingFlags.Static | BindingFlags.GetField | BindingFlags.NonPublic);
         static MethodInfo fnListGetItem = typeof(List<Func<object, object>>).GetProperty("Item").GetGetMethod();
         static MethodInfo fnInvoke = typeof(Func<object, object>).GetMethod("Invoke");
-        public Type type;
+        protected Type type;
+        private bool _emptyNestedObjectNull;
         public string[] QueryColumns { get; protected set; }
         public TableInfo TableInfo { get; protected set; }
         public Dictionary<string, PocoColumn> Columns { get; protected set; }

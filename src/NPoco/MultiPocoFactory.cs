@@ -93,15 +93,15 @@ namespace NPoco
         }
 
          // Find the split point in a result set for two different pocos and return the poco factory for the first
-        static Delegate FindSplitPoint(Database database, Type typeThis, Type typeNext, string sql, string connectionString, IDataReader r, ref int pos)
+        static Delegate FindSplitPoint(Database database, int typeIndex, Type typeThis, Type typeNext, string sql, string connectionString, IDataReader r, ref int pos)
         {
             // Last?
             if (typeNext == null)
-                return PocoData.ForType(typeThis, database.PocoDataFactory).GetFactory(sql, connectionString, pos, r.FieldCount - pos, r, null);
+                return PocoData.ForType(typeThis, true, database.PocoDataFactory).GetFactory(sql, connectionString, pos, r.FieldCount - pos, r, null);
 
             // Get PocoData for the two types
-            PocoData pdThis = PocoData.ForType(typeThis, database.PocoDataFactory);
-            PocoData pdNext = PocoData.ForType(typeNext, database.PocoDataFactory);
+            PocoData pdThis = PocoData.ForType(typeThis, typeIndex > 0, database.PocoDataFactory);
+            PocoData pdNext = PocoData.ForType(typeNext, true, database.PocoDataFactory);
 
             // Find split point
             int firstColumn = pos;
@@ -129,7 +129,7 @@ namespace NPoco
             for (int i = 0; i < types.Length; i++)
             {
                 // Add to list of delegates to call
-                var del = FindSplitPoint(database, types[i], i + 1 < types.Length ? types[i + 1] : null, sql, connectionString, r, ref pos);
+                var del = FindSplitPoint(database, i, types[i], i + 1 < types.Length ? types[i + 1] : null, sql, connectionString, r, ref pos);
                 dels.Add(del);
             }
 

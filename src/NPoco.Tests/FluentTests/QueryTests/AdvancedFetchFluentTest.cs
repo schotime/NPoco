@@ -28,5 +28,23 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.Null(user.ExtraUserInfo);
             Assert.True(user.UserId > 0);
         }
+
+        [Test]
+        public void FetchWithComplexReturnsSecondObjectIfFirstIsNull()
+        {
+            var user = Database.Fetch<UserWithExtraInfo, ExtraUserInfo>("select u.*, e.* from extrauserinfos u left join users e on u.userid = -1 where u.userid = 1").Single();
+
+            Assert.NotNull(user.ExtraUserInfo);
+            Assert.True(user.UserId == 0);
+        }
+
+
+        [Test]
+        public void FetchWithAllNullsReturnsNonNullObject()
+        {
+            var user = Database.Fetch<UserWithExtraInfo>("select e.* from users u left join extrauserinfos e on u.userid = -1 where u.userid = 1").Single();
+
+            Assert.NotNull(user);
+        }
     }
 }
