@@ -36,9 +36,37 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         }
 
         [Test]
+        public void PageWithAlias()
+        {
+            var page = Database.Page<UserDecorated>(2, 5, "SELECT u.* FROM Users u WHERE u.userId <= 15 ORDER BY u.UserID DESC");
+
+            foreach (var user in page.Items)
+            {
+                var found = false;
+                foreach (var inMemoryUser in InMemoryUsers)
+                {
+                    if (user.Name == inMemoryUser.Name)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) Assert.Fail("Could not find use '" + user.Name + "' in InMemoryUsers.");
+            }
+
+            // Check other stats
+            Assert.AreEqual(page.Items.Count, 5);
+            Assert.AreEqual(page.CurrentPage, 2);
+            Assert.AreEqual(page.ItemsPerPage, 5);
+            Assert.AreEqual(page.TotalItems, 15);
+            Assert.AreEqual(page.TotalPages, 3);
+        }
+
+        [Test]
         public void Page_NoOrderBy()
         {
-            Assert.Throws<Exception>(() => Database.Page<UserDecorated>(2, 5, "SELECT * FROM Users WHERE UserID <= 15"));
+            var records = Database.Page<UserDecorated>(2, 5, "SELECT * FROM Users WHERE UserID <= 15");
+            Assert.AreEqual(records.Items.Count, 5);
         }
 
         [Test]

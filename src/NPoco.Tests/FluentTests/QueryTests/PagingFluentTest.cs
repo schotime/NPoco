@@ -36,10 +36,10 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
-        [NUnit.Framework.Ignore("Hmm no longer throws and exception.....")]
         public void Page_NoOrderBy()
         {
-            Assert.Throws<DataException>(() => Database.Page<User>(2, 5, "SELECT * FROM Users WHERE UserID <= 15"));
+            var records = Database.Page<User>(2, 5, "SELECT * FROM Users WHERE UserID <= 15");
+            Assert.AreEqual(records.Items.Count, 5);
         }
 
         [Test]
