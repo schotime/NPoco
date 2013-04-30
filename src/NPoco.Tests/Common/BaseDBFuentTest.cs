@@ -39,7 +39,7 @@ namespace NPoco.Tests.Common
                 case 2: // SQL Local DB
                 case 3: // SQL Server
                     TestDatabase = new SQLLocalDatabase();
-                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2012DatabaseType()));
+                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2008DatabaseType()));
                     break;
 
                 case 4:
