@@ -64,6 +64,7 @@
     <Compile Include="Common\User.cs" />
     <Compile Include="Common\UserDecorated.cs" />
     <Compile Include="ConstructorTests.cs" />
+    <Compile Include="DatabaseFactoryTests.cs" />
     <Compile Include="DecoratedTests\CRUDTests\InsertTests.cs" />
     <Compile Include="DecoratedTests\CRUDTests\SaveTests.cs" />
     <Compile Include="DecoratedTests\CRUDTests\UpdateTests.cs" />
