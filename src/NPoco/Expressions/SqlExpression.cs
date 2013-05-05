@@ -36,7 +36,7 @@ namespace NPoco.Expressions
             _databaseType = database.DatabaseType;
             PrefixFieldWithTableName = false;
             WhereStatementWithoutWhereString = false;
-            paramPrefix = _databaseType.GetParameterPrefix(_database.Connection.ConnectionString);
+            paramPrefix = _databaseType.GetParameterPrefix(_database.ConnectionString);
         }
 
         /// <summary>
