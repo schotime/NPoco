@@ -60,7 +60,7 @@ namespace NPoco.FluentMappings
                 foreach (var prop in type.GetProperties())
                 {
                     var column = new ColumnDefinition();
-                    column.PropertyInfo = prop;
+                    column.MemberInfo = prop;
                     column.DbColumnName = scannerSettings.PropertiesNamed(prop);
                     column.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(prop));
                     column.ResultColumn = scannerSettings.ResultPropertiesWhere(prop);
@@ -135,7 +135,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.IgnoreColumn = overrideColumnDefinition.Value.IgnoreColumn ?? convColDefinition.IgnoreColumn;
                     convColDefinition.ResultColumn = overrideColumnDefinition.Value.ResultColumn ?? convColDefinition.ResultColumn;
                     convColDefinition.VersionColumn = overrideColumnDefinition.Value.VersionColumn ?? convColDefinition.VersionColumn;
-                    convColDefinition.PropertyInfo = overrideColumnDefinition.Value.PropertyInfo ?? convColDefinition.PropertyInfo;
+                    convColDefinition.MemberInfo = overrideColumnDefinition.Value.MemberInfo ?? convColDefinition.MemberInfo;
                     convColDefinition.ForceUtc = overrideColumnDefinition.Value.ForceUtc ?? convColDefinition.ForceUtc;
                 }
             }

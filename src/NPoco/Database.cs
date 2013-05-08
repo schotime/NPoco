@@ -1099,7 +1099,7 @@ namespace NPoco
                     object val = i.Value.GetValue(poco);
                     if (Mapper != null)
                     {
-                        var converter = Mapper.GetToDbConverter(i.Value.ColumnType, i.Value.PropertyInfo.PropertyType);
+                        var converter = Mapper.GetToDbConverter(i.Value.ColumnType, i.Value.MemberInfo.GetMemberInfoType());
                         if (converter != null)
                             val = converter(val);
                     }
@@ -1223,7 +1223,7 @@ namespace NPoco
                 object value = i.Value.GetValue(poco);
                 if (Mapper != null)
                 {
-                    var converter = Mapper.GetToDbConverter(i.Value.ColumnType, i.Value.PropertyInfo.PropertyType);
+                    var converter = Mapper.GetToDbConverter(i.Value.ColumnType, i.Value.MemberInfo.GetMemberInfoType());
                     if (converter != null)
                         value = converter(value);
                 }
@@ -1269,7 +1269,7 @@ namespace NPoco
                 PocoColumn pc;
                 if (pd.Columns.TryGetValue(versionName, out pc))
                 {
-                    pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(versionValue) + 1, pc.PropertyInfo.PropertyType));
+                    pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(versionValue) + 1, pc.MemberInfo.GetMemberInfoType()));
                 }
             }
 

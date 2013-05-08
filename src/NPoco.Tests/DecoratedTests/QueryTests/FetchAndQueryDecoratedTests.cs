@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -8,6 +9,13 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
     //[NUnit.Framework.Ignore("Appearently the decorated syntax and fluent syntax are some how conflicting.")]
     public class FetchAndQueryDecoratedTest : BaseDBDecoratedTest
     {
+        [Test]
+        public void FetchAllFields()
+        {
+            var users = Database.Fetch<UserFieldDecorated>();
+            Assert.AreEqual(15, users.Count);
+        }
+        
         [Test]
         public void FetchAll()
         {

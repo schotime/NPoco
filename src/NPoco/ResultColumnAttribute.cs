@@ -2,7 +2,7 @@ using System;
 
 namespace NPoco
 {
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class ResultColumnAttribute : ColumnAttribute
     {
         public ResultColumnAttribute() { }

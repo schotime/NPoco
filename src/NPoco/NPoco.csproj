@@ -100,6 +100,7 @@
     <Compile Include="ParameterHelper.cs" />
     <Compile Include="PocoColumn.cs" />
     <Compile Include="PocoData.cs" />
+    <Compile Include="ReflectionUtils.cs" />
     <Compile Include="RelationExtensions.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

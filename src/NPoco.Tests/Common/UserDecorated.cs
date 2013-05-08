@@ -40,4 +40,21 @@ namespace NPoco.Tests.Common
     {
         public ExtraUserInfoDecorated ExtraUserInfo { get; set; }
     }
+
+    [TableName("Users")]
+    [PrimaryKey("UserId")]
+    public class UserFieldDecorated
+    {
+        [Column("UserId")] private int UserId;
+
+        [Column("Name")] public string Name;
+
+        [Column("Age")] public int Age;
+
+        [Column("DateOfBirth")] public DateTime DateOfBirth;
+
+        [Column("Savings")] public decimal Savings;
+
+        [Column("is_male")] public bool IsMale;
+    }
 }

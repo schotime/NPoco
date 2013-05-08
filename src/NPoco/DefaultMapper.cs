@@ -6,13 +6,15 @@ namespace NPoco
     public abstract class DefaultMapper : IMapper
     {
         public virtual void GetTableInfo(Type t, TableInfo ti) { }
-        public virtual bool MapPropertyToColumn(PropertyInfo pi, ref string columnName, ref bool resultColumn)
+ 
+        public virtual bool MapMemberToColumn(MemberInfo pi, ref string columnName, ref bool resultColumn)
         {
             return true;
         }
-        public virtual Func<object, object> GetFromDbConverter(PropertyInfo pi, Type SourceType)
+        public virtual Func<object, object> GetFromDbConverter(MemberInfo mi, Type SourceType)
         {
-            return pi != null ? GetFromDbConverter(pi.PropertyType, SourceType) : null;
+            var t = mi.GetMemberInfoType();
+            return mi != null ? GetFromDbConverter(t, SourceType) : null;
         }
         public virtual Func<object, object> GetParameterConverter(Type SourceType)
         {

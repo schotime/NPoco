@@ -23,8 +23,8 @@ namespace NPoco
 
                 foreach (var col in cols)
                 {
-                    bulkCopy.ColumnMappings.Add(col.Value.PropertyInfo.Name, col.Value.ColumnName);
-                    table.Columns.Add(col.Value.PropertyInfo.Name, Nullable.GetUnderlyingType(col.Value.PropertyInfo.PropertyType) ?? col.Value.PropertyInfo.PropertyType);
+                    bulkCopy.ColumnMappings.Add(col.Value.MemberInfo.Name, col.Value.ColumnName);
+                    table.Columns.Add(col.Value.MemberInfo.Name, Nullable.GetUnderlyingType(col.Value.MemberInfo.GetMemberInfoType()) ?? col.Value.MemberInfo.GetMemberInfoType());
                 }
 
                 foreach (var item in list)

@@ -44,7 +44,7 @@ namespace NPoco
             var changes = Diff(memberWiseClone, trackedObject);
             foreach (var c in changes)
             {
-                var typeData = pocoData.Columns.Values.SingleOrDefault(x => x.PropertyInfo.Name == c.Name);
+                var typeData = pocoData.Columns.Values.SingleOrDefault(x => x.MemberInfo.Name == c.Name);
                 c.ColumnName = typeData != null ? typeData.ColumnName : c.Name;
             }
 

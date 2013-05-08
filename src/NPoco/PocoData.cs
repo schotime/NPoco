@@ -72,20 +72,20 @@ namespace NPoco
 
             // Work out bound properties
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
-            foreach (var pi in t.GetProperties())
+            foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(t))
             {
-                ColumnInfo ci = ColumnInfo.FromProperty(pi);
+                ColumnInfo ci = ColumnInfo.FromMemberInfo(mi);
                 if (ci == null)
                     continue;
 
                 var pc = new PocoColumn();
-                pc.PropertyInfo = pi;
+                pc.MemberInfo = mi;
                 pc.ColumnName = ci.ColumnName;
                 pc.ResultColumn = ci.ResultColumn;
                 pc.ForceToUtc = ci.ForceToUtc;
                 pc.ColumnType = ci.ColumnType;
 
-                if (Mapper != null && !Mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
+                if (Mapper != null && !Mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;
 
                 // Store it
@@ -289,7 +289,7 @@ namespace NPoco
 
                             // Get the source type for this column
                             var srcType = r.GetFieldType(i);
-                            var dstType = pc.PropertyInfo.PropertyType;
+                            var dstType = pc.MemberInfo.GetMemberInfoType();
 
                             // "if (!rdr.IsDBNull(i))"
                             il.Emit(OpCodes.Ldarg_0);										// poco,rdr
@@ -322,7 +322,10 @@ namespace NPoco
                                         il.Emit(OpCodes.Newobj, dstType.GetConstructor(new Type[] { Nullable.GetUnderlyingType(dstType) }));
                                     }
 
-                                    il.Emit(OpCodes.Callvirt, pc.PropertyInfo.GetSetMethod(true));		// poco
+                                    if (pc.MemberInfo.IsField())
+                                        il.Emit(OpCodes.Stfld, (FieldInfo)pc.MemberInfo);
+                                    else 
+                                        il.Emit(OpCodes.Callvirt, ((PropertyInfo)pc.MemberInfo).GetSetMethod(true)); // poco
                                     Handled = true;
                                 }
                             }
@@ -343,8 +346,12 @@ namespace NPoco
                                     il.Emit(OpCodes.Callvirt, fnInvoke);
 
                                 // Assign it
-                                il.Emit(OpCodes.Unbox_Any, pc.PropertyInfo.PropertyType);		    // poco,poco,value
-                                il.Emit(OpCodes.Callvirt, pc.PropertyInfo.GetSetMethod(true));		// poco
+                                il.Emit(OpCodes.Unbox_Any, pc.MemberInfo.GetMemberInfoType());          // poco,poco,value
+
+                                if (pc.MemberInfo.IsField())
+                                    il.Emit(OpCodes.Stfld, (FieldInfo)pc.MemberInfo);
+                                else 
+                                    il.Emit(OpCodes.Callvirt, ((PropertyInfo)pc.MemberInfo).GetSetMethod(true)); 		// poco
                             }
 
                             if (_emptyNestedObjectNull)
@@ -417,7 +424,7 @@ namespace NPoco
             // Get converter from the mapper
             if (mapper != null)
             {
-                converter = pc != null ? mapper.GetFromDbConverter(pc.PropertyInfo, srcType) : mapper.GetFromDbConverter(dstType, srcType);
+                converter = pc != null ? mapper.GetFromDbConverter(pc.MemberInfo, srcType) : mapper.GetFromDbConverter(dstType, srcType);
                 if (converter != null)
                     return converter;
             }

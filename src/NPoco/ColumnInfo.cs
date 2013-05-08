@@ -13,13 +13,13 @@ namespace NPoco
         public bool ForceToUtc { get; set; }
         public Type ColumnType { get; set; }
 
-        public static ColumnInfo FromProperty(PropertyInfo pi)
+        public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
             // Check if declaring poco has [Explicit] attribute
-            bool ExplicitColumns = pi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Length > 0;
+            bool ExplicitColumns = mi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Length > 0;
 
             // Check for [Column]/[Ignore] Attributes
-            var ColAttrs = pi.GetCustomAttributes(typeof(ColumnAttribute), true);
+            var ColAttrs = mi.GetCustomAttributes(typeof(ColumnAttribute), true);
             if (ExplicitColumns)
             {
                 if (ColAttrs.Length == 0)
@@ -27,7 +27,7 @@ namespace NPoco
             }
             else
             {
-                if (pi.GetCustomAttributes(typeof(IgnoreAttribute), true).Length != 0)
+                if (mi.GetCustomAttributes(typeof(IgnoreAttribute), true).Length != 0)
                     return null;
             }
 
@@ -38,27 +38,26 @@ namespace NPoco
             {
                 var colattr = (ColumnAttribute)ColAttrs[0];
 
-                ci.ColumnName = colattr.Name ?? pi.Name;
+                ci.ColumnName = colattr.Name ?? mi.Name;
                 ci.ForceToUtc = colattr.ForceToUtc;
                 if ((colattr as ResultColumnAttribute) != null)
                     ci.ResultColumn = true;
             }
             else
             {
-                ci.ColumnName = pi.Name;
+                ci.ColumnName = mi.Name;
                 ci.ForceToUtc = false;
                 ci.ResultColumn = false;
             }
 
-            var columnTypeAttr = pi.GetCustomAttributes(typeof(ColumnTypeAttribute), true);
+            var columnTypeAttr = mi.GetCustomAttributes(typeof(ColumnTypeAttribute), true);
             if (columnTypeAttr.Any())
             {
                 ci.ColumnType = ((ColumnTypeAttribute)columnTypeAttr[0]).Type;
             }
-            
+
             return ci;
 
         }
-
     }
 }

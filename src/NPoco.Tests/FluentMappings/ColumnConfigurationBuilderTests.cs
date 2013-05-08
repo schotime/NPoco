@@ -95,7 +95,7 @@ namespace NPoco.Tests.FluentMappings
             Assert.AreEqual("Id", columnDefinitions["UserId"].DbColumnName);
             Assert.AreEqual(typeof(long), columnDefinitions["UserId"].DbColumnType);
             Assert.AreEqual(true, columnDefinitions["UserId"].ResultColumn);
-            Assert.AreEqual(PropertyHelper<User>.GetProperty(x => x.UserId), columnDefinitions["UserId"].PropertyInfo);
+            Assert.AreEqual(PropertyHelper<User>.GetProperty(x => x.UserId), columnDefinitions["UserId"].MemberInfo);
         }
     }
 }

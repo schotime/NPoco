@@ -2,6 +2,7 @@
 
 namespace NPoco
 {
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class ColumnTypeAttribute : Attribute
     {
         public Type Type { get; set; }

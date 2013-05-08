@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace NPoco.FluentMappings
 {
@@ -35,10 +36,10 @@ namespace NPoco.FluentMappings
             // Work out bound properties
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
-            foreach (var pi in t.GetProperties())
+            foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(t))
             {
                 // Work out if properties is to be included
-                var isColumnDefined = typeConfig.ColumnConfiguration.ContainsKey(pi.Name);
+                var isColumnDefined = typeConfig.ColumnConfiguration.ContainsKey(mi.Name);
                 if (explicitColumns)
                 {
                     if (!isColumnDefined)
@@ -46,17 +47,17 @@ namespace NPoco.FluentMappings
                 }
                 else
                 {
-                    if (isColumnDefined && (typeConfig.ColumnConfiguration[pi.Name].IgnoreColumn.HasValue && typeConfig.ColumnConfiguration[pi.Name].IgnoreColumn.Value))
+                    if (isColumnDefined && (typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.HasValue && typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.Value))
                         continue;
                 }
 
                 var pc = new PocoColumn();
-                pc.PropertyInfo = pi;
+                pc.MemberInfo = mi;
 
                 // Work out the DB column name
                 if (isColumnDefined)
                 {
-                    var colattr = typeConfig.ColumnConfiguration[pi.Name];
+                    var colattr = typeConfig.ColumnConfiguration[mi.Name];
                     pc.ColumnName = colattr.DbColumnName;
                     if (colattr.ResultColumn.HasValue && colattr.ResultColumn.Value)
                         pc.ResultColumn = true;
@@ -66,16 +67,16 @@ namespace NPoco.FluentMappings
                     if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)
                         pc.ForceToUtc = true;
 
-                    if (TableInfo.PrimaryKey.Split(',').Contains(pi.Name))
-                        TableInfo.PrimaryKey = (pc.ColumnName ?? pi.Name) + ",";
+                    if (TableInfo.PrimaryKey.Split(',').Contains(mi.Name))
+                        TableInfo.PrimaryKey = (pc.ColumnName ?? mi.Name) + ",";
 
                     pc.ColumnType = colattr.DbColumnType;
 
                 }
                 if (pc.ColumnName == null)
                 {
-                    pc.ColumnName = pi.Name;
-                    if (mapper != null && !mapper.MapPropertyToColumn(pi, ref pc.ColumnName, ref pc.ResultColumn))
+                    pc.ColumnName = mi.Name;
+                    if (mapper != null && !mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                         continue;
                 }
 

@@ -17,7 +17,7 @@ namespace NPoco.FluentMappings
         public IColumnBuilder Column(Expression<Func<T, object>> property)
         {
             var propertyInfo = PropertyHelper<T>.GetProperty(property);
-            var columnDefinition = new ColumnDefinition() { PropertyInfo = propertyInfo };
+            var columnDefinition = new ColumnDefinition() { MemberInfo = propertyInfo };
             var builder = new ColumnBuilder(columnDefinition);
             _columnDefinitions[propertyInfo.Name] = columnDefinition;
             return builder;

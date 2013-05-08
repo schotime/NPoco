@@ -6,20 +6,20 @@ namespace NPoco
     public class PocoColumn
     {
         public string ColumnName;
-        public PropertyInfo PropertyInfo;
+        public MemberInfo MemberInfo;
         public bool ResultColumn;
         public bool VersionColumn;
         private Type _columnType;
         public Type ColumnType
         {
-            get { return _columnType ?? PropertyInfo.PropertyType; }
+            get { return _columnType ?? MemberInfo.GetMemberInfoType(); }
             set { _columnType = value; }
         }
 
         public bool ForceToUtc { get; set; }
 
-        public virtual void SetValue(object target, object val) { PropertyInfo.SetValue(target, val, null); }
-        public virtual object GetValue(object target) { return PropertyInfo.GetValue(target, null); }
-        public virtual object ChangeType(object val) { return Convert.ChangeType(val, PropertyInfo.PropertyType); }
+        public virtual void SetValue(object target, object val) { MemberInfo.SetMemberInfoValue(target, val); }
+        public virtual object GetValue(object target) { return MemberInfo.GetMemberInfoValue(target); }
+        public virtual object ChangeType(object val) { return Convert.ChangeType(val, MemberInfo.GetMemberInfoType()); }
     }
 }

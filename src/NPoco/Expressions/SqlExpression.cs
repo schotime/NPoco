@@ -976,7 +976,7 @@ namespace NPoco.Expressions
 
         protected virtual string GetQuotedColumnName(string memberName)
         {
-            var fd = modelDef.Columns.Values.FirstOrDefault(x => x.PropertyInfo.Name == memberName);
+            var fd = modelDef.Columns.Values.FirstOrDefault(x => x.MemberInfo.Name == memberName);
             string fn = fd != null ? fd.ColumnName : memberName;
             return _databaseType.EscapeSqlIdentifier(fn);
         }
