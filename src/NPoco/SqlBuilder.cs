@@ -12,6 +12,7 @@ namespace NPoco
         class Clause
         {
             public string Sql { get; set; }
+            public string ResolvedSql { get; set; }
             public List<object> Parameters { get; set; }
         }
 
@@ -32,9 +33,9 @@ namespace NPoco
             {
                 foreach (var item in this)
                 {
-                    item.Sql = ParameterHelper.ProcessParams(item.Sql, item.Parameters.ToArray(), finalParams);
+                    item.ResolvedSql = ParameterHelper.ProcessParams(item.Sql, item.Parameters.ToArray(), finalParams);
                 }
-                return prefix + string.Join(joiner, this.Select(c => c.Sql).ToArray()) + postfix;
+                return prefix + string.Join(joiner, this.Select(c => c.ResolvedSql).ToArray()) + postfix;
             }
         }
 
@@ -55,10 +56,9 @@ namespace NPoco
 
             void ResolveSql()
             {
-                rawSql = sql;
-
                 if (dataSeq != builder.seq)
                 {
+                    rawSql = sql;
                     foreach (var pair in builder.data)
                     {
                         rawSql = rawSql.Replace("/**" + pair.Key + "**/", pair.Value.ResolveClauses(finalParams));
@@ -71,6 +71,7 @@ namespace NPoco
 
                 if (builder.seq == 0)
                 {
+                    rawSql = sql;
                     ReplaceDefaults();
                 }
             }
