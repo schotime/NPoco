@@ -57,4 +57,15 @@ namespace NPoco.Tests.Common
 
         [Column("is_male")] public bool IsMale;
     }
+
+    [TableName("Users")]
+    [PrimaryKey("UserId")]
+    [ExplicitColumns]
+    public class UserReadOnlyFieldDecorated
+    {
+        [Column("UserId")]
+        public int UserId { get; set; }
+
+        [Column("Name")] public readonly string Name;
+    }
 }

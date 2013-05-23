@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace NPoco
@@ -28,7 +29,7 @@ namespace NPoco
         {
             List<MemberInfo> targetMembers = new List<MemberInfo>();
 
-            targetMembers.AddRange(type.GetFields(bindingAttr));
+            targetMembers.AddRange(type.GetFields(bindingAttr).Where(x=>!x.IsInitOnly).ToArray());
             targetMembers.AddRange(type.GetProperties(bindingAttr));
 
             return targetMembers;

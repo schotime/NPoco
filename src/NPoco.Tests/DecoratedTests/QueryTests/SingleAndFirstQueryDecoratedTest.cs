@@ -156,5 +156,14 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             var user = Database.SingleById<CompositeObjectDecorated>(d);
             Assert.NotNull(user);
         }
+
+        [Test]
+        public void SingleOrDefaultByIdWithReadOnlyField()
+        {
+            var user = Database.SingleOrDefaultById<UserReadOnlyFieldDecorated>(1);
+
+            Assert.Null(user.Name);
+            Assert.AreEqual(1, user.UserId);
+        }
     }
 }
