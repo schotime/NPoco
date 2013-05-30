@@ -71,7 +71,7 @@ namespace NPoco
             var prev = (T)onetomanycurrent;
             onetomanycurrent = main; 
 
-            bool nullMany = subIdFunc != null && subIdFunc(sub).Equals(GetDefault(subIdFunc(sub).GetType()));
+            bool nullMany = sub == null || (subIdFunc != null && subIdFunc(sub).Equals(GetDefault(subIdFunc(sub).GetType())));
             property1.SetValue((T) onetomanycurrent, nullMany ? new List<TSub>() : new List<TSub> {sub}, null);
 
             return prev;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace NPoco.Tests.Common
 {
@@ -39,6 +40,14 @@ namespace NPoco.Tests.Common
     public class UserDecoratedWithExtraInfo : UserDecorated
     {
         public ExtraUserInfoDecorated ExtraUserInfo { get; set; }
+    }
+
+    [TableName("TEST_Users")]
+    [PrimaryKey("UserId")]
+    [ExplicitColumns]
+    public class UserDecoratedWithExtraInfoAsList : UserDecorated
+    {
+        public List<ExtraUserInfoDecorated> ExtraUserInfo { get; set; }
     }
 
     [TableName("Users")]
