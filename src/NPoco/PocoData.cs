@@ -437,27 +437,27 @@ namespace NPoco
             }
 
             // Forced type conversion including integral types -> enum
-            if (dstType.IsEnum && IsIntegralType(srcType))
+            var underlyingType = _underlyingTypes.Get(dstType, () => Nullable.GetUnderlyingType(dstType));
+            if (dstType.IsEnum || (underlyingType != null && underlyingType.IsEnum))
             {
-                if (srcType != typeof(int))
+                if (srcType == typeof(string))
                 {
-                    converter = src => Convert.ChangeType(src, typeof(int), null);
+                    converter = src => EnumMapper.EnumFromString((underlyingType ?? dstType), (string)src);
+                    return converter;
+                }
+
+                if (IsIntegralType(srcType))
+                {
+                    converter = src => Enum.ToObject((underlyingType ?? dstType), src);
+                    return converter;
                 }
             }
             else if (!dstType.IsAssignableFrom(srcType))
             {
-                if (dstType.IsEnum && srcType == typeof(string))
-                {
-                    converter = src => EnumMapper.EnumFromString(dstType, (string)src);
-                }
-                else
-                {
-                    converter = src => Convert.ChangeType(src, (Nullable.GetUnderlyingType(dstType) ?? dstType), null);
-                }
+                converter = src => Convert.ChangeType(src, (underlyingType ?? dstType), null);
             }
             return converter;
         }
-
 
         static T RecurseInheritedTypes<T>(Type t, Func<Type, T> cb)
         {
@@ -471,6 +471,7 @@ namespace NPoco
             return default(T);
         }
 
+        static Cache<Type, Type> _underlyingTypes = new Cache<Type, Type>();
         static Cache<Type, PocoData> _pocoDatas = new Cache<Type, PocoData>();
         static List<Func<object, object>> m_Converters = new List<Func<object, object>>();
         static MethodInfo fnGetValue = typeof(IDataRecord).GetMethod("GetValue", new Type[] { typeof(int) });

@@ -173,5 +173,37 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             Assert.NotNull(user);
             Assert.AreEqual(1, user.UserId);
         }
+
+        [Test]
+        public void SingleOrDefaultFromIntToNullableEnum()
+        {
+            var user = Database.SingleOrDefault<UserWithNullableId>("select u.userid, u.userid userid2 from users u where u.userid = 1");
+            Assert.NotNull(user);
+            Assert.AreEqual(UserIdEnum.UserIdTrue, user.UserId2);
+        }
+
+        [Test]
+        public void SingleOrDefaultFromNullToNullableEnum()
+        {
+            var user = Database.SingleOrDefault<UserWithNullableId>("select u.userid, null userid2 from users u where u.userid = 1");
+            Assert.NotNull(user);
+            Assert.Null(user.UserId2);
+        }
+
+        [Test]
+        public void SingleOrDefaultFromStringToNullableEnum()
+        {
+            var user = Database.SingleOrDefault<UserWithNullableId>("select 'Bill' nameenum from users u where u.userid = 1");
+            Assert.NotNull(user);
+            Assert.AreEqual(NameEnum.Bill, user.NameEnum);
+        }
+
+        [Test]
+        public void SingleOrDefaultFromIntToByteEnum()
+        {
+            var user = Database.SingleOrDefault<UserWithNullableId>("select 2 days from users u where u.userid = 1");
+            Assert.NotNull(user);
+            Assert.AreEqual(Days.Mon, user.Days);
+        }
     }
 }

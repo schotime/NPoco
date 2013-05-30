@@ -74,5 +74,22 @@ namespace NPoco.Tests.Common
     public class UserWithNullableId
     {
         public long? UserId { get; set; }
+        public UserIdEnum? UserId2 { get; set; }
+        public NameEnum? NameEnum { get; set; }
+        public Days Days { get; set; }
     }
+
+    public enum UserIdEnum
+    {
+        UserIdFalse = 0,
+        UserIdTrue = 1
+    }
+
+    public enum NameEnum
+    {
+        Bobby,
+        Bill
+    }
+
+    public enum Days : byte { Sat, Sun, Mon, Tue, Wed, Thu, Fri };
 }
