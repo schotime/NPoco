@@ -68,4 +68,11 @@ namespace NPoco.Tests.Common
 
         [Column("Name")] public readonly string Name;
     }
+
+    [TableName("Users")]
+    [PrimaryKey("UserId")]
+    public class UserWithNullableId
+    {
+        public long? UserId { get; set; }
+    }
 }

@@ -165,5 +165,13 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             Assert.Null(user.Name);
             Assert.AreEqual(1, user.UserId);
         }
+
+        [Test]
+        public void SingleOrDefaultFromIntToNullableLong()
+        {
+            var user = Database.SingleOrDefault<UserWithNullableId>("select u.userid from users u where u.userid = 1");
+            Assert.NotNull(user);
+            Assert.AreEqual(1, user.UserId);
+        }
     }
 }

@@ -452,7 +452,7 @@ namespace NPoco
                 }
                 else
                 {
-                    converter = src => Convert.ChangeType(src, dstType, null);
+                    converter = src => Convert.ChangeType(src, (Nullable.GetUnderlyingType(dstType) ?? dstType), null);
                 }
             }
             return converter;
