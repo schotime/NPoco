@@ -22,7 +22,7 @@ namespace NPoco
 
         public static List<MemberInfo> GetFieldsAndProperties(Type type)
         {
-            return GetFieldsAndProperties(type, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public);
+            return GetFieldsAndProperties(type, BindingFlags.Instance | BindingFlags.Public);
         }
 
         public static List<MemberInfo> GetFieldsAndProperties(Type type, BindingFlags bindingAttr)
@@ -47,9 +47,7 @@ namespace NPoco
 
         public static bool IsField(this MemberInfo member)
         {
-            if (member is FieldInfo)
-                return true;
-            return false;
+            return member is FieldInfo;
         }
 
         public static object GetMemberInfoValue(this MemberInfo member, object obj)

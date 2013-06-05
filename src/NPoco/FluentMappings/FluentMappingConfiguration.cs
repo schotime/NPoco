@@ -55,9 +55,10 @@ namespace NPoco.FluentMappings
                     PrimaryKey = scannerSettings.PrimaryKeysNamed(type),
                     TableName = scannerSettings.TablesNamed(type),
                     SequenceName = scannerSettings.SequencesNamed(type),
+                    ExplicitColumns = true
                 };
 
-                foreach (var prop in type.GetProperties())
+                foreach (var prop in ReflectionUtils.GetFieldsAndPropertiesForClasses(type))
                 {
                     var column = new ColumnDefinition();
                     column.MemberInfo = prop;

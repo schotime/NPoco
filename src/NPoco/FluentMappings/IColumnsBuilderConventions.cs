@@ -5,10 +5,10 @@ namespace NPoco.FluentMappings
 {
     public interface IColumnsBuilderConventions
     {
-        IColumnsBuilderConventions Named(Func<PropertyInfo, string> propertiesNamedFunc);
-        IColumnsBuilderConventions IgnoreWhere(Func<PropertyInfo, bool> ignorePropertiesWhereFunc);
-        IColumnsBuilderConventions ResultWhere(Func<PropertyInfo, bool> resultPropertiesWhereFunc);
-        IColumnsBuilderConventions VersionWhere(Func<PropertyInfo, bool> versionPropertiesWhereFunc);
-        IColumnsBuilderConventions ForceDateTimesToUtcWhere(Func<PropertyInfo, bool> forceDateTimesToUtcWhereFunc);
+        IColumnsBuilderConventions Named(Func<MemberInfo, string> propertiesNamedFunc);
+        IColumnsBuilderConventions IgnoreWhere(Func<MemberInfo, bool> ignorePropertiesWhereFunc);
+        IColumnsBuilderConventions ResultWhere(Func<MemberInfo, bool> resultPropertiesWhereFunc);
+        IColumnsBuilderConventions VersionWhere(Func<MemberInfo, bool> versionPropertiesWhereFunc);
+        IColumnsBuilderConventions ForceDateTimesToUtcWhere(Func<MemberInfo, bool> forceDateTimesToUtcWhereFunc);
     }
 }

@@ -9,7 +9,7 @@ namespace NPoco.FluentMappings
         public ConventionScannerSettings()
         {
             Assemblies = new HashSet<Assembly>();
-            IgnorePropertiesWhere = new List<Func<PropertyInfo, bool>>();
+            IgnorePropertiesWhere = new List<Func<MemberInfo, bool>>();
             IncludeTypes = new List<Func<Type, bool>>();
         }
 
@@ -24,11 +24,11 @@ namespace NPoco.FluentMappings
         public Func<Type, bool> PrimaryKeysAutoIncremented { get; set; }
         public Func<Type, string> SequencesNamed { get; set; }
 
-        public Func<PropertyInfo, string> PropertiesNamed { get; set; }
-        public List<Func<PropertyInfo, bool>> IgnorePropertiesWhere { get; set; }
-        public Func<PropertyInfo, bool> VersionPropertiesWhere { get; set; }
-        public Func<PropertyInfo, bool> ResultPropertiesWhere { get; set; }
-        public Func<PropertyInfo, bool> ForceDateTimesToUtcWhere { get; set; }
+        public Func<MemberInfo, string> PropertiesNamed { get; set; }
+        public List<Func<MemberInfo, bool>> IgnorePropertiesWhere { get; set; }
+        public Func<MemberInfo, bool> VersionPropertiesWhere { get; set; }
+        public Func<MemberInfo, bool> ResultPropertiesWhere { get; set; }
+        public Func<MemberInfo, bool> ForceDateTimesToUtcWhere { get; set; }
 
         public bool Lazy { get; set; }
     }
