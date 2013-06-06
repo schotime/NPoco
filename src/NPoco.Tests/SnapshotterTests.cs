@@ -75,5 +75,23 @@ namespace NPoco.Tests
             Assert.AreEqual(0, snap.Changes().Count);
             Assert.AreEqual(0, snap.UpdatedColumns().Count);
         }
+
+        [Test]
+        public void OverrideTrackedObjectUsingSnapshotter()
+        {
+            var user = new Admin { UserId = 1 };
+            var snap = _database.StartSnapshot(user);
+
+            var user1 = new Admin { UserId = 1 };
+            user1.Name = "Name1";
+            user1.Savings = 50.50m;
+            user1.DateOfBirth = new DateTime(2001, 1, 1);
+            user1.Age = 21;
+
+            snap.OverrideTrackedObject(user1);
+
+            Assert.AreEqual(4, snap.Changes().Count);
+            Assert.AreEqual(4, snap.UpdatedColumns().Count);
+        }
     }
 }

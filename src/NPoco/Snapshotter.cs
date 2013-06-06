@@ -39,6 +39,11 @@ namespace NPoco
             public object NewValue { get; set; }
         }
 
+        public void OverrideTrackedObject(T obj)
+        {
+            trackedObject = obj;
+        }
+
         public List<Change> Changes()
         {
             var changes = Diff(memberWiseClone, trackedObject);
