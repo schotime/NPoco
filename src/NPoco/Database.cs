@@ -1059,7 +1059,7 @@ namespace NPoco
         // Insert a poco into a table.  If the poco has a property with the same name 
         // as the primary key the id of the new record is assigned to it.  Either way,
         // the new id is returned.
-        public object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
+        public virtual object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
             if (!OnInserting(new InsertContext(poco, tableName, autoIncrement, primaryKeyName))) return 0;
 
@@ -1189,7 +1189,7 @@ namespace NPoco
         }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
-        public int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
+        public virtual int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
             if (!OnUpdating(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns))) return 0;
 
@@ -1358,7 +1358,7 @@ namespace NPoco
             return Delete(tableName, primaryKeyName, poco, null);
         }
 
-        public int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
+        public virtual int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
             if (!OnDeleting(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) return 0;
 
