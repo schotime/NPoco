@@ -16,6 +16,11 @@ namespace NPoco.Tests.Common
     {
     }
 
+    public class Supervisor : User
+    {
+        public bool IsSupervisor { get; set; }
+    }
+
     public class UserWithExtraInfo : User
     {
         public ExtraUserInfo ExtraUserInfo { get; set; }

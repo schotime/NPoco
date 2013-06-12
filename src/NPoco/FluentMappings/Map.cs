@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace NPoco.FluentMappings
@@ -14,6 +15,19 @@ namespace NPoco.FluentMappings
         public Map(TypeDefinition petaPocoTypeDefinition)
         {
             _petaPocoTypeDefinition = petaPocoTypeDefinition;
+        }
+
+        public void UseMap<TMap>() where TMap : IMap
+        {
+            Activator.CreateInstance(typeof (TMap), _petaPocoTypeDefinition);
+
+            var keys = _petaPocoTypeDefinition.ColumnConfiguration.Select(x => x.Key).ToList();
+            var fieldsAndPropertiesForClasses = ReflectionUtils.GetFieldsAndPropertiesForClasses(typeof(T));
+            
+            foreach (var key in keys.Where(key => fieldsAndPropertiesForClasses.All(x => x.Name != key)))
+            {
+                _petaPocoTypeDefinition.ColumnConfiguration.Remove(key);
+            }
         }
 
         public Map<T> TableName(string tableName)

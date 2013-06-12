@@ -76,6 +76,8 @@
     <Compile Include="DecoratedTests\QueryTests\SingleAndFirstQueryDecoratedTest.cs" />
     <Compile Include="DecoratedTests\TransactionDecoratedTests.cs" />
     <Compile Include="FluentMappings\MapTests.cs" />
+    <Compile Include="FluentMappings\SupervisorMap.cs" />
+    <Compile Include="FluentMappings\UserMap.cs" />
     <Compile Include="FluentTests\QueryTests\AdvancedFetchFluentTest.cs" />
     <Compile Include="FluentTests\QueryTests\ConverterFluentTest.cs" />
     <Compile Include="FluentTests\QueryTests\ExpressionFluentTests.cs" />

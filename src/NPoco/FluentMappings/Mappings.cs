@@ -11,7 +11,7 @@ namespace NPoco.FluentMappings
         {
             var definition = new TypeDefinition(typeof(T));
             var petaPocoMap = new Map<T>(definition);
-            Config.Add(typeof(T), definition);
+            Config[typeof (T)] = definition;
             return petaPocoMap;
         }
 
