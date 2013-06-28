@@ -138,7 +138,13 @@ namespace NPoco
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return db.ExecuteScalarHelper(cmd);
         }
-
+        /// <summary>
+        /// Performs an insert on collection of poco objects
+        /// Separate insert queries are ran for each object in collection
+        /// </summary>
+        /// <typeparam name="T">The type inside the collection</typeparam>
+        /// <param name="db">The calling Database object</param>
+        /// <param name="pocos">Collection of pocos</param>
         public virtual void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
         {
             foreach (var poco in pocos)
@@ -156,17 +162,17 @@ namespace NPoco
         public static DatabaseType Resolve(string typeName, string providerName)
         {
             // Try using type name first (more reliable)
-            if (typeName.StartsWith("MySql"))
+            if (typeName.StartsWith("MySql", StringComparison.InvariantCultureIgnoreCase))
                 return Singleton<MySqlDatabaseType>.Instance;
-            if (typeName.StartsWith("SqlCe"))
+            if (typeName.StartsWith("SqlCe", StringComparison.InvariantCultureIgnoreCase))
                 return Singleton<SqlServerCEDatabaseType>.Instance;
-            if (typeName.StartsWith("Npgsql") || typeName.StartsWith("PgSql"))
+            if (typeName.StartsWith("Npgsql", StringComparison.InvariantCultureIgnoreCase) || typeName.StartsWith("PgSql", StringComparison.InvariantCultureIgnoreCase))
                 return Singleton<PostgreSQLDatabaseType>.Instance;
-            if (typeName.StartsWith("Oracle"))
+            if (typeName.StartsWith("Oracle", StringComparison.InvariantCultureIgnoreCase))
                 return Singleton<OracleDatabaseType>.Instance;
-            if (typeName.StartsWith("SQLite"))
+            if (typeName.StartsWith("SQLite", StringComparison.InvariantCultureIgnoreCase))
                 return Singleton<SQLiteDatabaseType>.Instance;
-            if (typeName.StartsWith("SqlConnection"))
+            if (typeName.StartsWith("SqlConnection",StringComparison.InvariantCultureIgnoreCase))
                 return Singleton<SqlServerDatabaseType>.Instance;
 
             if (!string.IsNullOrEmpty(providerName))
@@ -187,17 +193,30 @@ namespace NPoco
             // Assume SQL Server
             return Singleton<SqlServerDatabaseType>.Instance;
         }
-
+        /// <summary>
+        /// Gets the default insert statement
+        /// </summary>
+        /// <param name="tableName"></param>
+        /// <param name="names"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public virtual string GetDefaultInsertSql(string tableName, string[] names, string[] parameters)
         {
             return string.Format("INSERT INTO {0} DEFAULT VALUES", EscapeTableName(tableName));
         }
-
+        /// <summary>
+        /// Gets the Default transaction isloation
+        /// </summary>
+        /// <returns></returns>
         public virtual IsolationLevel GetDefaultTransactionIsolationLevel()
         {
             return IsolationLevel.ReadCommitted;
         }
-
+        /// <summary>
+        /// Gets sql text representing the transation isolation level
+        /// </summary>
+        /// <param name="isolationLevel"></param>
+        /// <returns></returns>
         public virtual string GetSQLForTransactionLevel(IsolationLevel isolationLevel)
         {
             switch (isolationLevel)
@@ -221,12 +240,21 @@ namespace NPoco
                     return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
             }
         }
-
+        /// <summary>
+        /// Gets the default sql expression for the connection
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="db"></param>
+        /// <param name="pocoData"></param>
+        /// <returns></returns>
         public virtual SqlExpression<T> ExpressionVisitor<T>(Database db, PocoData pocoData)
         {
             return new DefaultSqlExpression<T>(db, pocoData);
         }
-
+        /// <summary>
+        /// Gets the provider name for the connection. 
+        /// </summary>
+        /// <returns></returns>
         public virtual string GetProviderName()
         {
             return "System.Data.SqlClient";
