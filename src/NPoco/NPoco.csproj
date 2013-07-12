@@ -55,6 +55,7 @@
     <Compile Include="DatabaseType.cs" />
     <Compile Include="DatabaseTypes\MySqlDatabaseType.cs" />
     <Compile Include="DatabaseTypes\OracleDatabaseType.cs" />
+    <Compile Include="DatabaseTypes\OracleManagedDatabaseType.cs" />
     <Compile Include="DatabaseTypes\PostgreSQLDatabaseType.cs" />
     <Compile Include="DatabaseTypes\SQLiteDatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServer2008DatabaseType.cs" />
