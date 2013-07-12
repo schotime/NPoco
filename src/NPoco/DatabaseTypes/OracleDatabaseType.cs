@@ -59,7 +59,7 @@ namespace NPoco.DatabaseTypes
 
         public override string GetProviderName()
         {
-            return "System.Data.OracleClient";
+            return "Oracle.DataAccess.Client";
         }
     }
 }
