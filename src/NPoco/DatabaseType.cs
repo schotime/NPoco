@@ -18,6 +18,7 @@ namespace NPoco
         public static DatabaseType SqlServer2005 { get { return Singleton<SqlServerDatabaseType>.Instance; } }
         public static DatabaseType PostgreSQL { get { return Singleton<PostgreSQLDatabaseType>.Instance; } }
         public static DatabaseType Oracle { get { return Singleton<OracleDatabaseType>.Instance; } }
+        public static DatabaseType OracleManaged { get { return Singleton<OracleManagedDatabaseType>.Instance; } }
         public static DatabaseType MySQL { get { return Singleton<MySqlDatabaseType>.Instance; } }
         public static DatabaseType SQLite { get { return Singleton<SQLiteDatabaseType>.Instance; } }
         public static DatabaseType SQLCe { get { return Singleton<SqlServerCEDatabaseType>.Instance; } }
@@ -162,6 +163,8 @@ namespace NPoco
                 return Singleton<SqlServerCEDatabaseType>.Instance;
             if (typeName.StartsWith("Npgsql") || typeName.StartsWith("PgSql"))
                 return Singleton<PostgreSQLDatabaseType>.Instance;
+            if (typeName.StartsWith("OracleManaged"))
+                return Singleton<OracleDatabaseType>.Instance;
             if (typeName.StartsWith("Oracle"))
                 return Singleton<OracleDatabaseType>.Instance;
             if (typeName.StartsWith("SQLite"))
@@ -178,8 +181,10 @@ namespace NPoco
                     return Singleton<SqlServerCEDatabaseType>.Instance;
                 if (providerName.IndexOf("pgsql", StringComparison.InvariantCultureIgnoreCase) >= 0)
                     return Singleton<PostgreSQLDatabaseType>.Instance;
-                if (providerName.IndexOf("Oracle", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                if (providerName.IndexOf("Oracle.DataAccess", StringComparison.InvariantCultureIgnoreCase) >= 0)
                     return Singleton<OracleDatabaseType>.Instance;
+                if (providerName.IndexOf("Oracle.ManagedDataAccess", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    return Singleton<OracleManagedDatabaseType>.Instance;
                 if (providerName.IndexOf("SQLite", StringComparison.InvariantCultureIgnoreCase) >= 0)
                     return Singleton<SQLiteDatabaseType>.Instance;
             }
