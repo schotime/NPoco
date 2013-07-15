@@ -1180,7 +1180,16 @@ namespace NPoco
 
         public void InsertBulk<T>(IEnumerable<T> pocos)
         {
-            _dbType.InsertBulk(this, pocos);
+            try
+            {
+                OpenSharedConnection();
+                _dbType.InsertBulk(this, pocos);
+            }
+            catch (Exception x)
+            {
+                OnException(x);
+                throw;
+            }
         }
 
         public int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
