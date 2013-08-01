@@ -322,10 +322,7 @@ namespace NPoco
                                         il.Emit(OpCodes.Newobj, dstType.GetConstructor(new Type[] { Nullable.GetUnderlyingType(dstType) }));
                                     }
 
-                                    if (pc.MemberInfo.IsField())
-                                        il.Emit(OpCodes.Stfld, (FieldInfo)pc.MemberInfo);
-                                    else 
-                                        il.Emit(OpCodes.Callvirt, ((PropertyInfo)pc.MemberInfo).GetSetMethod(true)); // poco
+                                    PushMemberOntoStack(il, pc); //poco
                                     Handled = true;
                                 }
                             }
@@ -348,10 +345,7 @@ namespace NPoco
                                 // Assign it
                                 il.Emit(OpCodes.Unbox_Any, pc.MemberInfo.GetMemberInfoType());          // poco,poco,value
 
-                                if (pc.MemberInfo.IsField())
-                                    il.Emit(OpCodes.Stfld, (FieldInfo)pc.MemberInfo);
-                                else 
-                                    il.Emit(OpCodes.Callvirt, ((PropertyInfo)pc.MemberInfo).GetSetMethod(true)); 		// poco
+                                PushMemberOntoStack(il, pc); //poco
                             }
 
                             if (_emptyNestedObjectNull)
@@ -400,6 +394,14 @@ namespace NPoco
 
             var fac = _pocoFactories.Get(key, createFactory);
             return fac;
+        }
+
+        private static void PushMemberOntoStack(ILGenerator il, PocoColumn pc)
+        {
+            if (pc.MemberInfo.IsField())
+                il.Emit(OpCodes.Stfld, (FieldInfo) pc.MemberInfo);
+            else
+                il.Emit(OpCodes.Callvirt, ((PropertyInfo) pc.MemberInfo).GetSetMethodOnDeclaringType());
         }
 
         private static void AddConverterToStack(ILGenerator il, Func<object, object> converter)
