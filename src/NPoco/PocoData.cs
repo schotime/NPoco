@@ -282,7 +282,8 @@ namespace NPoco
                         {
                             // Get the PocoColumn for this db column, ignore if not known
                             PocoColumn pc;
-                            if (!Columns.TryGetValue(r.GetName(i), out pc) && !Columns.TryGetValue(r.GetName(i).Replace("_", ""), out pc))
+                            if (!Columns.TryGetValue(r.GetName(i), out pc) && !Columns.TryGetValue(r.GetName(i).Replace("_", ""), out pc)
+                                || (!pc.MemberInfo.IsField() && ((PropertyInfo)pc.MemberInfo).GetSetMethodOnDeclaringType() == null))
                             {
                                 continue;
                             }

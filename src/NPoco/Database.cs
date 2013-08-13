@@ -25,7 +25,7 @@ using NPoco.Expressions;
 
 namespace NPoco
 {
-    public class Database : IDisposable, IDatabase
+    public class Database : IDatabase
     {
         public const bool DefaultForceDateTimesToUtc = true;
         public const bool DefaultEnableAutoSelect = true;

@@ -4,9 +4,8 @@ using System.Data;
 
 namespace NPoco
 {
-    public interface IDatabase : IDatabaseQuery, IDatabaseConfig
+    public interface IDatabase : IDisposable, IDatabaseQuery, IDatabaseConfig
     {
-        void Dispose();
         IDbConnection Connection { get; }
         IDbTransaction Transaction { get; }
         IDataParameter CreateParameter();

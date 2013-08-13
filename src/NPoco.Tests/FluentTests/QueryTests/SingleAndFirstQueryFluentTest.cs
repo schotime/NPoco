@@ -137,5 +137,20 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var user = Database.FirstOrDefault<User>("select u.* from users u where u.userid < 0");
             Assert.Null(user);
         }
+        
+        [Test]
+        public void SingleWithAdHocObject()
+        {
+            var data = Database.Single<AdHocUser>("select userid, name from users where userid = 1");
+            Assert.AreEqual(999, data.UserId);
+            Assert.AreEqual("Name1", data.Name);
+        }
+
+        [Test]
+        public void SingleWithAdHocObjectUsingUnderscores()
+        {
+            var data = Database.Single<AdHocUser>("select name \"Na_me\" from users where userid = 1");
+            Assert.AreEqual("Name1", data.Name);
+        }
     }
 }
