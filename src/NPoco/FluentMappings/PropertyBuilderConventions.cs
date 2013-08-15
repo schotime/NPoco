@@ -41,5 +41,11 @@ namespace NPoco.FluentMappings
             _scannerSettings.ForceDateTimesToUtcWhere = forceDateTimesToUtcWhereFunc;
             return this;
         }
+
+        public IColumnsBuilderConventions DbColumnTypeAs(Func<MemberInfo, Type> dbColumnTypeAsFunc)
+        {
+            _scannerSettings.DbColumnTypesAs = dbColumnTypeAsFunc;
+            return this;
+        }
     }
 }

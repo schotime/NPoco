@@ -64,6 +64,7 @@ namespace NPoco.FluentMappings
                     column.MemberInfo = prop;
                     column.DbColumnName = scannerSettings.PropertiesNamed(prop);
                     column.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(prop));
+                    column.DbColumnType = scannerSettings.DbColumnTypesAs(prop);
                     column.ResultColumn = scannerSettings.ResultPropertiesWhere(prop);
                     column.VersionColumn = scannerSettings.VersionPropertiesWhere(prop);
                     column.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(prop);
@@ -87,6 +88,7 @@ namespace NPoco.FluentMappings
                 PrimaryKeysNamed = x => "ID",
                 TablesNamed = x => x.Name,
                 PropertiesNamed = x => x.Name,
+                DbColumnTypesAs = x => null,
                 ResultPropertiesWhere = x => false,
                 VersionPropertiesWhere = x => false,
                 ForceDateTimesToUtcWhere = x => false,
@@ -133,6 +135,7 @@ namespace NPoco.FluentMappings
                     var convColDefinition = convTableDefinition.ColumnConfiguration[overrideColumnDefinition.Key];
 
                     convColDefinition.DbColumnName = overrideColumnDefinition.Value.DbColumnName ?? convColDefinition.DbColumnName;
+                    convColDefinition.DbColumnType = overrideColumnDefinition.Value.DbColumnType ?? convColDefinition.DbColumnType;
                     convColDefinition.IgnoreColumn = overrideColumnDefinition.Value.IgnoreColumn ?? convColDefinition.IgnoreColumn;
                     convColDefinition.ResultColumn = overrideColumnDefinition.Value.ResultColumn ?? convColDefinition.ResultColumn;
                     convColDefinition.VersionColumn = overrideColumnDefinition.Value.VersionColumn ?? convColDefinition.VersionColumn;
