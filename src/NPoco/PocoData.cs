@@ -102,7 +102,7 @@ namespace NPoco
             return tc >= TypeCode.SByte && tc <= TypeCode.UInt64;
         }
 
-        static object GetDefault(Type type)
+        public static object GetDefault(Type type)
         {
             if (type.IsValueType)
             {

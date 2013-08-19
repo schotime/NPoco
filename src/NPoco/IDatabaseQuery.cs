@@ -9,6 +9,7 @@ namespace NPoco
     {
         void OpenSharedConnection();
         void CloseSharedConnection();
+        void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage);
         int Execute(string sql, params object[] args);
         int Execute(Sql sql);
         T ExecuteScalar<T>(string sql, params object[] args);

@@ -586,15 +586,15 @@ namespace NPoco
         public List<T> FetchWhere<T>(Expression<Func<T, bool>> expression)
         {
             var ev = _dbType.ExpressionVisitor<T>(this, PocoData.ForType(typeof(T), PocoDataFactory));
-            var sql = ev.Where(expression).ToWhereStatement();
-            return Fetch<T>(sql, ev.Params.ToArray());
+            var sql = ev.Where(expression).Context.ToWhereStatement();
+            return Fetch<T>(sql, ev.Context.Params.ToArray());
         }
 
         public List<T> FetchBy<T>(Func<SqlExpression<T>, SqlExpression<T>> expression)
         {
             var ev = _dbType.ExpressionVisitor<T>(this, PocoData.ForType(typeof(T), PocoDataFactory));
-            var sql = expression(ev).ToSelectStatement();
-            return Fetch<T>(sql, ev.Params.ToArray());
+            var sql = expression(ev).Context.ToSelectStatement();
+            return Fetch<T>(sql, ev.Context.Params.ToArray());
         }
 
         public void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage)
@@ -1556,7 +1556,7 @@ namespace NPoco
             set { _pocoDataFactory = value; }
         }
 
-        internal string ConnectionString { get { return _connectionString; } }
+        public string ConnectionString { get { return _connectionString; } }
 
         // Member variables
         private readonly string _connectionString;

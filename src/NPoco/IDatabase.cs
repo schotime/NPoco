@@ -44,5 +44,7 @@ namespace NPoco
     {
         IMapper Mapper { get; set; }
         Func<Type, PocoData> PocoDataFactory { get; set; }
+        DatabaseType DatabaseType { get; }
+        string ConnectionString { get; }
     }
 }

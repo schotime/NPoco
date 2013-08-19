@@ -19,17 +19,16 @@ namespace NPoco.Expressions
         private string havingExpression;
         private string orderBy = string.Empty;
 
-        IList<string> updateFields = new List<string>();
-        IList<string> insertFields = new List<string>();
-
         private string sep = string.Empty;
         private PocoData modelDef;
-        private readonly Database _database;
+        private readonly IDatabase _database;
         private readonly DatabaseType _databaseType;
         private bool PrefixFieldWithTableName { get; set; }
         private bool WhereStatementWithoutWhereString { get; set; }
 
-        public SqlExpression(Database database, PocoData pocoData)
+        private List<string> members;
+
+        public SqlExpression(IDatabase database, PocoData pocoData)
         {
             modelDef = pocoData;
             _database = database;
@@ -37,6 +36,42 @@ namespace NPoco.Expressions
             PrefixFieldWithTableName = false;
             WhereStatementWithoutWhereString = false;
             paramPrefix = _databaseType.GetParameterPrefix(_database.ConnectionString);
+            members = new List<string>();
+            Context = new SqlExpressionContext(this);
+        }
+
+        public class SqlExpressionContext
+        {
+            private readonly SqlExpression<T> _expression;
+
+            public SqlExpressionContext(SqlExpression<T> expression)
+            {
+                _expression = expression;
+                UpdateFields = new List<string>();
+            }
+
+            public List<string> UpdateFields { get; set; }
+            public object[] Params { get { return _expression._params.ToArray(); } }
+
+            public virtual string ToDeleteStatement()
+            {
+                return _expression.ToDeleteStatement();
+            }
+
+            public virtual string ToUpdateStatement(T item, bool excludeDefaults = false)
+            {
+                return _expression.ToUpdateStatement(item, excludeDefaults);
+            }
+
+            public string ToWhereStatement()
+            {
+                return _expression.ToWhereStatement();
+            }
+
+            public virtual string ToSelectStatement()
+            {
+                return _expression.ToSelectStatement();
+            }
         }
 
         /// <summary>
@@ -364,13 +399,15 @@ namespace NPoco.Expressions
         /// <typeparam name='TKey'>
         /// objectWithProperties
         /// </typeparam>
-        //public virtual SqlExpression<T> Update<TKey>(Expression<Func<T, TKey>> fields)
-        //{
-        //    sep = string.Empty;
-        //    useFieldName = false;
-        //    updateFields = Visit(fields).ToString().Split(',').ToList();
-        //    return this;
-        //}
+        public virtual SqlExpression<T> Update<TKey>(Expression<Func<T, TKey>> fields)
+        {
+            sep = string.Empty;
+            members.Clear();
+            Visit(fields);
+            Context.UpdateFields = new List<string>(members);
+            members.Clear();
+            return this;
+        }
 
         /// <summary>
         /// Clear UpdateFields list ( all fields will be updated)
@@ -393,8 +430,7 @@ namespace NPoco.Expressions
         //public virtual SqlExpression<T> Insert<TKey>(Expression<Func<T, TKey>> fields)
         //{
         //    sep = string.Empty;
-        //    useFieldName = false;
-        //    insertFields = Visit(fields).ToString().Split(',').ToList();
+        //    Context.InsertFields = Visit(fields).ToString().Split(',').ToList();
         //    return this;
         //}
 
@@ -419,42 +455,38 @@ namespace NPoco.Expressions
         //    return this;
         //}
 
-        //public virtual string ToDeleteRowStatement()
-        //{
-        //    return string.Format("DELETE FROM {0} {1}",
-        //                                           OrmLiteConfig.DialectProvider.GetQuotedTableName(modelDef),
-        //                                           WhereExpression);
-        //}
+        protected virtual string ToDeleteStatement()
+        {
+            return string.Format("DELETE FROM {0} {1}",
+                                                   _databaseType.EscapeTableName(modelDef.TableInfo.TableName),
+                                                   WhereExpression);
+        }
 
-        //public virtual string ToUpdateStatement(T item, bool excludeDefaults = false)
-        //{
-        //    var setFields = new StringBuilder();
-        //    var dialectProvider = OrmLiteConfig.DialectProvider;
+        protected virtual string ToUpdateStatement(T item, bool excludeDefaults = false)
+        {
+            var setFields = new StringBuilder();
 
-        //    foreach (var fieldDef in modelDef.FieldDefinitions)
-        //    {
-        //        if (updateFields.Count > 0 && !updateFields.Contains(fieldDef.Name)) continue; // added
-        //        var value = fieldDef.GetValue(item);
-        //        if (excludeDefaults && (value == null || value.Equals(value.GetType().GetDefaultValue()))) continue; //GetDefaultValue?
+            foreach (var fieldDef in modelDef.Columns)
+            {
+                if (Context.UpdateFields.Count > 0 && !Context.UpdateFields.Contains(fieldDef.Key)) continue; // added
+                var value = fieldDef.Value.GetValue(item);
+                if (excludeDefaults && (value == null || value.Equals(PocoData.GetDefault(value.GetType())))) continue; //GetDefaultValue?
 
-        //        fieldDef.GetQuotedValue(item);
+                if (setFields.Length > 0) 
+                    setFields.Append(", ");
 
-        //        if (setFields.Length > 0) setFields.Append(",");
-        //        setFields.AppendFormat("{0} = {1}",
-        //            dialectProvider.GetQuotedColumnName(fieldDef.FieldName),
-        //            dialectProvider.GetQuotedValue(value, fieldDef.FieldType));
-        //    }
+                setFields.AppendFormat("{0} = {1}", _databaseType.EscapeSqlIdentifier(fieldDef.Value.ColumnName), CreateParam(value));
+            }
 
-        //    return string.Format("UPDATE {0} SET {1} {2}",
-        //                                        dialectProvider.GetQuotedTableName(modelDef), setFields, WhereExpression);
-        //}
+            return string.Format("UPDATE {0} SET {1} {2}", _databaseType.EscapeTableName(modelDef.TableInfo.TableName), setFields, WhereExpression);
+        }
 
-        public string ToWhereStatement()
+        protected string ToWhereStatement()
         {
             return WhereExpression;
         }
 
-        public virtual string ToSelectStatement()
+        protected virtual string ToSelectStatement()
         {
             var sql = new StringBuilder();
 
@@ -563,30 +595,6 @@ namespace NPoco.Expressions
 
         private int? Rows { get; set; }
         private int? Skip { get; set; }
-
-        private IList<string> UpdateFields
-        {
-            get
-            {
-                return updateFields;
-            }
-            set
-            {
-                updateFields = value;
-            }
-        }
-
-        private IList<string> InsertFields
-        {
-            get
-            {
-                return insertFields;
-            }
-            set
-            {
-                insertFields = value;
-            }
-        }
 
         protected internal PocoData ModelDef
         {
@@ -818,9 +826,10 @@ namespace NPoco.Expressions
             return p.Name;
         }
 
-        public List<object> Params = new List<object>();
-        int paramCounter = 0;
-        private string paramPrefix;
+        List<object> _params = new List<object>();
+        int _paramCounter = 0;
+        string paramPrefix;
+        public SqlExpressionContext Context { get; private set; }
 
         protected virtual object VisitConstant(ConstantExpression c)
         {
@@ -832,8 +841,8 @@ namespace NPoco.Expressions
 
         private string CreateParam(object value)
         {
-            string paramPlaceholder = paramPrefix + paramCounter++;
-            Params.Add(value);
+            string paramPlaceholder = paramPrefix + _paramCounter++;
+            _params.Add(value);
             return paramPlaceholder;
         }
 
@@ -976,6 +985,7 @@ namespace NPoco.Expressions
 
         protected virtual string GetQuotedColumnName(string memberName)
         {
+            members.Add(memberName);
             var fd = modelDef.Columns.Values.FirstOrDefault(x => x.MemberInfo.Name == memberName);
             string fn = fd != null ? fd.ColumnName : memberName;
             return _databaseType.EscapeSqlIdentifier(fn);
@@ -985,8 +995,7 @@ namespace NPoco.Expressions
         {
 
             if ((exp.StartsWith("\"") || exp.StartsWith("`") || exp.StartsWith("'"))
-                &&
-                (exp.EndsWith("\"") || exp.EndsWith("`") || exp.EndsWith("'")))
+                && (exp.EndsWith("\"") || exp.EndsWith("`") || exp.EndsWith("'")))
             {
                 exp = exp.Remove(0, 1);
                 exp = exp.Remove(exp.Length - 1, 1);
@@ -1031,10 +1040,10 @@ namespace NPoco.Expressions
                 _databaseType.EscapeTableName(modelDef.TableInfo.TableName));
         }
 
-        //public IList<string> GetAllFields()
-        //{
-        //    return modelDef.Columns.Select(x=>x.Value.ColumnName).ToList();
-        //}
+        internal IList<string> GetAllFields()
+        {
+            return modelDef.Columns.Select(x => x.Value.ColumnName).ToList();
+        }
 
         protected virtual string ApplyPaging(string sql)
         {
@@ -1042,12 +1051,12 @@ namespace NPoco.Expressions
                 return sql;
 
             string sqlCount, sqlPage;
-            var parms = Params.Select(x => x).ToArray();
+            var parms = _params.Select(x => x).ToArray();
 
             _database.BuildPageQueries<T>(Skip ?? 0, Rows ?? 0, sql, ref parms, out sqlCount, out sqlPage);
 
-            Params.Clear();
-            Params.AddRange(parms);
+            _params.Clear();
+            _params.AddRange(parms);
 
             return sqlPage;
         }
