@@ -469,7 +469,14 @@ namespace NPoco.Expressions
             foreach (var fieldDef in modelDef.Columns)
             {
                 if (Context.UpdateFields.Count > 0 && !Context.UpdateFields.Contains(fieldDef.Key)) continue; // added
-                var value = fieldDef.Value.GetValue(item);
+                object value = fieldDef.Value.GetValue(item);
+                if (_database.Mapper != null)
+                {
+                    var converter = _database.Mapper.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfo.GetMemberInfoType());
+                    if (converter != null)
+                        value = converter(value);
+                }
+
                 if (excludeDefaults && (value == null || value.Equals(PocoData.GetDefault(value.GetType())))) continue; //GetDefaultValue?
 
                 if (setFields.Length > 0) 
