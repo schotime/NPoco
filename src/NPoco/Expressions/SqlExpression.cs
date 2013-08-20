@@ -58,7 +58,12 @@ namespace NPoco.Expressions
                 return _expression.ToDeleteStatement();
             }
 
-            public virtual string ToUpdateStatement(T item, bool excludeDefaults = false)
+            public virtual string ToUpdateStatement(T item)
+            {
+                return _expression.ToUpdateStatement(item, false);
+            }
+
+            public virtual string ToUpdateStatement(T item, bool excludeDefaults)
             {
                 return _expression.ToUpdateStatement(item, excludeDefaults);
             }
@@ -235,7 +240,6 @@ namespace NPoco.Expressions
             if (!string.IsNullOrEmpty(groupBy)) groupBy = string.Format("GROUP BY {0}", groupBy);
             return this;
         }
-
 
         public virtual SqlExpression<T> Having()
         {
@@ -462,7 +466,12 @@ namespace NPoco.Expressions
                                                    WhereExpression);
         }
 
-        protected virtual string ToUpdateStatement(T item, bool excludeDefaults = false)
+        protected virtual string ToUpdateStatement(T item)
+        {
+            return ToUpdateStatement(item, false);
+        }
+
+        protected virtual string ToUpdateStatement(T item, bool excludeDefaults)
         {
             var setFields = new StringBuilder();
 

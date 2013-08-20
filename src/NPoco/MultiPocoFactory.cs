@@ -109,8 +109,10 @@ namespace NPoco
             for (; pos < r.FieldCount; pos++)
             {
                 // Split if field name has already been used, or if the field doesn't exist in current poco but does in the next
-                string fieldName = r.GetName(pos).Replace("_", "");
-                if (usedColumns.ContainsKey(fieldName) || (!pdThis.Columns.ContainsKey(fieldName) && pdNext.Columns.ContainsKey(fieldName)))
+                string fieldName = r.GetName(pos);
+                if (usedColumns.ContainsKey(fieldName) 
+                    || (!pdThis.Columns.ContainsKey(fieldName) && pdNext.Columns.ContainsKey(fieldName))
+                    || (!pdThis.Columns.ContainsKey(fieldName.Replace("_", "")) && pdNext.Columns.ContainsKey(fieldName.Replace("_", ""))))
                 {
                     return pdThis.GetFactory(sql, connectionString, firstColumn, pos - firstColumn, r, null);
                 }

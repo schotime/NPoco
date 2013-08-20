@@ -67,6 +67,7 @@
     <Compile Include="DeleteContext.cs" />
     <Compile Include="EnumMapper.cs" />
     <Compile Include="ExpandoColumn.cs" />
+    <Compile Include="ExpressionExtensions.cs" />
     <Compile Include="Expressions\PartialEvaluator.cs" />
     <Compile Include="Expressions\PredicateBuilder.cs" />
     <Compile Include="Expressions\ExpressionVisitor.cs" />
