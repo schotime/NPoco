@@ -28,9 +28,9 @@ namespace NPoco.Expressions
 
         private List<string> members;
 
-        public SqlExpression(IDatabase database, PocoData pocoData)
+        public SqlExpression(IDatabase database)
         {
-            modelDef = pocoData;
+            modelDef = PocoData.ForType(typeof(T), database.PocoDataFactory);
             _database = database;
             _databaseType = database.DatabaseType;
             PrefixFieldWithTableName = false;
@@ -65,6 +65,14 @@ namespace NPoco.Expressions
 
             public virtual string ToUpdateStatement(T item, bool excludeDefaults)
             {
+                return _expression.ToUpdateStatement(item, excludeDefaults);
+            }
+
+            public virtual string ToUpdateStatement(T item, bool excludeDefaults, bool allFields)
+            {
+                if (allFields)
+                    _expression.members = _expression.GetAllMembers();
+                
                 return _expression.ToUpdateStatement(item, excludeDefaults);
             }
 
@@ -474,10 +482,10 @@ namespace NPoco.Expressions
         protected virtual string ToUpdateStatement(T item, bool excludeDefaults)
         {
             var setFields = new StringBuilder();
-
+            
             foreach (var fieldDef in modelDef.Columns)
             {
-                if (Context.UpdateFields.Count > 0 && !Context.UpdateFields.Contains(fieldDef.Key)) continue; // added
+                if (Context.UpdateFields.Count > 0 && !Context.UpdateFields.Contains(fieldDef.Value.MemberInfo.Name)) continue; // added
                 object value = fieldDef.Value.GetValue(item);
                 if (_database.Mapper != null)
                 {
@@ -1056,9 +1064,9 @@ namespace NPoco.Expressions
                 _databaseType.EscapeTableName(modelDef.TableInfo.TableName));
         }
 
-        internal IList<string> GetAllFields()
+        internal List<string> GetAllMembers()
         {
-            return modelDef.Columns.Select(x => x.Value.ColumnName).ToList();
+            return modelDef.Columns.Select(x => x.Value.MemberInfo.Name).ToList();
         }
 
         protected virtual string ApplyPaging(string sql)

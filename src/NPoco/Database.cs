@@ -585,14 +585,14 @@ namespace NPoco
 
         public List<T> FetchWhere<T>(Expression<Func<T, bool>> expression)
         {
-            var ev = _dbType.ExpressionVisitor<T>(this, PocoData.ForType(typeof(T), PocoDataFactory));
+            var ev = _dbType.ExpressionVisitor<T>(this);
             var sql = ev.Where(expression).Context.ToWhereStatement();
             return Fetch<T>(sql, ev.Context.Params.ToArray());
         }
 
         public List<T> FetchBy<T>(Func<SqlExpression<T>, SqlExpression<T>> expression)
         {
-            var ev = _dbType.ExpressionVisitor<T>(this, PocoData.ForType(typeof(T), PocoDataFactory));
+            var ev = _dbType.ExpressionVisitor<T>(this);
             var sql = expression(ev).Context.ToSelectStatement();
             return Fetch<T>(sql, ev.Context.Params.ToArray());
         }

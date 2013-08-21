@@ -227,9 +227,9 @@ namespace NPoco
             }
         }
 
-        public virtual SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData)
+        public virtual SqlExpression<T> ExpressionVisitor<T>(IDatabase db)
         {
-            return new DefaultSqlExpression<T>(db, pocoData);
+            return new DefaultSqlExpression<T>(db);
         }
 
         public virtual string GetProviderName()
