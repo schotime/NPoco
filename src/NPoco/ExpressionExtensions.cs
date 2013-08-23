@@ -23,11 +23,11 @@ namespace NPoco
             return database.Execute(updateStatement, ev.Context.Params);
         }
 
-        public static int UpdateWhere<T>(this IDatabase database, string where, params object[] parameters)
+        public static int UpdateWhere<T>(this IDatabase database, T obj, string where, params object[] parameters)
         {
             var ev = database.DatabaseType.ExpressionVisitor<T>(database);
             ev.Where(where, parameters);
-            var sql = ev.Context.ToDeleteStatement();
+            var sql = ev.Context.ToUpdateStatement(obj);
             return database.Execute(sql, ev.Context.Params);
         }
 
