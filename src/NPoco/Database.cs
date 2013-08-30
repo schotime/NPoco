@@ -31,7 +31,7 @@ namespace NPoco
         public const bool DefaultEnableAutoSelect = true;
 
         public Database(IDbConnection connection)
-            : this(connection, DatabaseType.Resolve(connection.GetType().ToString(), null))
+            : this(connection, DatabaseType.Resolve(connection.GetType().Name, null))
         { }
 
         public Database(IDbConnection connection, DatabaseType dbType)
