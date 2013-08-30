@@ -7,11 +7,14 @@ using System.Text;
 
 namespace NPoco
 {
-    class SqlBulkCopyHelper
+    public class SqlBulkCopyHelper
     {
+        public static Func<IDbConnection, SqlConnection> SqlConnectionResolver = dbConn => (SqlConnection)dbConn;
+        public static Func<IDbTransaction, SqlTransaction> SqlTransactionResolver = dbTran => (SqlTransaction)dbTran;
+
         public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list)
         {
-            using (var bulkCopy = new SqlBulkCopy((SqlConnection)db.Connection, SqlBulkCopyOptions.Default, (SqlTransaction)db.Transaction))
+            using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), SqlBulkCopyOptions.Default, SqlTransactionResolver(db.Transaction)))
             {
                 var pocoData = PocoData.ForType(typeof(T), db.PocoDataFactory);
 
