@@ -9,6 +9,8 @@ namespace NPoco.Tests.Common
         {
             ConnectionString = "Data Source=:memory:;Version=3;";
             ProviderName = "Npgsql2";
+            
+            RecreateDataBase();
             EnsureSharedConnectionConfigured();
         }
 
