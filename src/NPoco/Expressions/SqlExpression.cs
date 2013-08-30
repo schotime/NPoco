@@ -1125,6 +1125,11 @@ namespace NPoco.Expressions
                         sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(e));
                     }
 
+                    if (sIn.Length == 0)
+                    {
+                        sIn.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
+                    }
+
                     statement = string.Format("{0} {1} ({2})", member, "IN", sIn);
                     break;
 
@@ -1171,6 +1176,11 @@ namespace NPoco.Expressions
                                 sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(el));
                             }
                         }
+                    }
+
+                    if (sIn.Length == 0)
+                    {
+                        sIn.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
                     }
 
                     statement = string.Format("{0} {1} ({2})", quotedColName, m.Method.Name.ToUpper(), sIn.ToString());

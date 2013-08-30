@@ -155,6 +155,15 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchWithWhereInWithNoList()
+        {
+            var list = new int[0];
+            var users = Database.FetchBy<User>(y => y.Where(x => S.In(x.UserId, list)));
+
+            Assert.AreEqual(0, users.Count);
+        }
+
+        [Test]
         public void UpdateWhere()
         {
             var list = new[] { 1, 2, 3, 4 };
