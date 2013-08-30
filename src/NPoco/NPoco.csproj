@@ -98,7 +98,7 @@
     <Compile Include="Page.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
     <Compile Include="FluentMappings\FluentMappingsPocoData.cs" />
-    <Compile Include="PagerHelper.cs" />
+    <Compile Include="PagingHelper.cs" />
     <Compile Include="ParameterHelper.cs" />
     <Compile Include="PocoColumn.cs" />
     <Compile Include="PocoData.cs" />
