@@ -27,7 +27,6 @@ namespace NPoco
 {
     public class Database : IDatabase
     {
-        public const bool DefaultForceDateTimesToUtc = true;
         public const bool DefaultEnableAutoSelect = true;
 
         public Database(IDbConnection connection)
@@ -35,16 +34,15 @@ namespace NPoco
         { }
 
         public Database(IDbConnection connection, DatabaseType dbType)
-            : this(connection, dbType, null, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
+            : this(connection, dbType, null, DefaultEnableAutoSelect)
         { }
 
         public Database(IDbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel)
-            : this(connection, dbType, isolationLevel, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
+            : this(connection, dbType, isolationLevel, DefaultEnableAutoSelect)
         { }
 
-        public Database(IDbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel, bool forceDateTimesToUtc, bool enableAutoSelect)
+        public Database(IDbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel, bool enableAutoSelect)
         {
-            ForceDateTimesToUtc = forceDateTimesToUtc;
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = true;
 
@@ -66,12 +64,11 @@ namespace NPoco
         }
 
         public Database(string connectionString, string providerName)
-            : this(connectionString, providerName, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
+            : this(connectionString, providerName, DefaultEnableAutoSelect)
         { }
 
-        public Database(string connectionString, string providerName, bool forceDateTimesToUtc, bool enableAutoSelect)
+        public Database(string connectionString, string providerName, bool enableAutoSelect)
         {
-            ForceDateTimesToUtc = forceDateTimesToUtc;
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = false;
 
@@ -85,16 +82,15 @@ namespace NPoco
         }
 
         public Database(string connectionString, DatabaseType dbType)
-            : this(connectionString, dbType, null, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
+            : this(connectionString, dbType, null, DefaultEnableAutoSelect)
         { }
 
         public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel)
-            : this(connectionString, dbType, isolationLevel, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
+            : this(connectionString, dbType, isolationLevel,  DefaultEnableAutoSelect)
         { }
 
-        public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel, bool forceDateTimesToUtc, bool enableAutoSelect)
+        public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel, bool enableAutoSelect)
         {
-            ForceDateTimesToUtc = forceDateTimesToUtc;
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = false;
 
@@ -107,12 +103,11 @@ namespace NPoco
         }
 
         public Database(string connectionString, DbProviderFactory provider)
-            : this(connectionString, provider, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
+            : this(connectionString, provider, DefaultEnableAutoSelect)
         { }
 
-        public Database(string connectionString, DbProviderFactory provider, bool forceDateTimesToUtc, bool enableAutoSelect)
+        public Database(string connectionString, DbProviderFactory provider, bool enableAutoSelect)
         {
-            ForceDateTimesToUtc = forceDateTimesToUtc;
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = false;
 
@@ -126,12 +121,11 @@ namespace NPoco
         }
 
         public Database(string connectionStringName)
-            : this(connectionStringName, DefaultForceDateTimesToUtc, DefaultEnableAutoSelect)
+            : this(connectionStringName, DefaultEnableAutoSelect)
         { }
 
-        public Database(string connectionStringName, bool forceDateTimesToUtc, bool enableAutoSelect)
+        public Database(string connectionStringName,  bool enableAutoSelect)
         {
-            ForceDateTimesToUtc = forceDateTimesToUtc;
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = false;
 
@@ -564,7 +558,6 @@ namespace NPoco
             }
         }
 
-        public bool ForceDateTimesToUtc { get; set; }
         public bool EnableAutoSelect { get; set; }
 
         // Return a typed list of pocos

@@ -5,6 +5,11 @@ namespace NPoco
 {
     public class PocoColumn
     {
+        public PocoColumn()
+        {
+            ForceToUtc = true;
+        }
+
         public string ColumnName;
         public MemberInfo MemberInfo;
         public bool ResultColumn;

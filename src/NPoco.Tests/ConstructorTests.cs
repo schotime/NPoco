@@ -101,7 +101,7 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionDBTypeIsolationTypeAndSettings()
         {
-            var db = new Database(TestDatabase.Connection, new SqlServer2012DatabaseType(), IsolationLevel.ReadUncommitted, false, false);
+            var db = new Database(TestDatabase.Connection, new SqlServer2012DatabaseType(), IsolationLevel.ReadUncommitted, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -175,7 +175,7 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionStringProviderNameAndSettings()
         {
-            var db = new Database(TestDatabase.ConnectionString, TestDatabase.ProviderName, false, false);
+            var db = new Database(TestDatabase.ConnectionString, TestDatabase.ProviderName, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -226,7 +226,7 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionStringDBTypeAndSettings()
         {
-            var db = new Database(TestDatabase.ConnectionString, new SqlServer2012DatabaseType(), IsolationLevel.ReadUncommitted, false, false);
+            var db = new Database(TestDatabase.ConnectionString, new SqlServer2012DatabaseType(), IsolationLevel.ReadUncommitted, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -264,7 +264,7 @@ namespace NPoco.Tests
         {
             var dbType = new SqlServer2012DatabaseType();
             var provider = DbProviderFactories.GetFactory(dbType.GetProviderName());
-            var db = new Database(TestDatabase.ConnectionString, provider, false, false);
+            var db = new Database(TestDatabase.ConnectionString, provider, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);

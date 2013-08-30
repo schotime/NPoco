@@ -91,7 +91,7 @@ namespace NPoco.FluentMappings
                 DbColumnTypesAs = x => null,
                 ResultPropertiesWhere = x => false,
                 VersionPropertiesWhere = x => false,
-                ForceDateTimesToUtcWhere = x => false,
+                ForceDateTimesToUtcWhere = x => true,
                 SequencesNamed = x => null,
                 Lazy = false
             };
