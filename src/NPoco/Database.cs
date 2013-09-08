@@ -874,6 +874,11 @@ namespace NPoco
         public IEnumerable<TRet> Query<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, string sql, params object[] args) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, new Sql(sql, args)); }
         public IEnumerable<TRet> Query<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, string sql, params object[] args) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, new Sql(sql, args)); }
 
+        // Multi Page
+        public Page<TRet> Page<T1, T2, TRet>(Func<T1, T2, TRet> cb, long page, long itemsPerPage, string sql, params object[] args) { return Page<TRet>(new[] { typeof(T1), typeof(T2) }, cb, page, itemsPerPage, sql, args); }
+        public Page<TRet> Page<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, long page, long itemsPerPage, string sql, params object[] args) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, page, itemsPerPage, sql, args); }
+        public Page<TRet> Page<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, long page, long itemsPerPage, string sql, params object[] args) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, page, itemsPerPage, sql, args); }
+
         // Multi Fetch (SQL builder)
         public List<TRet> Fetch<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query(cb, sql).ToList(); }
         public List<TRet> Fetch<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, Sql sql) { return Query(cb, sql).ToList(); }
@@ -883,6 +888,11 @@ namespace NPoco
         public IEnumerable<TRet> Query<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2) }, cb, sql); }
         public IEnumerable<TRet> Query<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, sql); }
         public IEnumerable<TRet> Query<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, sql); }
+
+        // Multi Page (SQL builder)
+        public Page<TRet> Page<T1, T2, TRet>(Func<T1, T2, TRet> cb, long page, long itemsPerPage, Sql sql) { return Page<TRet>(new[] { typeof(T1), typeof(T2) }, cb, page, itemsPerPage, sql.SQL, sql.Arguments); }
+        public Page<TRet> Page<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, long page, long itemsPerPage, Sql sql) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, page, itemsPerPage, sql.SQL, sql.Arguments); }
+        public Page<TRet> Page<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, long page, long itemsPerPage, Sql sql) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, page, itemsPerPage, sql.SQL, sql.Arguments); }
 
         // Multi Fetch (Simple)
         public List<T1> Fetch<T1, T2>(string sql, params object[] args) { return Query<T1, T2>(sql, args).ToList(); }
@@ -970,6 +980,37 @@ namespace NPoco
             {
                 CloseSharedConnectionInternal();
             }
+        }
+
+        // Actual implementation of the multi-poco paging
+        public Page<TRet> Page<TRet>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
+        {
+            string sqlCount, sqlPage;
+
+            long offset = (page - 1) * itemsPerPage;
+
+            BuildPageQueries<TRet>(offset, itemsPerPage, sql, ref args, out sqlCount, out sqlPage);
+
+            // Save the one-time command time out and use it for both queries
+            int saveTimeout = OneTimeCommandTimeout;
+
+            // Setup the paged result
+            var result = new Page<TRet>();
+            result.CurrentPage = page;
+            result.ItemsPerPage = itemsPerPage;
+            Console.WriteLine(sqlCount);
+            result.TotalItems = ExecuteScalar<long>(sqlCount, args);
+            result.TotalPages = result.TotalItems / itemsPerPage;
+            if ((result.TotalItems % itemsPerPage) != 0)
+                result.TotalPages++;
+
+            OneTimeCommandTimeout = saveTimeout;
+
+            // Get the records
+            result.Items = Query<TRet>(types, cb, new Sql(sqlPage, args)).ToList();
+
+            // Done
+            return result;
         }
 
         public TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args)); }
