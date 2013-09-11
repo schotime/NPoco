@@ -170,10 +170,25 @@ namespace NPoco
         // Set to true to keep the first opened connection alive until this object is disposed
         public bool KeepConnectionAlive { get; set; }
 
+        private bool ShouldCloseConnectionAutomatically { get; set; }
+
         // Open a connection (can be nested)
         public void OpenSharedConnection()
         {
-            if (_sharedConnection != null && _sharedConnection.State != ConnectionState.Broken && _sharedConnection.State != ConnectionState.Closed) return;
+            OpenSharedConnectionImp(false);
+        }
+
+        private void OpenSharedConnectionInternal()
+        {
+            OpenSharedConnectionImp(true);
+        }
+
+        private void OpenSharedConnectionImp(bool isInternal)
+        {
+            if (_sharedConnection != null && _sharedConnection.State != ConnectionState.Broken && _sharedConnection.State != ConnectionState.Closed) 
+                return;
+
+            ShouldCloseConnectionAutomatically = isInternal;
 
             _sharedConnection = _factory.CreateConnection();
             if (_sharedConnection == null) throw new Exception("SQL Connection failed to configure.");
@@ -198,6 +213,12 @@ namespace NPoco
             }
 
             _sharedConnection = OnConnectionOpened(_sharedConnection);
+        }
+
+        private void CloseSharedConnectionInternal()
+        {
+            if (ShouldCloseConnectionAutomatically && _transaction == null)
+                CloseSharedConnection();
         }
 
         // Close a previously opened connection
@@ -292,7 +313,7 @@ namespace NPoco
         {
             if (_transaction != null) return;
 
-            OpenSharedConnection();
+            OpenSharedConnectionInternal();
             _transaction = _sharedConnection.BeginTransaction(isolationLevel);
             OnBeginTransaction();
         }
@@ -311,6 +332,7 @@ namespace NPoco
             _sharedConnection.Open();
 
             OnAbortTransaction();
+            CloseSharedConnectionInternal();
         }
 
         // Complete the transaction
@@ -323,10 +345,11 @@ namespace NPoco
             _transaction = null;
 
             OnCompleteTransaction();
+            CloseSharedConnectionInternal();
         }
 
         // Add a parameter to a DB command
-        void AddParam(IDbCommand cmd, object value, string ParameterPrefix)
+        void AddParam(IDbCommand cmd, object value, string parameterPrefix)
         {
             // Convert value to from poco type to db type
             if (Mapper != null && value != null)
@@ -340,12 +363,12 @@ namespace NPoco
             var idbParam = value as IDbDataParameter;
             if (idbParam != null)
             {
-                idbParam.ParameterName = string.Format("{0}{1}", ParameterPrefix, cmd.Parameters.Count);
+                idbParam.ParameterName = string.Format("{0}{1}", parameterPrefix, cmd.Parameters.Count);
                 cmd.Parameters.Add(idbParam);
                 return;
             }
             var p = cmd.CreateParameter();
-            p.ParameterName = string.Format("{0}{1}", ParameterPrefix, cmd.Parameters.Count);
+            p.ParameterName = string.Format("{0}{1}", parameterPrefix, cmd.Parameters.Count);
 
             if (value == null)
             {
@@ -510,7 +533,7 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnection();
+                OpenSharedConnectionInternal();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
                     var result = ExecuteNonQueryHelper(cmd);
@@ -521,6 +544,10 @@ namespace NPoco
             {
                 OnException(x);
                 throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
             }
         }
 
@@ -537,7 +564,7 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnection();
+                OpenSharedConnectionInternal();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
                     object val = ExecuteScalarHelper(cmd);
@@ -545,16 +572,20 @@ namespace NPoco
                     if (val == null || val == DBNull.Value)
                         return default(T);
 
-                    Type t = typeof(T);
+                    Type t = typeof (T);
                     Type u = Nullable.GetUnderlyingType(t);
 
-                    return (T)Convert.ChangeType(val, u ?? t);
+                    return (T) Convert.ChangeType(val, u ?? t);
                 }
             }
             catch (Exception x)
             {
                 OnException(x);
                 throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
             }
         }
 
@@ -716,41 +747,48 @@ namespace NPoco
 
             if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
 
-            OpenSharedConnection();
-            using (var cmd = CreateCommand(_sharedConnection, sql, args))
+            try
             {
-                IDataReader r;
-                var pd = PocoData.ForType(typeof(T), PocoDataFactory);
-                try
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
-                    r = ExecuteReaderHelper(cmd);
-                }
-                catch (Exception x)
-                {
-                    OnException(x);
-                    throw;
-                }
-
-                using (r)
-                {
-                    var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
-                    while (true)
+                    IDataReader r;
+                    var pd = PocoData.ForType(typeof (T), PocoDataFactory);
+                    try
                     {
-                        T poco;
-                        try
-                        {
-                            if (!r.Read()) yield break;
-                            poco = factory(r, instance);
-                        }
-                        catch (Exception x)
-                        {
-                            OnException(x);
-                            throw;
-                        }
+                        r = ExecuteReaderHelper(cmd);
+                    }
+                    catch (Exception x)
+                    {
+                        OnException(x);
+                        throw;
+                    }
 
-                        yield return poco;
+                    using (r)
+                    {
+                        var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
+                        while (true)
+                        {
+                            T poco;
+                            try
+                            {
+                                if (!r.Read()) yield break;
+                                poco = factory(r, instance);
+                            }
+                            catch (Exception x)
+                            {
+                                OnException(x);
+                                throw;
+                            }
+
+                            yield return poco;
+                        }
                     }
                 }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
             }
         }
 
@@ -798,60 +836,67 @@ namespace NPoco
         // Actual implementation of the multi-poco query
         public IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql)
         {
-            OpenSharedConnection();
-            using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
+            try
             {
-                IDataReader r;
-                try
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
                 {
-                    r = ExecuteReaderHelper(cmd);
-                }
-                catch (Exception x)
-                {
-                    OnException(x);
-                    throw;
-                }
-                var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, sql.SQL, _sharedConnection.ConnectionString, r);
-                if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
-                var bNeedTerminator = false;
-                using (r)
-                {
-                    while (true)
+                    IDataReader r;
+                    try
                     {
-                        TRet poco;
-                        try
+                        r = ExecuteReaderHelper(cmd);
+                    }
+                    catch (Exception x)
+                    {
+                        OnException(x);
+                        throw;
+                    }
+                    var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, sql.SQL, _sharedConnection.ConnectionString, r);
+                    if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
+                    var bNeedTerminator = false;
+                    using (r)
+                    {
+                        while (true)
                         {
-                            if (!r.Read()) break;
-                            poco = factory(r, cb);
-                        }
-                        catch (Exception x)
-                        {
-                            OnException(x);
-                            throw;
-                        }
+                            TRet poco;
+                            try
+                            {
+                                if (!r.Read()) break;
+                                poco = factory(r, cb);
+                            }
+                            catch (Exception x)
+                            {
+                                OnException(x);
+                                throw;
+                            }
 
-                        if (poco != null)
-                        {
-                            yield return poco;
+                            if (poco != null)
+                            {
+                                yield return poco;
+                            }
+                            else
+                            {
+                                bNeedTerminator = true;
+                            }
                         }
-                        else
+                        if (bNeedTerminator)
                         {
-                            bNeedTerminator = true;
-                        }
-                    }
-                    if (bNeedTerminator)
-                    {
-                        var poco = (TRet)cb.DynamicInvoke(new object[types.Length]);
-                        if (poco != null)
-                        {
-                            yield return poco;
-                        }
-                        else
-                        {
-                            yield break;
+                            var poco = (TRet) cb.DynamicInvoke(new object[types.Length]);
+                            if (poco != null)
+                            {
+                                yield return poco;
+                            }
+                            else
+                            {
+                                yield break;
+                            }
                         }
                     }
                 }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
             }
         }
 
@@ -877,80 +922,87 @@ namespace NPoco
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
-            OpenSharedConnection();
-            using (var cmd = CreateCommand(_sharedConnection, sql, args))
+            try
             {
-                IDataReader r;
-                try
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
-                    r = ExecuteReaderHelper(cmd);
-                }
-                catch (Exception x)
-                {
-                    OnException(x);
-                    throw;
-                }
-
-                using (r)
-                {
-                    var typeIndex = 1;
-                    var list1 = new List<T1>();
-                    var list2 = new List<T2>();
-                    var list3 = new List<T3>();
-                    var list4 = new List<T4>();
-                    do
+                    IDataReader r;
+                    try
                     {
-                        if (typeIndex > types.Length)
-                            break;
-
-                        var pd = PocoData.ForType(types[typeIndex - 1], PocoDataFactory);
-                        var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
-
-                        while (true)
-                        {
-                            try
-                            {
-                                if (!r.Read())
-                                    break;
-
-                                switch (typeIndex)
-                                {
-                                    case 1:
-                                        list1.Add(((Func<IDataReader, T1, T1>)factory)(r, default(T1)));
-                                        break;
-                                    case 2:
-                                        list2.Add(((Func<IDataReader, T2, T2>)factory)(r, default(T2)));
-                                        break;
-                                    case 3:
-                                        list3.Add(((Func<IDataReader, T3, T3>)factory)(r, default(T3)));
-                                        break;
-                                    case 4:
-                                        list4.Add(((Func<IDataReader, T4, T4>)factory)(r, default(T4)));
-                                        break;
-                                }
-                            }
-                            catch (Exception x)
-                            {
-                                OnException(x);
-                                throw;
-                            }
-                        }
-
-                        typeIndex++;
-                    } while (r.NextResult());
-
-                    switch (types.Length)
+                        r = ExecuteReaderHelper(cmd);
+                    }
+                    catch (Exception x)
                     {
-                        case 2:
-                            return ((Func<List<T1>, List<T2>, TRet>)cb)(list1, list2);
-                        case 3:
-                            return ((Func<List<T1>, List<T2>, List<T3>, TRet>)cb)(list1, list2, list3);
-                        case 4:
-                            return ((Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet>)cb)(list1, list2, list3, list4);
+                        OnException(x);
+                        throw;
                     }
 
-                    return default(TRet);
+                    using (r)
+                    {
+                        var typeIndex = 1;
+                        var list1 = new List<T1>();
+                        var list2 = new List<T2>();
+                        var list3 = new List<T3>();
+                        var list4 = new List<T4>();
+                        do
+                        {
+                            if (typeIndex > types.Length)
+                                break;
+
+                            var pd = PocoData.ForType(types[typeIndex - 1], PocoDataFactory);
+                            var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
+
+                            while (true)
+                            {
+                                try
+                                {
+                                    if (!r.Read())
+                                        break;
+
+                                    switch (typeIndex)
+                                    {
+                                        case 1:
+                                            list1.Add(((Func<IDataReader, T1, T1>) factory)(r, default(T1)));
+                                            break;
+                                        case 2:
+                                            list2.Add(((Func<IDataReader, T2, T2>) factory)(r, default(T2)));
+                                            break;
+                                        case 3:
+                                            list3.Add(((Func<IDataReader, T3, T3>) factory)(r, default(T3)));
+                                            break;
+                                        case 4:
+                                            list4.Add(((Func<IDataReader, T4, T4>) factory)(r, default(T4)));
+                                            break;
+                                    }
+                                }
+                                catch (Exception x)
+                                {
+                                    OnException(x);
+                                    throw;
+                                }
+                            }
+
+                            typeIndex++;
+                        } while (r.NextResult());
+
+                        switch (types.Length)
+                        {
+                            case 2:
+                                return ((Func<List<T1>, List<T2>, TRet>) cb)(list1, list2);
+                            case 3:
+                                return ((Func<List<T1>, List<T2>, List<T3>, TRet>) cb)(list1, list2, list3);
+                            case 4:
+                                return ((Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet>) cb)(list1, list2, list3, list4);
+                        }
+
+                        return default(TRet);
+                    }
                 }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
             }
         }
 
@@ -1058,7 +1110,7 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnection();
+                OpenSharedConnectionInternal();
 
                 var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
                 var names = new List<string>();
@@ -1169,19 +1221,27 @@ namespace NPoco
                 OnException(x);
                 throw;
             }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
         }
 
         public void InsertBulk<T>(IEnumerable<T> pocos)
         {
             try
             {
-                OpenSharedConnection();
+                OpenSharedConnectionInternal();
                 _dbType.InsertBulk(this, pocos);
             }
             catch (Exception x)
             {
                 OnException(x);
                 throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
             }
         }
 
