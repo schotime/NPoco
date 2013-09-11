@@ -321,15 +321,23 @@ namespace NPoco
         // Abort the entire outer most transaction scope
         public void AbortTransaction()
         {
-            if (_transaction == null) return;
+            if (_transaction == null) 
+                return;
 
-            _transaction.Rollback();
-            _transaction.Dispose();
+            if (TransactionIsOk())
+                _transaction.Rollback();
+
+            if (_transaction != null)
+                _transaction.Dispose();
+            
             _transaction = null;
 
             // You cannot continue to use a connection after a transaction has been rolled back
-            _sharedConnection.Close();
-            _sharedConnection.Open();
+            if (_sharedConnection != null)
+            {
+                _sharedConnection.Close();
+                _sharedConnection.Open();
+            }
 
             OnAbortTransaction();
             CloseSharedConnectionInternal();
@@ -338,14 +346,27 @@ namespace NPoco
         // Complete the transaction
         public void CompleteTransaction()
         {
-            if (_transaction == null) return;
+            if (_transaction == null) 
+                return;
 
-            _transaction.Commit();
-            _transaction.Dispose();
+            if (TransactionIsOk())
+                _transaction.Commit();
+
+            if (_transaction != null)
+                _transaction.Dispose();
+            
             _transaction = null;
 
             OnCompleteTransaction();
             CloseSharedConnectionInternal();
+        }
+
+        private bool TransactionIsOk()
+        {
+            return _sharedConnection != null
+                && _transaction != null
+                && _transaction.Connection != null
+                && _transaction.Connection.State == ConnectionState.Open;
         }
 
         // Add a parameter to a DB command
