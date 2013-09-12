@@ -904,6 +904,11 @@ namespace NPoco
         public IEnumerable<T1> Query<T1, T2, T3>(string sql, params object[] args) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, new Sql(sql, args)); }
         public IEnumerable<T1> Query<T1, T2, T3, T4>(string sql, params object[] args) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, new Sql(sql, args)); }
 
+        // Multi Page (Simple)
+        public Page<T1> Page<T1, T2>(long page, long itemsPerPage, string sql, params object[] args) { return Page<T1>(new[] { typeof(T1), typeof(T2) }, null, page, itemsPerPage, sql, args); }
+        public Page<T1> Page<T1, T2, T3>(long page, long itemsPerPage, string sql, params object[] args) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, page, itemsPerPage, sql, args); }
+        public Page<T1> Page<T1, T2, T3, T4>(long page, long itemsPerPage, string sql, params object[] args) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, page, itemsPerPage, sql, args); }
+
         // Multi Fetch (Simple) (SQL builder)
         public List<T1> Fetch<T1, T2>(Sql sql) { return Query<T1, T2>(sql).ToList(); }
         public List<T1> Fetch<T1, T2, T3>(Sql sql) { return Query<T1, T2, T3>(sql).ToList(); }
@@ -914,6 +919,10 @@ namespace NPoco
         public IEnumerable<T1> Query<T1, T2, T3>(Sql sql) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, sql); }
         public IEnumerable<T1> Query<T1, T2, T3, T4>(Sql sql) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, sql); }
 
+        // Multi Page (Simple) (SQL Builder)
+        public Page<T1> Page<T1, T2>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
+        public Page<T1> Page<T1, T2, T3>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
+        public Page<T1> Page<T1, T2, T3, T4>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T4) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
 
         // Actual implementation of the multi-poco query
         public IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql)
@@ -998,7 +1007,6 @@ namespace NPoco
             var result = new Page<TRet>();
             result.CurrentPage = page;
             result.ItemsPerPage = itemsPerPage;
-            Console.WriteLine(sqlCount);
             result.TotalItems = ExecuteScalar<long>(sqlCount, args);
             result.TotalPages = result.TotalItems / itemsPerPage;
             if ((result.TotalItems % itemsPerPage) != 0)
