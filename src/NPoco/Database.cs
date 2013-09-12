@@ -1614,7 +1614,7 @@ namespace NPoco
             return sb.ToString();
         }
 
-        public Transaction BaseTransaction { get; set; }
+        internal Transaction BaseTransaction { get; set; }
 
         public IMapper Mapper { get; set; }
 
