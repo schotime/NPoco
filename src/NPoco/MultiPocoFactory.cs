@@ -73,9 +73,18 @@ namespace NPoco
                             throw new InvalidOperationException(string.Format("Can't auto join {0} as {1} has more than one property of type {0}", types[i], types[j]));
 
                         // Generate code
-                        il.Emit(OpCodes.Ldarg_S, j);
-                        il.Emit(OpCodes.Ldarg_S, i);
-                        il.Emit(OpCodes.Callvirt, candidates[0].GetSetMethod(true));
+                        var lblIsNull = il.DefineLabel();
+
+                        il.Emit(OpCodes.Ldarg_S, j);       // obj
+                        il.Emit(OpCodes.Ldnull);           // obj, null
+                        il.Emit(OpCodes.Beq, lblIsNull);   // If obj == null then don't set nested object
+                        
+                        il.Emit(OpCodes.Ldarg_S, j);       // obj
+                        il.Emit(OpCodes.Ldarg_S, i);       // obj, obj2
+                        il.Emit(OpCodes.Callvirt, candidates[0].GetSetMethod(true)); // obj = obj2
+
+                        il.MarkLabel(lblIsNull);
+                        
                         handled = true;
                     }
 
