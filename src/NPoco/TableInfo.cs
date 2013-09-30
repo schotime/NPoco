@@ -9,6 +9,7 @@ namespace NPoco
         public string PrimaryKey { get; set; }
         public bool AutoIncrement { get; set; }
         public string SequenceName { get; set; }
+        public string ServerRawVersionColumnName { get; set; }
 
         public static TableInfo FromPoco(Type t)
         {
@@ -26,6 +27,10 @@ namespace NPoco
 
             // Set autoincrement false if primary key has multiple columns
             tableInfo.AutoIncrement = tableInfo.AutoIncrement ? !tableInfo.PrimaryKey.Contains(',') : tableInfo.AutoIncrement;
+
+            // Get the ServerRawVersionColumnName
+            a = t.GetCustomAttributes(typeof(ServerRawVersionAttribute), true);
+            tableInfo.ServerRawVersionColumnName = a.Length == 0 ? null : (a[0] as ServerRawVersionAttribute).Value;
 
             return tableInfo;
         }
