@@ -1230,21 +1230,22 @@ namespace NPoco
 
                         PocoColumn pkColumn;
                         if (primaryKeyName != null && pd.Columns.TryGetValue(primaryKeyName, out pkColumn))
-                            id= pkColumn.GetValue(poco);
+                            id = pkColumn.GetValue(poco);
                     }
-
-                    id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, poco, rawvalues.ToArray());
-
-                    // Assign the ID back to the primary key property
-                    if (primaryKeyName != null && id != null && id.GetType().IsValueType)
+                    else
                     {
-                        PocoColumn pc;
-                        if (pd.Columns.TryGetValue(primaryKeyName, out pc))
+                        id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, poco, rawvalues.ToArray());
+
+                        // Assign the ID back to the primary key property
+                        if (primaryKeyName != null && id != null && id.GetType().IsValueType)
                         {
-                            pc.SetValue(poco, pc.ChangeType(id));
+                            PocoColumn pc;
+                            if (pd.Columns.TryGetValue(primaryKeyName, out pc))
+                            {
+                                pc.SetValue(poco, pc.ChangeType(id));
+                            }
                         }
                     }
-
                     if (serverRawVersion != null)
                     {
                         SetServerRawVersionColumn(poco, tableName, primaryKeyName, id, pd, serverRawVersion, pd.Columns[serverRawVersion].ColumnName, null);
