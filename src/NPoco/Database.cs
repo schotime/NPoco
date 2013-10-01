@@ -1139,6 +1139,12 @@ namespace NPoco
                 var rawvalues = new List<object>();
                 var index = 0;
                 var versionName = "";
+                var serverRawVersion = pd.TableInfo.ServerRawVersionColumnName;
+
+                if (serverRawVersion != null) 
+                {
+                    BeginTransaction();
+                }
 
                 foreach (var i in pd.Columns)
                 {
@@ -1156,6 +1162,11 @@ namespace NPoco
                             names.Add(i.Key);
                             values.Add(autoIncExpression);
                         }
+                        continue;
+                    }
+
+                    if (serverRawVersion != null && string.Compare(i.Key, serverRawVersion, true) == 0)
+                    {
                         continue;
                     }
 
@@ -1211,27 +1222,34 @@ namespace NPoco
                         }
                     }
 
+                    object id = null;
+
                     if (!autoIncrement)
                     {
                         ExecuteNonQueryHelper(cmd);
 
                         PocoColumn pkColumn;
                         if (primaryKeyName != null && pd.Columns.TryGetValue(primaryKeyName, out pkColumn))
-                            return pkColumn.GetValue(poco);
-                        else
-                            return null;
+                            id = pkColumn.GetValue(poco);
                     }
-
-                    object id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, poco, rawvalues.ToArray());
-
-                    // Assign the ID back to the primary key property
-                    if (primaryKeyName != null && id != null && id.GetType().IsValueType)
+                    else
                     {
-                        PocoColumn pc;
-                        if (pd.Columns.TryGetValue(primaryKeyName, out pc))
+                        id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, poco, rawvalues.ToArray());
+
+                        // Assign the ID back to the primary key property
+                        if (primaryKeyName != null && id != null && id.GetType().IsValueType)
                         {
-                            pc.SetValue(poco, pc.ChangeType(id));
+                            PocoColumn pc;
+                            if (pd.Columns.TryGetValue(primaryKeyName, out pc))
+                            {
+                                pc.SetValue(poco, pc.ChangeType(id));
+                            }
                         }
+                    }
+                    if (serverRawVersion != null)
+                    {
+                        SetServerRawVersionColumn(poco, tableName, primaryKeyName, id, pd, serverRawVersion, pd.Columns[serverRawVersion].ColumnName, null);
+                        CompleteTransaction();
                     }
 
                     return id;
@@ -1239,12 +1257,57 @@ namespace NPoco
             }
             catch (Exception x)
             {
+                AbortTransaction(); 
                 OnException(x);
                 throw;
             }
             finally
             {
                 CloseSharedConnectionInternal();
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="poco"></param>
+        /// <param name="tableName"></param>
+        /// <param name="primaryKeyName">will not be used if primaryKeyValuePairs is not null</param>
+        /// <param name="primaryKeyValue">will not be used if primaryKeyValuePairs is not null</param>
+        /// <param name="pd"></param>
+        /// <param name="serverRawVersionName"></param>
+        /// <param name="serverRawVersionSqlColumn"></param>
+        /// <param name="primaryKeyValuePairs">if null then primaryKeyName and primaryKeyValue are used to </param>
+        void SetServerRawVersionColumn<T>(T poco, string tableName, string primaryKeyName, object primaryKeyValue, PocoData pd, string serverRawVersionName, string serverRawVersionSqlColumn, Dictionary<string, object> primaryKeyValuePairs)
+        {
+            PocoColumn pc;
+            if (!pd.Columns.TryGetValue(serverRawVersionName, out pc))
+            {
+                return;
+            }
+            var rawvalues = new List<object>();
+
+            if (primaryKeyValuePairs == null)
+            {
+                primaryKeyValuePairs = GetPrimaryKeyValues(primaryKeyName, primaryKeyValue);
+                if (primaryKeyValue == null)
+                {
+                    var st = primaryKeyValuePairs.Keys.ToArray();
+                    foreach (var i in st)
+                    {
+                        primaryKeyValuePairs[i] = pd.Columns[i].GetValue(poco);
+                    }
+                }
+            }
+
+            int index = 0;
+            var sql = string.Format("Select {0} FROM {1} WHERE {2}", _dbType.EscapeTableName(serverRawVersionSqlColumn), _dbType.EscapeTableName(tableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
+            rawvalues.AddRange(primaryKeyValuePairs.Select(keyValue => keyValue.Value));
+            using (var cmd = CreateCommand(_sharedConnection, sql, rawvalues.ToArray()))
+            {
+                var ts = ExecuteScalarHelper(cmd);
+                pc.SetValue(poco, pc.ChangeType(ts));
             }
         }
 
@@ -1284,8 +1347,9 @@ namespace NPoco
             var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
             string versionName = null;
             object versionValue = null;
-
+            
             var primaryKeyValuePairs = GetPrimaryKeyValues(primaryKeyName, primaryKeyValue);
+            var serverRawVersion = pd.TableInfo.ServerRawVersionColumnName;
 
             foreach (var i in pd.Columns)
             {
@@ -1295,6 +1359,9 @@ namespace NPoco
                     primaryKeyValuePairs[i.Key] = i.Value.GetValue(poco);
                     continue;
                 }
+
+                if (serverRawVersion != null && string.Compare(i.Key, serverRawVersion, true) == 0)
+                    continue;
 
                 // Dont update result only columns
                 if (i.Value.ResultColumn)
@@ -1339,24 +1406,58 @@ namespace NPoco
                 rawvalues.Add(versionValue);
             }
 
-            var result = Execute(sql, rawvalues.ToArray());
-
-            if (result == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
+            if (serverRawVersion != null)
             {
-                throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", primaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), versionValue));
+                sql += string.Format(" AND {0} = @{1}", _dbType.EscapeSqlIdentifier(pd.Columns[serverRawVersion].ColumnName), index++);
+                rawvalues.Add(pd.Columns[serverRawVersion].GetValue(poco));
             }
 
-            // Set Version
-            if (!string.IsNullOrEmpty(versionName))
+            try
             {
-                PocoColumn pc;
-                if (pd.Columns.TryGetValue(versionName, out pc))
-                {
-                    pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(versionValue) + 1, pc.MemberInfo.GetMemberInfoType()));
+                OpenSharedConnectionInternal();
+
+                if (serverRawVersion != null) {BeginTransaction();}
+
+                var result = Execute(sql, rawvalues.ToArray());
+
+                if (result==0 && VersionException == VersionExceptionHandling.Exception){
+                    if (!string.IsNullOrEmpty(versionName))
+                    {
+                        throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", primaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), versionValue));
+                    }
+                    else if (serverRawVersion != null) 
+                    {
+                        throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}'", tableName, string.Join(",", primaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray())));
+                    }
                 }
-            }
+                // Set Version
+                if (!string.IsNullOrEmpty(versionName))
+                {
+                    PocoColumn pc;
+                    if (pd.Columns.TryGetValue(versionName, out pc))
+                    {
+                        pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(versionValue) + 1, pc.MemberInfo.GetMemberInfoType()));
+                    }
+                }
 
-            return result;
+                if (serverRawVersion != null)
+                { 
+                    SetServerRawVersionColumn(poco, tableName, primaryKeyName, null, pd, serverRawVersion, pd.Columns[serverRawVersion].ColumnName, primaryKeyValuePairs);
+                    CompleteTransaction();
+                }
+
+                return result;
+            }
+            catch (Exception x)
+            {
+                AbortTransaction();
+                OnException(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
         }
 
         private string BuildPrimaryKeySql(Dictionary<string, object> primaryKeyValuePair, ref int index)
