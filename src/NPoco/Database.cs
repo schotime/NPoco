@@ -1414,7 +1414,7 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnection();
+                OpenSharedConnectionInternal();
 
                 if (serverRawVersion != null) {BeginTransaction();}
 
