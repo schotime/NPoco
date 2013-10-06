@@ -311,26 +311,49 @@ namespace NPoco
         // Use `using (var scope=db.Transaction) { scope.Complete(); }` to ensure correct semantics
         public void BeginTransaction(IsolationLevel isolationLevel)
         {
-            if (_transaction != null) return;
+            if (_transaction == null)
+            {
+                TransactionCount = 0;
+                OpenSharedConnectionInternal();
+                _transaction = _sharedConnection.BeginTransaction(isolationLevel);
+                OnBeginTransaction();
+            }
 
-            OpenSharedConnectionInternal();
-            _transaction = _sharedConnection.BeginTransaction(isolationLevel);
-            OnBeginTransaction();
+            if (_transaction != null)
+            {
+                TransactionCount++;
+            }
         }
 
         // Abort the entire outer most transaction scope
         public void AbortTransaction()
         {
-            if (_transaction == null) 
+            AbortTransaction(false);
+        }
+
+        public void AbortTransaction(bool fromComplete)
+        {
+            if (_transaction == null)
                 return;
+
+            if (fromComplete == false)
+            {
+                TransactionCount--;
+                if (TransactionCount >= 1)
+                {
+                    TransactionIsAborted = true;
+                    return;
+                }
+            }
 
             if (TransactionIsOk())
                 _transaction.Rollback();
 
             if (_transaction != null)
                 _transaction.Dispose();
-            
+
             _transaction = null;
+            TransactionIsAborted = false;
 
             // You cannot continue to use a connection after a transaction has been rolled back
             if (_sharedConnection != null)
@@ -349,6 +372,16 @@ namespace NPoco
             if (_transaction == null) 
                 return;
 
+            TransactionCount--;
+            if (TransactionCount >= 1)
+                return;
+
+            if (TransactionIsAborted)
+            {
+                AbortTransaction(true);
+                return;
+            }
+
             if (TransactionIsOk())
                 _transaction.Commit();
 
@@ -360,6 +393,9 @@ namespace NPoco
             OnCompleteTransaction();
             CloseSharedConnectionInternal();
         }
+
+        internal bool TransactionIsAborted { get; set; }
+        internal int TransactionCount { get; set; }
 
         private bool TransactionIsOk()
         {
@@ -1613,8 +1649,6 @@ namespace NPoco
             }
             return sb.ToString();
         }
-
-        internal Transaction BaseTransaction { get; set; }
 
         public IMapper Mapper { get; set; }
 

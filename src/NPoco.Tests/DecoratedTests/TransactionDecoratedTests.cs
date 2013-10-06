@@ -88,10 +88,61 @@ namespace NPoco.Tests.DecoratedTests
                 InMemoryExtraUserInfos.Add(extra);
                 Database.Insert(extra);
 
-                
-
-                //scope.Complete();
+                scope.Complete();
             }
+
+            var count = Database.ExecuteScalar<long>("SELECT COUNT(*) FROM Users");
+            Assert.AreEqual(15, count);
+        }
+
+        [Test]
+        public void NestedTransactionThatFailsAbortsWholeUsingBeginAbort()
+        {
+            Database.BeginTransaction();
+            Database.BeginTransaction();
+
+
+            var user1 = new UserDecorated
+            {
+                Name = "Name" + 16,
+                Age = 20 + 16,
+                DateOfBirth = new DateTime(1970, 1, 1).AddYears(16),
+                Savings = 50.00m + (1.01m * 16)
+            };
+            InMemoryUsers.Add(user1);
+            Database.Insert(user1);
+
+            var extra1 = new ExtraUserInfoDecorated
+            {
+                UserId = user1.UserId,
+                Email = "email" + 16 + "@email.com",
+                Children = 16
+            };
+            InMemoryExtraUserInfos.Add(extra1);
+            Database.Insert(extra1);
+
+            Database.AbortTransaction();
+
+            var user = new UserDecorated
+            {
+                Name = "Name" + 16,
+                Age = 20 + 16,
+                DateOfBirth = new DateTime(1970, 1, 1).AddYears(16),
+                Savings = 50.00m + (1.01m * 16)
+            };
+            InMemoryUsers.Add(user);
+            Database.Insert(user);
+
+            var extra = new ExtraUserInfoDecorated
+            {
+                UserId = user.UserId,
+                Email = "email" + 16 + "@email.com",
+                Children = 16
+            };
+            InMemoryExtraUserInfos.Add(extra);
+            Database.Insert(extra);
+
+            Database.CompleteTransaction();
 
             var count = Database.ExecuteScalar<long>("SELECT COUNT(*) FROM Users");
             Assert.AreEqual(15, count);
@@ -153,6 +204,58 @@ namespace NPoco.Tests.DecoratedTests
         }
 
         [Test]
+        public void NestedTransactionsBothCompleteUsingBeginAbort()
+        {
+            Database.BeginTransaction();
+
+            var user = new UserDecorated
+            {
+                Name = "Name" + 16,
+                Age = 20 + 16,
+                DateOfBirth = new DateTime(1970, 1, 1).AddYears(16),
+                Savings = 50.00m + (1.01m*16)
+            };
+            InMemoryUsers.Add(user);
+            Database.Insert(user);
+
+            var extra = new ExtraUserInfoDecorated
+            {
+                UserId = user.UserId,
+                Email = "email" + 16 + "@email.com",
+                Children = 16
+            };
+            InMemoryExtraUserInfos.Add(extra);
+            Database.Insert(extra);
+
+            Database.BeginTransaction();
+
+            var user1 = new UserDecorated
+            {
+                Name = "Name" + 16,
+                Age = 20 + 16,
+                DateOfBirth = new DateTime(1970, 1, 1).AddYears(16),
+                Savings = 50.00m + (1.01m*16)
+            };
+            InMemoryUsers.Add(user1);
+            Database.Insert(user1);
+
+            var extra1 = new ExtraUserInfoDecorated
+            {
+                UserId = user1.UserId,
+                Email = "email" + 16 + "@email.com",
+                Children = 16
+            };
+            InMemoryExtraUserInfos.Add(extra1);
+            Database.Insert(extra1);
+
+            Database.CompleteTransaction();
+            Database.CompleteTransaction();
+
+            var count = Database.ExecuteScalar<long>("SELECT COUNT(*) FROM Users");
+            Assert.AreEqual(17, count);
+        }
+
+        [Test]
         // This will fail using SQLite in-memory as the transaction wraps the whole connection :/ Will probably need 
         // to switch over to SQLite file based at some point. So that one connection can create the DB and a different connection can 
         // do the tests. 
@@ -178,8 +281,6 @@ namespace NPoco.Tests.DecoratedTests
                 };
                 InMemoryExtraUserInfos.Add(extra);
                 Database.Insert(extra);
-
-                scope.Dispose();
             }
 
             var count = Database.ExecuteScalar<long>("SELECT COUNT(*) FROM Users");
