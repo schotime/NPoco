@@ -35,7 +35,7 @@ namespace NPoco.Expressions
             _databaseType = database.DatabaseType;
             PrefixFieldWithTableName = false;
             WhereStatementWithoutWhereString = false;
-            paramPrefix = _databaseType.GetParameterPrefix(_database.ConnectionString);
+            paramPrefix = "@";
             members = new List<string>();
             Context = new SqlExpressionContext(this);
         }
