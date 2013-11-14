@@ -407,8 +407,8 @@ namespace NPoco
                 }
                 else if (t == typeof(Guid))
                 {
-                    p.Value = value.ToString();
-                    p.DbType = DbType.String;
+                    p.Value = value;
+                    p.DbType = DbType.Guid;
                     p.Size = 40;
                 }
                 else if (t == typeof(string))
