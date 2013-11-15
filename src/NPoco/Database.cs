@@ -459,6 +459,11 @@ namespace NPoco
                     p.GetType().GetProperty("UdtTypeName").SetValue(p, "geometry", null); //geography is the equivalent SQL Server Type
                     p.Value = value;
                 }
+                else if (t == typeof(decimal))
+                {
+                    p.Value = value;
+                    p.DbType = DbType.Decimal;
+                }
                 else
                 {
                     p.Value = value;
