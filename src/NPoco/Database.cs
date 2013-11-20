@@ -427,6 +427,8 @@ namespace NPoco
             var p = cmd.CreateParameter();
             p.ParameterName = string.Format("{0}{1}", parameterPrefix, cmd.Parameters.Count);
 
+            var dbtypeSet = false;
+
             if (value == null)
             {
                 p.Value = DBNull.Value;
@@ -444,8 +446,9 @@ namespace NPoco
                 else if (t == typeof(Guid))
                 {
                     p.Value = value.ToString();
-                    p.DbType = DbType.String;
+                    p.DbType = DbType.Guid;
                     p.Size = 40;
+                    dbtypeSet = true;
                 }
                 else if (t == typeof(string))
                 {
@@ -483,6 +486,7 @@ namespace NPoco
                         p.Value = ansistrValue.Value;
                         p.DbType = DbType.AnsiString;
                     }
+                    dbtypeSet = true;
                 }
                 else if (value.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
                 {
@@ -498,6 +502,11 @@ namespace NPoco
                 else
                 {
                     p.Value = value;
+                }
+
+                if (!dbtypeSet)
+                {
+                    p.DbType = _dbType.LookupDbType(p.Value.GetType(), p.ParameterName);
                 }
             }
 
