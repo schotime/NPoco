@@ -432,6 +432,7 @@ namespace NPoco
             if (value == null)
             {
                 p.Value = DBNull.Value;
+                p.DbType = _dbType.LookupDbType(value.GetTheType(), p.ParameterName);
             }
             else
             {
@@ -506,7 +507,7 @@ namespace NPoco
 
                 if (!dbtypeSet)
                 {
-                    p.DbType = _dbType.LookupDbType(p.Value.GetType(), p.ParameterName);
+                    p.DbType = _dbType.LookupDbType(p.Value.GetTheType(), p.ParameterName);
                 }
             }
 

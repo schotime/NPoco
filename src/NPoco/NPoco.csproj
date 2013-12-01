@@ -117,6 +117,7 @@
     <Compile Include="TableNameAttribute.cs" />
     <Compile Include="Transaction.cs" />
     <Compile Include="Tuple.cs" />
+    <Compile Include="TypeHelpers.cs" />
     <Compile Include="UpdateContext.cs" />
     <Compile Include="VersionColumnAttribute.cs" />
     <Compile Include="VersionExceptionHandling.cs" />
