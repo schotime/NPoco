@@ -1227,6 +1227,13 @@ namespace NPoco
             return Execute(string.Format("UPDATE {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
         }
 
+        public int Update<T>(object poco, object primaryKeyValue)
+        {
+            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var properties = poco.GetType().GetProperties().Select(pi => pi.Name);
+            return Update(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco, primaryKeyValue, properties);
+        }
+
         public int Update<T>(Sql sql)
         {
             var pd = PocoData.ForType(typeof(T));
