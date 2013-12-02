@@ -53,5 +53,29 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.AreEqual(InMemoryCompositeObjects[1].Key3ID, verify.Key3ID);
             Assert.AreEqual(dataTextData, verify.TextData);
         }
+
+        [Test]
+        public void UpdateAnonymous()
+        {
+            const string updatedTextData = "New value";
+
+            var original = InMemoryCompositeObjects[1];
+            
+            var updated = new 
+            {
+                TextData = updatedTextData
+            };
+            var key = new 
+            { 
+                Key1ID = original.Key1ID,
+                Key2ID = original.Key2ID,
+                Key3ID = original.Key3ID
+            };
+            Database.Update<CompositeObjectDecorated>(updated, key);
+
+            var verify = Database.SingleById<CompositeObjectDecorated>(key);
+
+            Assert.AreEqual(verify.TextData, updatedTextData);
+        }
     }
 }
