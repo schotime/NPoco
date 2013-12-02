@@ -29,6 +29,7 @@ namespace NPoco
         int Update(object poco);
         int Update(object poco, object primaryKeyValue);
         int Update<T>(string sql, params object[] args);
+        int Update<T>(object poco, object primaryKeyValue);
         int Update<T>(Sql sql);
         int Delete(string tableName, string primaryKeyName, object poco);
         int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
