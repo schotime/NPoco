@@ -833,12 +833,12 @@ namespace NPoco.Expressions
                 for (int i = 0; i < exprs.Count; i++)
                 {
                     r.AppendFormat("{0}{1}", r.Length > 0 ? "," : "", exprs[i]);
-                    if (nex.Members[i] != null )
-                    {
-                        var memberName = _databaseType.EscapeSqlIdentifier(nex.Members[i].Name);
-                        if (memberName != exprs[i].ToString())
-                            r.AppendFormat(" AS {0}", memberName);
-                    }
+                    //if (nex.Members[i] != null)
+                    //{
+                    //    var memberName = _databaseType.EscapeSqlIdentifier(nex.Members[i].Name);
+                    //    if (memberName != exprs[i].ToString())
+                    //        r.AppendFormat(" AS {0}", memberName);
+                    //}
                 }
                 return r.ToString();
             }
