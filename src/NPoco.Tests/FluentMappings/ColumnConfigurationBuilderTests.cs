@@ -97,5 +97,49 @@ namespace NPoco.Tests.FluentMappings
             Assert.AreEqual(true, columnDefinitions["UserId"].ResultColumn);
             Assert.AreEqual(PropertyHelper<User>.GetProperty(x => x.UserId), columnDefinitions["UserId"].MemberInfo);
         }
+
+        [Test]
+        public void ScanIgnoresColumnsDefinedByConvention()
+        {
+            var map = FluentMappingConfiguration.Scan(scan =>
+            {
+                scan.Assembly(this.GetType().Assembly);
+                scan.IncludeTypes(x => x == typeof (User));
+                scan.Columns.IgnoreWhere(x => x.Name == "Age");
+            });
+
+            var pd = map.Config(new Mapper())(typeof (User));
+            Assert.False(pd.Columns.ContainsKey("Age"));
+        }
+
+        [Test]
+        public void ScanSetsResultColumnsDefinedByConvention()
+        {
+            var map = FluentMappingConfiguration.Scan(scan =>
+            {
+                scan.Assembly(this.GetType().Assembly);
+                scan.IncludeTypes(x => x == typeof(User));
+                scan.Columns.ResultWhere(x => x.Name == "Age");
+            });
+
+            var pd = map.Config(new Mapper())(typeof(User));
+            Assert.True(pd.Columns.ContainsKey("Age"));
+            Assert.True(pd.Columns["Age"].ResultColumn);
+        }
+
+        [Test]
+        public void ScanSetsNameOfColumnDefinedByConvention()
+        {
+            var map = FluentMappingConfiguration.Scan(scan =>
+            {
+                scan.Assembly(this.GetType().Assembly);
+                scan.IncludeTypes(x => x == typeof(User));
+                scan.Columns.Named(x =>x.Name + "000");
+            });
+
+            var pd = map.Config(new Mapper())(typeof(User));
+            Assert.True(pd.Columns.ContainsKey("Age000"));
+            Assert.AreEqual("Age", pd.Columns["Age000"].MemberInfo.Name);
+        }
     }
 }
