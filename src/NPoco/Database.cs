@@ -676,15 +676,17 @@ namespace NPoco
         public List<T> FetchWhere<T>(Expression<Func<T, bool>> expression)
         {
             var ev = _dbType.ExpressionVisitor<T>(this);
-            var sql = ev.Where(expression).Context.ToWhereStatement();
-            return Fetch<T>(sql, ev.Context.Params.ToArray());
+            var query = ev.Where(expression);
+            var sql = query.Context.ToWhereStatement();
+            return Fetch<T>(sql, query.Context.Params.ToArray());
         }
 
         public List<T> FetchBy<T>(Func<SqlExpression<T>, SqlExpression<T>> expression)
         {
             var ev = _dbType.ExpressionVisitor<T>(this);
-            var sql = expression(ev).Context.ToSelectStatement();
-            return Fetch<T>(sql, ev.Context.Params.ToArray());
+            var query = expression(ev);
+            var sql = query.Context.ToSelectStatement();
+            return Fetch<T>(sql, query.Context.Params.ToArray());
         }
 
         public void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage)

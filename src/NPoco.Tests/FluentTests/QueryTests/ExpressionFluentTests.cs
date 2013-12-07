@@ -39,6 +39,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchByExpressionWithParametersAndOrderBy()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x=> new{ x.Name }).Where(x => x.Name == "Name1").OrderBy(x => x.UserId));
+            Assert.AreEqual(1, users.Count);
+        }
+
+        [Test]
         public void FetchByExpressionAndLimit()
         {
             var users = Database.FetchBy<UserDecorated>(y => y.OrderBy(x => x.UserId).Limit(5, 5));
@@ -202,5 +209,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var selectStatement = sqlExpression.Context.ToSelectStatement();
             Assert.AreEqual("SELECT [is_male],[Name] \nFROM [Users]", selectStatement);
         }
+
+
     }
 }
