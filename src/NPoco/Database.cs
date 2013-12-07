@@ -432,7 +432,6 @@ namespace NPoco
             if (value == null)
             {
                 p.Value = DBNull.Value;
-                p.DbType = _dbType.LookupDbType(value.GetTheType(), p.ParameterName);
             }
             else
             {
