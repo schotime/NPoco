@@ -1074,6 +1074,80 @@ namespace NPoco
             }
         }
 
+
+        /// <summary>
+        /// Given a multi-query SQL command and an array of types to be returned by individual SELECT statements,
+        /// returns a dictionary whose keys are the types and whose elements contain lists of objects created from 
+        /// the rows of resultsets produced by the queries.
+        /// </summary>
+        /// <param name="sql">Multi-query SQL command.</param>
+        /// <param name="types">Types that correspond to the data returned by individual queries.</param>
+        public Dictionary<Type, List<object>> FetchMultiple(Sql sql, params Type[] types)
+        {
+            if (types == null || types.Length == 0)
+                throw new ArgumentException("Argument 'types' is invalid");
+
+            var args = sql.Arguments;
+            var results = new Dictionary<Type, List<object>>();
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql.SQL, args))
+                {
+                    IDataReader r;
+                    try
+                    {
+                        r = ExecuteReaderHelper(cmd);
+                    }
+                    catch (Exception x)
+                    {
+                        OnException(x);
+                        throw;
+                    }
+
+                    using (r)
+                    {
+                        int typeIndex = 0;
+                        do
+                        {
+                            if (typeIndex >= types.Length)
+                                break;
+
+                            var pocoType = types[typeIndex];
+
+                            var pd = PocoData.ForType(pocoType, PocoDataFactory);
+                            var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
+                            var list = new List<object>();
+
+                            while (r.Read())
+                            {
+                                try
+                                {
+                                    list.Add(factory.DynamicInvoke(r, null));
+                                }
+                                catch (Exception x)
+                                {
+                                    var ex = new Exception(String.Format("Error creating an instance of type {0} from SQL command #{1}.", pocoType.Name, typeIndex + 1), x);
+                                    OnException(ex);
+                                    throw ex;
+                                }
+                            }
+                            results.Add(pocoType, list);
+                            typeIndex++;
+                        } 
+                        while (r.NextResult());
+                    }
+                }
+                return results;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
+
         public bool Exists<T>(object primaryKey)
         {
             var index = 0;
