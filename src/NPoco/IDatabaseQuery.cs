@@ -89,5 +89,6 @@ namespace NPoco
         Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql);
         Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql);
 
+        Dictionary<Type, List<object>> FetchMultiple(Sql Sql, params Type[] types);
     }
 }
