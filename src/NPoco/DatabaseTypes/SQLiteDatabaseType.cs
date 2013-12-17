@@ -48,5 +48,10 @@ namespace NPoco.DatabaseTypes
                     return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
             }
         }
+        
+        public override string GetProviderName()
+        {
+            return "System.Data.SQLite";
+        }        
     }
 }
