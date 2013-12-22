@@ -88,7 +88,8 @@ namespace NPoco.Tests.Common
                     Age int NULL, 
                     DateOfBirth datetime NULL, 
                     Savings decimal(10,5) NULL,
-                    Is_Male tinyint
+                    Is_Male tinyint,
+                    UniqueId uniqueidentifier NULL
                 );
             ";
             cmd.ExecuteNonQuery();

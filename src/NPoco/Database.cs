@@ -445,7 +445,7 @@ namespace NPoco
                 }
                 else if (t == typeof(Guid))
                 {
-                    p.Value = value.ToString();
+                    p.Value = value;
                     p.DbType = DbType.Guid;
                     p.Size = 40;
                     dbtypeSet = true;
