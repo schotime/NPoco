@@ -506,7 +506,11 @@ namespace NPoco
 
                 if (!dbtypeSet)
                 {
-                    p.DbType = _dbType.LookupDbType(p.Value.GetTheType(), p.ParameterName);
+                    var dbType = _dbType.LookupDbType(p.Value.GetTheType(), p.ParameterName);
+                    if (dbType.HasValue)
+                    {
+                        p.DbType = dbType.Value;
+                    }
                 }
             }
 

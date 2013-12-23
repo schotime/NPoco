@@ -77,7 +77,7 @@ namespace NPoco
         }
 
         internal const string LinqBinary = "System.Data.Linq.Binary";
-        public virtual DbType LookupDbType(Type type, string name)
+        public virtual DbType? LookupDbType(Type type, string name)
         {
             DbType dbType;
             var nullUnderlyingType = Nullable.GetUnderlyingType(type);
@@ -95,7 +95,7 @@ namespace NPoco
                 return DbType.Binary;
             }
 
-            return DbType.String;
+            return null;
         }
 
         /// <summary>

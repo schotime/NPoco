@@ -11,6 +11,7 @@ namespace NPoco.Tests.Common
         public decimal Savings { get; set; }
         public bool IsMale { get; set; }
         public Guid? UniqueId { get; set; }
+        public TimeSpan TimeSpan { get; set; }
     }
 
     public class Admin : User
