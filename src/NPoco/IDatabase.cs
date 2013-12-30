@@ -43,7 +43,7 @@ namespace NPoco
     public interface IDatabaseConfig
     {
         IMapper Mapper { get; set; }
-        Func<Type, PocoData> PocoDataFactory { get; set; }
+        PocoDataFactory PocoDataFactory { get; set; }
         DatabaseType DatabaseType { get; }
         string ConnectionString { get; }
     }

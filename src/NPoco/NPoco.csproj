@@ -62,6 +62,7 @@
     <Compile Include="DatabaseTypes\SqlServer2012DatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerCEDatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerDatabaseType.cs" />
+    <Compile Include="MappingFactory.cs" />
     <Compile Include="DefaultMapper.cs" />
     <Compile Include="Expressions\DefaultSqlExpression.cs" />
     <Compile Include="DeleteContext.cs" />
@@ -102,6 +103,7 @@
     <Compile Include="ParameterHelper.cs" />
     <Compile Include="PocoColumn.cs" />
     <Compile Include="PocoData.cs" />
+    <Compile Include="PocoDataFactory.cs" />
     <Compile Include="ReflectionUtils.cs" />
     <Compile Include="RelationExtensions.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />

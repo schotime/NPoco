@@ -18,7 +18,7 @@ namespace NPoco
 
             if (!rxSelect.IsMatch(sql))
             {
-                var pd = PocoData.ForType(typeof(T), database.PocoDataFactory);
+                var pd = database.PocoDataFactory.ForType(typeof(T));
                 var tableName = database.DatabaseType.EscapeTableName(pd.TableInfo.TableName);
                 string cols = String.Join(", ", (from c in pd.QueryColumns select database.DatabaseType.EscapeSqlIdentifier(c)).ToArray());
                 if (!rxFrom.IsMatch(sql))

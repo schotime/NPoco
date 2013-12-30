@@ -782,8 +782,8 @@ namespace NPoco
 
                 if (isConverterSet == false)
                 {
-                    converter1 = PocoData.GetConverter(Mapper, null, typeof(TKey), key.GetType()) ?? (x => x);
-                    converter2 = PocoData.GetConverter(Mapper, null, typeof(TValue), value.GetType()) ?? (x => x);
+                    converter1 = MappingFactory.GetConverter(Mapper, null, typeof(TKey), key.GetType()) ?? (x => x);
+                    converter2 = MappingFactory.GetConverter(Mapper, null, typeof(TValue), value.GetType()) ?? (x => x);
                     isConverterSet = true;
                 }
 
@@ -825,7 +825,7 @@ namespace NPoco
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
                     IDataReader r;
-                    var pd = PocoData.ForType(typeof (T), PocoDataFactory);
+                    var pd = PocoDataFactory.ForType(typeof(T));
                     try
                     {
                         r = ExecuteReaderHelper(cmd);
@@ -838,7 +838,7 @@ namespace NPoco
 
                     using (r)
                     {
-                        var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
+                        var factory = pd.MappingFactory.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
                         while (true)
                         {
                             T poco;
@@ -1022,8 +1022,8 @@ namespace NPoco
                             if (typeIndex > types.Length)
                                 break;
 
-                            var pd = PocoData.ForType(types[typeIndex - 1], PocoDataFactory);
-                            var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
+                            var pd = PocoDataFactory.ForType(types[typeIndex - 1]);
+                            var factory = pd.MappingFactory.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
 
                             while (true)
                             {
@@ -1081,19 +1081,19 @@ namespace NPoco
         public bool Exists<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T), PocoDataFactory).TableInfo.PrimaryKey, primaryKey);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoDataFactory.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
             return FirstOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) != null;
         }
         public T SingleById<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T), PocoDataFactory).TableInfo.PrimaryKey, primaryKey);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoDataFactory.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
             return Single<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
         public T SingleOrDefaultById<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T), PocoDataFactory).TableInfo.PrimaryKey, primaryKey);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoDataFactory.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
             return SingleOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
         public T Single<T>(string sql, params object[] args)
@@ -1164,7 +1164,7 @@ namespace NPoco
         // Insert an annotated poco object
         public object Insert<T>(T poco)
         {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(poco.GetType());
             return Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
         }
 
@@ -1184,7 +1184,7 @@ namespace NPoco
             {
                 OpenSharedConnectionInternal();
 
-                var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
+                var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
                 var names = new List<string>();
                 var values = new List<string>();
                 var rawvalues = new List<object>();
@@ -1332,7 +1332,7 @@ namespace NPoco
             var sb = new StringBuilder();
             var index = 0;
             var rawvalues = new List<object>();
-            var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
             string versionName = null;
             object versionValue = null;
 
@@ -1471,19 +1471,19 @@ namespace NPoco
 
         public int Update(object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(poco.GetType());
             return Update(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco, primaryKeyValue, columns);
         }
 
         public int Update<T>(string sql, params object[] args)
         {
-            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(typeof(T));
             return Execute(string.Format("UPDATE {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
         }
 
         public int Update<T>(Sql sql)
         {
-            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(typeof(T));
             return Execute(new Sql(string.Format("UPDATE {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
@@ -1500,7 +1500,7 @@ namespace NPoco
             // If primary key value not specified, pick it up from the object
             if (primaryKeyValue == null)
             {
-                var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
+                var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
                 foreach (var i in pd.Columns)
                 {
                     if (primaryKeyValuePairs.ContainsKey(i.Key))
@@ -1518,7 +1518,7 @@ namespace NPoco
 
         public int Delete(object poco)
         {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(poco.GetType());
             return Delete(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco);
         }
 
@@ -1526,26 +1526,26 @@ namespace NPoco
         {
             if (pocoOrPrimaryKey.GetType() == typeof(T))
                 return Delete(pocoOrPrimaryKey);
-            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(typeof(T));
             return Delete(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, null, pocoOrPrimaryKey);
         }
 
         public int Delete<T>(string sql, params object[] args)
         {
-            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(typeof(T));
             return Execute(string.Format("DELETE FROM {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
         }
 
         public int Delete<T>(Sql sql)
         {
-            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(typeof(T));
             return Execute(new Sql(string.Format("DELETE FROM {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
         // Check if a poco represents a new record
         public bool IsNew<T>(object poco)
         {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(poco.GetType());
             object pk;
             PocoColumn pc;
             if (pd.Columns.TryGetValue(pd.TableInfo.PrimaryKey, out pc))
@@ -1600,7 +1600,7 @@ namespace NPoco
         // Insert new record or Update existing record
         public void Save<T>(object poco)
         {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(poco.GetType());
             if (IsNew<T>(poco))
             {
                 Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
@@ -1667,15 +1667,10 @@ namespace NPoco
 
         public IMapper Mapper { get; set; }
 
-        private Func<Type, PocoData> _pocoDataFactory;
-        public Func<Type, PocoData> PocoDataFactory
+        private PocoDataFactory _pocoDataFactory;
+        public PocoDataFactory PocoDataFactory
         {
-            get
-            {
-                if (_pocoDataFactory == null)
-                    return type => new PocoData(type, Mapper);
-                return _pocoDataFactory;
-            }
+            get { return _pocoDataFactory ?? new PocoDataFactory(); }
             set { _pocoDataFactory = value; }
         }
 

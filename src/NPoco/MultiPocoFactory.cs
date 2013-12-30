@@ -106,11 +106,11 @@ namespace NPoco
         {
             // Last?
             if (typeNext == null)
-                return PocoData.ForType(typeThis, true, database.PocoDataFactory).GetFactory(sql, connectionString, pos, r.FieldCount - pos, r, null);
+                return database.PocoDataFactory.ForType(typeThis, true).MappingFactory.GetFactory(sql, connectionString, pos, r.FieldCount - pos, r, null);
 
             // Get PocoData for the two types
-            PocoData pdThis = PocoData.ForType(typeThis, typeIndex > 0, database.PocoDataFactory);
-            PocoData pdNext = PocoData.ForType(typeNext, true, database.PocoDataFactory);
+            PocoData pdThis = database.PocoDataFactory.ForType(typeThis, typeIndex > 0);
+            PocoData pdNext = database.PocoDataFactory.ForType(typeNext, true);
 
             // Find split point
             int firstColumn = pos;
@@ -123,7 +123,7 @@ namespace NPoco
                     || (!pdThis.Columns.ContainsKey(fieldName) && pdNext.Columns.ContainsKey(fieldName))
                     || (!pdThis.Columns.ContainsKey(fieldName.Replace("_", "")) && pdNext.Columns.ContainsKey(fieldName.Replace("_", ""))))
                 {
-                    return pdThis.GetFactory(sql, connectionString, firstColumn, pos - firstColumn, r, null);
+                    return pdThis.MappingFactory.GetFactory(sql, connectionString, firstColumn, pos - firstColumn, r, null);
                 }
                 usedColumns.Add(fieldName, true);
             }

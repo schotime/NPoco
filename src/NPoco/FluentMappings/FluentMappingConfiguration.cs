@@ -8,12 +8,12 @@ namespace NPoco.FluentMappings
 {
     public class FluentConfig
     {
-        public FluentConfig(Func<IMapper, Func<Type, PocoData>> config)
+        public FluentConfig(Func<IMapper, PocoDataFactory> config)
         {
             Config = config;
         }
 
-        public Func<IMapper, Func<Type, PocoData>> Config { get; private set; }
+        public Func<IMapper, PocoDataFactory> Config { get; private set; }
     }
 
     public class FluentMappingConfiguration
@@ -149,7 +149,7 @@ namespace NPoco.FluentMappings
         {
             var maps = mappings;
             var scana = scanner;
-            return new FluentConfig(mapper => t =>
+            return new FluentConfig(mapper => new PocoDataFactory(t =>
             {
                 if (maps != null)
                 {
@@ -166,7 +166,7 @@ namespace NPoco.FluentMappings
                     }
                 }
                 return new PocoData(t, mapper);
-            });
+            }));
         }
 
         // Helper method if code is in seperate assembly

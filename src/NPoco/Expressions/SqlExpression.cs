@@ -30,7 +30,7 @@ namespace NPoco.Expressions
 
         public SqlExpression(IDatabase database)
         {
-            modelDef = PocoData.ForType(typeof(T), database.PocoDataFactory);
+            modelDef = database.PocoDataFactory.ForType(typeof(T));
             _database = database;
             _databaseType = database.DatabaseType;
             PrefixFieldWithTableName = false;
@@ -494,7 +494,7 @@ namespace NPoco.Expressions
                         value = converter(value);
                 }
 
-                if (excludeDefaults && (value == null || value.Equals(PocoData.GetDefault(value.GetType())))) continue; //GetDefaultValue?
+                if (excludeDefaults && (value == null || value.Equals(MappingFactory.GetDefault(value.GetType())))) continue; //GetDefaultValue?
 
                 if (setFields.Length > 0) 
                     setFields.Append(", ");
