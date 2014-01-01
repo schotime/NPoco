@@ -178,10 +178,18 @@ namespace NPoco
                     else
                     {
                         if (instance != null)
+                        {
                             il.Emit(OpCodes.Ldarg_1);
+                        }
                         else
+                        {
+                            var constructorInfo = _pocoData.type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null);
+                            if (constructorInfo == null)
+                                throw new Exception(string.Format("Poco '{0}' has no parameterless constructor", _pocoData.type.FullName));
+
                             // var poco=new T()
-                            il.Emit(OpCodes.Newobj, _pocoData.type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null));
+                            il.Emit(OpCodes.Newobj, constructorInfo);
+                        }
 
                         LocalBuilder a = il.DeclareLocal(typeof(Int32));
                         if (_pocoData.EmptyNestedObjectNull)
