@@ -702,12 +702,29 @@ namespace NPoco.Expressions
 
                 if (m.Expression != null)
                 {
-                    string r = VisitMemberAccess(m).ToString();
-                    return string.Format("{0}={1}", r, GetQuotedTrueValue());
+                    var member = m.Expression as MemberExpression;
+                    if (IsNullableMember(m))
+                    {
+                        string r = VisitMemberAccess(member).ToString();
+                        return string.Format("{0} is not null", r);
+                    }
+                    else
+                    {
+                        string r = VisitMemberAccess(m).ToString();
+                        return string.Format("{0}={1}", r, GetQuotedTrueValue());
+                    }
                 }
 
             }
             return Visit(lambda.Body);
+        }
+
+        private static bool IsNullableMember(MemberExpression m)
+        {
+            var member = m.Expression as MemberExpression;
+            return member != null 
+                && (m.Member.Name == "HasValue") 
+                && member.Type.IsGenericType && member.Type.GetGenericTypeDefinition() == typeof (Nullable<>);
         }
 
         protected virtual object VisitBinary(BinaryExpression b)
@@ -757,6 +774,11 @@ namespace NPoco.Expressions
                     else
                         right = CreateParam(right);
                 }
+                else if (left as NullableMemberAccess != null && right as PartialSqlString == null)
+                {
+                    operand = ((bool)right) ? "is not" : "is";
+                    right = new PartialSqlString("null");
+                }
                 else if (right as EnumMemberAccess != null && left as PartialSqlString == null)
                 {
                     var enumType = ((EnumMemberAccess)right).EnumType;
@@ -795,6 +817,14 @@ namespace NPoco.Expressions
 
         protected virtual object VisitMemberAccess(MemberExpression m)
         {
+            bool isNull = false;
+            var nullableMember = m.Expression as MemberExpression;
+            if (IsNullableMember(m))
+            {
+                m = nullableMember;
+                isNull = true;
+            }
+
             if (m.Expression != null
                 && (m.Expression.NodeType == ExpressionType.Parameter || m.Expression.NodeType == ExpressionType.Convert))
             {
@@ -803,11 +833,14 @@ namespace NPoco.Expressions
                 if (propertyInfo.PropertyType.IsEnum)
                     return new EnumMemberAccess((PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name), propertyInfo.PropertyType);
 
+                if (isNull)
+                    return new NullableMemberAccess((PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name));
+
                 return new PartialSqlString((PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name));
             }
 
-            var member = Expression.Convert(m, typeof(object));
-            var lambda = Expression.Lambda<Func<object>>(member);
+            var memberExp = Expression.Convert(m, typeof(object));           
+            var lambda = Expression.Lambda<Func<object>>(memberExp);
             var getter = lambda.Compile();
             return getter();
         }
@@ -885,7 +918,12 @@ namespace NPoco.Expressions
                         return !((bool)o);
 
                     if (IsFieldName(o))
-                        o = o + "=" + GetQuotedTrueValue();
+                    {
+                        if (o as NullableMemberAccess != null)
+                            o = o + " is not null";
+                        else
+                            o = o + "=" + GetQuotedTrueValue();
+                    }
 
                     return new PartialSqlString("NOT (" + o + ")");
                 case ExpressionType.Convert:
@@ -1279,6 +1317,14 @@ namespace NPoco.Expressions
         public override string ToString()
         {
             return Text;
+        }
+    }
+
+    public class NullableMemberAccess : PartialSqlString
+    {
+        public NullableMemberAccess(string text)
+            : base(text)
+        {
         }
     }
 
