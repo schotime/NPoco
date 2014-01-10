@@ -9,8 +9,8 @@ namespace NPoco
         IDbConnection Connection { get; }
         IDbTransaction Transaction { get; }
         IDataParameter CreateParameter();
-        Transaction GetTransaction();
-        Transaction GetTransaction(IsolationLevel isolationLevel);
+        ITransaction GetTransaction();
+        ITransaction GetTransaction(IsolationLevel isolationLevel);
         void SetTransaction(IDbTransaction tran);
         void BeginTransaction();
         void BeginTransaction(IsolationLevel isolationLevel);

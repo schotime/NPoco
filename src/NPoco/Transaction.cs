@@ -3,7 +3,7 @@ using System.Data;
 
 namespace NPoco
 {
-    public class Transaction : IDisposable
+    public class Transaction : ITransaction
     {
         Database _db;
 
@@ -27,5 +27,10 @@ namespace NPoco
                 _db.AbortTransaction();
             }
         }
+    }
+
+    public interface ITransaction : IDisposable
+    {
+        void Complete();
     }
 }

@@ -264,12 +264,12 @@ namespace NPoco
         }
 
         // Helper to create a transaction scope
-        public Transaction GetTransaction()
+        public ITransaction GetTransaction()
         {
             return GetTransaction(_isolationLevel);
         }
 
-        public Transaction GetTransaction(IsolationLevel isolationLevel)
+        public ITransaction GetTransaction(IsolationLevel isolationLevel)
         {
             return new Transaction(this, isolationLevel);
         }
