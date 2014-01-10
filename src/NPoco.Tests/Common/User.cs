@@ -35,4 +35,16 @@ namespace NPoco.Tests.Common
             UserId = userId;
         }
     }
+
+    public class UserWithPrivateParamLessConstructor : User
+    {
+        private UserWithPrivateParamLessConstructor()
+        {
+        }
+
+        public UserWithPrivateParamLessConstructor(int userId)
+        {
+            UserId = userId;
+        }
+    }
 }

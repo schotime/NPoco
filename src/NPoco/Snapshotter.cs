@@ -208,7 +208,7 @@ namespace NPoco
         {
             Delegate myExec = null;
             var dm = new DynamicMethod("DoClone", typeof(T), new Type[] { typeof(T) }, true);
-            var ctor = typeof(T).GetConstructor(new Type[] { });
+            var ctor = typeof(T).GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null);;
 
             var il = dm.GetILGenerator();
 
