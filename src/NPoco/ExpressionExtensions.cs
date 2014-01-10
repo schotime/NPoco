@@ -34,7 +34,8 @@ namespace NPoco
         public static int UpdateBy<T>(this IDatabase database, T obj, Func<SqlExpression<T>, SqlExpression<T>> sqlExpression)
         {
             var ev = database.DatabaseType.ExpressionVisitor<T>(database);
-            return database.Execute(sqlExpression(ev).Context.ToUpdateStatement(obj), ev.Context.Params);
+            var query = sqlExpression(ev);
+            return database.Execute(query.Context.ToUpdateStatement(obj), query.Context.Params);
         }
 
         public static int DeleteWhere<T>(this IDatabase database, Expression<Func<T, bool>> where)
@@ -54,7 +55,8 @@ namespace NPoco
         public static int DeleteBy<T>(this IDatabase database, Func<SqlExpression<T>, SqlExpression<T>> sqlExpression)
         {
             var ev = database.DatabaseType.ExpressionVisitor<T>(database);
-            return database.Execute(sqlExpression(ev).Context.ToDeleteStatement(), ev.Context.Params);
+            var query = sqlExpression(ev);
+            return database.Execute(query.Context.ToDeleteStatement(), query.Context.Params);
         }
     }
 }

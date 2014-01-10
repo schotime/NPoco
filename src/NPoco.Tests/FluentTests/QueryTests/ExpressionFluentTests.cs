@@ -39,6 +39,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchByExpressionWithParametersAndOrderBy()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x=> new{ x.Name }).Where(x => x.Name == "Name1").OrderBy(x => x.UserId));
+            Assert.AreEqual(1, users.Count);
+        }
+
+        [Test]
         public void FetchByExpressionAndLimit()
         {
             var users = Database.FetchBy<UserDecorated>(y => y.OrderBy(x => x.UserId).Limit(5, 5));
@@ -185,13 +192,30 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void DeleteWhere()
         {
-            var list = new[] { 1, 2, 3, 4 };
+            var list = new[]
+            {
+                new User() {UserId = 1},
+                new User() {UserId = 2},
+                new User() {UserId = 3},
+                new User() {UserId = 4},
+            };
 
-            Database.DeleteWhere<User>(x => x.UserId.In(list));
+            Database.DeleteWhere<User>(x => list.Select(y=>y.UserId).Contains(x.UserId));
 
             var users = Database.Fetch<User>();
 
             Assert.AreEqual(11, users.Count);
         }
+
+        [Test]
+        public void SelectStatementDoesNotRenderPropertyNameAsAlias()
+        {
+            var sqlExpression = new DefaultSqlExpression<UserDecorated>(Database);
+            sqlExpression.Select(x => new {x.IsMale, x.Name});
+            var selectStatement = sqlExpression.Context.ToSelectStatement();
+            Assert.AreEqual("SELECT [is_male],[Name] \nFROM [Users]", selectStatement);
+        }
+
+
     }
 }

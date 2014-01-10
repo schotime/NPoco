@@ -311,26 +311,49 @@ namespace NPoco
         // Use `using (var scope=db.Transaction) { scope.Complete(); }` to ensure correct semantics
         public void BeginTransaction(IsolationLevel isolationLevel)
         {
-            if (_transaction != null) return;
+            if (_transaction == null)
+            {
+                TransactionCount = 0;
+                OpenSharedConnectionInternal();
+                _transaction = _sharedConnection.BeginTransaction(isolationLevel);
+                OnBeginTransaction();
+            }
 
-            OpenSharedConnectionInternal();
-            _transaction = _sharedConnection.BeginTransaction(isolationLevel);
-            OnBeginTransaction();
+            if (_transaction != null)
+            {
+                TransactionCount++;
+            }
         }
 
         // Abort the entire outer most transaction scope
         public void AbortTransaction()
         {
-            if (_transaction == null) 
+            AbortTransaction(false);
+        }
+
+        public void AbortTransaction(bool fromComplete)
+        {
+            if (_transaction == null)
                 return;
+
+            if (fromComplete == false)
+            {
+                TransactionCount--;
+                if (TransactionCount >= 1)
+                {
+                    TransactionIsAborted = true;
+                    return;
+                }
+            }
 
             if (TransactionIsOk())
                 _transaction.Rollback();
 
             if (_transaction != null)
                 _transaction.Dispose();
-            
+
             _transaction = null;
+            TransactionIsAborted = false;
 
             // You cannot continue to use a connection after a transaction has been rolled back
             if (_sharedConnection != null)
@@ -349,6 +372,16 @@ namespace NPoco
             if (_transaction == null) 
                 return;
 
+            TransactionCount--;
+            if (TransactionCount >= 1)
+                return;
+
+            if (TransactionIsAborted)
+            {
+                AbortTransaction(true);
+                return;
+            }
+
             if (TransactionIsOk())
                 _transaction.Commit();
 
@@ -360,6 +393,9 @@ namespace NPoco
             OnCompleteTransaction();
             CloseSharedConnectionInternal();
         }
+
+        internal bool TransactionIsAborted { get; set; }
+        internal int TransactionCount { get; set; }
 
         private bool TransactionIsOk()
         {
@@ -391,6 +427,8 @@ namespace NPoco
             var p = cmd.CreateParameter();
             p.ParameterName = string.Format("{0}{1}", parameterPrefix, cmd.Parameters.Count);
 
+            var dbtypeSet = false;
+
             if (value == null)
             {
                 p.Value = DBNull.Value;
@@ -408,8 +446,9 @@ namespace NPoco
                 else if (t == typeof(Guid))
                 {
                     p.Value = value.ToString();
-                    p.DbType = DbType.String;
+                    p.DbType = DbType.Guid;
                     p.Size = 40;
+                    dbtypeSet = true;
                 }
                 else if (t == typeof(string))
                 {
@@ -447,6 +486,7 @@ namespace NPoco
                         p.Value = ansistrValue.Value;
                         p.DbType = DbType.AnsiString;
                     }
+                    dbtypeSet = true;
                 }
                 else if (value.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
                 {
@@ -462,6 +502,11 @@ namespace NPoco
                 else
                 {
                     p.Value = value;
+                }
+
+                if (!dbtypeSet)
+                {
+                    p.DbType = _dbType.LookupDbType(p.Value.GetTheType(), p.ParameterName);
                 }
             }
 
@@ -631,15 +676,17 @@ namespace NPoco
         public List<T> FetchWhere<T>(Expression<Func<T, bool>> expression)
         {
             var ev = _dbType.ExpressionVisitor<T>(this);
-            var sql = ev.Where(expression).Context.ToWhereStatement();
-            return Fetch<T>(sql, ev.Context.Params.ToArray());
+            var query = ev.Where(expression);
+            var sql = query.Context.ToWhereStatement();
+            return Fetch<T>(sql, query.Context.Params.ToArray());
         }
 
         public List<T> FetchBy<T>(Func<SqlExpression<T>, SqlExpression<T>> expression)
         {
             var ev = _dbType.ExpressionVisitor<T>(this);
-            var sql = expression(ev).Context.ToSelectStatement();
-            return Fetch<T>(sql, ev.Context.Params.ToArray());
+            var query = expression(ev);
+            var sql = query.Context.ToSelectStatement();
+            return Fetch<T>(sql, query.Context.Params.ToArray());
         }
 
         public void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage)
@@ -1613,8 +1660,6 @@ namespace NPoco
             }
             return sb.ToString();
         }
-
-        internal Transaction BaseTransaction { get; set; }
 
         public IMapper Mapper { get; set; }
 

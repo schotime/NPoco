@@ -75,7 +75,7 @@ namespace NPoco
             foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(t))
             {
                 ColumnInfo ci = ColumnInfo.FromMemberInfo(mi);
-                if (ci == null)
+                if (ci.IgnoreColumn)
                     continue;
 
                 var pc = new PocoColumn();

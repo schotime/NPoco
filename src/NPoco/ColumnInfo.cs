@@ -10,38 +10,37 @@ namespace NPoco
     {
         public string ColumnName { get; set; }
         public bool ResultColumn { get; set; }
+        public bool IgnoreColumn { get; set; }
         public bool ForceToUtc { get; set; }
         public Type ColumnType { get; set; }
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
-            // Check if declaring poco has [Explicit] attribute
-            bool ExplicitColumns = mi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Length > 0;
-
-            // Check for [Column]/[Ignore] Attributes
-            var ColAttrs = mi.GetCustomAttributes(typeof(ColumnAttribute), true);
-            if (ExplicitColumns)
-            {
-                if (ColAttrs.Length == 0)
-                    return null;
-            }
-            else
-            {
-                if (mi.GetCustomAttributes(typeof(IgnoreAttribute), true).Length != 0)
-                    return null;
-            }
-
             ColumnInfo ci = new ColumnInfo();
+            
+            var attrs = mi.DeclaringType.GetCustomAttributes(true);
+            var colAttrs = attrs.OfType<ColumnAttribute>();
+            var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>();
+            var ignoreAttrs = attrs.OfType<IgnoreAttribute>();
+            
+            // Check if declaring poco has [ExplicitColumns] attribute
+            var explicitColumns = mi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Any();
+
+            // Ignore column if declarying poco has [ExplicitColumns] attribute
+            // and property doesn't have an explicit [Column] attribute,
+            // or property has an [Ignore] attribute
+            if ((explicitColumns && !colAttrs.Any()) || ignoreAttrs.Any())
+            {
+                ci.IgnoreColumn = true;
+            }
 
             // Read attribute
-            if (ColAttrs.Length > 0)
+            if (colAttrs.Any())
             {
-                var colattr = (ColumnAttribute)ColAttrs[0];
-
+                var colattr = colAttrs.First();
                 ci.ColumnName = colattr.Name ?? mi.Name;
                 ci.ForceToUtc = colattr.ForceToUtc;
-                if ((colattr as ResultColumnAttribute) != null)
-                    ci.ResultColumn = true;
+                ci.ResultColumn = colattr is ResultColumnAttribute;
             }
             else
             {
@@ -50,14 +49,12 @@ namespace NPoco
                 ci.ResultColumn = false;
             }
 
-            var columnTypeAttr = mi.GetCustomAttributes(typeof(ColumnTypeAttribute), true);
-            if (columnTypeAttr.Any())
+            if (columnTypeAttrs.Any())
             {
-                ci.ColumnType = ((ColumnTypeAttribute)columnTypeAttr[0]).Type;
+                ci.ColumnType = columnTypeAttrs.First().Type;
             }
 
             return ci;
-
         }
     }
 }

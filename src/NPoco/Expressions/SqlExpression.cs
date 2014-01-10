@@ -35,7 +35,7 @@ namespace NPoco.Expressions
             _databaseType = database.DatabaseType;
             PrefixFieldWithTableName = false;
             WhereStatementWithoutWhereString = false;
-            paramPrefix = _databaseType.GetParameterPrefix(_database.ConnectionString);
+            paramPrefix = "@";
             members = new List<string>();
             Context = new SqlExpressionContext(this);
         }
@@ -833,11 +833,15 @@ namespace NPoco.Expressions
                 for (int i = 0; i < exprs.Count; i++)
                 {
                     r.AppendFormat("{0}{1}", r.Length > 0 ? "," : "", exprs[i]);
-                    if (nex.Members[i] != null )
+                    if (nex.Members[i] != null)
                     {
-                        var memberName = _databaseType.EscapeSqlIdentifier(nex.Members[i].Name);
-                        if (memberName != exprs[i].ToString())
-                            r.AppendFormat(" AS {0}", memberName);
+                        var col = modelDef.Columns.SingleOrDefault(x => x.Value.MemberInfo.Name == nex.Members[i].Name);
+                        if (col.Value != null)
+                        {
+                            var memberName = _databaseType.EscapeSqlIdentifier(col.Value.ColumnName);
+                            if (memberName != exprs[i].ToString())
+                                r.AppendFormat(" AS {0}", memberName);
+                        }
                     }
                 }
                 return r.ToString();
@@ -860,7 +864,7 @@ namespace NPoco.Expressions
             if (c.Value == null)
                 return new PartialSqlString("null");
 
-            return new PartialSqlString(CreateParam(c.Value));
+            return c.Value;
         }
 
         private string CreateParam(object value)
@@ -911,13 +915,98 @@ namespace NPoco.Expressions
             if (m.Method.DeclaringType == typeof(S))
                 return VisitSqlMethodCall(m);
 
+            if (IsStaticArrayMethod(m))
+                return VisitStaticArrayMethodCall(m);
+
+            if (IsEnumerableMethod(m))
+                return VisitEnumerableMethodCall(m);
+
             if (IsColumnAccess(m))
                 return VisitColumnAccessMethod(m);
 
-            if (IsArrayMethod(m))
-                return VisitArrayMethodCall(m);
-            
             return Expression.Lambda(m).Compile().DynamicInvoke();
+        }
+
+        private bool IsStaticArrayMethod(MethodCallExpression m)
+        {
+            if (m.Object == null && m.Method.Name == "Contains")
+            {
+                return m.Arguments.Count == 2;
+            }
+
+            return false;
+        }
+
+        private bool IsEnumerableMethod(MethodCallExpression m)
+        {
+            if (m.Object != null
+                && m.Object.Type.IsOrHasGenericInterfaceTypeOf(typeof(IEnumerable<>))
+                && m.Object.Type != typeof(string)
+                && m.Method.Name == "Contains")
+            {
+                return m.Arguments.Count == 1;
+            }
+
+            return false;
+        }
+
+        protected virtual object VisitEnumerableMethodCall(MethodCallExpression m)
+        {
+            switch (m.Method.Name)
+            {
+                case "Contains":
+                    List<Object> args = this.VisitExpressionList(m.Arguments);
+                    object quotedColName = args[0];
+                    return BuildInStatement(m.Object, quotedColName);
+
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        protected virtual object VisitStaticArrayMethodCall(MethodCallExpression m)
+        {
+            switch (m.Method.Name)
+            {
+                case "Contains":
+                    List<Object> args = this.VisitExpressionList(m.Arguments);
+                    object quotedColName = args[1];
+
+                    Expression memberExpr = m.Arguments[0];
+                    if (memberExpr.NodeType == ExpressionType.MemberAccess)
+                        memberExpr = (m.Arguments[0] as MemberExpression);
+
+                    return BuildInStatement(memberExpr, quotedColName);
+
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        private StringBuilder FlattenList(IEnumerable inArgs)
+        {
+            StringBuilder sIn = new StringBuilder();
+            foreach (Object e in inArgs)
+            {
+                if (!typeof (ICollection).IsAssignableFrom(e.GetType()))
+                {
+                    sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(e));
+                }
+                else
+                {
+                    var listArgs = e as ICollection;
+                    foreach (Object el in listArgs)
+                    {
+                        sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(el));
+                    }
+                }
+            }
+
+            if (sIn.Length == 0)
+            {
+                sIn.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
+            }
+            return sIn;
         }
 
         protected virtual List<Object> VisitExpressionList(ReadOnlyCollection<Expression> original)
@@ -1085,64 +1174,27 @@ namespace NPoco.Expressions
             return sqlPage;
         }
 
-        private bool IsArrayMethod(MethodCallExpression m)
-        {
-            if (typeof(IEnumerable).IsAssignableFrom(m.Method.DeclaringType) || typeof(Enumerable).IsAssignableFrom(m.Method.DeclaringType))
-            {
-                if (m.Method.Name == "Contains")
-                {
-                    return true;
-                }
-
-                throw new NotSupportedException(string.Format("Subqueries with {0} are not currently supported", m.Method.Name));
-            }
-
-            return false;
-        }
-
-        protected virtual object VisitArrayMethodCall(MethodCallExpression m)
+        private string BuildInStatement(Expression m, object quotedColName)
         {
             string statement;
+            var member = Expression.Convert(m, typeof (object));
+            var lambda = Expression.Lambda<Func<object>>(member);
+            var getter = lambda.Compile();
 
-            switch (m.Method.Name)
-            {
-                case "Contains":
-                    object[] collection;
-                    object member;
-                    if (m.Arguments.Count == 2)
-                    {
-                        collection = m.Arguments[0].GetConstantValue<IEnumerable>().Cast<object>().ToArray();
-                        member = Visit(m.Arguments[1]);
-                    }
-                    else
-                    {
-                        collection = m.Object.GetConstantValue<IEnumerable>().Cast<object>().ToArray();
-                        member = Visit(m.Arguments[0]);
-                    }
-                    StringBuilder sIn = new StringBuilder();
-                    foreach (var e in collection)
-                    {
-                        sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(e));
-                    }
+            if (quotedColName == null)
+                quotedColName = Visit(m);
 
-                    if (sIn.Length == 0)
-                    {
-                        sIn.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
-                    }
+            var inArgs = getter() as IEnumerable;
 
-                    statement = string.Format("{0} {1} ({2})", member, "IN", sIn);
-                    break;
+            var sIn = FlattenList(inArgs);
 
-                default:
-                    throw new NotSupportedException();
-            }
-
-            return new PartialSqlString(statement);
+            statement = string.Format("{0} {1} ({2})", quotedColName, "IN", sIn);
+            return statement;
         }
 
         protected virtual object VisitSqlMethodCall(MethodCallExpression m)
         {
-            List<Object> args = this.VisitConstantList(m.Arguments);
+            List<Object> args = this.VisitExpressionList(m.Arguments);
             object quotedColName = args[0];
             args.RemoveAt(0);
 
@@ -1151,39 +1203,7 @@ namespace NPoco.Expressions
             switch (m.Method.Name)
             {
                 case "In":
-
-                    var member = Expression.Convert(m.Arguments[1], typeof(object));
-                    var lambda = Expression.Lambda<Func<object>>(member);
-                    var getter = lambda.Compile();
-
-                    if (quotedColName == null)
-                        quotedColName = Visit(m.Arguments[0]);
-
-                    var inArgs = getter() as object[];
-
-                    StringBuilder sIn = new StringBuilder();
-                    foreach (Object e in inArgs)
-                    {
-                        if (!typeof(ICollection).IsAssignableFrom(e.GetType()))
-                        {
-                            sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(e));
-                        }
-                        else
-                        {
-                            var listArgs = e as ICollection;
-                            foreach (Object el in listArgs)
-                            {
-                                sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(el));
-                            }
-                        }
-                    }
-
-                    if (sIn.Length == 0)
-                    {
-                        sIn.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
-                    }
-
-                    statement = string.Format("{0} {1} ({2})", quotedColName, m.Method.Name.ToUpper(), sIn.ToString());
+                    statement = BuildInStatement(m.Arguments[1], quotedColName);
                     break;
                 case "Desc":
                     statement = string.Format("{0} DESC", quotedColName);
@@ -1211,7 +1231,7 @@ namespace NPoco.Expressions
 
         protected virtual object VisitColumnAccessMethod(MethodCallExpression m)
         {
-            List<Object> args = this.VisitConstantList(m.Arguments);
+            List<Object> args = this.VisitExpressionList(m.Arguments);
             var quotedColName = Visit(m.Object);
             var statement = "";
 

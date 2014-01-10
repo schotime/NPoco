@@ -101,4 +101,19 @@ namespace NPoco.Tests.Common
     }
 
     public enum Days : byte { Sat, Sun, Mon, Tue, Wed, Thu, Fri };
+
+    [TableName("Users")]
+    [PrimaryKey("UserId")]
+    [ExplicitColumns]
+    public class UserDecoratedWithNullable
+    {
+        [Column("UserId")]
+        public int UserId { get; set; }
+
+        [Column("Name")]
+        public string Name { get; set; }
+
+        [Column("Age")]
+        public int? Age { get; set; }
+    }
 }

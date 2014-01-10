@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -22,6 +23,80 @@ namespace NPoco
         public static DatabaseType MySQL { get { return Singleton<MySqlDatabaseType>.Instance; } }
         public static DatabaseType SQLite { get { return Singleton<SQLiteDatabaseType>.Instance; } }
         public static DatabaseType SQLCe { get { return Singleton<SqlServerCEDatabaseType>.Instance; } }
+
+        readonly Dictionary<Type, DbType> typeMap;
+
+        public DatabaseType()
+        {
+            typeMap = new Dictionary<Type, DbType>();
+            typeMap[typeof(byte)] = DbType.Byte;
+            typeMap[typeof(sbyte)] = DbType.SByte;
+            typeMap[typeof(short)] = DbType.Int16;
+            typeMap[typeof(ushort)] = DbType.UInt16;
+            typeMap[typeof(int)] = DbType.Int32;
+            typeMap[typeof(uint)] = DbType.UInt32;
+            typeMap[typeof(long)] = DbType.Int64;
+            typeMap[typeof(ulong)] = DbType.UInt64;
+            typeMap[typeof(float)] = DbType.Single;
+            typeMap[typeof(double)] = DbType.Double;
+            typeMap[typeof(decimal)] = DbType.Decimal;
+            typeMap[typeof(bool)] = DbType.Boolean;
+            typeMap[typeof(string)] = DbType.String;
+            typeMap[typeof(char)] = DbType.StringFixedLength;
+            typeMap[typeof(Guid)] = DbType.Guid;
+            typeMap[typeof(DateTime)] = DbType.DateTime;
+            typeMap[typeof(DateTimeOffset)] = DbType.DateTimeOffset;
+            typeMap[typeof(TimeSpan)] = DbType.Time;
+            typeMap[typeof(byte[])] = DbType.Binary;
+            typeMap[typeof(byte?)] = DbType.Byte;
+            typeMap[typeof(sbyte?)] = DbType.SByte;
+            typeMap[typeof(short?)] = DbType.Int16;
+            typeMap[typeof(ushort?)] = DbType.UInt16;
+            typeMap[typeof(int?)] = DbType.Int32;
+            typeMap[typeof(uint?)] = DbType.UInt32;
+            typeMap[typeof(long?)] = DbType.Int64;
+            typeMap[typeof(ulong?)] = DbType.UInt64;
+            typeMap[typeof(float?)] = DbType.Single;
+            typeMap[typeof(double?)] = DbType.Double;
+            typeMap[typeof(decimal?)] = DbType.Decimal;
+            typeMap[typeof(bool?)] = DbType.Boolean;
+            typeMap[typeof(char?)] = DbType.StringFixedLength;
+            typeMap[typeof(Guid?)] = DbType.Guid;
+            typeMap[typeof(DateTime?)] = DbType.DateTime;
+            typeMap[typeof(DateTimeOffset?)] = DbType.DateTimeOffset;
+            typeMap[typeof(TimeSpan?)] = DbType.Time;
+            typeMap[typeof(Object)] = DbType.Object;
+        }
+
+        /// <summary>
+        /// Configire the specified type to be mapped to a given db-type
+        /// </summary>
+        protected void AddTypeMap(Type type, DbType dbType)
+        {
+            typeMap[type] = dbType;
+        }
+
+        internal const string LinqBinary = "System.Data.Linq.Binary";
+        public virtual DbType LookupDbType(Type type, string name)
+        {
+            DbType dbType;
+            var nullUnderlyingType = Nullable.GetUnderlyingType(type);
+            if (nullUnderlyingType != null) type = nullUnderlyingType;
+            if (type.IsEnum && !typeMap.ContainsKey(type))
+            {
+                type = Enum.GetUnderlyingType(type);
+            }
+            if (typeMap.TryGetValue(type, out dbType))
+            {
+                return dbType;
+            }
+            if (type.FullName == LinqBinary)
+            {
+                return DbType.Binary;
+            }
+
+            return DbType.String;
+        }
 
         /// <summary>
         /// Returns the prefix used to delimit parameters in SQL query strings.

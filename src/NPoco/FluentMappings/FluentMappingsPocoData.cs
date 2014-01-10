@@ -40,17 +40,11 @@ namespace NPoco.FluentMappings
             {
                 // Work out if properties is to be included
                 var isColumnDefined = typeConfig.ColumnConfiguration.ContainsKey(mi.Name);
-                if (explicitColumns)
-                {
-                    if (!isColumnDefined)
-                        continue;
-                }
-                else
-                {
-                    if (isColumnDefined && (typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.HasValue && typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.Value))
-                        continue;
-                }
+                if (explicitColumns && !isColumnDefined) continue;
 
+                if (isColumnDefined && (typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.HasValue && typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.Value))
+                    continue;
+                
                 var pc = new PocoColumn();
                 pc.MemberInfo = mi;
 
