@@ -16,9 +16,9 @@ namespace NPoco
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
-            ColumnInfo ci = new ColumnInfo();
+            var ci = new ColumnInfo();
             
-            var attrs = mi.DeclaringType.GetCustomAttributes(true);
+            var attrs = mi.GetCustomAttributes(true);
             var colAttrs = attrs.OfType<ColumnAttribute>();
             var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>();
             var ignoreAttrs = attrs.OfType<IgnoreAttribute>();
