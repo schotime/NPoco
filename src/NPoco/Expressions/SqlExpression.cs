@@ -702,10 +702,9 @@ namespace NPoco.Expressions
 
                 if (m.Expression != null)
                 {
-                    var member = m.Expression as MemberExpression;
                     if (IsNullableMember(m))
                     {
-                        string r = VisitMemberAccess(member).ToString();
+                        string r = VisitMemberAccess(m.Expression as MemberExpression).ToString();
                         return string.Format("{0} is not null", r);
                     }
                     else
@@ -818,10 +817,10 @@ namespace NPoco.Expressions
         protected virtual object VisitMemberAccess(MemberExpression m)
         {
             bool isNull = false;
-            var nullableMember = m.Expression as MemberExpression;
+            
             if (IsNullableMember(m))
             {
-                m = nullableMember;
+                m = m.Expression as MemberExpression;
                 isNull = true;
             }
 
@@ -830,13 +829,15 @@ namespace NPoco.Expressions
             {
                 var propertyInfo = m.Member as PropertyInfo;
 
-                if (propertyInfo.PropertyType.IsEnum)
-                    return new EnumMemberAccess((PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name), propertyInfo.PropertyType);
+                var columnName = (PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name);
 
                 if (isNull)
-                    return new NullableMemberAccess((PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name));
+                    return new NullableMemberAccess(columnName);
 
-                return new PartialSqlString((PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name));
+                if (propertyInfo.PropertyType.IsEnum)
+                    return new EnumMemberAccess(columnName, propertyInfo.PropertyType);
+                
+                return new PartialSqlString(columnName);
             }
 
             var memberExp = Expression.Convert(m, typeof(object));           

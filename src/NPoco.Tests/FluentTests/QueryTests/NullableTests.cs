@@ -13,7 +13,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void NullableExpressionNotHasValue_ReturnsIsNotIsNotNull()
         {
-            var sqlExpression = new DefaultSqlExpression<NullableProberty>(Database);
+            var sqlExpression = new DefaultSqlExpression<NullableProperty>(Database);
             sqlExpression.Where(x => !x.Age.HasValue);
             var whereStatement = sqlExpression.Context.ToWhereStatement();
             Assert.AreEqual("WHERE NOT ([Age] is not null)", whereStatement);
@@ -22,7 +22,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void NullableExpressionHasValue_ReturnsIsNotNull()
         {
-            var sqlExpression = new DefaultSqlExpression<NullableProberty>(Database);
+            var sqlExpression = new DefaultSqlExpression<NullableProperty>(Database);
             sqlExpression.Where(x => x.Age.HasValue);
             var whereStatement = sqlExpression.Context.ToWhereStatement();
             Assert.AreEqual("WHERE [Age] is not null", whereStatement);
@@ -31,7 +31,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void NullableExpressionHasValueEqualTrue_ReturnsIsNotIsNotNull()
         {
-            var sqlExpression = new DefaultSqlExpression<NullableProberty>(Database);
+            var sqlExpression = new DefaultSqlExpression<NullableProperty>(Database);
             sqlExpression.Where(x => x.Age.HasValue == true);
             var whereStatement = sqlExpression.Context.ToWhereStatement();
             Assert.AreEqual("WHERE ([Age] is not null)", whereStatement);
@@ -40,7 +40,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void NullableExpressionHasValueEqualFalse_ReturnsIsNull()
         {
-            var sqlExpression = new DefaultSqlExpression<NullableProberty>(Database);
+            var sqlExpression = new DefaultSqlExpression<NullableProperty>(Database);
             sqlExpression.Where(x => x.Age.HasValue == false);
             var whereStatement = sqlExpression.Context.ToWhereStatement();
             Assert.AreEqual("WHERE ([Age] is null)", whereStatement);
@@ -49,7 +49,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void NullableExpressionEqualsNull_ReturnsIsNull()
         {
-            var sqlExpression = new DefaultSqlExpression<NullableProberty>(Database);
+            var sqlExpression = new DefaultSqlExpression<NullableProperty>(Database);
             sqlExpression.Where(x => x.Age == null);
             var whereStatement = sqlExpression.Context.ToWhereStatement();
             Assert.AreEqual("WHERE ([Age] is null)", whereStatement);
@@ -58,15 +58,15 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void NullableExpressionNotEqualsNull_ReturnsIsNotNull()
         {
-            var sqlExpression = new DefaultSqlExpression<NullableProberty>(Database);
+            var sqlExpression = new DefaultSqlExpression<NullableProperty>(Database);
             sqlExpression.Where(x => x.Age != null);
             var whereStatement = sqlExpression.Context.ToWhereStatement();
             Assert.AreEqual("WHERE ([Age] is not null)", whereStatement);
         }
         
-        public class NullableProberty
+        public class NullableProperty
         {
-            public bool? Age { get; set; }
+            public int? Age { get; set; }
         }
     }
 }
