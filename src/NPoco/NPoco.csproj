@@ -53,6 +53,7 @@
     <Compile Include="DatabaseFactory.cs" />
     <Compile Include="DatabaseFactoryConfig.cs" />
     <Compile Include="DatabaseType.cs" />
+    <Compile Include="DatabaseTypes\FirebirdDatabaseType.cs" />
     <Compile Include="DatabaseTypes\MySqlDatabaseType.cs" />
     <Compile Include="DatabaseTypes\OracleDatabaseType.cs" />
     <Compile Include="DatabaseTypes\OracleManagedDatabaseType.cs" />

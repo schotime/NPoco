@@ -23,6 +23,7 @@ namespace NPoco
         public static DatabaseType MySQL { get { return Singleton<MySqlDatabaseType>.Instance; } }
         public static DatabaseType SQLite { get { return Singleton<SQLiteDatabaseType>.Instance; } }
         public static DatabaseType SQLCe { get { return Singleton<SqlServerCEDatabaseType>.Instance; } }
+        public static DatabaseType Firebird { get { return Singleton<FirebirdDatabaseType>.Instance; } }
 
         readonly Dictionary<Type, DbType> typeMap;
 
@@ -246,6 +247,8 @@ namespace NPoco
                 return Singleton<SQLiteDatabaseType>.Instance;
             if (typeName.StartsWith("SqlConnection"))
                 return Singleton<SqlServerDatabaseType>.Instance;
+            if (typeName.StartsWith("Firebird"))
+                return Singleton<FirebirdDatabaseType>.Instance;
 
             if (!string.IsNullOrEmpty(providerName))
             {
@@ -262,6 +265,8 @@ namespace NPoco
                     return Singleton<OracleManagedDatabaseType>.Instance;
                 if (providerName.IndexOf("SQLite", StringComparison.InvariantCultureIgnoreCase) >= 0)
                     return Singleton<SQLiteDatabaseType>.Instance;
+                if (providerName.IndexOf("Firebird", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    return Singleton<FirebirdDatabaseType>.Instance;
             }
 
             // Assume SQL Server
