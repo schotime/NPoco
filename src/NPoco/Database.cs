@@ -819,7 +819,7 @@ namespace NPoco
         // Multi Page (Simple) (SQL Builder)
         public Page<T1> Page<T1, T2>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
         public Page<T1> Page<T1, T2, T3>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
-        public Page<T1> Page<T1, T2, T3, T4>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T4) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
+        public Page<T1> Page<T1, T2, T3, T4>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
 
         // Actual implementation of the multi-poco query
         public IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql)
