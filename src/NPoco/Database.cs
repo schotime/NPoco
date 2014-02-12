@@ -710,31 +710,7 @@ namespace NPoco
         // Fetch a page	
         public Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
-            string sqlCount, sqlPage;
-
-            long offset = (page - 1) * itemsPerPage;
-
-            BuildPageQueries<T>(offset, itemsPerPage, sql, ref args, out sqlCount, out sqlPage);
-
-            // Save the one-time command time out and use it for both queries
-            int saveTimeout = OneTimeCommandTimeout;
-
-            // Setup the paged result
-            var result = new Page<T>();
-            result.CurrentPage = page;
-            result.ItemsPerPage = itemsPerPage;
-            result.TotalItems = ExecuteScalar<long>(sqlCount, args);
-            result.TotalPages = result.TotalItems / itemsPerPage;
-            if ((result.TotalItems % itemsPerPage) != 0)
-                result.TotalPages++;
-
-            OneTimeCommandTimeout = saveTimeout;
-
-            // Get the records
-            result.Items = Fetch<T>(sqlPage, args);
-
-            // Done
-            return result;
+            return Page<T>(new[] { typeof(T) }, null, page, itemsPerPage, sql, args);
         }
 
         public Page<T> Page<T>(long page, long itemsPerPage, Sql sql)
@@ -992,19 +968,19 @@ namespace NPoco
         }
 
         // Actual implementation of the multi-poco paging
-        public Page<TRet> Page<TRet>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
+        public Page<T> Page<T>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
         {
             string sqlCount, sqlPage;
 
             long offset = (page - 1) * itemsPerPage;
 
-            BuildPageQueries<TRet>(offset, itemsPerPage, sql, ref args, out sqlCount, out sqlPage);
+            BuildPageQueries<T>(offset, itemsPerPage, sql, ref args, out sqlCount, out sqlPage);
 
             // Save the one-time command time out and use it for both queries
             int saveTimeout = OneTimeCommandTimeout;
 
             // Setup the paged result
-            var result = new Page<TRet>();
+            var result = new Page<T>();
             result.CurrentPage = page;
             result.ItemsPerPage = itemsPerPage;
             result.TotalItems = ExecuteScalar<long>(sqlCount, args);
@@ -1015,7 +991,9 @@ namespace NPoco
             OneTimeCommandTimeout = saveTimeout;
 
             // Get the records
-            result.Items = Query<TRet>(types, cb, new Sql(sqlPage, args)).ToList();
+            result.Items = types.Length > 1 
+                ? Query<T>(types, cb, new Sql(sqlPage, args)).ToList() 
+                : Query<T>(new Sql(sqlPage, args)).ToList();
 
             // Done
             return result;
