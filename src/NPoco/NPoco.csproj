@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AliasAttribute.cs" />
     <Compile Include="AnsiString.cs" />
     <Compile Include="AutoSelectHelper.cs" />
     <Compile Include="Cache.cs" />

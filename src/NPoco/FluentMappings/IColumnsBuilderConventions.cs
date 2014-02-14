@@ -6,6 +6,7 @@ namespace NPoco.FluentMappings
     public interface IColumnsBuilderConventions
     {
         IColumnsBuilderConventions Named(Func<MemberInfo, string> propertiesNamedFunc);
+        IColumnsBuilderConventions Aliased(Func<MemberInfo, string> aliasNamedFunc);
         IColumnsBuilderConventions IgnoreWhere(Func<MemberInfo, bool> ignorePropertiesWhereFunc);
         IColumnsBuilderConventions ResultWhere(Func<MemberInfo, bool> resultPropertiesWhereFunc);
         IColumnsBuilderConventions VersionWhere(Func<MemberInfo, bool> versionPropertiesWhereFunc);

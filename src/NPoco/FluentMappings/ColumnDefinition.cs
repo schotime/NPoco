@@ -7,6 +7,7 @@ namespace NPoco.FluentMappings
     {
         public MemberInfo MemberInfo { get; set; }
         public string DbColumnName { get; set; }
+        public string DbColumnAlias { get; set; }
         public Type DbColumnType { get; set; }
         public bool? ResultColumn { get; set; }
         public bool? IgnoreColumn { get; set; }

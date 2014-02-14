@@ -11,6 +11,7 @@ namespace NPoco
         }
 
         public string ColumnName;
+        public string AliasName;
         public MemberInfo MemberInfo;
         public bool ResultColumn;
         public bool VersionColumn;

@@ -60,14 +60,17 @@ namespace NPoco.FluentMappings
 
                 foreach (var prop in ReflectionUtils.GetFieldsAndPropertiesForClasses(type))
                 {
-                    var column = new ColumnDefinition();
-                    column.MemberInfo = prop;
-                    column.DbColumnName = scannerSettings.PropertiesNamed(prop);
-                    column.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(prop));
-                    column.DbColumnType = scannerSettings.DbColumnTypesAs(prop);
-                    column.ResultColumn = scannerSettings.ResultPropertiesWhere(prop);
-                    column.VersionColumn = scannerSettings.VersionPropertiesWhere(prop);
-                    column.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(prop);
+                    var column = new ColumnDefinition
+                    {
+                        MemberInfo = prop,
+                        DbColumnName = scannerSettings.PropertiesNamed(prop),
+                        DbColumnAlias = scannerSettings.AliasNamed(prop),
+                        IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(prop)),
+                        DbColumnType = scannerSettings.DbColumnTypesAs(prop),
+                        ResultColumn = scannerSettings.ResultPropertiesWhere(prop),
+                        VersionColumn = scannerSettings.VersionPropertiesWhere(prop),
+                        ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(prop)
+                    };
                     pocoDefn.ColumnConfiguration.Add(prop.Name, column);
                 }
 
@@ -88,6 +91,7 @@ namespace NPoco.FluentMappings
                 PrimaryKeysNamed = x => "ID",
                 TablesNamed = x => x.Name,
                 PropertiesNamed = x => x.Name,
+                AliasNamed = x => null,
                 DbColumnTypesAs = x => null,
                 ResultPropertiesWhere = x => false,
                 VersionPropertiesWhere = x => false,
@@ -135,6 +139,7 @@ namespace NPoco.FluentMappings
                     var convColDefinition = convTableDefinition.ColumnConfiguration[overrideColumnDefinition.Key];
 
                     convColDefinition.DbColumnName = overrideColumnDefinition.Value.DbColumnName ?? convColDefinition.DbColumnName;
+                    convColDefinition.DbColumnAlias = overrideColumnDefinition.Value.DbColumnAlias ?? convColDefinition.DbColumnAlias;
                     convColDefinition.DbColumnType = overrideColumnDefinition.Value.DbColumnType ?? convColDefinition.DbColumnType;
                     convColDefinition.IgnoreColumn = overrideColumnDefinition.Value.IgnoreColumn ?? convColDefinition.IgnoreColumn;
                     convColDefinition.ResultColumn = overrideColumnDefinition.Value.ResultColumn ?? convColDefinition.ResultColumn;

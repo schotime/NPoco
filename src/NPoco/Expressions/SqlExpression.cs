@@ -1187,7 +1187,7 @@ namespace NPoco.Expressions
             selectExpression = string.Format("SELECT {0}{1} \nFROM {2}",
                 (distinct ? "DISTINCT " : ""),
                 (string.IsNullOrEmpty(fields) ?
-                    string.Join(", ", modelDef.QueryColumns.Select(x=> _databaseType.EscapeSqlIdentifier(x)).ToArray()) :
+                    string.Join(", ", modelDef.QueryColumnsWithAliases.Select(x=> _databaseType.EscapeSqlIdentifier(x)).ToArray()) :
                     fields),
                 _databaseType.EscapeTableName(modelDef.TableInfo.TableName));
         }
