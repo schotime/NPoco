@@ -15,8 +15,6 @@ namespace NPoco
         internal bool EmptyNestedObjectNull;
      
         protected internal Type type;
-        public string[] QueryColumns { get; protected set; }
-        public string[] QueryColumnsWithAliases { get; protected set; }
         public TableInfo TableInfo { get; protected internal set; }
         public Dictionary<string, PocoColumn> Columns { get; protected internal set; }
         public Dictionary<string, PocoColumn> ColumnsByAlias { get; protected internal set; }
@@ -73,22 +71,36 @@ namespace NPoco
                     ColumnsByAlias.Add(pc.AliasName, pc);
                 }
             }
-
-            // Build column list for automatic select
-            QueryColumns = Columns.Where(c => !c.Value.ResultColumn).Select(c => c.Key).ToArray();
-
-            // Same as QueryColumns, but will use `columnname as aliasname` if an alias exists for the column (ex. [Alias] attribute)
-            QueryColumnsWithAliases = Columns.Where(c => !c.Value.ResultColumn).Select(kvp => ColumnNameWithAlias(kvp.Value)).ToArray();
         }
 
-        protected string ColumnNameWithAlias(PocoColumn pc)
+        public string[] QueryColumns
         {
-            if (!string.IsNullOrWhiteSpace(pc.AliasName))
+            get
             {
-                return string.Format("{0} as {1}", pc.ColumnName, pc.AliasName);
+                return Columns
+                    .Where(c => !c.Value.ResultColumn)
+                    .Select(c => ColumnNameWithAlias(c.Value))
+                    .ToArray();
             }
+        }
 
-            return pc.ColumnName;
+        public string[] EscapedQueryColumns(DatabaseType databaseType)
+        {
+            return Columns
+                .Where(c => !c.Value.ResultColumn)
+                .Select(c => ColumnNameWithAlias(c.Value, databaseType))
+                .ToArray();
+        }
+
+        protected string ColumnNameWithAlias(PocoColumn pc, DatabaseType databaseType = null)
+        {
+            var escapeIdentifier = (databaseType != null)
+                ? databaseType.EscapeSqlIdentifier
+                : new Func<string, string>(str => str);
+
+            return (!string.IsNullOrWhiteSpace(pc.AliasName)) ? 
+                string.Format("{0} as {1}", escapeIdentifier(pc.ColumnName), escapeIdentifier(pc.AliasName)) : 
+                escapeIdentifier(pc.ColumnName);
         }
     }
 }

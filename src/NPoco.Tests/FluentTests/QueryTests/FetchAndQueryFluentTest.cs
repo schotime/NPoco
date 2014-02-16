@@ -56,6 +56,15 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchWithAliasUsingAutoSelect()
+        {
+            var user = Database.Fetch<UserDecoratedWithAlias>("where userid = 1").Single();
+
+            Assert.NotNull(user);
+            Assert.True(!string.IsNullOrWhiteSpace(user.Name));
+        }
+
+        [Test]
         public void FetchWithPaging()
         {
             var users = Database.Fetch<User>(2, 5, "where userid > 0 order by userid");

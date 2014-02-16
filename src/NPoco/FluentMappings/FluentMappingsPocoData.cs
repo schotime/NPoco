@@ -88,13 +88,6 @@ namespace NPoco.FluentMappings
 
             // Trim trailing slash if built using Property names
             TableInfo.PrimaryKey = TableInfo.PrimaryKey.TrimEnd(',');
-
-            // Build column list for automatic select
-            QueryColumns = (from c in Columns where !c.Value.ResultColumn select c.Key).ToArray();
-
-            // Same as QueryColumns, but will use `columnname as aliasname` if an alias exists for the column (ex. [Alias] attribute)
-            QueryColumnsWithAliases = Columns.Where(c => !c.Value.ResultColumn).Select(kvp => ColumnNameWithAlias(kvp.Value)).ToArray();
-
         }
     }
 }
