@@ -203,7 +203,9 @@ namespace NPoco
                         {
                             // Get the PocoColumn for this db column, ignore if not known
                             PocoColumn pc;
-                            if (!_pocoData.Columns.TryGetValue(r.GetName(i), out pc) && !_pocoData.Columns.TryGetValue(r.GetName(i).Replace("_", ""), out pc)
+                            var fieldName = r.GetName(i);
+                            if (!_pocoData.ColumnsByAlias.TryGetValue(r.GetName(i), out pc) && !_pocoData.ColumnsByAlias.TryGetValue(r.GetName(i).Replace("_", ""), out pc)
+                                && !_pocoData.Columns.TryGetValue(fieldName, out pc) && !_pocoData.Columns.TryGetValue(r.GetName(i).Replace("_", ""), out pc)
                                 || (!pc.MemberInfo.IsField() && ((PropertyInfo)pc.MemberInfo).GetSetMethodOnDeclaringType() == null))
                             {
                                 continue;

@@ -18,6 +18,12 @@ namespace NPoco.FluentMappings
             return this;
         }
 
+        public IColumnsBuilderConventions Aliased(Func<MemberInfo, string> aliasNamedFunc)
+        {
+            _scannerSettings.AliasNamed = aliasNamedFunc;
+            return this;
+        }
+
         public IColumnsBuilderConventions IgnoreWhere(Func<MemberInfo, bool> ignorePropertiesWhereFunc)
         {
             _scannerSettings.IgnorePropertiesWhere.Add(ignorePropertiesWhereFunc);

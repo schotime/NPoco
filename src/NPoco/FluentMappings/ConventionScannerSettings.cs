@@ -25,6 +25,7 @@ namespace NPoco.FluentMappings
         public Func<Type, string> SequencesNamed { get; set; }
 
         public Func<MemberInfo, string> PropertiesNamed { get; set; }
+        public Func<MemberInfo, string> AliasNamed { get; set; }
         public Func<MemberInfo, Type> DbColumnTypesAs { get; set; }
         public List<Func<MemberInfo, bool>> IgnorePropertiesWhere { get; set; }
         public Func<MemberInfo, bool> VersionPropertiesWhere { get; set; }

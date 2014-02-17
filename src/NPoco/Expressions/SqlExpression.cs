@@ -1205,13 +1205,14 @@ namespace NPoco.Expressions
 
         private void BuildSelectExpression(string fields, bool distinct)
         {
+            Func<string> modelFields = () => String.Join(", ", modelDef.EscapedQueryColumns(_databaseType));
+            var tableName = _databaseType.EscapeTableName(modelDef.TableInfo.TableName);
 
             selectExpression = string.Format("SELECT {0}{1} \nFROM {2}",
-                (distinct ? "DISTINCT " : ""),
-                (string.IsNullOrEmpty(fields) ?
-                    string.Join(", ", modelDef.QueryColumns.Select(x=> _databaseType.EscapeSqlIdentifier(x)).ToArray()) :
-                    fields),
-                _databaseType.EscapeTableName(modelDef.TableInfo.TableName));
+                    distinct ? "DISTINCT " : "",
+                    string.IsNullOrEmpty(fields) ? modelFields() : fields,
+                    tableName
+                );
         }
 
         internal List<string> GetAllMembers()

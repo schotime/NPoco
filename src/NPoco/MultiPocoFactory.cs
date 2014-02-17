@@ -121,7 +121,9 @@ namespace NPoco
                 string fieldName = r.GetName(pos);
                 if (usedColumns.ContainsKey(fieldName) 
                     || (!pdThis.Columns.ContainsKey(fieldName) && pdNext.Columns.ContainsKey(fieldName))
-                    || (!pdThis.Columns.ContainsKey(fieldName.Replace("_", "")) && pdNext.Columns.ContainsKey(fieldName.Replace("_", ""))))
+                    || (!pdThis.Columns.ContainsKey(fieldName.Replace("_", "")) && pdNext.Columns.ContainsKey(fieldName.Replace("_", "")))
+                    || (!pdThis.ColumnsByAlias.ContainsKey(fieldName) && pdNext.ColumnsByAlias.ContainsKey(fieldName))
+                    )
                 {
                     return pdThis.MappingFactory.GetFactory(sql, connectionString, firstColumn, pos - firstColumn, r, null);
                 }

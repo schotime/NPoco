@@ -21,6 +21,18 @@ namespace NPoco.Tests.FluentMappings
         }
 
         [Test]
+        public void WithAliasReturnsDbColumnNameCorrectly()
+        {
+            var columnDefinitions = new Dictionary<string, ColumnDefinition>();
+            var columnBuilder = new ColumnConfigurationBuilder<User>(columnDefinitions);
+
+            columnBuilder
+                .Column(x => x.UserId).WithAlias("Identity");
+
+            Assert.AreEqual("Identity", columnDefinitions["UserId"].DbColumnAlias);
+        }
+
+        [Test]
         public void WithDbTypeReturnsDbTypeCorrectly()
         {
             var columnDefinitions = new Dictionary<string, ColumnDefinition>();
@@ -89,10 +101,12 @@ namespace NPoco.Tests.FluentMappings
             columnBuilder
                 .Column(x => x.UserId)
                 .WithName("Id")
+                .WithAlias("Identity")
                 .WithDbType(typeof(long))
                 .Result();
 
             Assert.AreEqual("Id", columnDefinitions["UserId"].DbColumnName);
+            Assert.AreEqual("Identity", columnDefinitions["UserId"].DbColumnAlias);
             Assert.AreEqual(typeof(long), columnDefinitions["UserId"].DbColumnType);
             Assert.AreEqual(true, columnDefinitions["UserId"].ResultColumn);
             Assert.AreEqual(PropertyHelper<User>.GetProperty(x => x.UserId), columnDefinitions["UserId"].MemberInfo);

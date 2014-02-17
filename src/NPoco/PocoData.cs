@@ -15,9 +15,9 @@ namespace NPoco
         internal bool EmptyNestedObjectNull;
      
         protected internal Type type;
-        public string[] QueryColumns { get; protected set; }
         public TableInfo TableInfo { get; protected internal set; }
         public Dictionary<string, PocoColumn> Columns { get; protected internal set; }
+        public Dictionary<string, PocoColumn> ColumnsByAlias { get; protected internal set; }
         private readonly MappingFactory _mappingFactory;
 
         public MappingFactory MappingFactory
@@ -42,29 +42,65 @@ namespace NPoco
 
             // Work out bound properties
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
+            ColumnsByAlias = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
             foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(t))
             {
                 ColumnInfo ci = ColumnInfo.FromMemberInfo(mi);
                 if (ci.IgnoreColumn)
                     continue;
 
-                var pc = new PocoColumn();
-                pc.MemberInfo = mi;
-                pc.ColumnName = ci.ColumnName;
-                pc.ResultColumn = ci.ResultColumn;
-                pc.ForceToUtc = ci.ForceToUtc;
-                pc.ColumnType = ci.ColumnType;
+                var pc = new PocoColumn
+                {
+                    MemberInfo = mi,
+                    ColumnName = ci.ColumnName,
+                    AliasName = ci.AliasName,
+                    ResultColumn = ci.ResultColumn,
+                    ForceToUtc = ci.ForceToUtc,
+                    ColumnType = ci.ColumnType
+                };
 
                 if (Mapper != null && !Mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;
 
                 // Store it
                 Columns.Add(pc.ColumnName, pc);
-            }
 
-            // Build column list for automatic select
-            QueryColumns = Columns.Where(c => !c.Value.ResultColumn).Select(c => c.Key).ToArray();
+                // Store it by alias if set
+                if (!string.IsNullOrWhiteSpace(pc.AliasName))
+                {
+                    ColumnsByAlias.Add(pc.AliasName, pc);
+                }
+            }
         }
 
+        public string[] QueryColumns
+        {
+            get
+            {
+                return Columns
+                    .Where(c => !c.Value.ResultColumn)
+                    .Select(c => ColumnNameWithAlias(c.Value))
+                    .ToArray();
+            }
+        }
+
+        public string[] EscapedQueryColumns(DatabaseType databaseType)
+        {
+            return Columns
+                .Where(c => !c.Value.ResultColumn)
+                .Select(c => ColumnNameWithAlias(c.Value, databaseType))
+                .ToArray();
+        }
+
+        protected string ColumnNameWithAlias(PocoColumn pc, DatabaseType databaseType = null)
+        {
+            var escapeIdentifier = (databaseType != null)
+                ? databaseType.EscapeSqlIdentifier
+                : new Func<string, string>(str => str);
+
+            return (!string.IsNullOrWhiteSpace(pc.AliasName)) ? 
+                string.Format("{0} as {1}", escapeIdentifier(pc.ColumnName), escapeIdentifier(pc.AliasName)) : 
+                escapeIdentifier(pc.ColumnName);
+        }
     }
 }

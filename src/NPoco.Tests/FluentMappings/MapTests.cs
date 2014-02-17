@@ -79,6 +79,18 @@ namespace NPoco.Tests.FluentMappings
         }
 
         [Test]
+        public void AliasSet()
+        {
+            var typeDefinition = new TypeDefinition(typeof(User));
+            var map = new Map<User>(typeDefinition);
+            map
+                .PrimaryKey(x => x.UserId)
+                .Columns(x => x.Column(y => y.UserId).WithAlias("Identity"));
+
+            Assert.AreEqual("Identity", typeDefinition.ColumnConfiguration["UserId"].DbColumnAlias);
+        }
+
+        [Test]
         public void InheritColumns()
         {
             var typeDefinition = new TypeDefinition(typeof(User));

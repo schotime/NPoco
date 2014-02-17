@@ -36,6 +36,7 @@ namespace NPoco.FluentMappings
             // Work out bound properties
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
+            ColumnsByAlias = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
             foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(t))
             {
                 // Work out if properties is to be included
@@ -51,22 +52,23 @@ namespace NPoco.FluentMappings
                 // Work out the DB column name
                 if (isColumnDefined)
                 {
-                    var colattr = typeConfig.ColumnConfiguration[mi.Name];
-                    pc.ColumnName = colattr.DbColumnName;
-                    if (colattr.ResultColumn.HasValue && colattr.ResultColumn.Value)
+                    var colDef = typeConfig.ColumnConfiguration[mi.Name];
+                    pc.ColumnName = colDef.DbColumnName;
+                    pc.AliasName = colDef.DbColumnAlias;
+                    pc.ColumnType = colDef.DbColumnType;
+
+                    if (colDef.ResultColumn.HasValue && colDef.ResultColumn.Value)
                         pc.ResultColumn = true;
-                    else if (colattr.VersionColumn.HasValue && colattr.VersionColumn.Value)
+                    else if (colDef.VersionColumn.HasValue && colDef.VersionColumn.Value)
                         pc.VersionColumn = true;
 
-                    if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)
+                    if (colDef.ForceUtc.HasValue && colDef.ForceUtc.Value)
                         pc.ForceToUtc = true;
 
                     if (TableInfo.PrimaryKey.Split(',').Contains(mi.Name))
                         TableInfo.PrimaryKey = (pc.ColumnName ?? mi.Name) + ",";
-
-                    pc.ColumnType = colattr.DbColumnType;
-
                 }
+
                 if (pc.ColumnName == null)
                 {
                     pc.ColumnName = mi.Name;
@@ -76,14 +78,16 @@ namespace NPoco.FluentMappings
 
                 // Store it
                 Columns.Add(pc.ColumnName, pc);
+
+                // Store it by alias if set
+                if (!string.IsNullOrWhiteSpace(pc.AliasName))
+                {
+                    ColumnsByAlias.Add(pc.AliasName, pc);
+                }
             }
 
             // Trim trailing slash if built using Property names
             TableInfo.PrimaryKey = TableInfo.PrimaryKey.TrimEnd(',');
-
-            // Build column list for automatic select
-            QueryColumns = (from c in Columns where !c.Value.ResultColumn select c.Key).ToArray();
-
         }
     }
 }
