@@ -302,9 +302,9 @@ namespace NPoco
             }
         }
 
-        public virtual SqlExpression<T> ExpressionVisitor<T>(IDatabase db)
+        public virtual SqlExpression<T> ExpressionVisitor<T>(IDatabase db, bool prefixTableName = false)
         {
-            return new DefaultSqlExpression<T>(db);
+            return new DefaultSqlExpression<T>(db, prefixTableName);
         }
 
         public virtual string GetProviderName()

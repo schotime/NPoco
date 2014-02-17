@@ -9,7 +9,15 @@ using System.Linq.Expressions;
 
 namespace NPoco.Expressions
 {
-    public abstract class SqlExpression<T>
+    public interface ISqlExpression
+    {
+        List<string> OrderByProperties { get; }
+        string WhereSql { get; }
+        object[] Params { get; }
+        Type Type { get; }
+    }
+
+    public abstract class SqlExpression<T> : ISqlExpression
     {
         private Expression<Func<T, bool>> underlyingExpression;
         private List<string> orderByProperties = new List<string>();
@@ -19,21 +27,28 @@ namespace NPoco.Expressions
         private string havingExpression;
         private string orderBy = string.Empty;
 
+        List<string> ISqlExpression.OrderByProperties { get { return orderByProperties; } }
+        string ISqlExpression.WhereSql { get { return whereExpression; } }
+        Type ISqlExpression.Type { get { return _type; } }
+        object[] ISqlExpression.Params { get { return Context.Params; } }
+
         private string sep = string.Empty;
         private PocoData modelDef;
         private readonly IDatabase _database;
         private readonly DatabaseType _databaseType;
         private bool PrefixFieldWithTableName { get; set; }
         private bool WhereStatementWithoutWhereString { get; set; }
+        private Type _type { get; set; }
 
         private List<string> members;
 
-        public SqlExpression(IDatabase database)
+        public SqlExpression(IDatabase database, bool prefixTableName = false)
         {
+            _type = typeof (T);
             modelDef = database.PocoDataFactory.ForType(typeof(T));
             _database = database;
             _databaseType = database.DatabaseType;
-            PrefixFieldWithTableName = false;
+            PrefixFieldWithTableName = prefixTableName;
             WhereStatementWithoutWhereString = false;
             paramPrefix = "@";
             members = new List<string>();
@@ -152,6 +167,12 @@ namespace NPoco.Expressions
                 CreateParam(filterParam);    
             }
             if (!string.IsNullOrEmpty(whereExpression)) whereExpression = (WhereStatementWithoutWhereString ? "" : "WHERE ") + whereExpression;
+            return this;
+        }
+
+        public virtual SqlExpression<T> Where<T2>(Expression<Func<T, T2, bool>> predicate)
+        {
+            WhereExpression = Visit(predicate).ToString();
             return this;
         }
 
@@ -827,9 +848,10 @@ namespace NPoco.Expressions
             if (m.Expression != null
                 && (m.Expression.NodeType == ExpressionType.Parameter || m.Expression.NodeType == ExpressionType.Convert))
             {
-                var propertyInfo = m.Member as PropertyInfo;
+                var propertyInfo = (PropertyInfo) m.Member;
+                var localModelDef = propertyInfo.DeclaringType == typeof (T) ? modelDef : _database.PocoDataFactory.ForType(propertyInfo.DeclaringType);
 
-                var columnName = (PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name);
+                var columnName = (PrefixFieldWithTableName ? _databaseType.EscapeTableName(localModelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name);
 
                 if (isNull)
                     return new NullableMemberAccess(columnName);
@@ -1300,6 +1322,9 @@ namespace NPoco.Expressions
                     }
                     else
                         statement = string.Format("substring({0},{1},8000)",quotedColName,startIndex);
+                    break;
+                case "Equals":
+                    statement = string.Format("{0}={1}", quotedColName, args[0]);
                     break;
                 default:
                     throw new NotSupportedException();
