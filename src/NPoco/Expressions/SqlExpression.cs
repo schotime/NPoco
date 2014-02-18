@@ -12,7 +12,8 @@ namespace NPoco.Expressions
 {
     public class OrderByMember
     {
-        public string MemberName { get; set; }
+        public Type Type { get; set; }
+        public PocoColumn MemberName { get; set; }
         public string AscDesc { get; set; }
     }
 
@@ -44,11 +45,7 @@ namespace NPoco.Expressions
         int? ISqlExpression.Skip { get { return Skip; } }
         Type ISqlExpression.Type { get { return _type; } }
         object[] ISqlExpression.Params { get { return Context.Params; } }
-        string ISqlExpression.ApplyPaging(string sql)
-        {
-            return ApplyPaging(sql);
-        }
-
+        
         string ISqlExpression.ApplyPaging(string sql)
         {
             return ApplyPaging(sql);
@@ -62,7 +59,7 @@ namespace NPoco.Expressions
         private bool WhereStatementWithoutWhereString { get; set; }
         private Type _type { get; set; }
 
-        private List<string> members;
+        private List<PocoColumn> members;
 
         public SqlExpression(IDatabase database, bool prefixTableName)
         {
@@ -73,7 +70,7 @@ namespace NPoco.Expressions
             PrefixFieldWithTableName = prefixTableName;
             WhereStatementWithoutWhereString = false;
             paramPrefix = "@";
-            members = new List<string>();
+            members = new List<PocoColumn>();
             Context = new SqlExpressionContext(this);
         }
 
@@ -344,7 +341,7 @@ namespace NPoco.Expressions
             members.Clear();
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " ASC");
-            orderByMembers.AddRange(members.Select(x=>new OrderByMember() { AscDesc = "ASC", MemberName = x}));
+            orderByMembers.AddRange(members.Select(x=>new OrderByMember() { AscDesc = "ASC", MemberName = x, Type = x.MemberInfo.DeclaringType }));
             members.Clear();
             BuildOrderByClauseInternal();
             return this;
@@ -356,7 +353,7 @@ namespace NPoco.Expressions
             members.Clear();
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " ASC");
-            orderByMembers.AddRange(members.Select(x => new OrderByMember() { AscDesc = "ASC", MemberName = x }));
+            orderByMembers.AddRange(members.Select(x => new OrderByMember() { AscDesc = "ASC", MemberName = x, Type = x.MemberInfo.DeclaringType }));
             members.Clear();
             BuildOrderByClauseInternal();
             return this;
@@ -370,7 +367,7 @@ namespace NPoco.Expressions
             members.Clear();
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " DESC");
-            orderByMembers.AddRange(members.Select(x => new OrderByMember() { AscDesc = "DESC", MemberName = x }));
+            orderByMembers.AddRange(members.Select(x => new OrderByMember() { AscDesc = "DESC", MemberName = x, Type = x.MemberInfo.DeclaringType }));
             members.Clear();
             BuildOrderByClauseInternal();
             return this;
@@ -382,7 +379,7 @@ namespace NPoco.Expressions
             members.Clear();
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " DESC");
-            orderByMembers.AddRange(members.Select(x => new OrderByMember() { AscDesc = "DESC", MemberName = x }));
+            orderByMembers.AddRange(members.Select(x => new OrderByMember() { AscDesc = "DESC", MemberName = x, Type = x.MemberInfo.DeclaringType }));
             members.Clear();
             BuildOrderByClauseInternal();
             return this;
@@ -472,7 +469,7 @@ namespace NPoco.Expressions
             sep = string.Empty;
             members.Clear();
             Visit(fields);
-            Context.UpdateFields = new List<string>(members);
+            Context.UpdateFields = new List<string>(members.Select(x=>x.ColumnName));
             members.Clear();
             return this;
         }
@@ -822,9 +819,9 @@ namespace NPoco.Expressions
                 {
                     var propInfo = ((EnumMemberAccess)left).PropertyInfo;
                     var pc = modelDef.Columns.Values.Single(x => x.MemberInfo.Name == propInfo.Name);
-
+                    
                     long numvericVal;
-                    if (pc.ColumnType == typeof(string))
+                    if (pc.ColumnType == typeof (string))
                         right = CreateParam(Enum.Parse(propInfo.PropertyType, right.ToString()).ToString());
                     else if (Int64.TryParse(right.ToString(), out numvericVal))
                         right = CreateParam(Enum.ToObject(propInfo.PropertyType, numvericVal));
@@ -886,19 +883,26 @@ namespace NPoco.Expressions
             }
 
             if (m.Expression != null
-                && (m.Expression.NodeType == ExpressionType.Parameter || m.Expression.NodeType == ExpressionType.Convert))
+                && (m.Expression.NodeType == ExpressionType.Parameter 
+                    || m.Expression.NodeType == ExpressionType.Convert 
+                    || m.Expression.NodeType == ExpressionType.MemberAccess))
             {
                 var propertyInfo = (PropertyInfo)m.Member;
                 var localModelDef = propertyInfo.DeclaringType == typeof(T) ? modelDef : _database.PocoDataFactory.ForType(propertyInfo.DeclaringType);
 
-                var columnName = (PrefixFieldWithTableName ? _databaseType.EscapeTableName(localModelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name);
+                var pocoColumn = localModelDef.Columns.Values.Single(x=>x.MemberInfo.Name == m.Member.Name);
+
+                var columnName = (PrefixFieldWithTableName ? _databaseType.EscapeTableName(localModelDef.TableInfo.TableName) + "." : "") 
+                    + _databaseType.EscapeSqlIdentifier(pocoColumn.ColumnName);
+
+                members.Add(pocoColumn);
 
                 if (isNull)
                     return new NullableMemberAccess(columnName);
 
                 if (propertyInfo.PropertyType.IsEnum)
                     return new EnumMemberAccess(columnName, propertyInfo);
-
+                
                 return new PartialSqlString(columnName);
             }
 
@@ -1199,7 +1203,6 @@ namespace NPoco.Expressions
 
         protected virtual string GetQuotedColumnName(string memberName)
         {
-            members.Add(memberName);
             var fd = modelDef.Columns.Values.FirstOrDefault(x => x.MemberInfo.Name == memberName);
             string fn = fd != null ? fd.ColumnName : memberName;
             return _databaseType.EscapeSqlIdentifier(fn);
@@ -1219,7 +1222,7 @@ namespace NPoco.Expressions
 
         protected bool IsFieldName(object quotedExp)
         {
-            var fd = modelDef.Columns.Any(x => GetQuotedColumnName(x.Key) == quotedExp.ToString());
+            var fd = modelDef.Columns.Any(x => _databaseType.EscapeSqlIdentifier(x.Key) == quotedExp.ToString());
             return fd;
         }
 
@@ -1250,15 +1253,15 @@ namespace NPoco.Expressions
                 (distinct ? "DISTINCT " : ""),
                 (string.IsNullOrEmpty(fields) ?
                     string.Join(", ", modelDef.QueryColumns.Select(x => PrefixFieldWithTableName
-                        ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." + _databaseType.EscapeSqlIdentifier(x)
-                        : _databaseType.EscapeSqlIdentifier(x)).ToArray()) :
+                        ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." + _databaseType.EscapeSqlIdentifier(x.Key)
+                        : _databaseType.EscapeSqlIdentifier(x.Key)).ToArray()) :
                     fields),
                 _databaseType.EscapeTableName(modelDef.TableInfo.TableName));
         }
 
-        internal List<string> GetAllMembers()
+        internal List<PocoColumn> GetAllMembers()
         {
-            return modelDef.Columns.Select(x => x.Value.MemberInfo.Name).ToList();
+            return modelDef.Columns.Values.ToList();
         }
 
         protected virtual string ApplyPaging(string sql)

@@ -7,26 +7,24 @@ using NPoco.Expressions;
 
 namespace NPoco.Linq
 {
-    public interface ISimpleJoinQueryProvider<T>
+    public interface ISimpleQueryProvider<T>
     {
         ISimpleQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
         ISimpleQueryProvider<T> OrderBy(Expression<Func<T, object>> column);
         ISimpleQueryProvider<T> OrderByDescending(Expression<Func<T, object>> column);
         ISimpleQueryProvider<T> ThenBy(Expression<Func<T, object>> column);
         ISimpleQueryProvider<T> ThenByDescending(Expression<Func<T, object>> column);
-    }
-
-    public interface ISimpleQueryProvider<T> : ISimpleJoinQueryProvider<T>
-    {
         T FirstOrDefault(Expression<Func<T, bool>> whereExpression = null);
         T First(Expression<Func<T, bool>> whereExpression = null);
         T SingleOrDefault(Expression<Func<T, bool>> whereExpression = null);
         T Single(Expression<Func<T, bool>> whereExpression = null);
         ISimpleQueryProvider<T> Limit(int rows);
         ISimpleQueryProvider<T> Limit(int skip, int rows);
-        ISimpleQueryProvider<T> Join<T2>(Expression<Func<T, T2, bool>> onExpression, Func<ISimpleJoinQueryProvider<T2>, ISimpleJoinQueryProvider<T2>> queryProvider = null);
+        ISimpleQueryProvider<T> Join<T2>(Expression<Func<T, T2, bool>> onExpression);
+        ISimpleQueryProvider<T> Join<T2>();
         int Count(Expression<Func<T, bool>> whereExpression = null);
         List<T> ToList();
+        Page<T> ToPage(int page, int pageSize);
     }
 
     public class SimpleQueryProvider<T> : ISimpleQueryProvider<T>, ISimpleQueryProviderExpression<T>
@@ -44,16 +42,31 @@ namespace NPoco.Linq
 
         SqlExpression<T> ISimpleQueryProviderExpression<T>.AtlasSqlExpression { get { return _sqlExpression; } }
 
-        public ISimpleQueryProvider<T> Join<T2>(Expression<Func<T, T2, bool>> onExpression, Func<ISimpleJoinQueryProvider<T2>, ISimpleJoinQueryProvider<T2>> queryProvider = null)
+        public ISimpleQueryProvider<T> Join<T2>(Expression<Func<T, T2, bool>> onExpression)
         {
-            ISimpleJoinQueryProvider<T2> simpleExpression = new SimpleQueryProvider<T2>(_database, null);
-            if (queryProvider != null)
-                simpleExpression = queryProvider(simpleExpression);
-
             _joinSqlExpressions.Add(new JoinData()
             {
                 OnSql = _database.DatabaseType.ExpressionVisitor<T>(_database, true).On(onExpression),
-                SqlExpression = ((ISimpleQueryProviderExpression<T2>)simpleExpression).AtlasSqlExpression
+                Type = typeof(T2)
+            });
+            return this;
+        }
+
+        public ISimpleQueryProvider<T> Join<T2>()
+        {
+            var pocoDataT = _database.PocoDataFactory.ForType(typeof (T));
+            var pocoDataT2 = _database.PocoDataFactory.ForType(typeof (T2));
+            var colT = pocoDataT.Columns.Values.Single(x => x.ColumnName == pocoDataT.TableInfo.PrimaryKey);
+            var colT2 = pocoDataT2.Columns.Values.Single(x => x.MemberInfo.Name == colT.MemberInfo.Name);
+            var onSql = _database.DatabaseType.EscapeTableName(pocoDataT.TableInfo.TableName)
+                + "." + _database.DatabaseType.EscapeSqlIdentifier(colT.ColumnName)
+                + "=" + _database.DatabaseType.EscapeTableName(pocoDataT2.TableInfo.TableName)
+                + "." + _database.DatabaseType.EscapeSqlIdentifier(colT2.ColumnName);
+
+            _joinSqlExpressions.Add(new JoinData()
+            {
+                OnSql = onSql,
+                Type = typeof(T2)
             });
             return this;
         }
@@ -100,26 +113,47 @@ namespace NPoco.Linq
             if (whereExpression != null)
                 _sqlExpression = _sqlExpression.Where(whereExpression);
 
-            var wheresql = _sqlExpression.Context.ToWhereStatement();
-            var sql = string.Format("SELECT COUNT(*) FROM {0} {1}",
-                                    _database.DatabaseType.EscapeTableName(_database.PocoDataFactory.ForType(typeof(T)).TableInfo.TableName),
-                                    wheresql);
-            var parameters = _sqlExpression.Context.Params;
-            return _database.ExecuteScalar<int>(sql, parameters);
+            var sql = _database.DatabaseType.BuildJoin<T>(_database, _sqlExpression, _joinSqlExpressions, true);
+
+            return _database.ExecuteScalar<int>(sql);
         }
+
+        public Page<T> ToPage(int page, int pageSize)
+        {
+            int offset = (page - 1) * pageSize;
+
+            // Save the one-time command time out and use it for both queries
+            int saveTimeout = _database.OneTimeCommandTimeout;
+
+            // Setup the paged result
+            var result = new Page<T>();
+            result.CurrentPage = page;
+            result.ItemsPerPage = pageSize;
+            result.TotalItems = Count();
+            result.TotalPages = result.TotalItems / pageSize;
+            if ((result.TotalItems % pageSize) != 0)
+                result.TotalPages++;
+
+            _sqlExpression = _sqlExpression.Limit(offset, pageSize);
+            result.Items = ToList();
+
+            _database.OneTimeCommandTimeout = saveTimeout;
+
+            return result;
+        } 
 
         public List<T> ToList()
         {
             if (!_joinSqlExpressions.Any())
                 return _database.Fetch<T>(_sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
 
-            var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Select(x => x.SqlExpression.Type)).ToArray();
+            var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Select(x => x.Type)).ToArray();
             return _database.Query<T>(types, null, BuildJoinSql()).ToList();
         }
 
         private Sql BuildJoinSql()
         {
-            var sql = _database.DatabaseType.BuildJoin<T>(_database, _sqlExpression, _joinSqlExpressions);
+            var sql = _database.DatabaseType.BuildJoin<T>(_database, _sqlExpression, _joinSqlExpressions, false);
             return sql;
         }
 
@@ -163,7 +197,7 @@ namespace NPoco.Linq
     public class JoinData
     {
         public string OnSql { get; set; }
-        public ISqlExpression SqlExpression { get; set; }
+        public Type Type { get; set; }
     }
 
     public interface ISimpleQueryProviderExpression<TModel>

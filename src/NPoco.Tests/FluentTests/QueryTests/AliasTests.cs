@@ -25,10 +25,27 @@ namespace NPoco.Tests.FluentTests.QueryTests
             exp = exp.OrderBy(x => x.Age);
 
             var query = new SimpleQueryProvider<User>(Database, null);
-            query.Join<ExtraUserInfo>((user, decorated) => user.UserId == decorated.UserId, x=>x.OrderBy(z=>z.Email))
-                .Where(x => x.Name == "hi")
+            var result1 = query.Join<ExtraUserInfo>((user, decorated) => user.UserId == decorated.UserId)
+                .Where(x => x.Name.StartsWith("Name"))
+                .OrderBy(x => x.ExtraUserInfo.Email)
                 .Limit(5)
                 .ToList();
+
+            var query2 = new SimpleQueryProvider<User>(Database, null);
+            var result2 = query2.Join<ExtraUserInfo>()
+                .Where(x => x.Name.StartsWith("Name"))
+                .Where(x=>x.ExtraUserInfo.Email == "email2@email.com")
+                .OrderBy(x => x.ExtraUserInfo.Email)
+                .Limit(5)
+                .ToList();
+
+            var query3 = new SimpleQueryProvider<User>(Database, null);
+            var result3 = query3.Join<ExtraUserInfo>()
+                .Where(x => x.Name.StartsWith("Name"))
+                .OrderBy(x => x.ExtraUserInfo.UserId)
+                .OrderByDescending(x => x.IsMale)
+                .ThenBy(x=>x.DateOfBirth)
+                .ToPage(2, 5);
         }
 
     }
