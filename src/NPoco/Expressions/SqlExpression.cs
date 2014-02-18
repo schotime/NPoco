@@ -49,6 +49,11 @@ namespace NPoco.Expressions
             return ApplyPaging(sql);
         }
 
+        string ISqlExpression.ApplyPaging(string sql)
+        {
+            return ApplyPaging(sql);
+        }
+
         private string sep = string.Empty;
         private PocoData modelDef;
         private readonly IDatabase _database;
