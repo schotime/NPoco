@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Linq;
 using NPoco.DatabaseTypes;
 using NPoco.FluentMappings;
+using NPoco.Tests.FluentTests.QueryTests;
 using NUnit.Framework;
 
 namespace NPoco.Tests.Common
@@ -16,7 +17,7 @@ namespace NPoco.Tests.Common
         [SetUp]
         public void SetUp()
         {
-            var types = new[] { typeof(User), typeof(ExtraUserInfo) };
+            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(Usersss) };
             var dbFactory = new DatabaseFactory();
             dbFactory.Config().WithFluentConfig(
                 FluentMappingConfiguration.Scan(s =>

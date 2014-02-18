@@ -12,6 +12,13 @@ namespace NPoco.Tests.Common
         public bool IsMale { get; set; }
         public Guid? UniqueId { get; set; }
         public TimeSpan TimeSpan { get; set; }
+        public TestEnum TestEnum { get; set; }
+    }
+
+    public enum TestEnum
+    {
+        All,
+        None
     }
 
     public class Admin : User

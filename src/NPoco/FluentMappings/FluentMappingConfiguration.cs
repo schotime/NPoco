@@ -44,8 +44,9 @@ namespace NPoco.FluentMappings
         private static Mappings CreateMappings(ConventionScannerSettings scannerSettings, Type[] typesOverride)
         {
             var types = typesOverride ?? FindTypes(scannerSettings);
-
             var config = new Dictionary<Type, TypeDefinition>();
+
+
 
             foreach (var type in types)
             {

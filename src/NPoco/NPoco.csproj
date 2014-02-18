@@ -116,8 +116,10 @@
     <Compile Include="SqlBuilder.cs" />
     <Compile Include="SqlBulkCopyHelper.cs" />
     <Compile Include="SqlExtensions.cs" />
+    <Compile Include="StringExtensions.cs" />
     <Compile Include="TableInfo.cs" />
     <Compile Include="TableNameAttribute.cs" />
+    <Compile Include="ThreadSafeDictionary.cs" />
     <Compile Include="Transaction.cs" />
     <Compile Include="Tuple.cs" />
     <Compile Include="TypeHelpers.cs" />

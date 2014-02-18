@@ -33,6 +33,9 @@ namespace NPoco.FluentMappings
             if (mapper != null)
                 mapper.GetTableInfo(t, TableInfo);
 
+            var alias = FindAlias(type.Name, type);
+            var index = 0;
+
             // Work out bound properties
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
@@ -69,7 +72,6 @@ namespace NPoco.FluentMappings
                     }
 
                     pc.ColumnType = colattr.DbColumnType;
-
                 }
                 if (pc.ColumnName == null)
                 {
@@ -77,6 +79,8 @@ namespace NPoco.FluentMappings
                     if (mapper != null && !mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                         continue;
                 }
+
+                pc.AutoAlias = alias + "_" + index++;
 
                 // Store it
                 Columns.Add(pc.ColumnName, pc);
@@ -86,7 +90,7 @@ namespace NPoco.FluentMappings
             TableInfo.PrimaryKey = String.Join(",", originalPK);
 
             // Build column list for automatic select
-            QueryColumns = (from c in Columns where !c.Value.ResultColumn select c.Key).ToArray();
+            QueryColumns = Columns.Where(x => x.Value.ResultColumn).ToArray();
 
         }
     }

@@ -83,6 +83,7 @@
     <Compile Include="FluentMappings\UserMap.cs" />
     <Compile Include="FluentTests\QueryTests\AdvancedFetchFluentTest.cs" />
     <Compile Include="FluentTests\QueryTests\ConverterFluentTest.cs" />
+    <Compile Include="FluentTests\QueryTests\AliasTests.cs" />
     <Compile Include="FluentTests\QueryTests\ExpressionFluentTests.cs" />
     <Compile Include="FluentTests\QueryTests\FetchAndQueryFluentTest.cs" />
     <Compile Include="FluentTests\QueryTests\NullableTests.cs" />

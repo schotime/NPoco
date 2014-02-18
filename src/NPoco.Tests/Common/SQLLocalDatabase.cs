@@ -90,7 +90,8 @@ namespace NPoco.Tests.Common
                     Savings decimal(10,5) NULL,
                     Is_Male tinyint,
                     UniqueId uniqueidentifier NULL,
-                    TimeSpan time NULL
+                    TimeSpan time NULL,
+                    TestEnum varchar(10) NULL
                 );
             ";
             cmd.ExecuteNonQuery();

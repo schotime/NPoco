@@ -13,9 +13,10 @@ namespace NPoco
     {
         protected internal IMapper Mapper;
         internal bool EmptyNestedObjectNull;
+        protected static readonly ThreadSafeDictionary<string, Type> AliasToType = new ThreadSafeDictionary<string, Type>();
      
         protected internal Type type;
-        public string[] QueryColumns { get; protected set; }
+        public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected set; }
         public TableInfo TableInfo { get; protected internal set; }
         public Dictionary<string, PocoColumn> Columns { get; protected internal set; }
         private readonly MappingFactory _mappingFactory;
@@ -40,6 +41,8 @@ namespace NPoco
             if (Mapper != null)
                 Mapper.GetTableInfo(t, TableInfo);
 
+            var alias = FindAlias(type.Name, type);
+            var index = 0;
             // Work out bound properties
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
             foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(t))
@@ -57,14 +60,33 @@ namespace NPoco
 
                 if (Mapper != null && !Mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;
+                
+                pc.AutoAlias = alias + "_" + index++;
 
                 // Store it
                 Columns.Add(pc.ColumnName, pc);
             }
 
             // Build column list for automatic select
-            QueryColumns = Columns.Where(c => !c.Value.ResultColumn).Select(c => c.Key).ToArray();
+            QueryColumns = Columns.Where(c => !c.Value.ResultColumn).ToArray();
         }
 
+        protected string FindAlias(string typeName, Type type)
+        {
+            string alias;
+            int i = 0;
+            bool result = false;
+            do
+            {
+                alias = typeName.CreateAlias() + (i==0 ? string.Empty : i.ToString());
+                i++;
+                if (AliasToType.ContainsKey(alias))
+                    continue;
+                AliasToType.Add(alias, type);
+                result = true;
+            } while (result == false);
+
+            return alias;
+        }
     }
 }

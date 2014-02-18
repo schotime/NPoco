@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -206,7 +207,15 @@ namespace NPoco
                             if (!_pocoData.Columns.TryGetValue(r.GetName(i), out pc) && !_pocoData.Columns.TryGetValue(r.GetName(i).Replace("_", ""), out pc)
                                 || (!pc.MemberInfo.IsField() && ((PropertyInfo)pc.MemberInfo).GetSetMethodOnDeclaringType() == null))
                             {
-                                continue;
+                                var pcAlias = _pocoData.Columns.Values.SingleOrDefault(x => x.AutoAlias == r.GetName(i));
+                                if (pcAlias != null)
+                                {
+                                    pc = pcAlias;
+                                }
+                                else
+                                {
+                                    continue;
+                                }
                             }
 
                             // Get the source type for this column
