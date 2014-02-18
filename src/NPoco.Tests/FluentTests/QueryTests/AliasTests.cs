@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using NPoco.Expressions;
+using NPoco.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -20,8 +21,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
 
             var sels = "Select " + string.Join(", ", poco1.Columns.Values.Select(x => x.ColumnName + " as " + x.AutoAlias)) + " from users";
 
-            //var result = Database.Fetch<User>(sels);
+            SqlExpression<User> exp = new DefaultSqlExpression<User>(Database);
+            exp = exp.OrderBy(x => x.Age);
 
+            var query = new SimpleQueryProvider<User>(Database, null);
+            query.Join<ExtraUserInfo>((user, decorated) => user.UserId == decorated.UserId, x=>x.OrderBy(z=>z.Email))
+                .Where(x => x.Name == "hi")
+                .Limit(5)
+                .ToList();
         }
 
     }

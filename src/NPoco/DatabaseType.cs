@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using NPoco.DatabaseTypes;
 using NPoco.Expressions;
+using NPoco.Linq;
 
 namespace NPoco
 {
@@ -320,6 +321,59 @@ namespace NPoco
         public virtual string GetProviderName()
         {
             return "System.Data.SqlClient";
+        }
+
+        public Sql BuildJoin<T>(IDatabase _database, SqlExpression<T> _sqlExpression, List<JoinData> _joinSqlExpressions)
+        {
+            var modelDef = _database.PocoDataFactory.ForType(typeof(T));
+            var cols = modelDef.QueryColumns.Select((x, j) =>
+                _database.DatabaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." +
+                _database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + x.Value.AutoAlias);
+
+            var sqlt = new Sql();
+            sqlt.Append(_sqlExpression.Context.ToWhereStatement(), _sqlExpression.Context.Params);
+
+            var temp = "SELECT {0} FROM {1} {2} {3}";
+            var joins = string.Empty;
+            
+            ISqlExpression exp = _sqlExpression;
+            var orderbys1 = exp.OrderByMembers.Select(x => modelDef.Columns.Values.Single(z => z.MemberInfo.Name == x.MemberName));
+
+            var i = 1;
+            foreach (var joinSqlExpression in _joinSqlExpressions)
+            {
+                var type = joinSqlExpression.SqlExpression.Type;
+                var joinModelDef = _database.PocoDataFactory.ForType(type);
+                var tableName = _database.DatabaseType.EscapeTableName(joinModelDef.TableInfo.TableName);
+
+                cols = cols.Concat(joinModelDef.QueryColumns.Select((x, j) => tableName + "." + _database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + x.Value.AutoAlias));
+
+                sqlt.Append(joinSqlExpression.SqlExpression.WhereSql, joinSqlExpression.SqlExpression.Params);
+
+                var orderbys2 = _joinSqlExpressions.SelectMany(x => x.SqlExpression.OrderByMembers).Select(x => joinModelDef.Columns.Values.Single(z => z.MemberInfo.Name == x.MemberName));
+                orderbys1 = orderbys1.Concat(orderbys2);
+
+                joins += " LEFT JOIN " + tableName + " ON " + joinSqlExpression.OnSql;
+                i++;
+            }
+
+            var colstring = string.Join(", ", cols);
+
+            var resultantSql = string.Format(temp,
+                colstring,
+                _database.DatabaseType.EscapeTableName(modelDef.TableInfo.TableName),
+                joins,
+                sqlt.SQL);
+
+            var orderbys = orderbys1.ToList();
+            if (orderbys.Any())
+            {
+                 resultantSql += " ORDER BY " + string.Join(", ", orderbys.Select(x => x.AutoAlias));
+            }
+
+            resultantSql = exp.ApplyPaging(resultantSql);
+
+            return new Sql(resultantSql, sqlt.Arguments);
         }
     }
 }

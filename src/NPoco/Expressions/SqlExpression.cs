@@ -6,12 +6,21 @@ using System.Reflection;
 using System.Text;
 using System.Collections.ObjectModel;
 using System.Linq.Expressions;
+using NPoco.Linq;
 
 namespace NPoco.Expressions
 {
+    public class OrderByMember
+    {
+        public string MemberName { get; set; }
+        public string AscDesc { get; set; }
+    }
+
     public interface ISqlExpression
     {
-        List<string> OrderByProperties { get; }
+        List<OrderByMember> OrderByMembers { get; }
+        int? Rows { get; }
+        int? Skip { get; }
         string WhereSql { get; }
         object[] Params { get; }
         Type Type { get; }
@@ -22,17 +31,19 @@ namespace NPoco.Expressions
     {
         private Expression<Func<T, bool>> underlyingExpression;
         private List<string> orderByProperties = new List<string>();
+        private List<OrderByMember> orderByMembers = new List<OrderByMember>();
         private string selectExpression = string.Empty;
         private string whereExpression;
         private string groupBy = string.Empty;
         private string havingExpression;
         private string orderBy = string.Empty;
 
-        List<string> ISqlExpression.OrderByProperties { get { return orderByProperties; } }
+        List<OrderByMember> ISqlExpression.OrderByMembers { get { return orderByMembers; } }
         string ISqlExpression.WhereSql { get { return whereExpression; } }
+        int? ISqlExpression.Rows { get { return Rows; } }
+        int? ISqlExpression.Skip { get { return Skip; } }
         Type ISqlExpression.Type { get { return _type; } }
         object[] ISqlExpression.Params { get { return Context.Params; } }
-
         string ISqlExpression.ApplyPaging(string sql)
         {
             return ApplyPaging(sql);
@@ -176,10 +187,9 @@ namespace NPoco.Expressions
             return this;
         }
 
-        public virtual SqlExpression<T> Where<T2>(Expression<Func<T, T2, bool>> predicate)
+        public string On<T2>(Expression<Func<T, T2, bool>> predicate)
         {
-            WhereExpression = Visit(predicate).ToString();
-            return this;
+            return Visit(predicate).ToString();
         }
 
         public virtual SqlExpression<T> Where(Expression<Func<T, bool>> predicate)
@@ -325,8 +335,12 @@ namespace NPoco.Expressions
         {
             sep = string.Empty;
             orderByProperties.Clear();
+            orderByMembers.Clear();
+            members.Clear();
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " ASC");
+            orderByMembers.AddRange(members.Select(x=>new OrderByMember() { AscDesc = "ASC", MemberName = x}));
+            members.Clear();
             BuildOrderByClauseInternal();
             return this;
         }
@@ -334,8 +348,11 @@ namespace NPoco.Expressions
         public virtual SqlExpression<T> ThenBy<TKey>(Expression<Func<T, TKey>> keySelector)
         {
             sep = string.Empty;
+            members.Clear();
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " ASC");
+            orderByMembers.AddRange(members.Select(x => new OrderByMember() { AscDesc = "ASC", MemberName = x }));
+            members.Clear();
             BuildOrderByClauseInternal();
             return this;
         }
@@ -344,8 +361,12 @@ namespace NPoco.Expressions
         {
             sep = string.Empty;
             orderByProperties.Clear();
+            orderByMembers.Clear();
+            members.Clear();
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " DESC");
+            orderByMembers.AddRange(members.Select(x => new OrderByMember() { AscDesc = "DESC", MemberName = x }));
+            members.Clear();
             BuildOrderByClauseInternal();
             return this;
         }
@@ -353,8 +374,11 @@ namespace NPoco.Expressions
         public virtual SqlExpression<T> ThenByDescending<TKey>(Expression<Func<T, TKey>> keySelector)
         {
             sep = string.Empty;
+            members.Clear();
             var property = Visit(keySelector).ToString();
             orderByProperties.Add(property + " DESC");
+            orderByMembers.AddRange(members.Select(x => new OrderByMember() { AscDesc = "DESC", MemberName = x }));
+            members.Clear();
             BuildOrderByClauseInternal();
             return this;
         }
@@ -1216,7 +1240,7 @@ namespace NPoco.Expressions
 
         private void BuildSelectExpression(string fields, bool distinct)
         {
-
+            var cols = modelDef.QueryColumns.Select(x => _databaseType.EscapeSqlIdentifier(x.Key)).ToArray();
             selectExpression = string.Format("SELECT {0}{1} \nFROM {2}",
                 (distinct ? "DISTINCT " : ""),
                 (string.IsNullOrEmpty(fields) ?

@@ -32,11 +32,11 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
-        public void FetchWhereWithSecondGenericType()
+        public void FetchOnWithSecondGenericType()
         {
             var s = new DefaultSqlExpression<User>(Database, true);
-            var joinexp = s.Where<CustomerUser>((x, y) => x.Name.Equals(y.CustomerName));
-            Assert.AreEqual(joinexp.Context.ToWhereStatement(), "[Users].[Name]=[CustomerUser].[CustomerName]");
+            var joinexp = s.On<CustomerUser>((x, y) => x.Name.Equals(y.CustomerName));
+            Assert.AreEqual(joinexp, "[Users].[Name]=[CustomerUser].[CustomerName]");
         }
 
         [Test]

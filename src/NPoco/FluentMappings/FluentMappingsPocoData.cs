@@ -90,7 +90,7 @@ namespace NPoco.FluentMappings
             TableInfo.PrimaryKey = String.Join(",", originalPK);
 
             // Build column list for automatic select
-            QueryColumns = Columns.Where(x => x.Value.ResultColumn).ToArray();
+            QueryColumns = Columns.Where(x => !x.Value.ResultColumn).ToArray();
 
         }
     }

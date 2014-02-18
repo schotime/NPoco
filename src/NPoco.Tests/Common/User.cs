@@ -13,6 +13,8 @@ namespace NPoco.Tests.Common
         public Guid? UniqueId { get; set; }
         public TimeSpan TimeSpan { get; set; }
         public TestEnum TestEnum { get; set; }
+
+        public ExtraUserInfo ExtraUserInfo { get; set; }
     }
 
     public enum TestEnum
