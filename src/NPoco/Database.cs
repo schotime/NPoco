@@ -264,12 +264,12 @@ namespace NPoco
         }
 
         // Helper to create a transaction scope
-        public Transaction GetTransaction()
+        public ITransaction GetTransaction()
         {
             return GetTransaction(_isolationLevel);
         }
 
-        public Transaction GetTransaction(IsolationLevel isolationLevel)
+        public ITransaction GetTransaction(IsolationLevel isolationLevel)
         {
             return new Transaction(this, isolationLevel);
         }
@@ -311,26 +311,49 @@ namespace NPoco
         // Use `using (var scope=db.Transaction) { scope.Complete(); }` to ensure correct semantics
         public void BeginTransaction(IsolationLevel isolationLevel)
         {
-            if (_transaction != null) return;
+            if (_transaction == null)
+            {
+                TransactionCount = 0;
+                OpenSharedConnectionInternal();
+                _transaction = _sharedConnection.BeginTransaction(isolationLevel);
+                OnBeginTransaction();
+            }
 
-            OpenSharedConnectionInternal();
-            _transaction = _sharedConnection.BeginTransaction(isolationLevel);
-            OnBeginTransaction();
+            if (_transaction != null)
+            {
+                TransactionCount++;
+            }
         }
 
         // Abort the entire outer most transaction scope
         public void AbortTransaction()
         {
-            if (_transaction == null) 
+            AbortTransaction(false);
+        }
+
+        public void AbortTransaction(bool fromComplete)
+        {
+            if (_transaction == null)
                 return;
+
+            if (fromComplete == false)
+            {
+                TransactionCount--;
+                if (TransactionCount >= 1)
+                {
+                    TransactionIsAborted = true;
+                    return;
+                }
+            }
 
             if (TransactionIsOk())
                 _transaction.Rollback();
 
             if (_transaction != null)
                 _transaction.Dispose();
-            
+
             _transaction = null;
+            TransactionIsAborted = false;
 
             // You cannot continue to use a connection after a transaction has been rolled back
             if (_sharedConnection != null)
@@ -349,6 +372,16 @@ namespace NPoco
             if (_transaction == null) 
                 return;
 
+            TransactionCount--;
+            if (TransactionCount >= 1)
+                return;
+
+            if (TransactionIsAborted)
+            {
+                AbortTransaction(true);
+                return;
+            }
+
             if (TransactionIsOk())
                 _transaction.Commit();
 
@@ -360,6 +393,9 @@ namespace NPoco
             OnCompleteTransaction();
             CloseSharedConnectionInternal();
         }
+
+        internal bool TransactionIsAborted { get; set; }
+        internal int TransactionCount { get; set; }
 
         private bool TransactionIsOk()
         {
@@ -391,6 +427,8 @@ namespace NPoco
             var p = cmd.CreateParameter();
             p.ParameterName = string.Format("{0}{1}", parameterPrefix, cmd.Parameters.Count);
 
+            var dbtypeSet = false;
+
             if (value == null)
             {
                 p.Value = DBNull.Value;
@@ -407,9 +445,10 @@ namespace NPoco
                 }
                 else if (t == typeof(Guid))
                 {
-                    p.Value = value.ToString();
-                    p.DbType = DbType.String;
+                    p.Value = value;
+                    p.DbType = DbType.Guid;
                     p.Size = 40;
+                    dbtypeSet = true;
                 }
                 else if (t == typeof(string))
                 {
@@ -447,6 +486,7 @@ namespace NPoco
                         p.Value = ansistrValue.Value;
                         p.DbType = DbType.AnsiString;
                     }
+                    dbtypeSet = true;
                 }
                 else if (value.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
                 {
@@ -462,6 +502,15 @@ namespace NPoco
                 else
                 {
                     p.Value = value;
+                }
+
+                if (!dbtypeSet)
+                {
+                    var dbType = _dbType.LookupDbType(p.Value.GetTheType(), p.ParameterName);
+                    if (dbType.HasValue)
+                    {
+                        p.DbType = dbType.Value;
+                    }
                 }
             }
 
@@ -631,15 +680,17 @@ namespace NPoco
         public List<T> FetchWhere<T>(Expression<Func<T, bool>> expression)
         {
             var ev = _dbType.ExpressionVisitor<T>(this);
-            var sql = ev.Where(expression).Context.ToWhereStatement();
-            return Fetch<T>(sql, ev.Context.Params.ToArray());
+            var query = ev.Where(expression);
+            var sql = query.Context.ToWhereStatement();
+            return Fetch<T>(sql, query.Context.Params.ToArray());
         }
 
         public List<T> FetchBy<T>(Func<SqlExpression<T>, SqlExpression<T>> expression)
         {
             var ev = _dbType.ExpressionVisitor<T>(this);
-            var sql = expression(ev).Context.ToSelectStatement();
-            return Fetch<T>(sql, ev.Context.Params.ToArray());
+            var query = expression(ev);
+            var sql = query.Context.ToSelectStatement();
+            return Fetch<T>(sql, query.Context.Params.ToArray());
         }
 
         public void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage)
@@ -659,31 +710,7 @@ namespace NPoco
         // Fetch a page	
         public Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
-            string sqlCount, sqlPage;
-
-            long offset = (page - 1) * itemsPerPage;
-
-            BuildPageQueries<T>(offset, itemsPerPage, sql, ref args, out sqlCount, out sqlPage);
-
-            // Save the one-time command time out and use it for both queries
-            int saveTimeout = OneTimeCommandTimeout;
-
-            // Setup the paged result
-            var result = new Page<T>();
-            result.CurrentPage = page;
-            result.ItemsPerPage = itemsPerPage;
-            result.TotalItems = ExecuteScalar<long>(sqlCount, args);
-            result.TotalPages = result.TotalItems / itemsPerPage;
-            if ((result.TotalItems % itemsPerPage) != 0)
-                result.TotalPages++;
-
-            OneTimeCommandTimeout = saveTimeout;
-
-            // Get the records
-            result.Items = Fetch<T>(sqlPage, args);
-
-            // Done
-            return result;
+            return Page<T>(new[] { typeof(T) }, null, page, itemsPerPage, sql, args);
         }
 
         public Page<T> Page<T>(long page, long itemsPerPage, Sql sql)
@@ -731,8 +758,8 @@ namespace NPoco
 
                 if (isConverterSet == false)
                 {
-                    converter1 = PocoData.GetConverter(Mapper, null, typeof(TKey), key.GetType()) ?? (x => x);
-                    converter2 = PocoData.GetConverter(Mapper, null, typeof(TValue), value.GetType()) ?? (x => x);
+                    converter1 = MappingFactory.GetConverter(Mapper, null, typeof(TKey), key.GetType()) ?? (x => x);
+                    converter2 = MappingFactory.GetConverter(Mapper, null, typeof(TValue), value.GetType()) ?? (x => x);
                     isConverterSet = true;
                 }
 
@@ -774,7 +801,7 @@ namespace NPoco
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
                     IDataReader r;
-                    var pd = PocoData.ForType(typeof (T), PocoDataFactory);
+                    var pd = PocoDataFactory.ForType(typeof(T));
                     try
                     {
                         r = ExecuteReaderHelper(cmd);
@@ -787,7 +814,7 @@ namespace NPoco
 
                     using (r)
                     {
-                        var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
+                        var factory = pd.MappingFactory.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
                         while (true)
                         {
                             T poco;
@@ -823,6 +850,11 @@ namespace NPoco
         public IEnumerable<TRet> Query<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, string sql, params object[] args) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, new Sql(sql, args)); }
         public IEnumerable<TRet> Query<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, string sql, params object[] args) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, new Sql(sql, args)); }
 
+        // Multi Page
+        public Page<TRet> Page<T1, T2, TRet>(Func<T1, T2, TRet> cb, long page, long itemsPerPage, string sql, params object[] args) { return Page<TRet>(new[] { typeof(T1), typeof(T2) }, cb, page, itemsPerPage, sql, args); }
+        public Page<TRet> Page<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, long page, long itemsPerPage, string sql, params object[] args) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, page, itemsPerPage, sql, args); }
+        public Page<TRet> Page<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, long page, long itemsPerPage, string sql, params object[] args) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, page, itemsPerPage, sql, args); }
+
         // Multi Fetch (SQL builder)
         public List<TRet> Fetch<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query(cb, sql).ToList(); }
         public List<TRet> Fetch<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, Sql sql) { return Query(cb, sql).ToList(); }
@@ -832,6 +864,11 @@ namespace NPoco
         public IEnumerable<TRet> Query<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2) }, cb, sql); }
         public IEnumerable<TRet> Query<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, sql); }
         public IEnumerable<TRet> Query<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, sql); }
+
+        // Multi Page (SQL builder)
+        public Page<TRet> Page<T1, T2, TRet>(Func<T1, T2, TRet> cb, long page, long itemsPerPage, Sql sql) { return Page<TRet>(new[] { typeof(T1), typeof(T2) }, cb, page, itemsPerPage, sql.SQL, sql.Arguments); }
+        public Page<TRet> Page<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, long page, long itemsPerPage, Sql sql) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, page, itemsPerPage, sql.SQL, sql.Arguments); }
+        public Page<TRet> Page<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, long page, long itemsPerPage, Sql sql) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, page, itemsPerPage, sql.SQL, sql.Arguments); }
 
         // Multi Fetch (Simple)
         public List<T1> Fetch<T1, T2>(string sql, params object[] args) { return Query<T1, T2>(sql, args).ToList(); }
@@ -843,6 +880,11 @@ namespace NPoco
         public IEnumerable<T1> Query<T1, T2, T3>(string sql, params object[] args) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, new Sql(sql, args)); }
         public IEnumerable<T1> Query<T1, T2, T3, T4>(string sql, params object[] args) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, new Sql(sql, args)); }
 
+        // Multi Page (Simple)
+        public Page<T1> Page<T1, T2>(long page, long itemsPerPage, string sql, params object[] args) { return Page<T1>(new[] { typeof(T1), typeof(T2) }, null, page, itemsPerPage, sql, args); }
+        public Page<T1> Page<T1, T2, T3>(long page, long itemsPerPage, string sql, params object[] args) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, page, itemsPerPage, sql, args); }
+        public Page<T1> Page<T1, T2, T3, T4>(long page, long itemsPerPage, string sql, params object[] args) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, page, itemsPerPage, sql, args); }
+
         // Multi Fetch (Simple) (SQL builder)
         public List<T1> Fetch<T1, T2>(Sql sql) { return Query<T1, T2>(sql).ToList(); }
         public List<T1> Fetch<T1, T2, T3>(Sql sql) { return Query<T1, T2, T3>(sql).ToList(); }
@@ -853,6 +895,10 @@ namespace NPoco
         public IEnumerable<T1> Query<T1, T2, T3>(Sql sql) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, sql); }
         public IEnumerable<T1> Query<T1, T2, T3, T4>(Sql sql) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, sql); }
 
+        // Multi Page (Simple) (SQL Builder)
+        public Page<T1> Page<T1, T2>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
+        public Page<T1> Page<T1, T2, T3>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
+        public Page<T1> Page<T1, T2, T3, T4>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
 
         // Actual implementation of the multi-poco query
         public IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql)
@@ -921,6 +967,38 @@ namespace NPoco
             }
         }
 
+        // Actual implementation of the multi-poco paging
+        public Page<T> Page<T>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
+        {
+            string sqlCount, sqlPage;
+
+            long offset = (page - 1) * itemsPerPage;
+
+            BuildPageQueries<T>(offset, itemsPerPage, sql, ref args, out sqlCount, out sqlPage);
+
+            // Save the one-time command time out and use it for both queries
+            int saveTimeout = OneTimeCommandTimeout;
+
+            // Setup the paged result
+            var result = new Page<T>();
+            result.CurrentPage = page;
+            result.ItemsPerPage = itemsPerPage;
+            result.TotalItems = ExecuteScalar<long>(sqlCount, args);
+            result.TotalPages = result.TotalItems / itemsPerPage;
+            if ((result.TotalItems % itemsPerPage) != 0)
+                result.TotalPages++;
+
+            OneTimeCommandTimeout = saveTimeout;
+
+            // Get the records
+            result.Items = types.Length > 1 
+                ? Query<T>(types, cb, new Sql(sqlPage, args)).ToList() 
+                : Query<T>(new Sql(sqlPage, args)).ToList();
+
+            // Done
+            return result;
+        }
+
         public TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args)); }
         public TRet FetchMultiple<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, T3, DontMap, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, new Sql(sql, args)); }
         public TRet FetchMultiple<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, T3, T4, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, new Sql(sql, args)); }
@@ -971,8 +1049,8 @@ namespace NPoco
                             if (typeIndex > types.Length)
                                 break;
 
-                            var pd = PocoData.ForType(types[typeIndex - 1], PocoDataFactory);
-                            var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
+                            var pd = PocoDataFactory.ForType(types[typeIndex - 1]);
+                            var factory = pd.MappingFactory.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
 
                             while (true)
                             {
@@ -1030,19 +1108,19 @@ namespace NPoco
         public bool Exists<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T), PocoDataFactory).TableInfo.PrimaryKey, primaryKey);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoDataFactory.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
             return FirstOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) != null;
         }
         public T SingleById<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T), PocoDataFactory).TableInfo.PrimaryKey, primaryKey);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoDataFactory.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
             return Single<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
         public T SingleOrDefaultById<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoData.ForType(typeof(T), PocoDataFactory).TableInfo.PrimaryKey, primaryKey);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoDataFactory.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
             return SingleOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
         public T Single<T>(string sql, params object[] args)
@@ -1113,7 +1191,7 @@ namespace NPoco
         // Insert an annotated poco object
         public object Insert<T>(T poco)
         {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(poco.GetType());
             return Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
         }
 
@@ -1133,7 +1211,7 @@ namespace NPoco
             {
                 OpenSharedConnectionInternal();
 
-                var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
+                var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
                 var names = new List<string>();
                 var values = new List<string>();
                 var rawvalues = new List<object>();
@@ -1281,7 +1359,7 @@ namespace NPoco
             var sb = new StringBuilder();
             var index = 0;
             var rawvalues = new List<object>();
-            var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
             string versionName = null;
             object versionValue = null;
 
@@ -1420,19 +1498,19 @@ namespace NPoco
 
         public int Update(object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(poco.GetType());
             return Update(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco, primaryKeyValue, columns);
         }
 
         public int Update<T>(string sql, params object[] args)
         {
-            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(typeof(T));
             return Execute(string.Format("UPDATE {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
         }
 
         public int Update<T>(Sql sql)
         {
-            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(typeof(T));
             return Execute(new Sql(string.Format("UPDATE {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
@@ -1449,7 +1527,7 @@ namespace NPoco
             // If primary key value not specified, pick it up from the object
             if (primaryKeyValue == null)
             {
-                var pd = PocoData.ForObject(poco, primaryKeyName, PocoDataFactory);
+                var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
                 foreach (var i in pd.Columns)
                 {
                     if (primaryKeyValuePairs.ContainsKey(i.Key))
@@ -1467,7 +1545,7 @@ namespace NPoco
 
         public int Delete(object poco)
         {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(poco.GetType());
             return Delete(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco);
         }
 
@@ -1475,26 +1553,26 @@ namespace NPoco
         {
             if (pocoOrPrimaryKey.GetType() == typeof(T))
                 return Delete(pocoOrPrimaryKey);
-            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(typeof(T));
             return Delete(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, null, pocoOrPrimaryKey);
         }
 
         public int Delete<T>(string sql, params object[] args)
         {
-            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(typeof(T));
             return Execute(string.Format("DELETE FROM {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
         }
 
         public int Delete<T>(Sql sql)
         {
-            var pd = PocoData.ForType(typeof(T), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(typeof(T));
             return Execute(new Sql(string.Format("DELETE FROM {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
         // Check if a poco represents a new record
         public bool IsNew<T>(object poco)
         {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(poco.GetType());
             object pk;
             PocoColumn pc;
             if (pd.Columns.TryGetValue(pd.TableInfo.PrimaryKey, out pc))
@@ -1502,7 +1580,7 @@ namespace NPoco
                 pk = pc.GetValue(poco);
             }
 #if !POCO_NO_DYNAMIC
-            else if (poco is System.Dynamic.ExpandoObject)
+            else if (poco is PocoExpando)
             {
                 return true;
             }
@@ -1549,7 +1627,7 @@ namespace NPoco
         // Insert new record or Update existing record
         public void Save<T>(object poco)
         {
-            var pd = PocoData.ForType(poco.GetType(), PocoDataFactory);
+            var pd = PocoDataFactory.ForType(poco.GetType());
             if (IsNew<T>(poco))
             {
                 Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
@@ -1614,19 +1692,12 @@ namespace NPoco
             return sb.ToString();
         }
 
-        internal Transaction BaseTransaction { get; set; }
-
         public IMapper Mapper { get; set; }
 
-        private Func<Type, PocoData> _pocoDataFactory;
-        public Func<Type, PocoData> PocoDataFactory
+        private PocoDataFactory _pocoDataFactory;
+        public PocoDataFactory PocoDataFactory
         {
-            get
-            {
-                if (_pocoDataFactory == null)
-                    return type => new PocoData(type, Mapper);
-                return _pocoDataFactory;
-            }
+            get { return _pocoDataFactory ?? new PocoDataFactory(); }
             set { _pocoDataFactory = value; }
         }
 

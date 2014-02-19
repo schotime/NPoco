@@ -53,6 +53,7 @@
     <Compile Include="DatabaseFactory.cs" />
     <Compile Include="DatabaseFactoryConfig.cs" />
     <Compile Include="DatabaseType.cs" />
+    <Compile Include="DatabaseTypes\FirebirdDatabaseType.cs" />
     <Compile Include="DatabaseTypes\MySqlDatabaseType.cs" />
     <Compile Include="DatabaseTypes\OracleDatabaseType.cs" />
     <Compile Include="DatabaseTypes\OracleManagedDatabaseType.cs" />
@@ -62,6 +63,7 @@
     <Compile Include="DatabaseTypes\SqlServer2012DatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerCEDatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerDatabaseType.cs" />
+    <Compile Include="MappingFactory.cs" />
     <Compile Include="DefaultMapper.cs" />
     <Compile Include="Expressions\DefaultSqlExpression.cs" />
     <Compile Include="DeleteContext.cs" />
@@ -102,6 +104,8 @@
     <Compile Include="ParameterHelper.cs" />
     <Compile Include="PocoColumn.cs" />
     <Compile Include="PocoData.cs" />
+    <Compile Include="PocoDataFactory.cs" />
+    <Compile Include="PocoExpando.cs" />
     <Compile Include="ReflectionUtils.cs" />
     <Compile Include="RelationExtensions.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />
@@ -117,6 +121,7 @@
     <Compile Include="TableNameAttribute.cs" />
     <Compile Include="Transaction.cs" />
     <Compile Include="Tuple.cs" />
+    <Compile Include="TypeHelpers.cs" />
     <Compile Include="UpdateContext.cs" />
     <Compile Include="VersionColumnAttribute.cs" />
     <Compile Include="VersionExceptionHandling.cs" />

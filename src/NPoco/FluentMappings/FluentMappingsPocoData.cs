@@ -36,21 +36,16 @@ namespace NPoco.FluentMappings
             // Work out bound properties
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
+            var originalPK = TableInfo.PrimaryKey.Split(',');
             foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(t))
             {
                 // Work out if properties is to be included
                 var isColumnDefined = typeConfig.ColumnConfiguration.ContainsKey(mi.Name);
-                if (explicitColumns)
-                {
-                    if (!isColumnDefined)
-                        continue;
-                }
-                else
-                {
-                    if (isColumnDefined && (typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.HasValue && typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.Value))
-                        continue;
-                }
+                if (explicitColumns && !isColumnDefined) continue;
 
+                if (isColumnDefined && (typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.HasValue && typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.Value))
+                    continue;
+                
                 var pc = new PocoColumn();
                 pc.MemberInfo = mi;
 
@@ -67,8 +62,11 @@ namespace NPoco.FluentMappings
                     if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)
                         pc.ForceToUtc = true;
 
-                    if (TableInfo.PrimaryKey.Split(',').Contains(mi.Name))
-                        TableInfo.PrimaryKey = (pc.ColumnName ?? mi.Name) + ",";
+                    for (int i = 0; i < originalPK.Length; i++)
+                    {
+                        if (originalPK[i].Equals(mi.Name, StringComparison.OrdinalIgnoreCase))
+                            originalPK[i] = (pc.ColumnName ?? mi.Name);
+                    }
 
                     pc.ColumnType = colattr.DbColumnType;
 
@@ -84,8 +82,8 @@ namespace NPoco.FluentMappings
                 Columns.Add(pc.ColumnName, pc);
             }
 
-            // Trim trailing slash if built using Property names
-            TableInfo.PrimaryKey = TableInfo.PrimaryKey.TrimEnd(',');
+            // Recombine the primary key
+            TableInfo.PrimaryKey = String.Join(",", originalPK);
 
             // Build column list for automatic select
             QueryColumns = (from c in Columns where !c.Value.ResultColumn select c.Key).ToArray();

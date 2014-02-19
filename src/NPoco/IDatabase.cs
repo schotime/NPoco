@@ -9,8 +9,8 @@ namespace NPoco
         IDbConnection Connection { get; }
         IDbTransaction Transaction { get; }
         IDataParameter CreateParameter();
-        Transaction GetTransaction();
-        Transaction GetTransaction(IsolationLevel isolationLevel);
+        ITransaction GetTransaction();
+        ITransaction GetTransaction(IsolationLevel isolationLevel);
         void SetTransaction(IDbTransaction tran);
         void BeginTransaction();
         void BeginTransaction(IsolationLevel isolationLevel);
@@ -43,7 +43,7 @@ namespace NPoco
     public interface IDatabaseConfig
     {
         IMapper Mapper { get; set; }
-        Func<Type, PocoData> PocoDataFactory { get; set; }
+        PocoDataFactory PocoDataFactory { get; set; }
         DatabaseType DatabaseType { get; }
         string ConnectionString { get; }
     }

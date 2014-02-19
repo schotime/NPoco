@@ -76,5 +76,54 @@ namespace NPoco
                                     .GetProperty(propertyInfo.Name)
                                     .GetSetMethod(true);
         }
+
+        public static bool IsOrHasGenericInterfaceTypeOf(this Type type, Type genericTypeDefinition)
+        {
+            return type.GetTypeWithGenericTypeDefinitionOf(genericTypeDefinition) != null;
+        }
+
+        public static Type GetTypeWithGenericTypeDefinitionOf(this Type type, Type genericTypeDefinition)
+        {
+            foreach (var t in type.GetInterfaces())
+            {
+                if (t.IsGenericType && t.GetGenericTypeDefinition() == genericTypeDefinition)
+                {
+                    return t;
+                }
+            }
+
+            var genericType = type.GetGenericType();
+            if (genericType != null && genericType.GetGenericTypeDefinition() == genericTypeDefinition)
+            {
+                return genericType;
+            }
+
+            return null;
+        }
+
+        public static Type GetGenericType(this Type type)
+        {
+            while (type != null)
+            {
+                if (type.IsGenericType)
+                    return type;
+
+                type = type.BaseType;
+            }
+            return null;
+        }
+
+        public static Type GetTypeWithInterfaceOf(this Type type, Type interfaceType)
+        {
+            if (type == interfaceType) return interfaceType;
+
+            foreach (var t in type.GetInterfaces())
+            {
+                if (t == interfaceType)
+                    return t;
+            }
+
+            return null;
+        }
     }
 }

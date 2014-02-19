@@ -3,37 +3,34 @@ using System.Data;
 
 namespace NPoco
 {
-    public class Transaction : IDisposable
+    public class Transaction : ITransaction
     {
+        Database _db;
+
         public Transaction(Database db, IsolationLevel isolationLevel)
         {
             _db = db;
             _db.BeginTransaction(isolationLevel);
-            if (_db.BaseTransaction == null)
-            {
-                _db.BaseTransaction = this;
-            }
         }
 
         public virtual void Complete()
         {
-            if (_db.BaseTransaction == this)
-            {
-                _db.BaseTransaction = null;
-                _db.CompleteTransaction();
-                _db = null;
-            }
+            _db.CompleteTransaction();
+            _db = null;
         }
 
         public void Dispose()
         {
-            if (_db != null && _db.BaseTransaction == this)
+            if (_db != null)
             {
-                _db.BaseTransaction = null;
+                _db.TransactionIsAborted = true;
                 _db.AbortTransaction();
             }
         }
+    }
 
-        Database _db;
+    public interface ITransaction : IDisposable
+    {
+        void Complete();
     }
 }

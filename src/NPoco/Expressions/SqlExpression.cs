@@ -9,7 +9,15 @@ using System.Linq.Expressions;
 
 namespace NPoco.Expressions
 {
-    public abstract class SqlExpression<T>
+    public interface ISqlExpression
+    {
+        List<string> OrderByProperties { get; }
+        string WhereSql { get; }
+        object[] Params { get; }
+        Type Type { get; }
+    }
+
+    public abstract class SqlExpression<T> : ISqlExpression
     {
         private Expression<Func<T, bool>> underlyingExpression;
         private List<string> orderByProperties = new List<string>();
@@ -19,23 +27,30 @@ namespace NPoco.Expressions
         private string havingExpression;
         private string orderBy = string.Empty;
 
+        List<string> ISqlExpression.OrderByProperties { get { return orderByProperties; } }
+        string ISqlExpression.WhereSql { get { return whereExpression; } }
+        Type ISqlExpression.Type { get { return _type; } }
+        object[] ISqlExpression.Params { get { return Context.Params; } }
+
         private string sep = string.Empty;
         private PocoData modelDef;
         private readonly IDatabase _database;
         private readonly DatabaseType _databaseType;
         private bool PrefixFieldWithTableName { get; set; }
         private bool WhereStatementWithoutWhereString { get; set; }
+        private Type _type { get; set; }
 
         private List<string> members;
 
-        public SqlExpression(IDatabase database)
+        public SqlExpression(IDatabase database, bool prefixTableName = false)
         {
-            modelDef = PocoData.ForType(typeof(T), database.PocoDataFactory);
+            _type = typeof (T);
+            modelDef = database.PocoDataFactory.ForType(typeof(T));
             _database = database;
             _databaseType = database.DatabaseType;
-            PrefixFieldWithTableName = false;
+            PrefixFieldWithTableName = prefixTableName;
             WhereStatementWithoutWhereString = false;
-            paramPrefix = _databaseType.GetParameterPrefix(_database.ConnectionString);
+            paramPrefix = "@";
             members = new List<string>();
             Context = new SqlExpressionContext(this);
         }
@@ -152,6 +167,12 @@ namespace NPoco.Expressions
                 CreateParam(filterParam);    
             }
             if (!string.IsNullOrEmpty(whereExpression)) whereExpression = (WhereStatementWithoutWhereString ? "" : "WHERE ") + whereExpression;
+            return this;
+        }
+
+        public virtual SqlExpression<T> Where<T2>(Expression<Func<T, T2, bool>> predicate)
+        {
+            WhereExpression = Visit(predicate).ToString();
             return this;
         }
 
@@ -494,7 +515,7 @@ namespace NPoco.Expressions
                         value = converter(value);
                 }
 
-                if (excludeDefaults && (value == null || value.Equals(PocoData.GetDefault(value.GetType())))) continue; //GetDefaultValue?
+                if (excludeDefaults && (value == null || value.Equals(MappingFactory.GetDefault(value.GetType())))) continue; //GetDefaultValue?
 
                 if (setFields.Length > 0) 
                     setFields.Append(", ");
@@ -702,12 +723,28 @@ namespace NPoco.Expressions
 
                 if (m.Expression != null)
                 {
-                    string r = VisitMemberAccess(m).ToString();
-                    return string.Format("{0}={1}", r, GetQuotedTrueValue());
+                    if (IsNullableMember(m))
+                    {
+                        string r = VisitMemberAccess(m.Expression as MemberExpression).ToString();
+                        return string.Format("{0} is not null", r);
+                    }
+                    else
+                    {
+                        string r = VisitMemberAccess(m).ToString();
+                        return string.Format("{0}={1}", r, GetQuotedTrueValue());
+                    }
                 }
 
             }
             return Visit(lambda.Body);
+        }
+
+        private static bool IsNullableMember(MemberExpression m)
+        {
+            var member = m.Expression as MemberExpression;
+            return member != null 
+                && (m.Member.Name == "HasValue") 
+                && member.Type.IsGenericType && member.Type.GetGenericTypeDefinition() == typeof (Nullable<>);
         }
 
         protected virtual object VisitBinary(BinaryExpression b)
@@ -757,6 +794,11 @@ namespace NPoco.Expressions
                     else
                         right = CreateParam(right);
                 }
+                else if (left as NullableMemberAccess != null && right as PartialSqlString == null)
+                {
+                    operand = ((bool)right) ? "is not" : "is";
+                    right = new PartialSqlString("null");
+                }
                 else if (right as EnumMemberAccess != null && left as PartialSqlString == null)
                 {
                     var enumType = ((EnumMemberAccess)right).EnumType;
@@ -795,19 +837,33 @@ namespace NPoco.Expressions
 
         protected virtual object VisitMemberAccess(MemberExpression m)
         {
+            bool isNull = false;
+            
+            if (IsNullableMember(m))
+            {
+                m = m.Expression as MemberExpression;
+                isNull = true;
+            }
+
             if (m.Expression != null
                 && (m.Expression.NodeType == ExpressionType.Parameter || m.Expression.NodeType == ExpressionType.Convert))
             {
-                var propertyInfo = m.Member as PropertyInfo;
+                var propertyInfo = (PropertyInfo) m.Member;
+                var localModelDef = propertyInfo.DeclaringType == typeof (T) ? modelDef : _database.PocoDataFactory.ForType(propertyInfo.DeclaringType);
+
+                var columnName = (PrefixFieldWithTableName ? _databaseType.EscapeTableName(localModelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name);
+
+                if (isNull)
+                    return new NullableMemberAccess(columnName);
 
                 if (propertyInfo.PropertyType.IsEnum)
-                    return new EnumMemberAccess((PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name), propertyInfo.PropertyType);
-
-                return new PartialSqlString((PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." : "") + GetQuotedColumnName(m.Member.Name));
+                    return new EnumMemberAccess(columnName, propertyInfo.PropertyType);
+                
+                return new PartialSqlString(columnName);
             }
 
-            var member = Expression.Convert(m, typeof(object));
-            var lambda = Expression.Lambda<Func<object>>(member);
+            var memberExp = Expression.Convert(m, typeof(object));           
+            var lambda = Expression.Lambda<Func<object>>(memberExp);
             var getter = lambda.Compile();
             return getter();
         }
@@ -833,11 +889,15 @@ namespace NPoco.Expressions
                 for (int i = 0; i < exprs.Count; i++)
                 {
                     r.AppendFormat("{0}{1}", r.Length > 0 ? "," : "", exprs[i]);
-                    if (nex.Members[i] != null )
+                    if (nex.Members[i] != null)
                     {
-                        var memberName = _databaseType.EscapeSqlIdentifier(nex.Members[i].Name);
-                        if (memberName != exprs[i].ToString())
-                            r.AppendFormat(" AS {0}", memberName);
+                        var col = modelDef.Columns.SingleOrDefault(x => x.Value.MemberInfo.Name == nex.Members[i].Name);
+                        if (col.Value != null)
+                        {
+                            var memberName = _databaseType.EscapeSqlIdentifier(col.Value.ColumnName);
+                            if (memberName != exprs[i].ToString())
+                                r.AppendFormat(" AS {0}", memberName);
+                        }
                     }
                 }
                 return r.ToString();
@@ -860,7 +920,7 @@ namespace NPoco.Expressions
             if (c.Value == null)
                 return new PartialSqlString("null");
 
-            return new PartialSqlString(CreateParam(c.Value));
+            return c.Value;
         }
 
         private string CreateParam(object value)
@@ -881,7 +941,12 @@ namespace NPoco.Expressions
                         return !((bool)o);
 
                     if (IsFieldName(o))
-                        o = o + "=" + GetQuotedTrueValue();
+                    {
+                        if (o as NullableMemberAccess != null)
+                            o = o + " is not null";
+                        else
+                            o = o + "=" + GetQuotedTrueValue();
+                    }
 
                     return new PartialSqlString("NOT (" + o + ")");
                 case ExpressionType.Convert:
@@ -911,13 +976,98 @@ namespace NPoco.Expressions
             if (m.Method.DeclaringType == typeof(S))
                 return VisitSqlMethodCall(m);
 
+            if (IsStaticArrayMethod(m))
+                return VisitStaticArrayMethodCall(m);
+
+            if (IsEnumerableMethod(m))
+                return VisitEnumerableMethodCall(m);
+
             if (IsColumnAccess(m))
                 return VisitColumnAccessMethod(m);
 
-            if (IsArrayMethod(m))
-                return VisitArrayMethodCall(m);
-            
             return Expression.Lambda(m).Compile().DynamicInvoke();
+        }
+
+        private bool IsStaticArrayMethod(MethodCallExpression m)
+        {
+            if (m.Object == null && m.Method.Name == "Contains")
+            {
+                return m.Arguments.Count == 2;
+            }
+
+            return false;
+        }
+
+        private bool IsEnumerableMethod(MethodCallExpression m)
+        {
+            if (m.Object != null
+                && m.Object.Type.IsOrHasGenericInterfaceTypeOf(typeof(IEnumerable<>))
+                && m.Object.Type != typeof(string)
+                && m.Method.Name == "Contains")
+            {
+                return m.Arguments.Count == 1;
+            }
+
+            return false;
+        }
+
+        protected virtual object VisitEnumerableMethodCall(MethodCallExpression m)
+        {
+            switch (m.Method.Name)
+            {
+                case "Contains":
+                    List<Object> args = this.VisitExpressionList(m.Arguments);
+                    object quotedColName = args[0];
+                    return BuildInStatement(m.Object, quotedColName);
+
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        protected virtual object VisitStaticArrayMethodCall(MethodCallExpression m)
+        {
+            switch (m.Method.Name)
+            {
+                case "Contains":
+                    List<Object> args = this.VisitExpressionList(m.Arguments);
+                    object quotedColName = args[1];
+
+                    Expression memberExpr = m.Arguments[0];
+                    if (memberExpr.NodeType == ExpressionType.MemberAccess)
+                        memberExpr = (m.Arguments[0] as MemberExpression);
+
+                    return BuildInStatement(memberExpr, quotedColName);
+
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        private StringBuilder FlattenList(IEnumerable inArgs)
+        {
+            StringBuilder sIn = new StringBuilder();
+            foreach (Object e in inArgs)
+            {
+                if (!typeof (ICollection).IsAssignableFrom(e.GetType()))
+                {
+                    sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(e));
+                }
+                else
+                {
+                    var listArgs = e as ICollection;
+                    foreach (Object el in listArgs)
+                    {
+                        sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(el));
+                    }
+                }
+            }
+
+            if (sIn.Length == 0)
+            {
+                sIn.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
+            }
+            return sIn;
         }
 
         protected virtual List<Object> VisitExpressionList(ReadOnlyCollection<Expression> original)
@@ -1085,64 +1235,27 @@ namespace NPoco.Expressions
             return sqlPage;
         }
 
-        private bool IsArrayMethod(MethodCallExpression m)
-        {
-            if (typeof(IEnumerable).IsAssignableFrom(m.Method.DeclaringType) || typeof(Enumerable).IsAssignableFrom(m.Method.DeclaringType))
-            {
-                if (m.Method.Name == "Contains")
-                {
-                    return true;
-                }
-
-                throw new NotSupportedException(string.Format("Subqueries with {0} are not currently supported", m.Method.Name));
-            }
-
-            return false;
-        }
-
-        protected virtual object VisitArrayMethodCall(MethodCallExpression m)
+        private string BuildInStatement(Expression m, object quotedColName)
         {
             string statement;
+            var member = Expression.Convert(m, typeof (object));
+            var lambda = Expression.Lambda<Func<object>>(member);
+            var getter = lambda.Compile();
 
-            switch (m.Method.Name)
-            {
-                case "Contains":
-                    object[] collection;
-                    object member;
-                    if (m.Arguments.Count == 2)
-                    {
-                        collection = m.Arguments[0].GetConstantValue<IEnumerable>().Cast<object>().ToArray();
-                        member = Visit(m.Arguments[1]);
-                    }
-                    else
-                    {
-                        collection = m.Object.GetConstantValue<IEnumerable>().Cast<object>().ToArray();
-                        member = Visit(m.Arguments[0]);
-                    }
-                    StringBuilder sIn = new StringBuilder();
-                    foreach (var e in collection)
-                    {
-                        sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(e));
-                    }
+            if (quotedColName == null)
+                quotedColName = Visit(m);
 
-                    if (sIn.Length == 0)
-                    {
-                        sIn.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
-                    }
+            var inArgs = getter() as IEnumerable;
 
-                    statement = string.Format("{0} {1} ({2})", member, "IN", sIn);
-                    break;
+            var sIn = FlattenList(inArgs);
 
-                default:
-                    throw new NotSupportedException();
-            }
-
-            return new PartialSqlString(statement);
+            statement = string.Format("{0} {1} ({2})", quotedColName, "IN", sIn);
+            return statement;
         }
 
         protected virtual object VisitSqlMethodCall(MethodCallExpression m)
         {
-            List<Object> args = this.VisitConstantList(m.Arguments);
+            List<Object> args = this.VisitExpressionList(m.Arguments);
             object quotedColName = args[0];
             args.RemoveAt(0);
 
@@ -1151,39 +1264,7 @@ namespace NPoco.Expressions
             switch (m.Method.Name)
             {
                 case "In":
-
-                    var member = Expression.Convert(m.Arguments[1], typeof(object));
-                    var lambda = Expression.Lambda<Func<object>>(member);
-                    var getter = lambda.Compile();
-
-                    if (quotedColName == null)
-                        quotedColName = Visit(m.Arguments[0]);
-
-                    var inArgs = getter() as object[];
-
-                    StringBuilder sIn = new StringBuilder();
-                    foreach (Object e in inArgs)
-                    {
-                        if (!typeof(ICollection).IsAssignableFrom(e.GetType()))
-                        {
-                            sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(e));
-                        }
-                        else
-                        {
-                            var listArgs = e as ICollection;
-                            foreach (Object el in listArgs)
-                            {
-                                sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(el));
-                            }
-                        }
-                    }
-
-                    if (sIn.Length == 0)
-                    {
-                        sIn.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
-                    }
-
-                    statement = string.Format("{0} {1} ({2})", quotedColName, m.Method.Name.ToUpper(), sIn.ToString());
+                    statement = BuildInStatement(m.Arguments[1], quotedColName);
                     break;
                 case "Desc":
                     statement = string.Format("{0} DESC", quotedColName);
@@ -1211,7 +1292,7 @@ namespace NPoco.Expressions
 
         protected virtual object VisitColumnAccessMethod(MethodCallExpression m)
         {
-            List<Object> args = this.VisitConstantList(m.Arguments);
+            List<Object> args = this.VisitExpressionList(m.Arguments);
             var quotedColName = Visit(m.Object);
             var statement = "";
 
@@ -1242,6 +1323,9 @@ namespace NPoco.Expressions
                     else
                         statement = string.Format("substring({0},{1},8000)",quotedColName,startIndex);
                     break;
+                case "Equals":
+                    statement = string.Format("{0}={1}", quotedColName, args[0]);
+                    break;
                 default:
                     throw new NotSupportedException();
             }
@@ -1259,6 +1343,14 @@ namespace NPoco.Expressions
         public override string ToString()
         {
             return Text;
+        }
+    }
+
+    public class NullableMemberAccess : PartialSqlString
+    {
+        public NullableMemberAccess(string text)
+            : base(text)
+        {
         }
     }
 

@@ -90,5 +90,17 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.AreEqual(dataKey3ID, verify.Key3ID);
             Assert.AreEqual(dataTextData, verify.TextData);
         }
+    
+        [Test]
+        public void VerifyNullablesCanBeInserted()
+        {
+            var user = new UserDecoratedWithNullable();
+            user.Name = "TestNull";
+            user.Age = null;
+            Database.Insert(user);
+            var verify = Database.Single<UserDecoratedWithNullable>("select * from users where userid = @0", user.UserId);
+            Assert.AreEqual(user.Name, verify.Name);
+            Assert.AreEqual(user.Age, verify.Age);
+        }
     }
 }

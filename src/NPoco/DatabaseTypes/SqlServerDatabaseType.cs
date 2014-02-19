@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -41,6 +42,14 @@ namespace NPoco.DatabaseTypes
         public override IsolationLevel GetDefaultTransactionIsolationLevel()
         {
             return IsolationLevel.ReadCommitted;
+        }
+
+        public override DbType? LookupDbType(Type type, string name)
+        {
+            if (type == typeof (TimeSpan) || type == typeof(TimeSpan?))
+                return null;
+            
+            return base.LookupDbType(type, name);
         }
 
         public override string GetProviderName()

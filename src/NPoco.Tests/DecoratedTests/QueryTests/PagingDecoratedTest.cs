@@ -85,5 +85,43 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             Assert.AreEqual(page.TotalItems, 15);
             Assert.AreEqual(page.TotalPages, 3);
         }
+
+        [Test]
+        public void Page_MultiPoco()
+        {
+            var page = Database.Page<UserDecorated, ExtraUserInfoDecorated, CustomerUser>((user, extra) =>
+            {
+                return new CustomerUser
+                {
+                    Id = user.UserId,
+                    CustomerName = user.Name,
+                    CustomerEmail = extra.Email
+                };
+            }, 2, 5, "SELECT Users.UserId AS UserId, Users.Name, ExtraUserInfos.Email FROM Users INNER JOIN ExtraUserInfos ON Users.UserId = ExtraUserInfos.UserId");
+
+            foreach (var customer in page.Items)
+            {
+                var found = false;
+                var emailMatch = false;
+                foreach (var inMemoryUser in InMemoryUsers)
+                {
+                    if (customer.CustomerName == inMemoryUser.Name)
+                    {
+                        found = true;
+                        emailMatch = InMemoryExtraUserInfos.Exists(info => info.UserId == customer.Id && info.Email == customer.CustomerEmail);
+                        break;
+                    }
+                }
+                if (!found) Assert.Fail("Could not find user '" + customer.CustomerName + "' in InMemoryUsers.");
+                if (!emailMatch) Assert.Fail("Email doesn't match for user '" + customer.CustomerName + "' in InMemoryExtraUserInfos.");
+            }
+
+            // Check other stats
+            Assert.AreEqual(page.Items.Count, 5);
+            Assert.AreEqual(page.CurrentPage, 2);
+            Assert.AreEqual(page.ItemsPerPage, 5);
+            Assert.AreEqual(page.TotalItems, 15);
+            Assert.AreEqual(page.TotalPages, 3);
+        }
     }
 }

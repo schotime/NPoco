@@ -7,7 +7,7 @@ namespace NPoco.Expressions
 {
     public static class S
     {
-        public static bool In<T>(this T value, params object[] list)
+        public static bool In<T>(this T value, IEnumerable<T> list)
         {
             return list.Contains(value);
         }
