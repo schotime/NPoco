@@ -40,7 +40,7 @@ namespace NPoco
                 if (_pocoData.type == typeof(object))
                 {
                     // var poco=new T()
-                    il.Emit(OpCodes.Newobj, typeof(System.Dynamic.ExpandoObject).GetConstructor(Type.EmptyTypes));			// obj
+                    il.Emit(OpCodes.Newobj, typeof(PocoExpando).GetConstructor(Type.EmptyTypes));			// obj
 
                     MethodInfo fnAdd = typeof(IDictionary<string, object>).GetMethod("Add");
 
