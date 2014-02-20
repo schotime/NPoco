@@ -887,7 +887,7 @@ namespace NPoco.Expressions
 
                 var pocoColumn = localModelDef.Columns.Values.Single(x=>x.MemberInfo.Name == m.Member.Name);
 
-                var columnName = (PrefixFieldWithTableName ? _databaseType.EscapeTableName(localModelDef.TableInfo.TableName) + "." : "") 
+                var columnName = (PrefixFieldWithTableName ? _databaseType.EscapeTableName(localModelDef.TableInfo.AutoAlias) + "." : "") 
                     + _databaseType.EscapeSqlIdentifier(pocoColumn.ColumnName);
 
                 members.Add(pocoColumn);
@@ -1243,15 +1243,14 @@ namespace NPoco.Expressions
 
         private void BuildSelectExpression(string fields, bool distinct)
         {
-            var cols = modelDef.QueryColumns.Select(x => _databaseType.EscapeSqlIdentifier(x.Key)).ToArray();
             selectExpression = string.Format("SELECT {0}{1} \nFROM {2}",
                 (distinct ? "DISTINCT " : ""),
                 (string.IsNullOrEmpty(fields) ?
                     string.Join(", ", modelDef.QueryColumns.Select(x => PrefixFieldWithTableName
-                        ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." + _databaseType.EscapeSqlIdentifier(x.Key) + " as " + x.Value.AutoAlias
+                        ? _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." + _databaseType.EscapeSqlIdentifier(x.Key) + " as " + x.Value.AutoAlias
                         : _databaseType.EscapeSqlIdentifier(x.Key)).ToArray()) :
                     fields),
-                _databaseType.EscapeTableName(modelDef.TableInfo.TableName));
+                _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + " " + modelDef.TableInfo.AutoAlias);
         }
 
         internal List<PocoColumn> GetAllMembers()

@@ -42,7 +42,9 @@ namespace NPoco
                 Mapper.GetTableInfo(t, TableInfo);
 
             var alias = FindAlias(type.Name, type);
+            TableInfo.AutoAlias = alias;
             var index = 0;
+            
             // Work out bound properties
             Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
             foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(t))

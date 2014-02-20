@@ -34,6 +34,7 @@ namespace NPoco.FluentMappings
                 mapper.GetTableInfo(t, TableInfo);
 
             var alias = FindAlias(type.Name, type);
+            TableInfo.AutoAlias = alias;
             var index = 0;
 
             // Work out bound properties

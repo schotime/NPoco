@@ -332,7 +332,7 @@ namespace NPoco
              
             // build cols
             var cols = modelDef.QueryColumns.Select((x, j) =>
-                database.DatabaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." +
+                database.DatabaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." +
                 database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + x.Value.AutoAlias);
             
             // build wheres
@@ -360,7 +360,7 @@ namespace NPoco
             // replace templates
             var resultantSql = string.Format(sqlTemplate,
                 string.Join(", ", cols),
-                database.DatabaseType.EscapeTableName(modelDef.TableInfo.TableName),
+                database.DatabaseType.EscapeTableName(modelDef.TableInfo.TableName) + " " + modelDef.TableInfo.AutoAlias,
                 joins,
                 wheres.SQL,
                 orderbys);
@@ -383,9 +383,10 @@ namespace NPoco
                 var joinModelDef = database.PocoDataFactory.ForType(type);
                 var tableName = database.DatabaseType.EscapeTableName(joinModelDef.TableInfo.TableName);
 
-                cols = cols.Concat(joinModelDef.QueryColumns.Select((x, j) => tableName + "." + database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + x.Value.AutoAlias));
+                cols = cols.Concat(joinModelDef.QueryColumns.Select((x, j) => database.DatabaseType.EscapeTableName(joinModelDef.TableInfo.AutoAlias)
+                    + "." + database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + x.Value.AutoAlias));
 
-                joins.Add("  LEFT JOIN " + tableName + " ON " + joinSqlExpression.OnSql);
+                joins.Add("  LEFT JOIN " + tableName + " " + joinModelDef.TableInfo.AutoAlias + " ON " + joinSqlExpression.OnSql);
             }
 
             return joins.Any() ? " \n" + string.Join(" \n", joins) : string.Empty;
