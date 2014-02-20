@@ -329,7 +329,7 @@ namespace NPoco
             var sqlTemplate = count
                 ? "SELECT COUNT(*) FROM {1} {2} {3} {4}"
                 : "SELECT {0} FROM {1} {2} {3} {4}";
-
+             
             // build cols
             var cols = modelDef.QueryColumns.Select((x, j) =>
                 database.DatabaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." +
@@ -337,7 +337,8 @@ namespace NPoco
             
             // build wheres
             var wheres = new Sql();
-            wheres.Append(sqlExpression.Context.ToWhereStatement(), sqlExpression.Context.Params);
+            var where = sqlExpression.Context.ToWhereStatement();
+            wheres.Append(string.IsNullOrEmpty(where) ? string.Empty : "\n" + where, sqlExpression.Context.Params);
 
             // build joins and add cols
             var joins = BuildJoinSql<T>(database, joinSqlExpressions, ref cols);
@@ -353,7 +354,7 @@ namespace NPoco
                     x.AscDesc
                 }).ToList();
 
-                orderbys = "ORDER BY " + string.Join(", ", orderMembers.Select(x => x.Column.AutoAlias + " " + x.AscDesc));
+                orderbys = "\nORDER BY " + string.Join(", ", orderMembers.Select(x => x.Column.AutoAlias + " " + x.AscDesc));
             }
 
             // replace templates
@@ -384,10 +385,10 @@ namespace NPoco
 
                 cols = cols.Concat(joinModelDef.QueryColumns.Select((x, j) => tableName + "." + database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + x.Value.AutoAlias));
 
-                joins.Add("LEFT JOIN " + tableName + " ON " + joinSqlExpression.OnSql);
+                joins.Add("  LEFT JOIN " + tableName + " ON " + joinSqlExpression.OnSql);
             }
 
-            return string.Join(" ", joins);
+            return joins.Any() ? " \n" + string.Join(" \n", joins) : string.Empty;
         }
     }
 }

@@ -387,14 +387,9 @@ namespace NPoco.Expressions
 
         private void BuildOrderByClauseInternal()
         {
-            if (orderByProperties.Count > 0)
+            if (orderByMembers.Count > 0)
             {
-                orderBy = "ORDER BY ";
-                foreach (var prop in orderByProperties)
-                {
-                    orderBy += prop + ",";
-                }
-                orderBy = orderBy.TrimEnd(',');
+                orderBy = "ORDER BY " + string.Join(", ", orderByMembers.Select(x => x.MemberName.AutoAlias + " " + x.AscDesc));
             }
             else
             {
@@ -1253,7 +1248,7 @@ namespace NPoco.Expressions
                 (distinct ? "DISTINCT " : ""),
                 (string.IsNullOrEmpty(fields) ?
                     string.Join(", ", modelDef.QueryColumns.Select(x => PrefixFieldWithTableName
-                        ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." + _databaseType.EscapeSqlIdentifier(x.Key)
+                        ? _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + "." + _databaseType.EscapeSqlIdentifier(x.Key) + " as " + x.Value.AutoAlias
                         : _databaseType.EscapeSqlIdentifier(x.Key)).ToArray()) :
                     fields),
                 _databaseType.EscapeTableName(modelDef.TableInfo.TableName));

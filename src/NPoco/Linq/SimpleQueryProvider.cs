@@ -148,13 +148,8 @@ namespace NPoco.Linq
                 return _database.Fetch<T>(_sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
 
             var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Select(x => x.Type)).ToArray();
-            return _database.Query<T>(types, null, BuildJoinSql()).ToList();
-        }
-
-        private Sql BuildJoinSql()
-        {
             var sql = _database.DatabaseType.BuildJoin<T>(_database, _sqlExpression, _joinSqlExpressions, false);
-            return sql;
+            return _database.Query<T>(types, null, sql).ToList();
         }
 
         public ISimpleQueryProvider<T> Limit(int rows)
