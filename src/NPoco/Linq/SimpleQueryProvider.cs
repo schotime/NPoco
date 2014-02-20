@@ -134,11 +134,11 @@ namespace NPoco.Linq
             if ((result.TotalItems % pageSize) != 0)
                 result.TotalPages++;
 
-            _sqlExpression = _sqlExpression.Limit(offset, pageSize);
-            result.Items = ToList();
-
             _database.OneTimeCommandTimeout = saveTimeout;
 
+            _sqlExpression = _sqlExpression.Limit(offset, pageSize);
+            result.Items = ToList();
+            
             return result;
         } 
 
