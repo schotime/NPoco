@@ -679,15 +679,15 @@ namespace NPoco
 
         public List<T> FetchWhere<T>(Expression<Func<T, bool>> expression)
         {
-            var ev = _dbType.ExpressionVisitor<T>(this);
+            var ev = _dbType.ExpressionVisitor<T>(this, true);
             var query = ev.Where(expression);
-            var sql = query.Context.ToWhereStatement();
+            var sql = query.Context.ToSelectStatement();
             return Fetch<T>(sql, query.Context.Params.ToArray());
         }
 
         public List<T> FetchBy<T>(Func<SqlExpression<T>, SqlExpression<T>> expression)
         {
-            var ev = _dbType.ExpressionVisitor<T>(this);
+            var ev = _dbType.ExpressionVisitor<T>(this, true);
             var query = expression(ev);
             var sql = query.Context.ToSelectStatement();
             return Fetch<T>(sql, query.Context.Params.ToArray());
@@ -903,6 +903,16 @@ namespace NPoco
         // Actual implementation of the multi-poco query
         public IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql)
         {
+            if (types.Length == 1)
+            {
+                foreach (var item in Query<TRet>(sql))
+                {
+                    yield return item;
+                }
+
+                yield break;
+            }
+
             try
             {
                 OpenSharedConnectionInternal();

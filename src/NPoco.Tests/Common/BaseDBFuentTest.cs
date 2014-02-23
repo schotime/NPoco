@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Linq;
 using NPoco.DatabaseTypes;
 using NPoco.FluentMappings;
+using NPoco.Tests.FluentMappings;
 using NPoco.Tests.FluentTests.QueryTests;
 using NUnit.Framework;
 
@@ -13,11 +14,12 @@ namespace NPoco.Tests.Common
     {
         public List<User> InMemoryUsers { get; set; }
         public List<ExtraUserInfo> InMemoryExtraUserInfos { get; set; }
+        public List<House> InMemoryHouses { get; set; }
 
         [SetUp]
         public void SetUp()
         {
-            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(Usersss) };
+            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(Usersss), typeof(House), typeof(Supervisor) };
             var dbFactory = new DatabaseFactory();
             dbFactory.Config().WithFluentConfig(
                 FluentMappingConfiguration.Scan(s =>
@@ -25,6 +27,7 @@ namespace NPoco.Tests.Common
                     s.Assembly(typeof (User).Assembly);
                     s.IncludeTypes(types.Contains);
                     s.WithSmartConventions();
+                    s.Columns.ResultWhere(y => ColumnInfo.FromMemberInfo(y).IgnoreColumn);
                     s.OverrideMappingsWith(new FluentMappingOverrides());
                 })
             );
@@ -70,6 +73,18 @@ namespace NPoco.Tests.Common
         {
             InMemoryUsers = new List<User>();
             InMemoryExtraUserInfos = new List<ExtraUserInfo>();
+            InMemoryHouses = new List<House>();
+
+            for (var i = 0; i < 5; i++)
+            {
+                var house = new House()
+                {
+                    Address = i + " Road Street, Suburb"
+                };
+                Database.Insert(house);
+                InMemoryHouses.Add(house);
+            }
+
             for (var i = 0; i < 15; i++)
             {
                 var user = new User
@@ -80,7 +95,9 @@ namespace NPoco.Tests.Common
                     Savings = 50.00m + (1.01m * (i + 1)),
                     IsMale = (i%2 == 0),
                     UniqueId = (i%2 != 0 ? Guid.NewGuid() : (Guid?)null),
-                    TimeSpan = new TimeSpan(1,1,1)
+                    TimeSpan = new TimeSpan(1,1,1),
+                    HouseId = i%2==0?(int?)null:InMemoryHouses[i%5].HouseId,
+                    SupervisorId = i%2==0?i:(int?)null
                 };
                 Database.Insert(user);
                 InMemoryUsers.Add(user);
@@ -111,6 +128,8 @@ namespace NPoco.Tests.Common
         public FluentMappingOverrides()
         {
             For<User>().Columns(x => x.Column(y => y.IsMale).WithName("is_male"));
+            For<Supervisor>().UseMap<SupervisorMap>();
+            For<Supervisor>().TableName("users").Columns(x => x.Column(y => y.IsMale).WithName("is_male"));
         }
     }
 }

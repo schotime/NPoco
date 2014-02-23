@@ -13,7 +13,7 @@ namespace NPoco
     {
         protected internal IMapper Mapper;
         internal bool EmptyNestedObjectNull;
-        protected static readonly ThreadSafeDictionary<string, Type> AliasToType = new ThreadSafeDictionary<string, Type>();
+        private static readonly ThreadSafeDictionary<string, Type> AliasToType = new ThreadSafeDictionary<string, Type>();
      
         protected internal Type type;
         public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected set; }
@@ -41,7 +41,7 @@ namespace NPoco
             if (Mapper != null)
                 Mapper.GetTableInfo(t, TableInfo);
 
-            var alias = FindAlias(type.Name, type);
+            var alias = CreateAlias(type.Name, type);
             TableInfo.AutoAlias = alias;
             var index = 0;
             
@@ -73,18 +73,19 @@ namespace NPoco
             QueryColumns = Columns.Where(c => !c.Value.ResultColumn).ToArray();
         }
 
-        protected string FindAlias(string typeName, Type type)
+        protected string CreateAlias(string typeName, Type typeIn)
         {
             string alias;
             int i = 0;
             bool result = false;
+            string name = string.Join(string.Empty, typeName.BreakUpCamelCase().Split(' ').Select(x => x.Substring(0, 1)));
             do
             {
-                alias = typeName.CreateAlias() + (i==0 ? string.Empty : i.ToString());
+                alias = name + (i == 0 ? string.Empty : i.ToString());
                 i++;
                 if (AliasToType.ContainsKey(alias))
                     continue;
-                AliasToType.Add(alias, type);
+                AliasToType.Add(alias, typeIn);
                 result = true;
             } while (result == false);
 

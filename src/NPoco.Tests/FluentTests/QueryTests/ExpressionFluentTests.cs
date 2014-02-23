@@ -35,8 +35,8 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public void FetchOnWithSecondGenericType()
         {
             var s = new DefaultSqlExpression<User>(Database, true);
-            var joinexp = s.On<CustomerUser>((x, y) => x.Name.Equals(y.CustomerName));
-            Assert.AreEqual(joinexp, "[Users].[Name]=[CustomerUser].[CustomerName]");
+            var joinexp = s.On<CustomerUser>((x, y) => x.Name == y.CustomerName);
+            Assert.AreEqual(joinexp, "([U].[Name] = [CU].[CustomerName])");
         }
 
         [Test]
@@ -221,7 +221,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var sqlExpression = new DefaultSqlExpression<UserDecorated>(Database);
             sqlExpression.Select(x => new {x.IsMale, x.Name});
             var selectStatement = sqlExpression.Context.ToSelectStatement();
-            Assert.AreEqual("SELECT [is_male],[Name] \nFROM [Users]", selectStatement);
+            Assert.AreEqual("SELECT [is_male], [Name] \nFROM [Users] UD", selectStatement);
         }
     }
 }

@@ -33,7 +33,7 @@ namespace NPoco.FluentMappings
             if (mapper != null)
                 mapper.GetTableInfo(t, TableInfo);
 
-            var alias = FindAlias(type.Name, type);
+            var alias = CreateAlias(type.Name, type);
             TableInfo.AutoAlias = alias;
             var index = 0;
 

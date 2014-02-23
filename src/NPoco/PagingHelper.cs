@@ -16,6 +16,8 @@ namespace NPoco
             public string sqlSelectRemoved;
             public string sqlOrderBy;
             public string sqlUnordered;
+            public string sqlColumns;
+            public string sqlSelectAndFromRemoved;
         }
 
         public static bool SplitSQL(string sql, out SQLParts parts)
@@ -25,6 +27,8 @@ namespace NPoco
             parts.sqlCount = null;
             parts.sqlOrderBy = null;
             parts.sqlUnordered = sql.Trim().Trim(';');
+            parts.sqlColumns = "*";
+            parts.sqlSelectAndFromRemoved = sql.Substring(sql.IndexOf("from", StringComparison.InvariantCultureIgnoreCase));
 
             // Extract the columns from "SELECT <whatever> FROM"
             var m = rxColumns.Match(sql);

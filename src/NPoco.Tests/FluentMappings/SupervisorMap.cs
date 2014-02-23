@@ -8,7 +8,8 @@ namespace NPoco.Tests.FluentMappings
         public SupervisorMap(TypeDefinition t) : base(t)
         {
             UseMap<UserMap>();
-            Columns(x => x.Column(y => y.IsSupervisor).Result());
+            //Columns(x => x.Column(y => y.IsSupervisor).Result());
+            TableName("Users").PrimaryKey(x => x.UserId);
         }
     }
 }

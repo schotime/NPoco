@@ -19,10 +19,5 @@ namespace NPoco
             var output = patterns.Aggregate(s, (current, pattern) => Regex.Replace(current, pattern, "$1 $2", RegexOptions.IgnorePatternWhitespace));
             return output;
         }
-
-        public static string CreateAlias(this string s)
-        {
-            return string.Join(string.Empty, s.BreakUpCamelCase().Split(' ').Select(x => x.Substring(0, 1)));
-        }
     }
 }

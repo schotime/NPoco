@@ -145,7 +145,7 @@ namespace NPoco
         /// <returns>The final SQL query that should be executed.</returns>
         public virtual string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
-            var sql = string.Format("{0}\nLIMIT @{1} OFFSET @{2}", parts.sql, args.Length, args.Length + 1);
+            var sql = string.Format("SELECT {0} {1}\nLIMIT @{2} OFFSET @{3}", parts.sqlColumns, parts.sqlSelectAndFromRemoved, args.Length, args.Length + 1);
             args = args.Concat(new object[] { take, skip }).ToArray();
             return sql;
         }
@@ -323,73 +323,5 @@ namespace NPoco
             return "System.Data.SqlClient";
         }
 
-        public Sql BuildJoin<T>(IDatabase database, SqlExpression<T> sqlExpression, List<JoinData> joinSqlExpressions, bool count)
-        {
-            var modelDef = database.PocoDataFactory.ForType(typeof(T));
-            var sqlTemplate = count
-                ? "SELECT COUNT(*) FROM {1} {2} {3} {4}"
-                : "SELECT {0} FROM {1} {2} {3} {4}";
-             
-            // build cols
-            var cols = modelDef.QueryColumns.Select((x, j) =>
-                database.DatabaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." +
-                database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + x.Value.AutoAlias);
-            
-            // build wheres
-            var wheres = new Sql();
-            var where = sqlExpression.Context.ToWhereStatement();
-            wheres.Append(string.IsNullOrEmpty(where) ? string.Empty : "\n" + where, sqlExpression.Context.Params);
-
-            // build joins and add cols
-            var joins = BuildJoinSql<T>(database, joinSqlExpressions, ref cols);
-            
-            // build orderbys
-            ISqlExpression exp = sqlExpression;
-            var orderbys = string.Empty;
-            if (!count && exp.OrderByMembers.Any())
-            {
-                var orderMembers = exp.OrderByMembers.Select(x => new
-                {
-                    Column = database.PocoDataFactory.ForType(x.Type).Columns.Values.Single(z => z.MemberInfo.Name == x.MemberName.MemberInfo.Name),
-                    x.AscDesc
-                }).ToList();
-
-                orderbys = "\nORDER BY " + string.Join(", ", orderMembers.Select(x => x.Column.AutoAlias + " " + x.AscDesc));
-            }
-
-            // replace templates
-            var resultantSql = string.Format(sqlTemplate,
-                string.Join(", ", cols),
-                database.DatabaseType.EscapeTableName(modelDef.TableInfo.TableName) + " " + modelDef.TableInfo.AutoAlias,
-                joins,
-                wheres.SQL,
-                orderbys);
-
-            // apply paging
-            if (!count)
-            {
-                resultantSql = exp.ApplyPaging(resultantSql);
-            }
-            return new Sql(resultantSql, wheres.Arguments);
-        }
-
-        private static string BuildJoinSql<T>(IDatabase database, List<JoinData> joinSqlExpressions, ref IEnumerable<string> cols)
-        {
-            var joins = new List<string>();
-
-            foreach (var joinSqlExpression in joinSqlExpressions)
-            {
-                var type = joinSqlExpression.Type;
-                var joinModelDef = database.PocoDataFactory.ForType(type);
-                var tableName = database.DatabaseType.EscapeTableName(joinModelDef.TableInfo.TableName);
-
-                cols = cols.Concat(joinModelDef.QueryColumns.Select((x, j) => database.DatabaseType.EscapeTableName(joinModelDef.TableInfo.AutoAlias)
-                    + "." + database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + x.Value.AutoAlias));
-
-                joins.Add("  LEFT JOIN " + tableName + " " + joinModelDef.TableInfo.AutoAlias + " ON " + joinSqlExpression.OnSql);
-            }
-
-            return joins.Any() ? " \n" + string.Join(" \n", joins) : string.Empty;
-        }
     }
 }

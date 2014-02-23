@@ -63,6 +63,9 @@
     <Compile Include="DatabaseTypes\SqlServer2012DatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerCEDatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerDatabaseType.cs" />
+    <Compile Include="Linq\BuildProjectionSql.cs" />
+    <Compile Include="Linq\ISimpleQueryProviderExpression.cs" />
+    <Compile Include="Linq\JoinData.cs" />
     <Compile Include="Linq\SimpleQueryProvider.cs" />
     <Compile Include="MappingFactory.cs" />
     <Compile Include="DefaultMapper.cs" />
