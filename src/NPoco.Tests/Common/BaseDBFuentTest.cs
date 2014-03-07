@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Linq;
 using NPoco.DatabaseTypes;
 using NPoco.FluentMappings;
+using NPoco.Linq;
 using NPoco.Tests.FluentMappings;
 using NPoco.Tests.FluentTests.QueryTests;
 using NUnit.Framework;
@@ -91,7 +92,7 @@ namespace NPoco.Tests.Common
                 {
                     Name = "Name" + (i + 1),
                     Age = 20 + (i + 1),
-                    DateOfBirth = new DateTime(1970, 1, 1).AddYears(i + 1),
+                    DateOfBirth = new DateTime(1970, 1, 1).AddYears(i - 1),
                     Savings = 50.00m + (1.01m * (i + 1)),
                     IsMale = (i%2 == 0),
                     UniqueId = (i%2 != 0 ? Guid.NewGuid() : (Guid?)null),
@@ -120,6 +121,14 @@ namespace NPoco.Tests.Common
             Assert.AreEqual(expected.Age, actual.Age);
             Assert.AreEqual(expected.DateOfBirth, actual.DateOfBirth);
             Assert.AreEqual(expected.Savings, actual.Savings);
+        }
+
+        protected void AssertUserHouseValues(User expected, User actual)
+        {
+            if (actual.House == null)
+                Assert.Null(expected.House);
+            else
+                Assert.AreEqual(expected.House.HouseId, actual.House.HouseId);
         }
     }
 

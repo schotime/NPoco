@@ -22,6 +22,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using NPoco.Expressions;
+using NPoco.Linq;
 
 namespace NPoco
 {
@@ -788,6 +789,11 @@ namespace NPoco
             return Query(default(T), Sql);
         }
 
+        public IQueryProviderWithIncludes<T> Query<T>()
+        {
+            return new QueryProvider<T>(this);
+        }
+
         private IEnumerable<T> Query<T>(T instance, Sql Sql)
         {
             var sql = Sql.SQL;
@@ -1481,6 +1487,11 @@ namespace NPoco
             return primaryKeyValues;
         }
 
+        public IUpdateQueryProvider<T> Update<T>()
+        {
+            return new UpdateQueryProvider<T>(this);
+        }
+
         public int Update(string tableName, string primaryKeyName, object poco)
         {
             return Update(tableName, primaryKeyName, poco, null);
@@ -1522,6 +1533,11 @@ namespace NPoco
         {
             var pd = PocoDataFactory.ForType(typeof(T));
             return Execute(new Sql(string.Format("UPDATE {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
+        }
+
+        public IDeleteQueryProvider<T> Delete<T>()
+        {
+            return new DeleteQueryProvider<T>(this);
         }
 
         public int Delete(string tableName, string primaryKeyName, object poco)

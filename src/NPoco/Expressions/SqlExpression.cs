@@ -17,10 +17,39 @@ namespace NPoco.Expressions
         public string AscDesc { get; set; }
     }
 
-    public class SelectMember
+    public class SelectMember : IEquatable<SelectMember>
     {
         public Type EntityType { get; set; }
         public string SelectSql { get; set; }
+        public PocoColumn PocoColumn { get; set; }
+
+        public bool Equals(SelectMember other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Equals(EntityType, other.EntityType) && Equals(PocoColumn, other.PocoColumn);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((SelectMember) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((EntityType != null ? EntityType.GetHashCode() : 0)*397) ^ (PocoColumn != null ? PocoColumn.GetHashCode() : 0);
+            }
+        }
+    }
+
+    public class GeneralMember
+    {
+        public Type EntityType { get; set; }
         public PocoColumn PocoColumn { get; set; }
     }
 
@@ -67,7 +96,7 @@ namespace NPoco.Expressions
         private bool WhereStatementWithoutWhereString { get; set; }
         private Type _type { get; set; }
 
-        private List<PocoColumn> members;
+        private List<GeneralMember> members;
 
         public SqlExpression(IDatabase database, bool prefixTableName)
         {
@@ -78,7 +107,7 @@ namespace NPoco.Expressions
             PrefixFieldWithTableName = prefixTableName;
             WhereStatementWithoutWhereString = false;
             paramPrefix = "@";
-            members = new List<PocoColumn>();
+            members = new List<GeneralMember>();
             Context = new SqlExpressionContext(this);
         }
 
@@ -113,7 +142,7 @@ namespace NPoco.Expressions
             public virtual string ToUpdateStatement(T item, bool excludeDefaults, bool allFields)
             {
                 if (allFields)
-                    _expression.members = _expression.GetAllMembers();
+                    _expression.members = _expression.GetAllMembers().Select(x => new GeneralMember { EntityType = typeof(T), PocoColumn = x }).ToList();
 
                 return _expression.ToUpdateStatement(item, excludeDefaults);
             }
@@ -181,7 +210,7 @@ namespace NPoco.Expressions
             _projection = true;
             Visit(fields);
             _projection = false;
-            var proj = new List<SelectMember>(selectColumns);
+            var proj = new List<SelectMember>(selectColumns.Union(members.Select(x=>new SelectMember() { EntityType = x.EntityType, PocoColumn = x.PocoColumn, SelectSql = x.PocoColumn.AutoAlias })));
             selectColumns.Clear();
             return proj;
         }
@@ -416,7 +445,7 @@ namespace NPoco.Expressions
         {
             if (orderByMembers.Count > 0)
             {
-                orderBy = "ORDER BY " + string.Join(", ", orderByMembers.Select(x => x.PocoColumn.AutoAlias + " " + x.AscDesc));
+                orderBy = "ORDER BY " + string.Join(", ", orderByMembers.Select(x => PrefixFieldWithTableName ? x.PocoColumn.AutoAlias : x.PocoColumn.ColumnName + " " + x.AscDesc).ToArray());
             }
             else
             {
@@ -491,7 +520,7 @@ namespace NPoco.Expressions
             sep = string.Empty;
             members.Clear();
             Visit(fields);
-            Context.UpdateFields = new List<string>(members.Select(x => x.ColumnName));
+            Context.UpdateFields = new List<string>(members.Select(x => x.PocoColumn.ColumnName));
             members.Clear();
             return this;
         }
@@ -544,9 +573,10 @@ namespace NPoco.Expressions
 
         protected virtual string ToDeleteStatement()
         {
-            return string.Format("DELETE FROM {0} {1}",
-                                                   _databaseType.EscapeTableName(modelDef.TableInfo.TableName),
-                                                   WhereExpression);
+            return string.Format("DELETE {0} FROM {1} {2}",
+                (PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) : string.Empty),
+                _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + (PrefixFieldWithTableName ? " " + modelDef.TableInfo.AutoAlias : string.Empty),
+                WhereExpression);
         }
 
         protected virtual string ToUpdateStatement(T item)
@@ -574,10 +604,13 @@ namespace NPoco.Expressions
                 if (setFields.Length > 0)
                     setFields.Append(", ");
 
-                setFields.AppendFormat("{0} = {1}", _databaseType.EscapeSqlIdentifier(fieldDef.Value.ColumnName), CreateParam(value));
+                setFields.AppendFormat("{0} = {1}", (PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." : string.Empty) + _databaseType.EscapeSqlIdentifier(fieldDef.Value.ColumnName), CreateParam(value));
             }
 
-            return string.Format("UPDATE {0} SET {1} {2}", _databaseType.EscapeTableName(modelDef.TableInfo.TableName), setFields, WhereExpression);
+            if (PrefixFieldWithTableName)
+                return string.Format("UPDATE {0} SET {2} FROM {1} {3}", _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias), _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + " " + modelDef.TableInfo.AutoAlias, setFields, WhereExpression);
+            else
+                return string.Format("UPDATE {0} SET {1} {2}", _databaseType.EscapeTableName(modelDef.TableInfo.TableName), setFields, WhereExpression);
         }
 
         protected string ToWhereStatement()
@@ -617,7 +650,7 @@ namespace NPoco.Expressions
             {
                 var selectMembers = orderByMembers
                     .Select(x => new SelectMember() { PocoColumn = x.PocoColumn, EntityType = x.EntityType})
-                    .Where(x => !selectColumns.Select(y => y.PocoColumn.MemberInfo.Name).Contains(x.PocoColumn.MemberInfo.Name));
+                    .Where(x => !selectColumns.Any(y => y.EntityType == x.EntityType && y.PocoColumn.MemberInfo.Name == x.PocoColumn.MemberInfo.Name));
 
                 var morecols = selectColumns.Concat(selectMembers);
                 var cols = selectColumns.Count == 0 ? null : morecols.ToList();
@@ -749,6 +782,8 @@ namespace NPoco.Expressions
                 case ExpressionType.ExclusiveOr:
                     //return "(" + VisitBinary(exp as BinaryExpression) + ")";
                     return VisitBinary(exp as BinaryExpression);
+                case ExpressionType.Conditional:
+                    return VisitConditional(exp as ConditionalExpression);
                 case ExpressionType.Negate:
                 case ExpressionType.NegateChecked:
                 case ExpressionType.Not:
@@ -926,7 +961,7 @@ namespace NPoco.Expressions
                 var columnName = (PrefixFieldWithTableName ? 
                     _databaseType.EscapeTableName(localModelDef.TableInfo.AutoAlias) + "." : "") + _databaseType.EscapeSqlIdentifier(pocoColumn.ColumnName);
 
-                members.Add(pocoColumn);
+                members.Add(new GeneralMember() { EntityType = type, PocoColumn = pocoColumn });
 
                 if (isNull)
                     return new NullableMemberAccess(pocoColumn, columnName, type);
@@ -1034,6 +1069,16 @@ namespace NPoco.Expressions
                 return new PartialSqlString("null");
 
             return c.Value;
+        }
+
+        protected virtual object VisitConditional(ConditionalExpression conditional)
+        {
+            sep = " ";
+            var test = Visit(conditional.Test);
+            var trueSql = Visit(conditional.IfTrue);
+            var falseSql = Visit(conditional.IfFalse);
+
+            return new PartialSqlString(string.Format("(case when {0} then {1} else {2} end)", test, trueSql, falseSql));
         }
 
         private string CreateParam(object value)
@@ -1322,7 +1367,7 @@ namespace NPoco.Expressions
                                 : _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName));
                         return x.SelectSql;
                     }).ToArray()),
-                _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + " " + modelDef.TableInfo.AutoAlias);
+                    _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + (PrefixFieldWithTableName ? " " +  modelDef.TableInfo.AutoAlias : string.Empty));
         }
 
         internal List<PocoColumn> GetAllMembers()
@@ -1335,7 +1380,7 @@ namespace NPoco.Expressions
             if (!Rows.HasValue || Rows == 0)
                 return sql;
 
-            string sqlCount, sqlPage;
+            string sqlPage;
             var parms = _params.Select(x => x).ToArray();
 
             // Split the SQL

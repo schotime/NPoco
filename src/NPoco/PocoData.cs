@@ -78,7 +78,7 @@ namespace NPoco
             string alias;
             int i = 0;
             bool result = false;
-            string name = string.Join(string.Empty, typeName.BreakUpCamelCase().Split(' ').Select(x => x.Substring(0, 1)));
+            string name = string.Join(string.Empty, typeName.BreakUpCamelCase().Split(' ').Select(x => x.Substring(0, 1)).ToArray());
             do
             {
                 alias = name + (i == 0 ? string.Empty : i.ToString());
