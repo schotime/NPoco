@@ -445,7 +445,7 @@ namespace NPoco.Expressions
         {
             if (orderByMembers.Count > 0)
             {
-                orderBy = "ORDER BY " + string.Join(", ", orderByMembers.Select(x => PrefixFieldWithTableName ? x.PocoColumn.AutoAlias : x.PocoColumn.ColumnName + " " + x.AscDesc).ToArray());
+                orderBy = "ORDER BY " + string.Join(", ", orderByMembers.Select(x => (PrefixFieldWithTableName ? x.PocoColumn.AutoAlias : x.PocoColumn.ColumnName) + " " + x.AscDesc).ToArray());
             }
             else
             {
