@@ -1427,8 +1427,8 @@ namespace NPoco.Expressions
             PagingHelper.SQLParts parts;
             if (!PagingHelper.SplitSQL(sql, out parts)) throw new Exception("Unable to parse SQL statement for paged query");
 
-            if (columns != null && _databaseType.UseColumnAliases()) 
-                parts.sqlColumns = string.Join(", ", columns.Select(x => _databaseType.EscapeSqlIdentifier(x.AutoAlias)));
+            if (columns != null && columns.Any() && _databaseType.UseColumnAliases()) 
+                parts.sqlColumns = string.Join(", ", columns.Select(x => _databaseType.EscapeSqlIdentifier(x.AutoAlias)).ToArray());
 
             sqlPage = _databaseType.BuildPageQuery(Skip ?? 0, Rows ?? 0, parts, ref parms);
 
