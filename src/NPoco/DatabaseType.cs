@@ -150,6 +150,11 @@ namespace NPoco
             return sql;
         }
 
+        public virtual bool UseColumnAliases()
+        {
+            return false;
+        }
+
         /// <summary>
         /// Returns an SQL Statement that can check for the existance of a row in the database.
         /// </summary>

@@ -51,6 +51,7 @@ namespace NPoco.FluentMappings
                     continue;
                 
                 var pc = new PocoColumn();
+                pc.TableInfo = TableInfo;
                 pc.MemberInfo = mi;
 
                 // Work out the DB column name

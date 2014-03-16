@@ -54,6 +54,7 @@ namespace NPoco
                     continue;
 
                 var pc = new PocoColumn();
+                pc.TableInfo = TableInfo;
                 pc.MemberInfo = mi;
                 pc.ColumnName = ci.ColumnName;
                 pc.ResultColumn = ci.ResultColumn;

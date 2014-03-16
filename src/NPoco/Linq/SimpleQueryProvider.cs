@@ -214,8 +214,7 @@ namespace NPoco.Linq
 
             var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
             var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false);
-            var newsql = ((ISqlExpression)_sqlExpression).ApplyPaging(sql.SQL, null);
-            return _database.Query<T>(types, null, new Sql(newsql, sql.Arguments));
+            return _database.Query<T>(types, null, sql);
         }
 
         public IQueryProvider<T> Limit(int rows)

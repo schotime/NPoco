@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Collections.ObjectModel;
 using System.Linq.Expressions;
@@ -61,7 +62,7 @@ namespace NPoco.Expressions
         string WhereSql { get; }
         object[] Params { get; }
         Type Type { get; }
-        string ApplyPaging(string sql, string columns);
+        string ApplyPaging(string sql, IEnumerable<PocoColumn> columns);
     }
 
     public abstract class SqlExpression<T> : ISqlExpression
@@ -83,7 +84,7 @@ namespace NPoco.Expressions
         Type ISqlExpression.Type { get { return _type; } }
         object[] ISqlExpression.Params { get { return Context.Params; } }
 
-        string ISqlExpression.ApplyPaging(string sql, string columns)
+        string ISqlExpression.ApplyPaging(string sql, IEnumerable<PocoColumn> columns)
         {
             return ApplyPaging(sql, columns);
         }
@@ -210,7 +211,7 @@ namespace NPoco.Expressions
             _projection = true;
             Visit(fields);
             _projection = false;
-            var proj = new List<SelectMember>(selectColumns.Union(members.Select(x=>new SelectMember() { EntityType = x.EntityType, PocoColumn = x.PocoColumn, SelectSql = x.PocoColumn.AutoAlias })));
+            var proj = new List<SelectMember>(selectColumns.Union(members.Select(x=>new SelectMember() { EntityType = x.EntityType, PocoColumn = x.PocoColumn, SelectSql = _databaseType.EscapeSqlIdentifier(x.PocoColumn.AutoAlias) })));
             selectColumns.Clear();
             return proj;
         }
@@ -445,7 +446,7 @@ namespace NPoco.Expressions
         {
             if (orderByMembers.Count > 0)
             {
-                orderBy = "ORDER BY " + string.Join(", ", orderByMembers.Select(x => (PrefixFieldWithTableName ? x.PocoColumn.AutoAlias : x.PocoColumn.ColumnName) + " " + x.AscDesc).ToArray());
+                orderBy = "ORDER BY " + string.Join(", ", orderByMembers.Select(x => (PrefixFieldWithTableName ? _databaseType.EscapeSqlIdentifier(x.PocoColumn.AutoAlias) : _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName)) + " " + x.AscDesc).ToArray());
             }
             else
             {
@@ -575,7 +576,7 @@ namespace NPoco.Expressions
         {
             return string.Format("DELETE {0} FROM {1} {2}",
                 (PrefixFieldWithTableName ? _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) : string.Empty),
-                _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + (PrefixFieldWithTableName ? " " + modelDef.TableInfo.AutoAlias : string.Empty),
+                _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + (PrefixFieldWithTableName ? " " + _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) : string.Empty),
                 WhereExpression);
         }
 
@@ -608,7 +609,7 @@ namespace NPoco.Expressions
             }
 
             if (PrefixFieldWithTableName)
-                return string.Format("UPDATE {0} SET {2} FROM {1} {3}", _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias), _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + " " + modelDef.TableInfo.AutoAlias, setFields, WhereExpression);
+                return string.Format("UPDATE {0} SET {2} FROM {1} {3}", _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias), _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + " " + _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias), setFields, WhereExpression);
             else
                 return string.Format("UPDATE {0} SET {1} {2}", _databaseType.EscapeTableName(modelDef.TableInfo.TableName), setFields, WhereExpression);
         }
@@ -625,18 +626,18 @@ namespace NPoco.Expressions
             sql.Append(SelectExpression);
             sql.Append(string.IsNullOrEmpty(WhereExpression) ?
                        "" :
-                       "\n" + WhereExpression);
+                       " \n" + WhereExpression);
             sql.Append(string.IsNullOrEmpty(GroupByExpression) ?
                        "" :
-                       "\n" + GroupByExpression);
+                       " \n" + GroupByExpression);
             sql.Append(string.IsNullOrEmpty(HavingExpression) ?
                        "" :
-                       "\n" + HavingExpression);
+                       " \n" + HavingExpression);
             sql.Append(string.IsNullOrEmpty(OrderByExpression) ?
                        "" :
-                       "\n" + OrderByExpression);
+                       " \n" + OrderByExpression);
 
-            return applyPaging ? ApplyPaging(sql.ToString(), null) : sql.ToString();
+            return applyPaging ? ApplyPaging(sql.ToString(), ModelDef.QueryColumns.Select(x=>x.Value)) : sql.ToString();
         }
 
         //public virtual string ToCountStatement()
@@ -803,12 +804,56 @@ namespace NPoco.Expressions
                 case ExpressionType.NewArrayBounds:
                     return VisitNewArray(exp as NewArrayExpression);
                 case ExpressionType.MemberInit:
-                    return VisitMemberInit(exp as MemberInitExpression);
+                    return this.VisitMemberInit((MemberInitExpression)exp);
                 default:
                     return exp.ToString();
             }
         }
+        protected virtual Expression VisitMemberInit(MemberInitExpression init)
+        {
+            NewExpression n = init.NewExpression;
+            IEnumerable<MemberBinding> bindings = this.VisitBindingList(init.Bindings);
+            if (n != init.NewExpression || bindings != init.Bindings)
+            {
+                return Expression.MemberInit(n, bindings);
+            }
+            return init;
+        }
 
+        protected virtual IEnumerable<MemberBinding> VisitBindingList(ReadOnlyCollection<MemberBinding> original)
+        {
+            for (int i = 0, n = original.Count; i < n; i++)
+            {
+                this.VisitBinding(original[i]);
+            }
+            return original;
+        }
+
+        protected virtual object VisitBinding(MemberBinding binding)
+        {
+            switch (binding.BindingType)
+            {
+                case MemberBindingType.Assignment:
+                    return this.VisitMemberAssignment((MemberAssignment)binding);
+                case MemberBindingType.MemberBinding:
+                    return this.VisitMemberMemberBinding((MemberMemberBinding)binding);
+                //case MemberBindingType.ListBinding:
+                //    return this.VisitMemberListBinding((MemberListBinding)binding);
+                default:
+                    throw new Exception(string.Format("Unhandled binding type '{0}'", binding.BindingType));
+            }
+        }
+
+        protected virtual object VisitMemberMemberBinding(MemberMemberBinding binding)
+        {
+            return VisitBindingList(binding.Bindings);
+        }
+
+        protected virtual object VisitMemberAssignment(MemberAssignment assignment)
+        {
+            return this.Visit(assignment.Expression);
+        }
+        
         protected virtual object VisitLambda(LambdaExpression lambda)
         {
             if (lambda.Body.NodeType == ExpressionType.MemberAccess && sep == " ")
@@ -991,12 +1036,7 @@ namespace NPoco.Expressions
             }
             return localModelDef;
         }
-
-        protected virtual object VisitMemberInit(MemberInitExpression exp)
-        {
-            return Expression.Lambda(exp).Compile().DynamicInvoke();
-        }
-
+        
         protected virtual object VisitNew(NewExpression nex)
         {
             var member = Expression.Convert(nex, typeof(object));
@@ -1038,7 +1078,7 @@ namespace NPoco.Expressions
                             var memberName = _databaseType.EscapeSqlIdentifier(col.Value.ColumnName);
                             if (memberName != exprs[i].ToString())
                             {
-                                var al = string.Format(" AS {0}", col.Value.AutoAlias);
+                                var al = string.Format(" AS {0}", _databaseType.EscapeSqlIdentifier(col.Value.AutoAlias));
                                 r.AppendFormat(al);
                                 sel.SelectSql += al;
                             }
@@ -1363,11 +1403,11 @@ namespace NPoco.Expressions
                     {
                         if (x.SelectSql == null)
                             return (PrefixFieldWithTableName
-                                ? _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + x.PocoColumn.AutoAlias
+                                ? _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + _databaseType.EscapeSqlIdentifier(x.PocoColumn.AutoAlias)
                                 : _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName));
                         return x.SelectSql;
                     }).ToArray()),
-                    _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + (PrefixFieldWithTableName ? " " +  modelDef.TableInfo.AutoAlias : string.Empty));
+                    _databaseType.EscapeTableName(modelDef.TableInfo.TableName) + (PrefixFieldWithTableName ? " " + _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) : string.Empty));
         }
 
         internal List<PocoColumn> GetAllMembers()
@@ -1375,7 +1415,7 @@ namespace NPoco.Expressions
             return modelDef.Columns.Values.ToList();
         }
 
-        protected virtual string ApplyPaging(string sql, string columns)
+        protected virtual string ApplyPaging(string sql, IEnumerable<PocoColumn> columns)
         {
             if (!Rows.HasValue || Rows == 0)
                 return sql;
@@ -1387,8 +1427,8 @@ namespace NPoco.Expressions
             PagingHelper.SQLParts parts;
             if (!PagingHelper.SplitSQL(sql, out parts)) throw new Exception("Unable to parse SQL statement for paged query");
 
-            if (columns != null)
-                parts.sqlColumns = columns;
+            if (columns != null && _databaseType.UseColumnAliases()) 
+                parts.sqlColumns = string.Join(", ", columns.Select(x => _databaseType.EscapeSqlIdentifier(x.AutoAlias)));
 
             sqlPage = _databaseType.BuildPageQuery(Skip ?? 0, Rows ?? 0, parts, ref parms);
 
@@ -1455,9 +1495,12 @@ namespace NPoco.Expressions
 
         protected virtual object VisitColumnAccessMethod(MethodCallExpression m)
         {
+            if (_projection)
+                return null;
+
             List<Object> args = this.VisitExpressionList(m.Arguments);
             var quotedColName = (MemberAccessString)Visit(m.Object);
-            quotedColName.Text = _projection ? quotedColName.PocoColumn.AutoAlias : quotedColName.Text;
+            quotedColName.Text = _projection ? _databaseType.EscapeSqlIdentifier(quotedColName.PocoColumn.AutoAlias) : quotedColName.Text;
             string statement;
 
             switch (m.Method.Name)
@@ -1489,6 +1532,9 @@ namespace NPoco.Expressions
                     break;
                 case "Equals":
                     statement = string.Format("({0} = {1})", quotedColName, args[0]);
+                    break;
+                case "ToString":
+                    statement = string.Empty;
                     break;
                 default:
                     throw new NotSupportedException();

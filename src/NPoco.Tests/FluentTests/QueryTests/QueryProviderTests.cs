@@ -227,6 +227,53 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 Assert.AreEqual(inmemory[i].HouseId, users[i].HouseId);
             }
         }
+
+        [Test]
+        public void QueryWithIncludeNestedOrderByLimitAndProjectionToProjectUser()
+        {
+            var users = Database.Query<User>()
+                .Include(x => x.House)
+                .Where(x => x.HouseId != null)
+                .OrderBy(x => x.House.HouseId)
+                .Limit(5)
+                .ProjectTo(x => new ProjectUser() { NameWithAge = x.Name + x.Age });
+
+            InMemoryUsers.ForEach(x => x.House = InMemoryHouses.SingleOrDefault(y => y.HouseId == x.HouseId));
+            var inmemory = InMemoryUsers.Where(x => x.HouseId != null).OrderBy(x => x.House.HouseId).ToList();
+
+            Assert.AreEqual(5, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                Assert.AreEqual(inmemory[i].Name + inmemory[i].Age, users[i].NameWithAge);
+            }
+        }
+
+        [Test]
+        public void QueryWithIncludeNestedOrderByLimitAndProjectionToProjectUserWithList()
+        {
+            var users = Database.Query<User>()
+                .Include(x => x.House)
+                .Where(x => x.HouseId != null)
+                .OrderBy(x => x.House.HouseId)
+                .Limit(5)
+                .ProjectTo(x => new ProjectUser() { Array = new object[] { x.Name, x.Age } });
+
+            InMemoryUsers.ForEach(x => x.House = InMemoryHouses.SingleOrDefault(y => y.HouseId == x.HouseId));
+            var inmemory = InMemoryUsers.Where(x => x.HouseId != null).OrderBy(x => x.House.HouseId).ToList();
+
+            Assert.AreEqual(5, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                Assert.AreEqual(inmemory[i].Name, users[i].Array[0]);
+                Assert.AreEqual(inmemory[i].Age, users[i].Array[1]);
+            }
+        }
+    }
+
+    public class ProjectUser
+    {
+        public string NameWithAge { get; set; }
+        public object[] Array { get; set; }
     }
 
     public class Usersss

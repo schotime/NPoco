@@ -10,6 +10,7 @@ namespace NPoco
             ForceToUtc = true;
         }
 
+        public TableInfo TableInfo;
         public string ColumnName;
         public MemberInfo MemberInfo;
         public bool ResultColumn;

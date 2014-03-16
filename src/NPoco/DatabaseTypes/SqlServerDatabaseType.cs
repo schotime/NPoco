@@ -10,6 +10,11 @@ namespace NPoco.DatabaseTypes
     {
         private static readonly Regex OrderByAlias = new Regex(@"(^.* )([\w\""\[\]]*\.)(.*$)", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
+        public override bool UseColumnAliases()
+        {
+            return true;
+        }
+
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
             parts.sqlOrderBy = string.IsNullOrEmpty(parts.sqlOrderBy) ? null : OrderByAlias.Replace(parts.sqlOrderBy, "$1$3");

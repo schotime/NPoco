@@ -27,7 +27,7 @@ namespace NPoco
             parts.sqlCount = null;
             parts.sqlOrderBy = null;
             parts.sqlUnordered = sql.Trim().Trim(';');
-            parts.sqlColumns = "*";
+            parts.sqlColumns = null;
             parts.sqlSelectAndFromRemoved = sql.Substring(sql.IndexOf("from", StringComparison.InvariantCultureIgnoreCase));
 
             // Extract the columns from "SELECT <whatever> FROM"
@@ -37,6 +37,7 @@ namespace NPoco
             // Save column list  [and replace with COUNT(*)]
             Group g = m.Groups[1];
             parts.sqlSelectRemoved = sql.Substring(g.Index);
+            parts.sqlColumns = parts.sqlSelectRemoved.Substring(0, parts.sqlSelectRemoved.IndexOf("from", StringComparison.InvariantCultureIgnoreCase));
 
             // Look for the last "ORDER BY <whatever>" clause not part of a ROW_NUMBER expression
             m = rxOrderBy.Match(parts.sql);
