@@ -8,6 +8,7 @@ namespace NPoco
         public PocoColumn()
         {
             ForceToUtc = true;
+            IncludeInAutoQuery = true;
         }
 
         public TableInfo TableInfo;
@@ -24,6 +25,7 @@ namespace NPoco
 
         public bool ForceToUtc { get; set; }
         public string AutoAlias { get; set; }
+        public bool IncludeInAutoQuery { get; set; }
 
         public virtual void SetValue(object target, object val) { MemberInfo.SetMemberInfoValue(target, val); }
         public virtual object GetValue(object target) { return MemberInfo.GetMemberInfoValue(target); }

@@ -142,6 +142,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.VersionColumn = overrideColumnDefinition.Value.VersionColumn ?? convColDefinition.VersionColumn;
                     convColDefinition.MemberInfo = overrideColumnDefinition.Value.MemberInfo ?? convColDefinition.MemberInfo;
                     convColDefinition.ForceUtc = overrideColumnDefinition.Value.ForceUtc ?? convColDefinition.ForceUtc;
+                    convColDefinition.IncludeInAutoQuery = overrideColumnDefinition.Value.IncludeInAutoQuery ?? convColDefinition.IncludeInAutoQuery;
                 }
             }
         }

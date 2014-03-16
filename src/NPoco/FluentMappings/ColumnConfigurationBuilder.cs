@@ -32,6 +32,7 @@ namespace NPoco.FluentMappings
         IColumnBuilder Version();
         IColumnBuilder Ignore();
         IColumnBuilder Result();
+        IColumnBuilder Result(bool includeInAutoQuery);
     }
 
     public class ColumnBuilder : IColumnBuilder
@@ -74,6 +75,14 @@ namespace NPoco.FluentMappings
 
         public IColumnBuilder Result()
         {
+            _columnDefinition.IncludeInAutoQuery = false;
+            _columnDefinition.ResultColumn = true;
+            return this;
+        }
+
+        public IColumnBuilder Result(bool includeInAutoQuery)
+        {
+            _columnDefinition.IncludeInAutoQuery = includeInAutoQuery;
             _columnDefinition.ResultColumn = true;
             return this;
         }

@@ -13,6 +13,12 @@ namespace NPoco
         public bool IgnoreColumn { get; set; }
         public bool ForceToUtc { get; set; }
         public Type ColumnType { get; set; }
+        public bool IncludeColumnInAutoQuery { get; set; }
+
+        public ColumnInfo()
+        {
+            IncludeColumnInAutoQuery = true;
+        }
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
@@ -33,6 +39,7 @@ namespace NPoco
             {
                 ci.IgnoreColumn = true;
             }
+            ci.IncludeColumnInAutoQuery = true;
 
             // Read attribute
             if (colAttrs.Any())
@@ -40,7 +47,13 @@ namespace NPoco
                 var colattr = colAttrs.First();
                 ci.ColumnName = colattr.Name ?? mi.Name;
                 ci.ForceToUtc = colattr.ForceToUtc;
-                ci.ResultColumn = colattr is ResultColumnAttribute;
+
+                var resultColumnAttr = colattr as ResultColumnAttribute;
+                if (resultColumnAttr != null)
+                {
+                    ci.ResultColumn = true;
+                    ci.IncludeColumnInAutoQuery = resultColumnAttr.IncludeInAutoSelect;
+                }
             }
             else
             {

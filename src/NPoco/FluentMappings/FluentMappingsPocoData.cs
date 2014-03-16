@@ -66,6 +66,8 @@ namespace NPoco.FluentMappings
 
                     if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)
                         pc.ForceToUtc = true;
+                    if (colattr.IncludeInAutoQuery.HasValue && colattr.IncludeInAutoQuery.Value)
+                        pc.IncludeInAutoQuery = true;
 
                     for (int i = 0; i < originalPK.Length; i++)
                     {
@@ -92,7 +94,7 @@ namespace NPoco.FluentMappings
             TableInfo.PrimaryKey = String.Join(",", originalPK);
 
             // Build column list for automatic select
-            QueryColumns = Columns.Where(x => !x.Value.ResultColumn).ToArray();
+            QueryColumns = Columns.Where(x => x.Value.IncludeInAutoQuery).ToArray();
 
         }
     }

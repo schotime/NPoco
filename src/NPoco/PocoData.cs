@@ -60,6 +60,7 @@ namespace NPoco
                 pc.ResultColumn = ci.ResultColumn;
                 pc.ForceToUtc = ci.ForceToUtc;
                 pc.ColumnType = ci.ColumnType;
+                pc.IncludeInAutoQuery = ci.IncludeColumnInAutoQuery;
 
                 if (Mapper != null && !Mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;
@@ -71,7 +72,7 @@ namespace NPoco
             }
 
             // Build column list for automatic select
-            QueryColumns = Columns.Where(c => !c.Value.ResultColumn).ToArray();
+            QueryColumns = Columns.Where(c => c.Value.IncludeInAutoQuery).ToArray();
         }
 
         protected string CreateAlias(string typeName, Type typeIn)
