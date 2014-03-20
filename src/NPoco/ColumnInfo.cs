@@ -15,8 +15,10 @@ namespace NPoco
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
-            // Check if declaring poco has [Explicit] attribute
-            bool ExplicitColumns = mi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Length > 0;
+            // Check if declaring/reflected poco has [Explicit] attribute
+            var a = mi.ReflectedType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true);
+            bool ExplicitColumns = mi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Any()
+                || a.Length != 0 && (a[0] as ExplicitColumnsAttribute).ApplyToBase;
 
             // Check for [Column]/[Ignore] Attributes
             var ColAttrs = mi.GetCustomAttributes(typeof(ColumnAttribute), true);

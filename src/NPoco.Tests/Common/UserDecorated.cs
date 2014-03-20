@@ -101,4 +101,33 @@ namespace NPoco.Tests.Common
     }
 
     public enum Days : byte { Sat, Sun, Mon, Tue, Wed, Thu, Fri };
+
+    public class UserDecoratedBase
+    {
+        public bool IgnoreMe { get; set; }
+    }
+
+    [TableName("Users")]
+    [PrimaryKey("UserId")]
+    [ExplicitColumns(ApplyToBase = true)]
+    public class UserDecoratedDerived : UserDecoratedBase
+    {
+        [Column("UserId")]
+        public int UserId { get; set; }
+
+        [Column("Name")]
+        public string Name { get; set; }
+
+        [Column("Age")]
+        public int Age { get; set; }
+
+        [Column("DateOfBirth")]
+        public DateTime DateOfBirth { get; set; }
+
+        [Column("Savings")]
+        public decimal Savings { get; set; }
+
+        [Column("is_male")]
+        public bool IsMale { get; set; }
+    }
 }

@@ -109,5 +109,23 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(2, data[0]["userid"]);
             Assert.AreEqual("Name2", data[0]["name"]);
         }
+
+        [Test]
+        public void FetchAllIgnoreBase()
+        {
+            var users = Database.Fetch<UserDecoratedDerived>();
+
+            Assert.AreEqual(InMemoryUsers.Count, users.Count);
+            for (int i = 0; i < InMemoryUsers.Count; i++)
+            {
+                User expected = InMemoryUsers[i];
+                UserDecoratedDerived actual = users[i];
+                Assert.AreEqual(expected.UserId, actual.UserId);
+                Assert.AreEqual(expected.Name, actual.Name);
+                Assert.AreEqual(expected.Age, actual.Age);
+                Assert.AreEqual(expected.DateOfBirth, actual.DateOfBirth);
+                Assert.AreEqual(expected.Savings, actual.Savings);
+            }
+        }
     }
 }
