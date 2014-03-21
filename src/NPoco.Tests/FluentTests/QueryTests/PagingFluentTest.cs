@@ -43,6 +43,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void Page_NoOrderBy_WithAliases()
+        {
+            var records = Database.Page<User>(2, 5, "SELECT u.* FROM Users u WHERE UserID <= 15");
+            Assert.AreEqual(records.Items.Count, 5);
+        }
+
+
+        [Test]
         public void Page_Distinct()
         {
             // Fetch em
