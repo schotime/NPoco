@@ -183,7 +183,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         {
             var list = new[] {1, 2, 3, 4};
 
-            Database.Update<User>()
+            Database.UpdateMany<User>()
                 .Where( x => x.UserId.In(list))
                 //.ExcludeDefaults()
                 .OnlyFields(x => x.Name)
@@ -212,7 +212,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 new User() {UserId = 4},
             };
 
-            Database.Delete<User>().Where(x => list.Select(y => y.UserId).Contains(x.UserId)).Execute();
+            Database.DeleteMany<User>().Where(x => list.Select(y => y.UserId).Contains(x.UserId)).Execute();
 
             var users = Database.Fetch<User>();
 

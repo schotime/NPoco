@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq.Expressions;
 using NPoco.Linq;
 
 namespace NPoco
@@ -28,17 +29,18 @@ namespace NPoco
         int Update(object poco, IEnumerable<string> columns);
         int Update(object poco, object primaryKeyValue, IEnumerable<string> columns);
         int Update(object poco);
+        int Update<T>(T poco, Expression<Func<T, object>> fields);
         int Update(object poco, object primaryKeyValue);
         int Update<T>(string sql, params object[] args);
         int Update<T>(Sql sql);
-        IUpdateQueryProvider<T> Update<T>();
+        IUpdateQueryProvider<T> UpdateMany<T>();
         int Delete(string tableName, string primaryKeyName, object poco);
         int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
         int Delete(object poco);
         int Delete<T>(string sql, params object[] args);
         int Delete<T>(Sql sql);
         int Delete<T>(object pocoOrPrimaryKey);
-        IDeleteQueryProvider<T> Delete<T>();
+        IDeleteQueryProvider<T> DeleteMany<T>();
         void Save<T>(object poco);
         bool IsNew<T>(object poco);
     }

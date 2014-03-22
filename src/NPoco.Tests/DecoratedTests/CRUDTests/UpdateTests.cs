@@ -53,5 +53,24 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.AreEqual(InMemoryCompositeObjects[1].Key3ID, verify.Key3ID);
             Assert.AreEqual(dataTextData, verify.TextData);
         }
+
+        [Test]
+        public void UpdateWithFields()
+        {
+            var poco = Database.SingleOrDefaultById<UserDecorated>(1);
+            Assert.IsNotNull(poco);
+
+            poco.Age = poco.Age + 100;
+            poco.Savings = (Decimal)1234.23;
+            Database.Update(poco, x=>x.Age);
+
+            var verify = Database.SingleOrDefaultById<UserDecorated>(1);
+            Assert.IsNotNull(verify);
+
+            Assert.AreEqual(poco.UserId, verify.UserId);
+            Assert.AreEqual(poco.Name, verify.Name);
+            Assert.AreNotEqual(InMemoryUsers[0].Age, verify.Age);
+            Assert.AreNotEqual(poco.Savings, verify.Savings);
+        }
     }
 }

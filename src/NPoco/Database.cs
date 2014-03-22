@@ -1488,7 +1488,7 @@ namespace NPoco
             return primaryKeyValues;
         }
 
-        public IUpdateQueryProvider<T> Update<T>()
+        public IUpdateQueryProvider<T> UpdateMany<T>()
         {
             return new UpdateQueryProvider<T>(this);
         }
@@ -1506,6 +1506,15 @@ namespace NPoco
         public int Update(object poco, IEnumerable<string> columns)
         {
             return Update(poco, null, columns);
+        }
+
+        public int Update<T>(T poco, Expression<Func<T, object>> fields)
+        {
+            var expression = DatabaseType.ExpressionVisitor<T>(this);
+            expression = expression.Select(fields);
+            var columnNames = ((ISqlExpression) expression).SelectMembers.Select(x => x.PocoColumn.ColumnName);
+            var otherNames = ((ISqlExpression) expression).GeneralMembers.Select(x => x.PocoColumn.ColumnName);
+            return Update(poco, columnNames.Union(otherNames));
         }
 
         public int Update(object poco)
@@ -1536,7 +1545,7 @@ namespace NPoco
             return Execute(new Sql(string.Format("UPDATE {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
-        public IDeleteQueryProvider<T> Delete<T>()
+        public IDeleteQueryProvider<T> DeleteMany<T>()
         {
             return new DeleteQueryProvider<T>(this);
         }
