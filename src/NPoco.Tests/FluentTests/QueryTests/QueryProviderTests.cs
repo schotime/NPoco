@@ -34,6 +34,20 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void AnyQuery()
+        {
+            var userRecordsExist = Database.Query<User>().Any();
+            Assert.AreEqual(true, userRecordsExist);
+        }
+
+        [Test]
+        public void AnyQueryWithWhere()
+        {
+            var userRecordsExist = Database.Query<User>().Any(x => x.UserId == 1);
+            Assert.AreEqual(true, userRecordsExist);
+        }
+
+        [Test]
         public void QueryWithOrderBy()
         {
             var users = Database.Query<User>().OrderBy(x => x.DateOfBirth).ToList();

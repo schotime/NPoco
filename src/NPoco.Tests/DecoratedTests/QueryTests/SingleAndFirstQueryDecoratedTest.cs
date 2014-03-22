@@ -205,5 +205,21 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             Assert.NotNull(user);
             Assert.AreEqual(Days.Mon, user.Days);
         }
+        
+        [Test]
+        public void Exists()
+        {
+            var userExists = Database.Exists<UserDecorated>(1);
+
+            Assert.True(userExists);
+        }
+
+        [Test]
+        public void NotExists()
+        {
+            var userExists = Database.Exists<UserDecorated>(100);
+
+            Assert.False(userExists);
+        }
     }
 }

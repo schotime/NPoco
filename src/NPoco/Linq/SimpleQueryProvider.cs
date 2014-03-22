@@ -19,6 +19,8 @@ namespace NPoco.Linq
         T Single(Expression<Func<T, bool>> whereExpression);
         int Count();
         int Count(Expression<Func<T, bool>> whereExpression);
+        bool Any();
+        bool Any(Expression<Func<T, bool>> whereExpression);
         List<T> ToList();
         IEnumerable<T> ToEnumerable();
         Page<T> ToPage(int page, int pageSize);
@@ -169,6 +171,16 @@ namespace NPoco.Linq
             var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true);
 
             return _database.ExecuteScalar<int>(sql);
+        }
+
+        public bool Any()
+        {
+            return Count() > 0;
+        }
+
+        public bool Any(Expression<Func<T, bool>> whereExpression)
+        {
+            return Count(whereExpression) > 0;
         }
 
         public Page<T> ToPage(int page, int pageSize)
