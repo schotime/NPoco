@@ -1126,7 +1126,7 @@ namespace NPoco
             var index = 0;
             var tableInfo = PocoDataFactory.ForType(typeof (T)).TableInfo;
             var primaryKeyValuePairs = GetPrimaryKeyValues(tableInfo.PrimaryKey, primaryKey);
-            return ExecuteScalar<int>(string.Format("SELECT COUNT(*) FROM {0} WHERE {1}", DatabaseType.EscapeTableName(tableInfo.TableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
+            return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(tableInfo.TableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
         }
         public T SingleById<T>(object primaryKey)
         {
