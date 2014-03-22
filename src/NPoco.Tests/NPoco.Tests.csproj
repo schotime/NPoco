@@ -72,6 +72,7 @@
     <Compile Include="DecoratedTests\CRUDTests\UpdateTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\AdvancedFetchDecoratedTest.cs" />
     <Compile Include="DecoratedTests\QueryTests\ConverterDecoratedTests.cs" />
+    <Compile Include="DecoratedTests\QueryTests\MapperTestsForDecorated.cs" />
     <Compile Include="DecoratedTests\QueryTests\NestedNestedFetchDecoratedTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\OneToManyDecoratedTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\FetchAndQueryDecoratedTests.cs" />

@@ -1723,7 +1723,7 @@ namespace NPoco
         private PocoDataFactory _pocoDataFactory;
         public PocoDataFactory PocoDataFactory
         {
-            get { return _pocoDataFactory ?? new PocoDataFactory(); }
+            get { return _pocoDataFactory ?? new PocoDataFactory(Mapper); }
             set { _pocoDataFactory = value; }
         }
 
