@@ -145,7 +145,7 @@ namespace NPoco
         /// <returns>The final SQL query that should be executed.</returns>
         public virtual string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
-            var sql = string.Format("SELECT {0}\nLIMIT @{1} OFFSET @{2}", parts.sql, args.Length, args.Length + 1);
+            var sql = string.Format("{0}\nLIMIT @{1} OFFSET @{2}", parts.sql, args.Length, args.Length + 1);
             args = args.Concat(new object[] { take, skip }).ToArray();
             return sql;
         }
