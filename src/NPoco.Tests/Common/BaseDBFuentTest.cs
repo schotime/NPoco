@@ -98,7 +98,7 @@ namespace NPoco.Tests.Common
                     UniqueId = (i%2 != 0 ? Guid.NewGuid() : (Guid?)null),
                     TimeSpan = new TimeSpan(1,1,1),
                     HouseId = i%2==0?(int?)null:InMemoryHouses[i%5].HouseId,
-                    SupervisorId = i%2==0?i:(int?)null
+                    SupervisorId = (i+1)%2==0?(i+1):(int?)null
                 };
                 Database.Insert(user);
                 InMemoryUsers.Add(user);

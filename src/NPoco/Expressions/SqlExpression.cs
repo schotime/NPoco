@@ -247,9 +247,7 @@ namespace NPoco.Expressions
         public string On<T2>(Expression<Func<T, T2, bool>> predicate)
         {
             sep = " ";
-            _paramerExpressions = predicate.Parameters.ToList();
             var onSql = Visit(predicate).ToString();
-            _paramerExpressions.Clear();
             return onSql;
         }
 
@@ -996,17 +994,12 @@ namespace NPoco.Expressions
             {
                 var propertyInfo = (PropertyInfo)m.Member;
 
-                var type = propertyInfo.DeclaringType == typeof (T) ? typeof (T) : propertyInfo.DeclaringType;
-                if (m.Expression.NodeType == ExpressionType.MemberAccess)
-                {
-                    type = ((PropertyInfo)((MemberExpression) m.Expression).Member).PropertyType;
-                }
-
-                var localModelDef = GetCorrectPocoData(m, _database.PocoDataFactory.ForType(type));
+                var type = GetCorrectType(m);
+                var localModelDef = _database.PocoDataFactory.ForType(type);
                 var pocoColumn = localModelDef.Columns.Values.Single(x => x.MemberInfo.Name == m.Member.Name);
 
-                var columnName = (PrefixFieldWithTableName ? 
-                    _databaseType.EscapeTableName(localModelDef.TableInfo.AutoAlias) + "." : "") + _databaseType.EscapeSqlIdentifier(pocoColumn.ColumnName);
+                var columnName = (PrefixFieldWithTableName ? _databaseType.EscapeTableName(localModelDef.TableInfo.AutoAlias) + "." : "")
+                                    + _databaseType.EscapeSqlIdentifier(pocoColumn.ColumnName);
 
                 generalMembers.Add(new GeneralMember() { EntityType = type, PocoColumn = pocoColumn });
 
@@ -1025,18 +1018,18 @@ namespace NPoco.Expressions
             return getter();
         }
 
-        private PocoData GetCorrectPocoData(MemberExpression m, PocoData localModelDef)
+        private Type GetCorrectType(MemberExpression m)
         {
-            var name = (m.Expression as ParameterExpression);
-            if (_paramerExpressions != null && name != null)
+            var type = m.Member.DeclaringType;
+            if (m.Expression.NodeType == ExpressionType.MemberAccess)
             {
-                var singleOrDefault = _paramerExpressions.SingleOrDefault(x => x.Name == name.Name);
-                if (singleOrDefault != null)
-                {
-                    localModelDef = _database.PocoDataFactory.ForType(singleOrDefault.Type);
-                }
+                type = ((PropertyInfo)((MemberExpression)m.Expression).Member).PropertyType;
             }
-            return localModelDef;
+            else if (m.Expression.NodeType == ExpressionType.Parameter)
+            {
+                type = m.Expression.Type;
+            }
+            return type;
         }
         
         protected virtual object VisitNew(NewExpression nex)
@@ -1101,7 +1094,6 @@ namespace NPoco.Expressions
         List<object> _params = new List<object>();
         int _paramCounter = 0;
         string paramPrefix;
-        private List<ParameterExpression> _paramerExpressions;
         private bool _projection;
         public SqlExpressionContext Context { get; private set; }
 
