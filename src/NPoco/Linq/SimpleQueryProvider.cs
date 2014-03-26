@@ -79,9 +79,8 @@ namespace NPoco.Linq
                 var pocoDataT = _database.PocoDataFactory.ForType(typeof(T));
                 var pocoDataT2 = _database.PocoDataFactory.ForType(typeof(T2));
                 var colT2 = pocoDataT2.Columns.Values.Single(x => x.ColumnName == pocoDataT2.TableInfo.PrimaryKey);
-                var colT = pocoDataT.Columns.Values.Single(x => x.MemberInfo.Name == colT2.MemberInfo.Name);
                 onSql = _database.DatabaseType.EscapeTableName(pocoDataT.TableInfo.AutoAlias)
-                        + "." + _database.DatabaseType.EscapeSqlIdentifier(colT.ColumnName)
+                        + "." + _database.DatabaseType.EscapeSqlIdentifier(colT2.ColumnName)
                         + " = " + _database.DatabaseType.EscapeTableName(pocoDataT2.TableInfo.AutoAlias)
                         + "." + _database.DatabaseType.EscapeSqlIdentifier(colT2.ColumnName);
             }
