@@ -116,6 +116,7 @@
     <Compile Include="PrimaryKeyAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ResultColumnAttribute.cs" />
+    <Compile Include="ComputedColumnAttribute.cs" />
     <Compile Include="Singleton.cs" />
     <Compile Include="Snapshotter.cs" />
     <Compile Include="Sql.cs" />
