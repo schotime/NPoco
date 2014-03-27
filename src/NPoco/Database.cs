@@ -801,13 +801,23 @@ namespace NPoco
 
             if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
 
+            var pd = PocoDataFactory.ForType(typeof(T));
+            if (pd.Columns.Any(x => x.Value.ReferenceColumn))
+            {
+                var types = new[] { typeof(T) }.Concat(pd.Columns.Where(x => x.Value.ReferenceColumn).Select(x => x.Value.MemberInfo.GetMemberInfoType())).ToArray();
+                foreach (var result in Query<T>(types, null, new Sql(sql, args)))
+                {
+                    yield return result;
+                }
+                yield break;
+            }
+            
             try
             {
                 OpenSharedConnectionInternal();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
                     IDataReader r;
-                    var pd = PocoDataFactory.ForType(typeof(T));
                     try
                     {
                         r = ExecuteReaderHelper(cmd);
@@ -1270,6 +1280,16 @@ namespace NPoco
                         val = (long)val > 0 ? val : 1;
                         versionName = i.Key;
                     }
+                    else if (i.Value.ReferenceColumn && i.Value != null)
+                    {
+                        var refererencePocoData = PocoDataFactory.ForType(i.Value.MemberInfo.GetMemberInfoType());
+                        if (refererencePocoData != null)
+                        {
+                            string referenceTablePrimaryKeyName = refererencePocoData.TableInfo.PrimaryKey;
+                            var referenceIdColumn = refererencePocoData.Columns[referenceTablePrimaryKeyName];
+                            val = referenceIdColumn.GetValue(val);
+                        }
+                    }
 
                     rawvalues.Add(val);
                 }
@@ -1411,6 +1431,16 @@ namespace NPoco
                     versionName = i.Key;
                     versionValue = value;
                     value = Convert.ToInt64(value) + 1;
+                }
+                else if (i.Value.ReferenceColumn && i.Value != null)
+                {
+                    var refererencePocoData = PocoDataFactory.ForType(i.Value.MemberInfo.GetMemberInfoType());
+                    if (refererencePocoData != null)
+                    {
+                        string referenceTablePrimaryKeyName = refererencePocoData.TableInfo.PrimaryKey;
+                        var referenceIdColumn = refererencePocoData.Columns[referenceTablePrimaryKeyName];
+                        value = referenceIdColumn.GetValue(value);
+                    }
                 }
 
                 // Build the sql

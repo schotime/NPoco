@@ -13,6 +13,7 @@ namespace NPoco
         public bool IgnoreColumn { get; set; }
         public bool ForceToUtc { get; set; }
         public Type ColumnType { get; set; }
+        public bool ReferenceColumn { get; set; }
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
@@ -41,12 +42,11 @@ namespace NPoco
                 ci.ColumnName = colattr.Name ?? mi.Name;
                 ci.ForceToUtc = colattr.ForceToUtc;
                 ci.ResultColumn = colattr is ResultColumnAttribute;
+                ci.ReferenceColumn = colattr is ReferenceColumnAttribute;
             }
             else
             {
                 ci.ColumnName = mi.Name;
-                ci.ForceToUtc = false;
-                ci.ResultColumn = false;
             }
 
             if (columnTypeAttrs.Any())

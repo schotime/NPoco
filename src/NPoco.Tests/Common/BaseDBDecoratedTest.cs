@@ -72,7 +72,8 @@ namespace NPoco.Tests.Common
                     Age = 20 + (i + 1),
                     DateOfBirth = new DateTime(1970, 1, 1).AddYears(i + 1),
                     Savings = 50.00m + (1.01m * (i + 1)),
-                    IsMale = (i%2==0)
+                    IsMale = (i%2==0),
+                    SupervisorId = ((i+1)%2==0?(i+1):(int?)null)
                 };
                 Database.Insert(user);
                 InMemoryUsers.Add(user);

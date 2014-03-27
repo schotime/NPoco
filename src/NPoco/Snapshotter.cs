@@ -47,13 +47,18 @@ namespace NPoco
         public List<Change> Changes()
         {
             var changes = Diff(memberWiseClone, trackedObject);
+            var filteredChanges = new List<Change>();
             foreach (var c in changes)
             {
                 var typeData = pocoData.Columns.Values.SingleOrDefault(x => x.MemberInfo.Name == c.Name);
-                c.ColumnName = typeData != null ? typeData.ColumnName : c.Name;
+                if (typeData != null)
+                {
+                    c.ColumnName = typeData.ColumnName;
+                    filteredChanges.Add(c);
+                }
             }
 
-            return changes;
+            return filteredChanges;
         }
 
         public List<string> UpdatedColumns()
@@ -79,7 +84,7 @@ namespace NPoco
                 .Where(p =>
                     p.GetSetMethod() != null &&
                     p.GetGetMethod() != null &&
-                    (p.PropertyType.IsValueType ||
+                    (p.PropertyType.IsValueType || !p.PropertyType.IsValueType ||
                         p.PropertyType == typeof(string) ||
                         (p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>)))
                     ).ToList();

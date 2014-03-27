@@ -25,6 +25,9 @@ namespace NPoco.Tests.Common
 
         [Column("is_male")]
         public bool IsMale { get; set; }
+
+        [Column("SupervisorId")]
+        public int? SupervisorId { get; set; }
     }
 
     [TableName("TEST_Users")]
@@ -115,5 +118,26 @@ namespace NPoco.Tests.Common
 
         [Column("Age")]
         public int? Age { get; set; }
+    }
+
+    [TableName("Users")]
+    [PrimaryKey("UserId")]
+    [ExplicitColumns]
+    public class UserWithNested
+    {
+        [Column("UserId")]
+        public int UserId { get; set; }
+
+        [Column("Name")]
+        public string Name { get; set; }
+
+        [Column("Age")]
+        public int Age { get; set; }
+
+        [Column("DateOfBirth")]
+        public DateTime DateOfBirth { get; set; }
+
+        [ReferenceColumn("SupervisorId")]
+        public Supervisor Supervisor { get; set; }
     }
 }

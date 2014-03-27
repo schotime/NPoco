@@ -15,7 +15,9 @@ namespace NPoco
         public MemberInfo MemberInfo;
         public bool ResultColumn;
         public bool VersionColumn;
+        public bool ReferenceColumn { get; set; }
         private Type _columnType;
+
         public Type ColumnType
         {
             get { return _columnType ?? MemberInfo.GetMemberInfoType(); }

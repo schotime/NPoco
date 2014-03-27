@@ -63,10 +63,12 @@ namespace NPoco.FluentMappings
                         pc.ResultColumn = true;
                     else if (colattr.VersionColumn.HasValue && colattr.VersionColumn.Value)
                         pc.VersionColumn = true;
+                    else if (colattr.ReferenceColumn.HasValue && colattr.ReferenceColumn.Value)
+                        pc.ReferenceColumn = true;
 
                     if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)
                         pc.ForceToUtc = true;
-
+                    
                     for (int i = 0; i < originalPK.Length; i++)
                     {
                         if (originalPK[i].Equals(mi.Name, StringComparison.OrdinalIgnoreCase))

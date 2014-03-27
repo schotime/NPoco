@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -128,6 +130,58 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         {
             var users = Database.FetchBy<UserDecorated>(y=>y.Where(x=>x.IsMale).OrderBy(x=>x.UserId));
             Assert.AreEqual(8, users.Count);
+        }
+
+        [Test]
+        public void QueryWithReferenceColumns()
+        {
+            var users = Database.Fetch<UserWithNested>("where userid in (1,2)");
+            Assert.AreEqual(users.Count, 2);
+            Assert.Null(users[0].Supervisor);
+            Assert.NotNull(users[1].Supervisor);
+            Assert.AreEqual(users[1].Supervisor.UserId, 2);
+        }
+
+        [Test]
+        public void InsertWithReferenceColumns()
+        {
+            var user = new UserWithNested()
+            {
+                Name = "Nested",
+                Supervisor = new Supervisor() {UserId = 2},
+                Age = 99,
+                DateOfBirth = DateTime.Now,
+            };
+            Database.Insert(user);
+
+            var users = Database.Fetch<UserWithNested>("where userid = @0", user.UserId);
+            Assert.AreEqual(users.Count, 1);
+            Assert.AreEqual(users[0].Supervisor.UserId, 2);
+        }
+
+        [Test]
+        public void UpdateWithReferenceColumns()
+        {
+            var user = Database.Fetch<UserWithNested>("where userid = @0", 1).Single();
+            user.Supervisor = new Supervisor() {UserId = 6};
+            Database.Update(user);
+            
+            var user1 = Database.Fetch<UserWithNested>("where userid = @0", 1).Single();
+            Assert.AreEqual(user1.Supervisor.UserId, 6);
+        }
+
+        [Test]
+        public void UpdateWithReferenceColumnsAndSnapshot()
+        {
+            var user = Database.Fetch<UserWithNested>("where userid = @0", 2).Single();
+            var snap = Database.StartSnapshot(user);
+            user.Supervisor = new Supervisor() { UserId = 6 };
+            var updatedColumns = snap.UpdatedColumns();
+
+            Database.Update(user, updatedColumns);
+
+            var user1 = Database.Fetch<UserWithNested>("where userid = @0", 2).Single();
+            Assert.AreEqual(user1.Supervisor.UserId, 6);
         }
     }
 }

@@ -38,6 +38,7 @@ namespace NPoco.Tests.Common
     {
     }
 
+    [TableName("Users"), PrimaryKey("UserId")]
     public class Supervisor : User
     {
         //[ResultColumn]

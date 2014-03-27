@@ -12,5 +12,6 @@ namespace NPoco.FluentMappings
         public bool? IgnoreColumn { get; set; }
         public bool? VersionColumn { get; set; }
         public bool? ForceUtc { get; set; }
+        public bool? ReferenceColumn { get; set; }
     }
 }

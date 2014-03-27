@@ -77,5 +77,11 @@ namespace NPoco.FluentMappings
             _columnDefinition.ResultColumn = true;
             return this;
         }
+
+        public IColumnBuilder Reference()
+        {
+            _columnDefinition.ReferenceColumn = true;
+            return this;
+        }
     }
 }
