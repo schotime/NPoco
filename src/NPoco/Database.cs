@@ -1241,6 +1241,10 @@ namespace NPoco
                     if (i.Value.ResultColumn)
                         continue;
 
+                    // Don't insert computed columns
+                    if (i.Value.ComputedColumn)
+                        continue;
+
                     // Don't insert the primary key (except under oracle where we need bring in the next sequence value)
                     if (autoIncrement && primaryKeyName != null && string.Compare(i.Key, primaryKeyName, true) == 0)
                     {
@@ -1393,6 +1397,10 @@ namespace NPoco
 
                 // Dont update result only columns
                 if (i.Value.ResultColumn)
+                    continue;
+
+                // Dont update computed columns
+                if (i.Value.ComputedColumn)
                     continue;
 
                 if (!i.Value.VersionColumn && columns != null && !columns.Contains(i.Value.ColumnName, StringComparer.OrdinalIgnoreCase))
