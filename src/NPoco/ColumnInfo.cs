@@ -10,6 +10,7 @@ namespace NPoco
     {
         public string ColumnName { get; set; }
         public bool ResultColumn { get; set; }
+        public bool ComputedColumn { get; set; }
         public bool IgnoreColumn { get; set; }
         public bool ForceToUtc { get; set; }
         public Type ColumnType { get; set; }
@@ -41,12 +42,14 @@ namespace NPoco
                 ci.ColumnName = colattr.Name ?? mi.Name;
                 ci.ForceToUtc = colattr.ForceToUtc;
                 ci.ResultColumn = colattr is ResultColumnAttribute;
+                ci.ComputedColumn = colattr is ComputedColumnAttribute;
             }
             else
             {
                 ci.ColumnName = mi.Name;
                 ci.ForceToUtc = false;
                 ci.ResultColumn = false;
+                ci.ComputedColumn = false;
             }
 
             if (columnTypeAttrs.Any())
