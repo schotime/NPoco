@@ -58,6 +58,7 @@ namespace NPoco
                 pc.MemberInfo = mi;
                 pc.ColumnName = ci.ColumnName;
                 pc.ResultColumn = ci.ResultColumn;
+                pc.VersionColumn = ci.VersionColumn;
                 pc.ForceToUtc = ci.ForceToUtc;
                 pc.ColumnType = ci.ColumnType;
 
