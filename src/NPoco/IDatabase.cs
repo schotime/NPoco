@@ -51,5 +51,6 @@ namespace NPoco
         PocoDataFactory PocoDataFactory { get; set; }
         DatabaseType DatabaseType { get; }
         string ConnectionString { get; }
+        bool AutoCreateSchema { get; set; }
     }
 }

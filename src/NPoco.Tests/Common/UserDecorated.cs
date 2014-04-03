@@ -8,7 +8,7 @@ namespace NPoco.Tests.Common
     [ExplicitColumns]
     public class UserDecorated
     {
-        [Column("UserId")]
+        [IdentityColumn("UserId")]
         public int UserId { get; set; }
 
         [Column("Name")]

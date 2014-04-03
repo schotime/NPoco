@@ -241,6 +241,22 @@ namespace NPoco
             set { _versionException = value; }
         }
 
+        public Boolean AutoCreateSchema
+        {
+            get { return _autoCreateSchema; }
+            set { _autoCreateSchema = value; }
+        }
+
+        private HashSet<PocoData> _createdSchemasPocoData = new HashSet<PocoData>();
+        void EnsureSchemaCreated(PocoData pocoData)
+        {
+            if (AutoCreateSchema && !_createdSchemasPocoData.Contains(pocoData))
+            {
+                DatabaseType.CreateSchema(this, pocoData);
+                _createdSchemasPocoData.Add(pocoData);
+            }
+        }
+
         // Access to our shared connection
         public IDbConnection Connection
         {
@@ -808,6 +824,9 @@ namespace NPoco
                 {
                     IDataReader r;
                     var pd = PocoDataFactory.ForType(typeof(T));
+
+                    EnsureSchemaCreated(pd);
+
                     try
                     {
                         r = ExecuteReaderHelper(cmd);
@@ -1234,6 +1253,8 @@ namespace NPoco
                 var rawvalues = new List<object>();
                 var index = 0;
                 var versionName = "";
+
+                EnsureSchemaCreated(pd);
 
                 foreach (var i in pd.Columns)
                 {
@@ -1750,6 +1771,7 @@ namespace NPoco
         private object[] _lastArgs;
         private string _paramPrefix = "@";
         private VersionExceptionHandling _versionException = VersionExceptionHandling.Ignore;
+        private Boolean _autoCreateSchema = false;
 
         internal int ExecuteNonQueryHelper(IDbCommand cmd)
         {
@@ -1774,5 +1796,6 @@ namespace NPoco
             OnExecutedCommand(cmd);
             return r;
         }
+
     }
 }

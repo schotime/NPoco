@@ -14,6 +14,10 @@ namespace NPoco
         public bool ForceToUtc { get; set; }
         public Type ColumnType { get; set; }
 
+        public bool IdentityColumn { get; set; }
+        public int IdentitySeed { get; set; }
+        public int IdentityIncrement { get; set; }
+
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
             var ci = new ColumnInfo();
@@ -41,6 +45,15 @@ namespace NPoco
                 ci.ColumnName = colattr.Name ?? mi.Name;
                 ci.ForceToUtc = colattr.ForceToUtc;
                 ci.ResultColumn = colattr is ResultColumnAttribute;
+
+                var identityColumnAttribute = colattr as IdentityColumnAttribute;
+                ci.IdentityColumn = identityColumnAttribute != null;
+                if (ci.IdentityColumn)
+                {
+                    ci.IdentitySeed = identityColumnAttribute.Seed;
+                    ci.IdentityIncrement = identityColumnAttribute.Increment;
+                }
+
             }
             else
             {
