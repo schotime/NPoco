@@ -43,6 +43,8 @@ namespace NPoco
         IDeleteQueryProvider<T> DeleteMany<T>();
         void Save<T>(object poco);
         bool IsNew<T>(object poco);
+
+        void CreateSchema(IPocoData pocoData);
     }
 
     public interface IDatabaseConfig
@@ -51,5 +53,6 @@ namespace NPoco
         PocoDataFactory PocoDataFactory { get; set; }
         DatabaseType DatabaseType { get; }
         string ConnectionString { get; }
+        bool AutoCreateSchema { get; set; }
     }
 }

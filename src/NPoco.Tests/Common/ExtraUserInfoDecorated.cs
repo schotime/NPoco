@@ -5,7 +5,7 @@
     [ExplicitColumns]
     public class ExtraUserInfoDecorated
     {
-        [Column("ExtraUserInfoId")]
+        [IdentityColumn("ExtraUserInfoId")]
         public int ExtraUserInfoId { get; set; }
 
         [Column("UserId")]

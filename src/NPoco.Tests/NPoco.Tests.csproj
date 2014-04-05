@@ -44,6 +44,7 @@
     <Reference Include="System.Data.SQLite">
       <HintPath>..\..\lib\System.Data.SQLite.dll</HintPath>
     </Reference>
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -59,8 +60,11 @@
     <Compile Include="Common\CustomerUser.cs" />
     <Compile Include="Common\ExtraUserInfoDecorated.cs" />
     <Compile Include="Common\ExtraUserInfo.cs" />
+    <Compile Include="Common\InformationSchema\Column.cs" />
     <Compile Include="Common\InMemoryDatabase.cs" />
     <Compile Include="Common\AdHocUser.cs" />
+    <Compile Include="Common\MockPocoData.cs" />
+    <Compile Include="Common\SQLServerDatabase.cs" />
     <Compile Include="Common\SQLLocalDatabase.cs" />
     <Compile Include="Common\TestDatabase.cs" />
     <Compile Include="Common\User.cs" />
@@ -90,6 +94,7 @@
     <Compile Include="FluentTests\QueryTests\NullableTests.cs" />
     <Compile Include="FluentTests\QueryTests\PagingFluentTest.cs" />
     <Compile Include="FluentTests\QueryTests\SingleAndFirstQueryFluentTest.cs" />
+    <Compile Include="SchemaGenerationTest.cs" />
     <Compile Include="SnapshotterTests.cs" />
     <Compile Include="FluentMappings\ColumnConfigurationBuilderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

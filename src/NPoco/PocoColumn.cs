@@ -13,8 +13,14 @@ namespace NPoco
         public TableInfo TableInfo;
         public string ColumnName;
         public MemberInfo MemberInfo;
+
         public bool ResultColumn;
         public bool VersionColumn;
+
+        public bool IdentityColumn { get; set; }
+        public int IdentitySeed { get; set; }
+        public int IdentityIncrement { get; set; }
+
         private Type _columnType;
         public Type ColumnType
         {
