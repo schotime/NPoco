@@ -132,7 +132,7 @@ namespace NPoco.DatabaseTypes
             return builder.ToString();
         }
 
-        public override void CreateSchema(Database db, PocoData pocoData)
+        public override void CreateSchema(Database db, IPocoData pocoData)
         {
 
             if (pocoData.Columns.Count == 0)
@@ -169,7 +169,7 @@ namespace NPoco.DatabaseTypes
             //    commandBuilder.AppendFormat(" , {0}", string.Join(" , ", from col in colForeignKeyColumnscol.MSSqlForeignKeySchema(Schema)));
             //}
 
-            if (pocoData.TableInfo.PrimaryKey != "")
+            if ((pocoData.TableInfo.PrimaryKey ?? "") != "")
             {
                 commandBuilder.AppendFormat(" , PRIMARY KEY ({0}) ", pocoData.TableInfo.PrimaryKey);
             }

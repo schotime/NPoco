@@ -250,11 +250,16 @@ namespace NPoco
         private HashSet<PocoData> _createdSchemasPocoData = new HashSet<PocoData>();
         void EnsureSchemaCreated(PocoData pocoData)
         {
-            if (AutoCreateSchema && !_createdSchemasPocoData.Contains(pocoData))
+            if (AutoCreateSchema && pocoData.TableInfo.AutoCreate && !_createdSchemasPocoData.Contains(pocoData))
             {
-                DatabaseType.CreateSchema(this, pocoData);
+                CreateSchema(pocoData);
                 _createdSchemasPocoData.Add(pocoData);
             }
+        }
+
+        virtual public void CreateSchema(IPocoData pocoData)
+        {
+            DatabaseType.CreateSchema(this, pocoData);
         }
 
         // Access to our shared connection

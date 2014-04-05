@@ -328,7 +328,7 @@ namespace NPoco
             return "System.Data.SqlClient";
         }
 
-        public virtual void CreateSchema(Database db, PocoData pocoData)
+        public virtual void CreateSchema(Database db, IPocoData pocoData)
         {
             throw new Exception("DatabaseType does not support creating schema.");
         }

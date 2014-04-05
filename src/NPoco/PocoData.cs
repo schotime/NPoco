@@ -9,14 +9,15 @@ using System.Text;
 
 namespace NPoco
 {
-    public class PocoData
+   
+    public class PocoData : IPocoData
     {
         protected internal IMapper Mapper;
         internal bool EmptyNestedObjectNull;
         private static readonly ThreadSafeDictionary<string, Type> AliasToType = new ThreadSafeDictionary<string, Type>();
      
         protected internal Type type;
-        public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected set; }
+        public Dictionary<string, PocoColumn> QueryColumns { get; protected set; }
         public TableInfo TableInfo { get; protected internal set; }
         public Dictionary<string, PocoColumn> Columns { get; protected internal set; }
         private readonly MappingFactory _mappingFactory;
@@ -75,8 +76,27 @@ namespace NPoco
                 Columns.Add(pc.ColumnName, pc);
             }
 
+            FillQueryColumns();
+            
+            //from col in Columns
+            //    where
+            //= Columns.Where(c => !c.Value.ResultColumn);
+        }
+
+        protected void FillQueryColumns()
+        {
             // Build column list for automatic select
-            QueryColumns = Columns.Where(c => !c.Value.ResultColumn).ToArray();
+            QueryColumns = new Dictionary<string, PocoColumn>();
+
+            var tempQueryColumns = (
+                from col in Columns
+                where !col.Value.ResultColumn
+                select col);
+
+            foreach (KeyValuePair<string, PocoColumn> col in tempQueryColumns)
+            {
+                QueryColumns.Add(col.Key, col.Value);
+            }
         }
 
         protected string CreateAlias(string typeName, Type typeIn)

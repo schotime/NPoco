@@ -10,6 +10,7 @@ namespace NPoco
         public bool AutoIncrement { get; set; }
         public string SequenceName { get; set; }
         public string AutoAlias { get; set; }
+        public bool AutoCreate { get; set; }
 
         public static TableInfo FromPoco(Type t)
         {
@@ -27,6 +28,10 @@ namespace NPoco
 
             // Set autoincrement false if primary key has multiple columns
             tableInfo.AutoIncrement = tableInfo.AutoIncrement ? !tableInfo.PrimaryKey.Contains(',') : tableInfo.AutoIncrement;
+
+            a = t.GetCustomAttributes(typeof(TableAutoCreateAttribute), true);
+            // Get whether to autocreate schema
+            tableInfo.AutoCreate = a.Length == 0 ? true : (a[0] as TableAutoCreateAttribute).Value;
 
             return tableInfo;
         }

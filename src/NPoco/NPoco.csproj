@@ -63,6 +63,7 @@
     <Compile Include="DatabaseTypes\SqlServer2012DatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerCEDatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerDatabaseType.cs" />
+    <Compile Include="IPocoData.cs" />
     <Compile Include="Linq\ComplexSqlBuilder.cs" />
     <Compile Include="Linq\DeleteQueryProvider.cs" />
     <Compile Include="Linq\ISimpleQueryProviderExpression.cs" />
@@ -125,6 +126,7 @@
     <Compile Include="SqlExtensions.cs" />
     <Compile Include="StringExtensions.cs" />
     <Compile Include="TableInfo.cs" />
+    <Compile Include="TableAutoCreateAttribute.cs" />
     <Compile Include="TableNameAttribute.cs" />
     <Compile Include="ThreadSafeDictionary.cs" />
     <Compile Include="Transaction.cs" />
