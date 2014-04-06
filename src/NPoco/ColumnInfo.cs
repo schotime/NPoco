@@ -9,8 +9,11 @@ namespace NPoco
     public class ColumnInfo
     {
         public string ColumnName { get; set; }
+        public string ColumnAlias { get; set; }
         public bool ResultColumn { get; set; }
+        public bool ComputedColumn { get; set; }
         public bool IgnoreColumn { get; set; }
+        public bool VersionColumn { get; set; }
         public bool ForceToUtc { get; set; }
         public Type ColumnType { get; set; }
 
@@ -26,6 +29,7 @@ namespace NPoco
             // Check if declaring poco has [ExplicitColumns] attribute
             var explicitColumns = mi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Any();
 
+            var aliasColumn = (AliasAttribute) mi.GetCustomAttributes(typeof (AliasAttribute), true).FirstOrDefault();
             // Ignore column if declarying poco has [ExplicitColumns] attribute
             // and property doesn't have an explicit [Column] attribute,
             // or property has an [Ignore] attribute
@@ -41,12 +45,13 @@ namespace NPoco
                 ci.ColumnName = colattr.Name ?? mi.Name;
                 ci.ForceToUtc = colattr.ForceToUtc;
                 ci.ResultColumn = colattr is ResultColumnAttribute;
+                ci.VersionColumn = colattr is VersionColumnAttribute;
+                ci.ComputedColumn = colattr is ComputedColumnAttribute;
+                ci.ColumnAlias = aliasColumn != null ? aliasColumn.Alias : null;
             }
             else
             {
                 ci.ColumnName = mi.Name;
-                ci.ForceToUtc = false;
-                ci.ResultColumn = false;
             }
 
             if (columnTypeAttrs.Any())

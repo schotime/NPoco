@@ -46,9 +46,11 @@
     <Compile Include="AnsiString.cs" />
     <Compile Include="AutoSelectHelper.cs" />
     <Compile Include="Cache.cs" />
+    <Compile Include="AliasAttribute.cs" />
     <Compile Include="ColumnAttribute.cs" />
     <Compile Include="ColumnInfo.cs" />
     <Compile Include="ColumnTypeAttribute.cs" />
+    <Compile Include="ComputedColumnAttribute.cs" />
     <Compile Include="Database.cs" />
     <Compile Include="DatabaseFactory.cs" />
     <Compile Include="DatabaseFactoryConfig.cs" />

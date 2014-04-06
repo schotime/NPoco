@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -61,6 +62,24 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             {
                 AssertUserValues(InMemoryUsers[i + 5], users[i]);
             }
+        }
+        
+        [Test]
+        public void FetchWithAlias()
+        {
+            var user = Database.Fetch<UserDecoratedWithAlias>("select name as fullname from users where userid = 1").Single();
+
+            Assert.NotNull(user);
+            Assert.True(!string.IsNullOrWhiteSpace(user.Name));
+        }
+
+        [Test]
+        public void FetchWithAliasUsingAutoSelect()
+        {
+            var user = Database.Fetch<UserDecoratedWithAlias>("where userid = 1").Single();
+
+            Assert.NotNull(user);
+            Assert.True(!string.IsNullOrWhiteSpace(user.Name));
         }
 
         [Test]

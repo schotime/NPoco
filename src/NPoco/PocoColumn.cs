@@ -15,7 +15,9 @@ namespace NPoco
         public MemberInfo MemberInfo;
         public bool ResultColumn;
         public bool VersionColumn;
+        public bool ComputedColumn;
         private Type _columnType;
+
         public Type ColumnType
         {
             get { return _columnType ?? MemberInfo.GetMemberInfoType(); }
@@ -24,6 +26,7 @@ namespace NPoco
 
         public bool ForceToUtc { get; set; }
         public string AutoAlias { get; set; }
+        public string ColumnAlias { get; set; }
 
         public virtual void SetValue(object target, object val) { MemberInfo.SetMemberInfoValue(target, val); }
         public virtual object GetValue(object target) { return MemberInfo.GetMemberInfoValue(target); }

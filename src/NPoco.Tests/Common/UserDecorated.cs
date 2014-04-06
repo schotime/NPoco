@@ -116,4 +116,20 @@ namespace NPoco.Tests.Common
         [Column("Age")]
         public int? Age { get; set; }
     }
+
+     [TableName("Users")]
+     [PrimaryKey("UserId")]
+     [ExplicitColumns]
+     public class UserDecoratedWithAlias
+     {
+         [Column("UserId")]
+         public int UserId { get; set; }
+ 
+         [Column("Name")]
+         [Alias("FullName")]
+         public string Name { get; set; }
+ 
+         [Column("Age")]
+         public int? Age { get; set; }
+     }
 }

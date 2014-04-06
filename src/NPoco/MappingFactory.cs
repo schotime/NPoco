@@ -207,7 +207,9 @@ namespace NPoco
                             if (!_pocoData.Columns.TryGetValue(r.GetName(i), out pc) && !_pocoData.Columns.TryGetValue(r.GetName(i).Replace("_", ""), out pc)
                                 || (!pc.MemberInfo.IsField() && ((PropertyInfo)pc.MemberInfo).GetSetMethodOnDeclaringType() == null))
                             {
-                                var pcAlias = _pocoData.Columns.Values.SingleOrDefault(x => x.AutoAlias == r.GetName(i));
+                                var pcAlias = _pocoData.Columns.Values.SingleOrDefault(x => x.AutoAlias == r.GetName(i))
+                                    ?? _pocoData.Columns.Values.SingleOrDefault(x => string.Equals(x.ColumnAlias, r.GetName(i), StringComparison.OrdinalIgnoreCase));
+                                
                                 if (pcAlias != null)
                                 {
                                     pc = pcAlias;

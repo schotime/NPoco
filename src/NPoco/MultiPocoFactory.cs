@@ -122,7 +122,8 @@ namespace NPoco
                 if (usedColumns.ContainsKey(fieldName) 
                     || (!pdThis.Columns.ContainsKey(fieldName) && pdNext.Columns.ContainsKey(fieldName))
                     || (!pdThis.Columns.ContainsKey(fieldName.Replace("_", "")) && pdNext.Columns.ContainsKey(fieldName.Replace("_", "")))
-                    || (!pdThis.Columns.Any(x => fieldName.Equals(x.Value.AutoAlias, StringComparison.OrdinalIgnoreCase)) && pdNext.Columns.Any(x => fieldName.Equals(x.Value.AutoAlias, StringComparison.OrdinalIgnoreCase))))
+                    || (!pdThis.Columns.Any(x => fieldName.Equals(x.Value.AutoAlias, StringComparison.OrdinalIgnoreCase)) && pdNext.Columns.Any(x => fieldName.Equals(x.Value.AutoAlias, StringComparison.OrdinalIgnoreCase)))
+                    || (!pdThis.Columns.Any(x => fieldName.Equals(x.Value.ColumnAlias, StringComparison.OrdinalIgnoreCase)) && pdNext.Columns.Any(x => fieldName.Equals(x.Value.ColumnAlias, StringComparison.OrdinalIgnoreCase))))
                 {
                     return pdThis.MappingFactory.GetFactory(sql, connectionString, firstColumn, pos - firstColumn, r, null);
                 }

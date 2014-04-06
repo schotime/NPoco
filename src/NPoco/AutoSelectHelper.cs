@@ -20,7 +20,14 @@ namespace NPoco
             {
                 var pd = database.PocoDataFactory.ForType(typeof(T));
                 var tableName = database.DatabaseType.EscapeTableName(pd.TableInfo.TableName);
-                string cols = String.Join(", ", (from c in pd.QueryColumns.Select(x=>x.Key) select database.DatabaseType.EscapeSqlIdentifier(c)).ToArray());
+                var columns = pd.QueryColumns.Select(c =>
+                {
+                    return database.DatabaseType.EscapeSqlIdentifier(c.Value.ColumnName) +
+                           (!string.IsNullOrEmpty(c.Value.ColumnAlias)
+                                ? " AS " + database.DatabaseType.EscapeSqlIdentifier(c.Value.ColumnAlias)
+                                : "");
+                });
+                string cols = String.Join(", ", columns.ToArray());
                 if (!rxFrom.IsMatch(sql))
                     sql = String.Format("SELECT {0} FROM {1} {2}", cols, tableName, sql);
                 else

@@ -1238,7 +1238,7 @@ namespace NPoco
                 foreach (var i in pd.Columns)
                 {
                     // Don't insert result columns
-                    if (i.Value.ResultColumn)
+                    if (i.Value.ResultColumn || i.Value.ComputedColumn)
                         continue;
 
                     // Don't insert the primary key (except under oracle where we need bring in the next sequence value)
@@ -1392,7 +1392,7 @@ namespace NPoco
                 }
 
                 // Dont update result only columns
-                if (i.Value.ResultColumn)
+                if (i.Value.ResultColumn || i.Value.ComputedColumn)
                     continue;
 
                 if (!i.Value.VersionColumn && columns != null && !columns.Contains(i.Value.ColumnName, StringComparer.OrdinalIgnoreCase))

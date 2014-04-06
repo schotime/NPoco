@@ -53,16 +53,20 @@ namespace NPoco.FluentMappings
                 var pc = new PocoColumn();
                 pc.TableInfo = TableInfo;
                 pc.MemberInfo = mi;
-
+                pc.AutoAlias = alias + "_" + index++;
+                
                 // Work out the DB column name
                 if (isColumnDefined)
                 {
                     var colattr = typeConfig.ColumnConfiguration[mi.Name];
                     pc.ColumnName = colattr.DbColumnName;
+                    pc.ColumnAlias = colattr.DbColumnAlias;
                     if (colattr.ResultColumn.HasValue && colattr.ResultColumn.Value)
                         pc.ResultColumn = true;
                     else if (colattr.VersionColumn.HasValue && colattr.VersionColumn.Value)
                         pc.VersionColumn = true;
+                    else if (colattr.ComputedColumn.HasValue && colattr.ComputedColumn.Value)
+                        pc.ComputedColumn = true;
 
                     if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)
                         pc.ForceToUtc = true;
@@ -81,9 +85,7 @@ namespace NPoco.FluentMappings
                     if (mapper != null && !mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                         continue;
                 }
-
-                pc.AutoAlias = alias + "_" + index++;
-
+                
                 // Store it
                 Columns.Add(pc.ColumnName, pc);
             }

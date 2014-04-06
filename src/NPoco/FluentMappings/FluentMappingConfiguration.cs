@@ -45,9 +45,7 @@ namespace NPoco.FluentMappings
         {
             var types = typesOverride ?? FindTypes(scannerSettings);
             var config = new Dictionary<Type, TypeDefinition>();
-
-
-
+            
             foreach (var type in types)
             {
                 var pocoDefn = new TypeDefinition(type)
@@ -64,9 +62,11 @@ namespace NPoco.FluentMappings
                     var column = new ColumnDefinition();
                     column.MemberInfo = prop;
                     column.DbColumnName = scannerSettings.PropertiesNamed(prop);
+                    column.DbColumnAlias = scannerSettings.AliasNamed(prop);
                     column.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(prop));
                     column.DbColumnType = scannerSettings.DbColumnTypesAs(prop);
                     column.ResultColumn = scannerSettings.ResultPropertiesWhere(prop);
+                    column.ComputedColumn = scannerSettings.ComputedPropertiesWhere(prop);
                     column.VersionColumn = scannerSettings.VersionPropertiesWhere(prop);
                     column.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(prop);
                     pocoDefn.ColumnConfiguration.Add(prop.Name, column);
@@ -76,6 +76,11 @@ namespace NPoco.FluentMappings
             }
 
             MergeOverrides(config, scannerSettings.MappingOverrides);
+
+            //if (scannerSettings.OverrideWithAttributes)
+            //{
+            //    MergeAttributeOverrides(config);
+            //}
 
             var pocoMappings = new Mappings {Config = config};
             return pocoMappings;
@@ -89,14 +94,15 @@ namespace NPoco.FluentMappings
                 PrimaryKeysNamed = x => "ID",
                 TablesNamed = x => x.Name,
                 PropertiesNamed = x => x.Name,
+                AliasNamed = x => null,
                 DbColumnTypesAs = x => null,
                 ResultPropertiesWhere = x => false,
                 VersionPropertiesWhere = x => false,
+                ComputedPropertiesWhere = x => false,
                 ForceDateTimesToUtcWhere = x => true,
                 SequencesNamed = x => null,
                 Lazy = false
             };
-
             scanner.Invoke(new ConventionScanner(defaultScannerSettings));
             return defaultScannerSettings;
         }
@@ -111,6 +117,31 @@ namespace NPoco.FluentMappings
                 .Where(x => scannerSettings.IncludeTypes.All(y => y.Invoke(x)))
                 .Where(x => !x.IsNested && !typeof (Map<>).IsAssignableFrom(x) && !typeof (Mappings).IsAssignableFrom(x));
             return types;
+        }
+
+        private static void MergeAttributeOverrides(Dictionary<Type, TypeDefinition> config)
+        {
+            foreach (var typeDefinition in config)
+            {
+                var tableInfo = TableInfo.FromPoco(typeDefinition.Key);
+                typeDefinition.Value.TableName = tableInfo.TableName;
+                typeDefinition.Value.PrimaryKey = tableInfo.PrimaryKey;
+                typeDefinition.Value.SequenceName = tableInfo.SequenceName;
+                typeDefinition.Value.AutoIncrement = tableInfo.AutoIncrement;
+
+                foreach (var columnDefinition in typeDefinition.Value.ColumnConfiguration)
+                {
+                    var columnInfo = ColumnInfo.FromMemberInfo(columnDefinition.Value.MemberInfo);
+                    columnDefinition.Value.DbColumnName = columnInfo.ColumnName;
+                    columnDefinition.Value.DbColumnAlias = columnInfo.ColumnAlias;
+                    columnDefinition.Value.DbColumnType = columnInfo.ColumnType;
+                    columnDefinition.Value.IgnoreColumn = columnInfo.IgnoreColumn;
+                    columnDefinition.Value.ResultColumn = columnInfo.ResultColumn;
+                    columnDefinition.Value.ComputedColumn = columnInfo.ComputedColumn;
+                    columnDefinition.Value.VersionColumn = columnInfo.VersionColumn;
+                    columnDefinition.Value.ForceUtc = columnInfo.ForceToUtc;
+                }
+            }
         }
 
         private static void MergeOverrides(Dictionary<Type, TypeDefinition> config, Mappings overrideMappings)
@@ -136,9 +167,11 @@ namespace NPoco.FluentMappings
                     var convColDefinition = convTableDefinition.ColumnConfiguration[overrideColumnDefinition.Key];
 
                     convColDefinition.DbColumnName = overrideColumnDefinition.Value.DbColumnName ?? convColDefinition.DbColumnName;
+                    convColDefinition.DbColumnAlias = overrideColumnDefinition.Value.DbColumnAlias ?? convColDefinition.DbColumnAlias;
                     convColDefinition.DbColumnType = overrideColumnDefinition.Value.DbColumnType ?? convColDefinition.DbColumnType;
                     convColDefinition.IgnoreColumn = overrideColumnDefinition.Value.IgnoreColumn ?? convColDefinition.IgnoreColumn;
                     convColDefinition.ResultColumn = overrideColumnDefinition.Value.ResultColumn ?? convColDefinition.ResultColumn;
+                    convColDefinition.ComputedColumn = overrideColumnDefinition.Value.ComputedColumn ?? convColDefinition.ComputedColumn;
                     convColDefinition.VersionColumn = overrideColumnDefinition.Value.VersionColumn ?? convColDefinition.VersionColumn;
                     convColDefinition.MemberInfo = overrideColumnDefinition.Value.MemberInfo ?? convColDefinition.MemberInfo;
                     convColDefinition.ForceUtc = overrideColumnDefinition.Value.ForceUtc ?? convColDefinition.ForceUtc;
