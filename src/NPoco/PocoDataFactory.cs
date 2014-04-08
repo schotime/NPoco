@@ -26,7 +26,7 @@ namespace NPoco
         public PocoData ForType(Type type, bool emptyNestedObjectNull)
         {
 #if !POCO_NO_DYNAMIC
-            if (type == typeof(System.Dynamic.ExpandoObject))
+            if (type == typeof(PocoExpando))
                 throw new InvalidOperationException("Can't use dynamic types with this method");
 #endif
             Func<PocoData> pocoDataFunc = (Resolver == null 
@@ -40,7 +40,7 @@ namespace NPoco
         {
             var t = o.GetType();
 #if !POCO_NO_DYNAMIC
-            if (t == typeof (System.Dynamic.ExpandoObject))
+            if (t == typeof(PocoExpando))
             {
                 var pd = new PocoData();
                 pd.TableInfo = new TableInfo();

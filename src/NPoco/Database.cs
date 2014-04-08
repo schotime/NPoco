@@ -1616,7 +1616,7 @@ namespace NPoco
                 pk = pc.GetValue(poco);
             }
 #if !POCO_NO_DYNAMIC
-            else if (poco is System.Dynamic.ExpandoObject)
+            else if (poco is PocoExpando)
             {
                 return true;
             }

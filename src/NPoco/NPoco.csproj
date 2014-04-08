@@ -113,6 +113,7 @@
     <Compile Include="PocoColumn.cs" />
     <Compile Include="PocoData.cs" />
     <Compile Include="PocoDataFactory.cs" />
+    <Compile Include="PocoExpando.cs" />
     <Compile Include="ReflectionUtils.cs" />
     <Compile Include="RelationExtensions.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />
