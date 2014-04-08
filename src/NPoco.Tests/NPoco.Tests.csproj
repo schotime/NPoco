@@ -90,6 +90,7 @@
     <Compile Include="FluentTests\QueryTests\NullableTests.cs" />
     <Compile Include="FluentTests\QueryTests\PagingFluentTest.cs" />
     <Compile Include="FluentTests\QueryTests\SingleAndFirstQueryFluentTest.cs" />
+    <Compile Include="PagingHelper.cs" />
     <Compile Include="SnapshotterTests.cs" />
     <Compile Include="FluentMappings\ColumnConfigurationBuilderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

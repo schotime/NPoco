@@ -7,7 +7,7 @@ namespace NPoco
     public class PagingHelper
     {
         public static Regex rxColumns = new Regex(@"\A\s*SELECT\s+((?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|.)*?)(?<!,\s+)\bFROM\b", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-        public static Regex rxOrderBy = new Regex(@"\bORDER\s+BY\s+(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\(\)\.\[\]""`])+(?:\s+(?:ASC|DESC))?(?:\s*,\s*(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\(\)\.\[\]""`])+(?:\s+(?:ASC|DESC))?)*", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
+        public static Regex rxOrderBy = new Regex(@"\bORDER\s+BY\s+(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\.\[\] ""`])+(?:\s+(?:ASC|DESC))?(?:\s*,\s*(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\.\[\] ""`])+(?:\s+(?:ASC|DESC))?)*(?!.*FROM)", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
 
         public struct SQLParts
         {
@@ -42,7 +42,7 @@ namespace NPoco
             {
                 g = m.Groups[0];
                 parts.sqlOrderBy = g.ToString();
-                parts.sqlUnordered = parts.sqlUnordered.Replace(parts.sqlOrderBy, "");
+                parts.sqlUnordered = rxOrderBy.Replace(parts.sqlUnordered, "");
             }
 
             parts.sqlCount = string.Format(@"SELECT COUNT(*) FROM ({0}) peta_tbl", parts.sqlUnordered);

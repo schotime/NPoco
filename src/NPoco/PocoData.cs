@@ -61,6 +61,7 @@ namespace NPoco
                 pc.ForceToUtc = ci.ForceToUtc;
                 pc.ColumnType = ci.ColumnType;
                 pc.ColumnAlias = ci.ColumnAlias;
+                pc.VersionColumn = ci.VersionColumn;
 
                 if (Mapper != null && !Mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;

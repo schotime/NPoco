@@ -38,7 +38,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         [Test]
         public void PageWithAlias()
         {
-            var page = Database.Page<UserDecorated>(2, 5, "SELECT u.* FROM Users u WHERE u.userId <= 15 ORDER BY u.UserID DESC");
+            var page = Database.Page<UserDecorated>(2, 5, "SELECT u.* FROM Users u WHERE u.userId <= 15 ORDER BY u.UserID, u.Age DESC");
 
             foreach (var user in page.Items)
             {
