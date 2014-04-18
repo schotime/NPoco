@@ -63,6 +63,11 @@ namespace NPoco.FluentMappings
             _scannerSettings.PrimaryKeysAutoIncremented = primaryKeyAutoIncrementFunc;
         }
 
+        //public void OverrideWithAttributes()
+        //{
+        //    _scannerSettings.OverrideWithAttributes = true;
+        //}
+
         public IColumnsBuilderConventions Columns
         {
             get { return new PropertyBuilderConventions(_scannerSettings); }

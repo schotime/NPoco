@@ -32,6 +32,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchOnWithSecondGenericType()
+        {
+            var s = new DefaultSqlExpression<User>(Database, true);
+            var joinexp = s.On<CustomerUser>((x, y) => x.Name == y.CustomerName);
+            Assert.AreEqual(joinexp, "([U].[Name] = [CU].[CustomerName])");
+        }
+
+        [Test]
         public void FetchByExpressionAndColumnAlias()
         {
             var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.IsMale).OrderBy(x => x.UserId));
@@ -41,7 +49,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchByExpressionWithParametersAndOrderBy()
         {
-            var users = Database.FetchBy<UserDecorated>(y => y.Select(x=> new{ x.Name }).Where(x => x.Name == "Name1").OrderBy(x => x.UserId));
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new {x.Name}).Where(x => x.Name == "Name1").OrderBy(x => x.UserId));
             Assert.AreEqual(1, users.Count);
         }
 
@@ -97,35 +105,35 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchByExpressionAndSelectWithSubstring()
         {
-            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new { Name = x.Name.Substring(0, 2) }));
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new {Name = x.Name.Substring(0, 2)}));
             Assert.AreEqual("Na", users[0].Name);
         }
 
         [Test]
         public void FetchByExpressionAndSelectWithLower()
         {
-            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new { Name = x.Name.ToLower() }));
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new {Name = x.Name.ToLower()}));
             Assert.AreEqual("name1", users[0].Name);
         }
 
         [Test]
         public void FetchByExpressionAndSelectWithUpper()
         {
-            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new { Name = x.Name.ToUpper() }));
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new {Name = x.Name.ToUpper()}));
             Assert.AreEqual("NAME1", users[0].Name);
         }
 
         [Test]
         public void FetchByExpressionAndSelect()
         {
-            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new { x.Name }));
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new {x.Name}));
             Assert.AreEqual("Name1", users[0].Name);
         }
 
         [Test]
         public void FetchWithWhereExpressionContains()
         {
-            var list = new[] { 1, 2, 3, 4 };
+            var list = new[] {1, 2, 3, 4};
             var users = Database.FetchBy<User>(y => y.Where(x => list.Contains(x.UserId)));
 
             Assert.AreEqual(4, users.Count);
@@ -138,7 +146,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchWithWhereExpressionInAsExtensionMethod()
         {
-            var list = new[] { 1, 2, 3, 4 };
+            var list = new[] {1, 2, 3, 4};
             var users = Database.FetchBy<User>(y => y.Where(x => x.UserId.In(list)));
 
             Assert.AreEqual(4, users.Count);
@@ -151,7 +159,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchWithWhereExpressionInAsStaticMethod()
         {
-            var list = new[] { 1, 2, 3, 4 };
+            var list = new[] {1, 2, 3, 4};
             var users = Database.FetchBy<User>(y => y.Where(x => S.In(x.UserId, list)));
 
             Assert.AreEqual(4, users.Count);
@@ -173,9 +181,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void UpdateWhere()
         {
-            var list = new[] { 1, 2, 3, 4 };
+            var list = new[] {1, 2, 3, 4};
 
-            Database.UpdateWhere(new User() { Name = "test" }, x => x.UserId.In(list), x => x.Name);
+            Database.UpdateMany<User>()
+                .Where( x => x.UserId.In(list))
+                //.ExcludeDefaults()
+                .OnlyFields(x => x.Name)
+                .Execute(new User() {Name = "test"});
 
             var users = Database.Fetch<User>();
 
@@ -185,7 +197,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             }
             for (int i = 4; i < 15; i++)
             {
-                Assert.AreEqual("Name"+(i+1), users[i].Name);
+                Assert.AreEqual("Name" + (i + 1), users[i].Name);
             }
         }
 
@@ -200,7 +212,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 new User() {UserId = 4},
             };
 
-            Database.DeleteWhere<User>(x => list.Select(y=>y.UserId).Contains(x.UserId));
+            Database.DeleteMany<User>().Where(x => list.Select(y => y.UserId).Contains(x.UserId)).Execute();
 
             var users = Database.Fetch<User>();
 
@@ -213,9 +225,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var sqlExpression = new DefaultSqlExpression<UserDecorated>(Database);
             sqlExpression.Select(x => new {x.IsMale, x.Name});
             var selectStatement = sqlExpression.Context.ToSelectStatement();
-            Assert.AreEqual("SELECT [is_male],[Name] \nFROM [Users]", selectStatement);
+            Assert.AreEqual("SELECT [is_male], [Name] \nFROM [Users] UD", selectStatement);
         }
-
-
     }
 }

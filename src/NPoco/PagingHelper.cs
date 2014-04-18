@@ -7,7 +7,7 @@ namespace NPoco
     public class PagingHelper
     {
         public static Regex rxColumns = new Regex(@"\A\s*SELECT\s+((?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|.)*?)(?<!,\s+)\bFROM\b", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-        public static Regex rxOrderBy = new Regex(@"\bORDER\s+BY\s+(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\(\)\.\[\]""`])+(?:\s+(?:ASC|DESC))?(?:\s*,\s*(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\(\)\.\[\]""`])+(?:\s+(?:ASC|DESC))?)*", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
+        public static Regex rxOrderBy = new Regex(@"\bORDER\s+BY\s+(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\.\[\] ""`])+(?:\s+(?:ASC|DESC))?(?:\s*,\s*(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\.\[\] ""`])+(?:\s+(?:ASC|DESC))?)*(?!.*FROM)", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
 
         public struct SQLParts
         {
@@ -16,6 +16,7 @@ namespace NPoco
             public string sqlSelectRemoved;
             public string sqlOrderBy;
             public string sqlUnordered;
+            public string sqlColumns;
         }
 
         public static bool SplitSQL(string sql, out SQLParts parts)
@@ -25,6 +26,7 @@ namespace NPoco
             parts.sqlCount = null;
             parts.sqlOrderBy = null;
             parts.sqlUnordered = sql.Trim().Trim(';');
+            parts.sqlColumns = "*";
 
             // Extract the columns from "SELECT <whatever> FROM"
             var m = rxColumns.Match(sql);
@@ -40,7 +42,7 @@ namespace NPoco
             {
                 g = m.Groups[0];
                 parts.sqlOrderBy = g.ToString();
-                parts.sqlUnordered = parts.sqlUnordered.Replace(parts.sqlOrderBy, "");
+                parts.sqlUnordered = rxOrderBy.Replace(parts.sqlUnordered, "");
             }
 
             parts.sqlCount = string.Format(@"SELECT COUNT(*) FROM ({0}) peta_tbl", parts.sqlUnordered);

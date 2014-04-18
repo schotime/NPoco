@@ -19,6 +19,18 @@ namespace NPoco.Tests.FluentMappings
 
             Assert.AreEqual("Id", columnDefinitions["UserId"].DbColumnName);
         }
+        
+        [Test]
+        public void WithAliasReturnsDbColumnNameCorrectly()
+        {
+            var columnDefinitions = new Dictionary<string, ColumnDefinition>();
+            var columnBuilder = new ColumnConfigurationBuilder<User>(columnDefinitions);
+
+            columnBuilder
+                .Column(x => x.UserId).WithAlias("Identity");
+
+            Assert.AreEqual("Identity", columnDefinitions["UserId"].DbColumnAlias);
+        }
 
         [Test]
         public void WithDbTypeReturnsDbTypeCorrectly()
@@ -104,11 +116,11 @@ namespace NPoco.Tests.FluentMappings
             var map = FluentMappingConfiguration.Scan(scan =>
             {
                 scan.Assembly(this.GetType().Assembly);
-                scan.IncludeTypes(x => x == typeof (User));
+                scan.IncludeTypes(x => x == typeof(User));
                 scan.Columns.IgnoreWhere(x => x.Name == "Age");
             });
 
-            var pd = map.Config(new Mapper())(typeof (User));
+            var pd = map.Config(new Mapper()).Resolver(typeof(User));
             Assert.False(pd.Columns.ContainsKey("Age"));
         }
 
@@ -122,7 +134,7 @@ namespace NPoco.Tests.FluentMappings
                 scan.Columns.ResultWhere(x => x.Name == "Age");
             });
 
-            var pd = map.Config(new Mapper())(typeof(User));
+            var pd = map.Config(new Mapper()).Resolver(typeof(User));
             Assert.True(pd.Columns.ContainsKey("Age"));
             Assert.True(pd.Columns["Age"].ResultColumn);
         }
@@ -134,10 +146,10 @@ namespace NPoco.Tests.FluentMappings
             {
                 scan.Assembly(this.GetType().Assembly);
                 scan.IncludeTypes(x => x == typeof(User));
-                scan.Columns.Named(x =>x.Name + "000");
+                scan.Columns.Named(x => x.Name + "000");
             });
 
-            var pd = map.Config(new Mapper())(typeof(User));
+            var pd = map.Config(new Mapper()).Resolver(typeof(User));
             Assert.True(pd.Columns.ContainsKey("Age000"));
             Assert.AreEqual("Age", pd.Columns["Age000"].MemberInfo.Name);
         }

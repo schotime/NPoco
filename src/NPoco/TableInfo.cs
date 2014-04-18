@@ -9,6 +9,7 @@ namespace NPoco
         public string PrimaryKey { get; set; }
         public bool AutoIncrement { get; set; }
         public string SequenceName { get; set; }
+        public string AutoAlias { get; set; }
 
         public static TableInfo FromPoco(Type t)
         {

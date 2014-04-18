@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using NPoco.DatabaseTypes;
 using NPoco.Expressions;
+using NPoco.Linq;
 
 namespace NPoco
 {
@@ -23,6 +24,7 @@ namespace NPoco
         public static DatabaseType MySQL { get { return Singleton<MySqlDatabaseType>.Instance; } }
         public static DatabaseType SQLite { get { return Singleton<SQLiteDatabaseType>.Instance; } }
         public static DatabaseType SQLCe { get { return Singleton<SqlServerCEDatabaseType>.Instance; } }
+        public static DatabaseType Firebird { get { return Singleton<FirebirdDatabaseType>.Instance; } }
 
         readonly Dictionary<Type, DbType> typeMap;
 
@@ -148,6 +150,11 @@ namespace NPoco
             return sql;
         }
 
+        public virtual bool UseColumnAliases()
+        {
+            return false;
+        }
+
         /// <summary>
         /// Returns an SQL Statement that can check for the existance of a row in the database.
         /// </summary>
@@ -246,6 +253,8 @@ namespace NPoco
                 return Singleton<SQLiteDatabaseType>.Instance;
             if (typeName.StartsWith("SqlConnection"))
                 return Singleton<SqlServerDatabaseType>.Instance;
+            if (typeName.StartsWith("Firebird"))
+                return Singleton<FirebirdDatabaseType>.Instance;
 
             if (!string.IsNullOrEmpty(providerName))
             {
@@ -262,6 +271,8 @@ namespace NPoco
                     return Singleton<OracleManagedDatabaseType>.Instance;
                 if (providerName.IndexOf("SQLite", StringComparison.InvariantCultureIgnoreCase) >= 0)
                     return Singleton<SQLiteDatabaseType>.Instance;
+                if (providerName.IndexOf("Firebird", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    return Singleton<FirebirdDatabaseType>.Instance;
             }
 
             // Assume SQL Server
@@ -302,14 +313,20 @@ namespace NPoco
             }
         }
 
-        public virtual SqlExpression<T> ExpressionVisitor<T>(IDatabase db)
+        public SqlExpression<T> ExpressionVisitor<T>(IDatabase db)
         {
-            return new DefaultSqlExpression<T>(db);
+            return ExpressionVisitor<T>(db, false);
+        }
+
+        public virtual SqlExpression<T> ExpressionVisitor<T>(IDatabase db, bool prefixTableName)
+        {
+            return new DefaultSqlExpression<T>(db, prefixTableName);
         }
 
         public virtual string GetProviderName()
         {
             return "System.Data.SqlClient";
         }
+
     }
 }

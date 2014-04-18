@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -89,6 +90,19 @@ namespace NPoco.Tests
             Sql sql2 = temp2;
             Assert.AreEqual(3, sql2.Arguments.Length);
             Assert.AreEqual("select * from test2 where  ( id2 = @1 AND id3 = @2 )\n and id = @0", sql2.SQL);
+        }
+
+        [Test]
+        public void Test7()
+        {
+            var sqlBuilder = new SqlBuilder();
+            var temp = sqlBuilder.AddTemplate("select * from test where /**where**/ and id = @0", 1);
+            temp.TokenReplacementRequired = true;
+
+            Assert.Throws<Exception>(() =>
+            {
+                var sql = temp.RawSql;
+            });
         }
     }
 }

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq.Expressions;
+using NPoco.Linq;
 
 namespace NPoco
 {
@@ -9,8 +11,8 @@ namespace NPoco
         IDbConnection Connection { get; }
         IDbTransaction Transaction { get; }
         IDataParameter CreateParameter();
-        Transaction GetTransaction();
-        Transaction GetTransaction(IsolationLevel isolationLevel);
+        ITransaction GetTransaction();
+        ITransaction GetTransaction(IsolationLevel isolationLevel);
         void SetTransaction(IDbTransaction tran);
         void BeginTransaction();
         void BeginTransaction(IsolationLevel isolationLevel);
@@ -27,15 +29,18 @@ namespace NPoco
         int Update(object poco, IEnumerable<string> columns);
         int Update(object poco, object primaryKeyValue, IEnumerable<string> columns);
         int Update(object poco);
+        int Update<T>(T poco, Expression<Func<T, object>> fields);
         int Update(object poco, object primaryKeyValue);
         int Update<T>(string sql, params object[] args);
         int Update<T>(Sql sql);
+        IUpdateQueryProvider<T> UpdateMany<T>();
         int Delete(string tableName, string primaryKeyName, object poco);
         int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
         int Delete(object poco);
         int Delete<T>(string sql, params object[] args);
         int Delete<T>(Sql sql);
         int Delete<T>(object pocoOrPrimaryKey);
+        IDeleteQueryProvider<T> DeleteMany<T>();
         void Save<T>(object poco);
         bool IsNew<T>(object poco);
     }
@@ -43,7 +48,7 @@ namespace NPoco
     public interface IDatabaseConfig
     {
         IMapper Mapper { get; set; }
-        Func<Type, PocoData> PocoDataFactory { get; set; }
+        PocoDataFactory PocoDataFactory { get; set; }
         DatabaseType DatabaseType { get; }
         string ConnectionString { get; }
     }

@@ -12,6 +12,26 @@ namespace NPoco.Tests.Common
         public bool IsMale { get; set; }
         public Guid? UniqueId { get; set; }
         public TimeSpan TimeSpan { get; set; }
+        public int? HouseId { get; set; }
+        public int? SupervisorId { get; set; }
+
+        [ResultColumn]
+        public House House { get; set; }
+
+        [ResultColumn]
+        public Supervisor Supervisor { get; set; }
+    }
+
+    public class House
+    {
+        public int HouseId { get; set; }
+        public string Address { get; set; }
+    }
+
+    public enum TestEnum
+    {
+        All,
+        None
     }
 
     public class Admin : User
@@ -20,11 +40,32 @@ namespace NPoco.Tests.Common
 
     public class Supervisor : User
     {
-        public bool IsSupervisor { get; set; }
+        //[ResultColumn]
+        //public bool IsSupervisor { get; set; }
     }
 
     public class UserWithExtraInfo : User
     {
         public ExtraUserInfo ExtraUserInfo { get; set; }
+    }
+
+    public class UserWithNoParamConstructor : User
+    {
+        public UserWithNoParamConstructor(int userId)
+        {
+            UserId = userId;
+        }
+    }
+
+    public class UserWithPrivateParamLessConstructor : User
+    {
+        private UserWithPrivateParamLessConstructor()
+        {
+        }
+
+        public UserWithPrivateParamLessConstructor(int userId)
+        {
+            UserId = userId;
+        }
     }
 }

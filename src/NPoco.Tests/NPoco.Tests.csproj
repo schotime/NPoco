@@ -56,6 +56,7 @@
     <Compile Include="Common\BaseDBDecoratedTest.cs" />
     <Compile Include="Common\BaseDBFuentTest.cs" />
     <Compile Include="Common\BaseDBTest.cs" />
+    <Compile Include="Common\CustomerUser.cs" />
     <Compile Include="Common\ExtraUserInfoDecorated.cs" />
     <Compile Include="Common\ExtraUserInfo.cs" />
     <Compile Include="Common\InMemoryDatabase.cs" />
@@ -71,6 +72,7 @@
     <Compile Include="DecoratedTests\CRUDTests\UpdateTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\AdvancedFetchDecoratedTest.cs" />
     <Compile Include="DecoratedTests\QueryTests\ConverterDecoratedTests.cs" />
+    <Compile Include="DecoratedTests\QueryTests\MapperTestsForDecorated.cs" />
     <Compile Include="DecoratedTests\QueryTests\NestedNestedFetchDecoratedTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\OneToManyDecoratedTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\FetchAndQueryDecoratedTests.cs" />
@@ -82,10 +84,14 @@
     <Compile Include="FluentMappings\UserMap.cs" />
     <Compile Include="FluentTests\QueryTests\AdvancedFetchFluentTest.cs" />
     <Compile Include="FluentTests\QueryTests\ConverterFluentTest.cs" />
+    <Compile Include="FluentTests\QueryTests\QueryProviderTests.cs" />
     <Compile Include="FluentTests\QueryTests\ExpressionFluentTests.cs" />
     <Compile Include="FluentTests\QueryTests\FetchAndQueryFluentTest.cs" />
+    <Compile Include="FluentTests\QueryTests\NullableTests.cs" />
     <Compile Include="FluentTests\QueryTests\PagingFluentTest.cs" />
     <Compile Include="FluentTests\QueryTests\SingleAndFirstQueryFluentTest.cs" />
+    <Compile Include="PagingHelper.cs" />
+    <Compile Include="PocoExpandoTests.cs" />
     <Compile Include="SnapshotterTests.cs" />
     <Compile Include="FluentMappings\ColumnConfigurationBuilderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

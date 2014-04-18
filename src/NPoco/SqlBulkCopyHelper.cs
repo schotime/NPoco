@@ -16,7 +16,7 @@ namespace NPoco
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), SqlBulkCopyOptions.Default, SqlTransactionResolver(db.Transaction)))
             {
-                var pocoData = PocoData.ForType(typeof(T), db.PocoDataFactory);
+                var pocoData = db.PocoDataFactory.ForType(typeof(T));
 
                 bulkCopy.BatchSize = 4096;
                 bulkCopy.DestinationTableName = pocoData.TableInfo.TableName;

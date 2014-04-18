@@ -27,11 +27,13 @@ namespace NPoco.FluentMappings
     public interface IColumnBuilder
     {
         IColumnBuilder WithName(string name);
+        IColumnBuilder WithAlias(string alias);
         IColumnBuilder WithDbType(Type type);
         IColumnBuilder WithDbType<T>();
         IColumnBuilder Version();
         IColumnBuilder Ignore();
         IColumnBuilder Result();
+        IColumnBuilder Computed();
     }
 
     public class ColumnBuilder : IColumnBuilder
@@ -46,6 +48,12 @@ namespace NPoco.FluentMappings
         public IColumnBuilder WithName(string name)
         {
             _columnDefinition.DbColumnName = name;
+            return this;
+        }
+
+        public IColumnBuilder WithAlias(string alias)
+        {
+            _columnDefinition.DbColumnAlias = alias;
             return this;
         }
 
@@ -75,6 +83,12 @@ namespace NPoco.FluentMappings
         public IColumnBuilder Result()
         {
             _columnDefinition.ResultColumn = true;
+            return this;
+        }
+
+        public IColumnBuilder Computed()
+        {
+            _columnDefinition.ComputedColumn = true;
             return this;
         }
     }

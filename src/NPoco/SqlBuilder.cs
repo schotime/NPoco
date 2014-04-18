@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -41,6 +42,8 @@ namespace NPoco
 
         public class Template
         {
+            public bool TokenReplacementRequired { get; set; }
+            
             readonly string sql;
             readonly SqlBuilder builder;
             private List<object> finalParams = new List<object>();
@@ -80,7 +83,16 @@ namespace NPoco
             {
                 foreach (var pair in builder.defaultsIfEmpty)
                 {
-                    rawSql = rawSql.Replace("/**" + pair.Key + "**/", " " + pair.Value + " ");
+                    var fullToken = "/**" + pair.Key + "**/";
+                    if (TokenReplacementRequired)
+                    {
+                        if (rawSql.Contains(fullToken))
+                        {
+                            throw new Exception(string.Format("Token '{0}' not used. All tokens must be replaced if TokenReplacementRequired switched on.", fullToken));
+                        }
+                    }
+
+                    rawSql = rawSql.Replace(fullToken, " " + pair.Value + " ");
                 }
 
                 // replace all that is left with empty

@@ -18,6 +18,12 @@ namespace NPoco.FluentMappings
             return this;
         }
 
+        public IColumnsBuilderConventions Aliased(Func<MemberInfo, string> aliasNamedFunc)
+        {
+            _scannerSettings.AliasNamed = aliasNamedFunc;
+            return this;
+        }
+
         public IColumnsBuilderConventions IgnoreWhere(Func<MemberInfo, bool> ignorePropertiesWhereFunc)
         {
             _scannerSettings.IgnorePropertiesWhere.Add(ignorePropertiesWhereFunc);
@@ -27,6 +33,12 @@ namespace NPoco.FluentMappings
         public IColumnsBuilderConventions ResultWhere(Func<MemberInfo, bool> resultPropertiesWhereFunc)
         {
             _scannerSettings.ResultPropertiesWhere = resultPropertiesWhereFunc;
+            return this;
+        }
+
+        public IColumnsBuilderConventions ComputedWhere(Func<MemberInfo, bool> computedPropertiesWhereFunc)
+        {
+            _scannerSettings.ComputedPropertiesWhere = computedPropertiesWhereFunc;
             return this;
         }
 

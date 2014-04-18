@@ -90,7 +90,10 @@ namespace NPoco.Tests.Common
                     Savings decimal(10,5) NULL,
                     Is_Male tinyint,
                     UniqueId uniqueidentifier NULL,
-                    TimeSpan time NULL
+                    TimeSpan time NULL,
+                    TestEnum varchar(10) NULL,
+                    HouseId int NULL,
+                    SupervisorId int NULL,
                 );
             ";
             cmd.ExecuteNonQuery();
@@ -101,6 +104,14 @@ namespace NPoco.Tests.Common
                     UserId int NOT NULL, 
                     Email nvarchar(200) NULL, 
                     Children int NULL
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+                CREATE TABLE Houses(
+                    HouseId int IDENTITY(1,1) PRIMARY KEY NOT NULL, 
+                    Address nvarchar(200)
                 );
             ";
             cmd.ExecuteNonQuery();

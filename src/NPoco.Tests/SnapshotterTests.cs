@@ -93,5 +93,18 @@ namespace NPoco.Tests
             Assert.AreEqual(4, snap.Changes().Count);
             Assert.AreEqual(4, snap.UpdatedColumns().Count);
         }
+
+        [Test]
+        public void GenerateCloneWIthPrivateConstructor()
+        {
+            var user = new UserWithPrivateParamLessConstructor(1);
+            var snap = _database.StartSnapshot(user);
+
+            user.Name = "Changed";
+
+            Assert.AreEqual(1, snap.Changes().Count);
+            Assert.AreEqual(1, snap.UpdatedColumns().Count);
+            Assert.AreEqual("Name", snap.UpdatedColumns()[0]);
+        }
     }
 }
