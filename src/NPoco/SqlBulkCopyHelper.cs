@@ -22,7 +22,7 @@ namespace NPoco
                 bulkCopy.DestinationTableName = pocoData.TableInfo.TableName;
 
                 var table = new DataTable();
-                var cols = pocoData.Columns.Where(x => !pocoData.TableInfo.AutoIncrement || !x.Value.ColumnName.Equals(pocoData.TableInfo.PrimaryKey, StringComparison.OrdinalIgnoreCase)).ToList();
+                var cols = pocoData.Columns.Where(x => !(pocoData.TableInfo.AutoIncrement && x.Value.ColumnName.Equals(pocoData.TableInfo.PrimaryKey, StringComparison.OrdinalIgnoreCase))).ToList();
 
                 foreach (var col in cols)
                 {
@@ -35,7 +35,25 @@ namespace NPoco
                     var values = new object[cols.Count];
                     for (var i = 0; i < values.Length; i++)
                     {
-                        values[i] = cols[i].Value.GetValue(item);
+                        var value = cols[i].Value.GetValue(item);
+                        if (db.Mapper != null)
+                        {
+                            var converter = db.Mapper.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfo.GetMemberInfoType());
+                            if (converter != null)
+                            {
+                                value = converter(value);
+                            }
+                        }
+
+                        value = db.DatabaseType.MapParameterValue(value);
+                        
+                        var newType = value.GetTheType();
+                        if (newType != null)
+                        {
+                            table.Columns[i].DataType = newType;
+                        }
+
+                        values[i] = value;
                     }
 
                     table.Rows.Add(values);
