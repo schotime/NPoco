@@ -77,7 +77,7 @@ namespace NPoco
         {
             return typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public)
                 .Where(p =>
-                    p.GetSetMethod() != null &&
+                    p.GetSetMethodOnDeclaringType() != null &&
                     p.GetGetMethod() != null &&
                     (p.PropertyType.IsValueType ||
                         p.PropertyType == typeof(string) ||
@@ -225,7 +225,7 @@ namespace NPoco
                 // [clone, source]
                 il.Emit(OpCodes.Callvirt, prop.GetGetMethod());
                 // [clone, source val]
-                il.Emit(OpCodes.Callvirt, prop.GetSetMethod());
+                il.Emit(OpCodes.Callvirt, prop.GetSetMethodOnDeclaringType()); //prop.GetSetMethod());
                 // []
             }
 
