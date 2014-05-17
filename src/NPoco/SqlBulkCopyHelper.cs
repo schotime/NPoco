@@ -14,7 +14,12 @@ namespace NPoco
 
         public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list)
         {
-            using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), SqlBulkCopyOptions.Default, SqlTransactionResolver(db.Transaction)))
+            BulkInsert(db, list, SqlBulkCopyOptions.Default);
+        }
+
+        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions)
+        {
+            using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
             {
                 var pocoData = db.PocoDataFactory.ForType(typeof(T));
 
@@ -22,7 +27,8 @@ namespace NPoco
                 bulkCopy.DestinationTableName = pocoData.TableInfo.TableName;
 
                 var table = new DataTable();
-                var cols = pocoData.Columns.Where(x => !(pocoData.TableInfo.AutoIncrement && x.Value.ColumnName.Equals(pocoData.TableInfo.PrimaryKey, StringComparison.OrdinalIgnoreCase))).ToList();
+                var cols = pocoData.Columns.Where(x => !x.Value.ResultColumn && !x.Value.ComputedColumn 
+                    && !(pocoData.TableInfo.AutoIncrement && x.Value.ColumnName.Equals(pocoData.TableInfo.PrimaryKey, StringComparison.OrdinalIgnoreCase))).ToList();
 
                 foreach (var col in cols)
                 {
