@@ -12,9 +12,9 @@ namespace NPoco
         public static Func<IDbConnection, SqlConnection> SqlConnectionResolver = dbConn => (SqlConnection)dbConn;
         public static Func<IDbTransaction, SqlTransaction> SqlTransactionResolver = dbTran => (SqlTransaction)dbTran;
 
-        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list)
+        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions copyOptions = SqlBulkCopyOptions.Default)
         {
-            using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), SqlBulkCopyOptions.Default, SqlTransactionResolver(db.Transaction)))
+            using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), copyOptions, SqlTransactionResolver(db.Transaction)))
             {
                 var pocoData = db.PocoDataFactory.ForType(typeof(T));
 
@@ -22,7 +22,7 @@ namespace NPoco
                 bulkCopy.DestinationTableName = pocoData.TableInfo.TableName;
 
                 var table = new DataTable();
-                var cols = pocoData.Columns.Where(x => !(pocoData.TableInfo.AutoIncrement && x.Value.ColumnName.Equals(pocoData.TableInfo.PrimaryKey, StringComparison.OrdinalIgnoreCase))).ToList();
+                var cols = pocoData.Columns.Where(x => !x.Value.ResultColumn && !x.Value.ComputedColumn && !(pocoData.TableInfo.AutoIncrement && x.Value.ColumnName.Equals(pocoData.TableInfo.PrimaryKey, StringComparison.OrdinalIgnoreCase))).ToList();
 
                 foreach (var col in cols)
                 {
