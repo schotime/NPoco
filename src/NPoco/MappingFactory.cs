@@ -204,7 +204,7 @@ namespace NPoco
                         {
                             // Get the PocoColumn for this db column, ignore if not known
                             PocoColumn pc;
-                            if (!_pocoData.Columns.TryGetValue(r.GetName(i), out pc) && !_pocoData.Columns.TryGetValue(r.GetName(i).Replace("_", ""), out pc)
+                            if (!TryGetColumnByName(_pocoData.Columns, r.GetName(i), out pc)
                                 || (!pc.MemberInfo.IsField() && ((PropertyInfo)pc.MemberInfo).GetSetMethodOnDeclaringType() == null))
                             {
                                 var pcAlias = _pocoData.Columns.Values.SingleOrDefault(x => x.AutoAlias == r.GetName(i))
@@ -422,5 +422,17 @@ namespace NPoco
             return default(T);
         }
 
+        public static bool TryGetColumnByName(Dictionary<string, PocoColumn> columns, string name, out PocoColumn pc)
+        {
+            // Try to get the column by name directly (works when the poco property name matches the DB column name).
+            var found = (columns.TryGetValue(name, out pc) || columns.TryGetValue(name.Replace("_", ""), out pc));
+            if (!found)
+            {
+                // Try to get the column by the poco member name (the poco property name is different from the DB column name).
+                pc = columns.Values.Where(c => c.MemberInfo.Name == name).FirstOrDefault();
+                found = (pc != null);
+            }
+            return found;
+        }
     }
 }
