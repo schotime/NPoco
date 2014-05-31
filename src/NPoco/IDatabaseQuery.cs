@@ -89,5 +89,11 @@ namespace NPoco
         Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql);
         Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql);
 
+        Tuple<T1, T2> QueryMultiple<T1, T2>(string sql, params object[] args);
+        Tuple<T1, T2, T3> QueryMultiple<T1, T2, T3>(string sql, params object[] args);
+        Tuple<T1, T2, T3, T4> QueryMultiple<T1, T2, T3, T4>(string sql, params object[] args);
+        Tuple<T1, T2> QueryMultiple<T1, T2>(Sql sql);
+        Tuple<T1, T2, T3> QueryMultiple<T1, T2, T3>(Sql sql);
+        Tuple<T1, T2, T3, T4> QueryMultiple<T1, T2, T3, T4>(Sql sql);
     }
 }

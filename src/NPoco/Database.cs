@@ -1078,6 +1078,121 @@ namespace NPoco
             }
         }
 
+        private T ConvertTo<T>(object val)
+        {
+            Type t = typeof(T);
+            Type u = Nullable.GetUnderlyingType(t);
+
+            if (val == null || val == DBNull.Value)
+                return default(T);
+
+            return u != null ? (T)Convert.ChangeType(val, u) : (T)Convert.ChangeType(val, t);
+        }
+
+        public Tuple<T1, T2> QueryMultiple<T1, T2>(string sql, params object[] args)
+        {
+            return QueryMultiple<T1, T2, DontMap, DontMap, Tuple<T1, T2>>(new[] { typeof(T1), typeof(T2) }, new Func<T1, T2, Tuple<T1, T2>>((w, x) => new Tuple<T1, T2>(w, x)), new Sql(sql, args));
+        }
+        public Tuple<T1, T2> QueryMultiple<T1, T2>(Sql sql)
+        {
+            return QueryMultiple<T1, T2, DontMap, DontMap, Tuple<T1, T2>>(new[] { typeof(T1), typeof(T2) }, new Func<T1, T2, Tuple<T1, T2>>((w, x) => new Tuple<T1, T2>(w, x)), sql);
+        }
+        public Tuple<T1, T2, T3> QueryMultiple<T1, T2, T3>(string sql, params object[] args)
+        {
+            return QueryMultiple<T1, T2, T3, DontMap, Tuple<T1, T2, T3>>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<T1, T2, T3, Tuple<T1, T2, T3>>((w, x, y) => new Tuple<T1, T2, T3>(w, x, y)), new Sql(sql, args));
+        }
+        public Tuple<T1, T2, T3> QueryMultiple<T1, T2, T3>(Sql sql)
+        {
+            return QueryMultiple<T1, T2, T3, DontMap, Tuple<T1, T2, T3>>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<T1, T2, T3, Tuple<T1, T2, T3>>((w, x, y) => new Tuple<T1, T2, T3>(w, x, y)), sql);
+        }
+        public Tuple<T1, T2, T3, T4> QueryMultiple<T1, T2, T3, T4>(string sql, params object[] args)
+        {
+            return QueryMultiple<T1, T2, T3, T4, Tuple<T1, T2, T3, T4>>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<T1, T2, T3, T4, Tuple<T1, T2, T3, T4>>((w, x, y, z) => new Tuple<T1, T2, T3, T4>(w, x, y, z)), new Sql(sql, args));
+        }
+        public Tuple<T1, T2, T3, T4> QueryMultiple<T1, T2, T3, T4>(Sql sql)
+        {
+            return QueryMultiple<T1, T2, T3, T4, Tuple<T1, T2, T3, T4>>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<T1, T2, T3, T4, Tuple<T1, T2, T3, T4>>((w, x, y, z) => new Tuple<T1, T2, T3, T4>(w, x, y, z)), sql);
+        }
+        private TRet QueryMultiple<T1, T2, T3, T4, TRet>(Type[] types, object cb, Sql Sql)
+        {
+            var sql = Sql.SQL;
+            var args = Sql.Arguments;
+
+            OpenSharedConnection();
+            try
+            {
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                {
+                    IDataReader r;
+                    try
+                    {
+                        r = cmd.ExecuteReader();
+                        OnExecutedCommand(cmd);
+                    }
+                    catch (Exception x)
+                    {
+                        OnException(x);
+                        throw;
+                    }
+
+                    using (r)
+                    {
+                        var typeIndex = 1;
+                        T1 t1 = default(T1);
+                        T2 t2 = default(T2);
+                        T3 t3 = default(T3);
+                        T4 t4 = default(T4);
+                        r.Read();
+                        while (true)
+                        {
+                            if (typeIndex > types.Length)
+                                break;
+                            var pd = PocoData.ForType(types[typeIndex - 1], PocoDataFactory);
+                            var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
+                            try
+                            {
+                                switch (typeIndex)
+                                {
+                                    case 1:
+                                        t1 = ConvertTo<T1>(r.GetValue(typeIndex - 1));
+                                        break;
+                                    case 2:
+                                        t2 = ConvertTo<T2>(r.GetValue(typeIndex - 1));
+                                        break;
+                                    case 3:
+                                        t3 = ConvertTo<T3>(r.GetValue(typeIndex - 1));
+                                        break;
+                                    case 4:
+                                        t4 = ConvertTo<T4>(r.GetValue(typeIndex - 1));
+                                        break;
+                                }
+                            }
+                            catch (Exception x)
+                            {
+                                OnException(x);
+                                throw;
+                            }
+                            typeIndex++;
+                        }
+                        switch (types.Length)
+                        {
+                            case 2:
+                                return ((Func<T1, T2, TRet>)cb)(t1, t2);
+                            case 3:
+                                return ((Func<T1, T2, T3, TRet>)cb)(t1, t2, t3);
+                            case 4:
+                                return ((Func<T1, T2, T3, T4, TRet>)cb)(t1, t2, t3, t4);
+                        }
+                        return default(TRet);
+                    }
+                }
+            }
+            finally
+            {
+                CloseSharedConnection();
+            }
+        }
+
         public bool Exists<T>(object primaryKey)
         {
             var index = 0;
