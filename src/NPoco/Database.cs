@@ -1705,9 +1705,22 @@ namespace NPoco
             get { return FormatCommand(_lastSql, _lastArgs); }
         }
 
+        private class FormattedParameter
+        {
+            public Type Type { get; set; }
+            public object Value { get; set; }
+            public IDataParameter Parameter { get; set; }
+        }
+
         public string FormatCommand(IDbCommand cmd)
         {
-            return FormatCommand(cmd.CommandText, (from IDataParameter parameter in cmd.Parameters select parameter.Value).ToArray());
+            var parameters = cmd.Parameters.Cast<IDataParameter>().Select(parameter => new FormattedParameter()
+            {
+                Type = parameter.Value.GetTheType(),
+                Value = parameter.Value,
+                Parameter = parameter
+            });
+            return FormatCommand(cmd.CommandText, parameters.Cast<object>().ToArray());
         }
 
         public string FormatCommand(string sql, object[] args)
@@ -1721,7 +1734,15 @@ namespace NPoco
                 sb.Append("\n");
                 for (int i = 0; i < args.Length; i++)
                 {
-                    sb.AppendFormat("\t -> {0}{1} [{2}] = \"{3}\"\n", _paramPrefix, i, args[i].GetType().Name, args[i]);
+                    var type = args[i] != null ? args[i].GetType().Name : string.Empty;
+                    var value = args[i];
+                    var formatted = args[i] as FormattedParameter;
+                    if (formatted != null)
+                    {
+                        type = formatted.Type != null ? formatted.Type.Name : string.Format("{0}, {1}", formatted.Parameter.GetType().Name, formatted.Parameter.DbType);
+                        value = formatted.Value;
+                    }
+                    sb.AppendFormat("\t -> {0}{1} [{2}] = \"{3}\"\n", _paramPrefix, i, type, value);
                 }
                 sb.Remove(sb.Length - 1, 1);
             }
