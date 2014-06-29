@@ -14,6 +14,11 @@ namespace NPoco
         {
             return new Snapshot<T>(d, obj);
         }
+
+        public static int Update<T>(this IDatabase d, T obj, Snapshot<T> snapshot)
+        {
+            return d.Update(obj, snapshot.UpdatedColumns());
+        }
     }
 
     public class Snapshot<T>
