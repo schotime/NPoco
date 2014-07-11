@@ -519,7 +519,7 @@ namespace NPoco
         }
 
         // Create a command
-        IDbCommand CreateCommand(IDbConnection connection, string sql, params object[] args)
+        public IDbCommand CreateCommand(IDbConnection connection, string sql, params object[] args)
         {
             // Perform parameter prefix replacements
             if (_paramPrefix != "@")
