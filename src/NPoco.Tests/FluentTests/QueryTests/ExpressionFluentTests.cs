@@ -225,7 +225,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var sqlExpression = new DefaultSqlExpression<UserDecorated>(Database);
             sqlExpression.Select(x => new {x.IsMale, x.Name});
             var selectStatement = sqlExpression.Context.ToSelectStatement();
-            Assert.AreEqual("SELECT [is_male], [Name] \nFROM [Users] UD", selectStatement);
+            Assert.AreEqual("SELECT [is_male], [Name] \nFROM [Users]", selectStatement);
         }
     }
 }

@@ -928,9 +928,9 @@ namespace NPoco.Expressions
 
                     long numvericVal;
                     if (pc.ColumnType == typeof(string))
-                        right = CreateParam(Enum.Parse(pc.MemberInfo.GetMemberInfoType(), right.ToString()).ToString());
+                        right = CreateParam(Enum.Parse(GetMemberInfoTypeForEnum(pc), right.ToString()).ToString());
                     else if (Int64.TryParse(right.ToString(), out numvericVal))
-                        right = CreateParam(Enum.ToObject(pc.MemberInfo.GetMemberInfoType(), numvericVal));
+                        right = CreateParam(Enum.ToObject(GetMemberInfoTypeForEnum(pc), numvericVal));
                     else
                         right = CreateParam(right);
                 }
@@ -946,9 +946,9 @@ namespace NPoco.Expressions
                     //enum value was returned by Visit(b.Left)
                     long numvericVal;
                     if (pc.ColumnType == typeof(string))
-                        left = CreateParam(Enum.Parse(pc.MemberInfo.GetMemberInfoType(), left.ToString()).ToString());
+                        left = CreateParam(Enum.Parse(GetMemberInfoTypeForEnum(pc), left.ToString()).ToString());
                     else if (Int64.TryParse(left.ToString(), out numvericVal))
-                        left = CreateParam(Enum.ToObject(pc.MemberInfo.GetMemberInfoType(), numvericVal));
+                        left = CreateParam(Enum.ToObject(GetMemberInfoTypeForEnum(pc), numvericVal));
                     else
                         left = CreateParam(left);
                 }
@@ -975,6 +975,14 @@ namespace NPoco.Expressions
                 default:
                     return new PartialSqlString("(" + left + sep + operand + sep + right + ")");
             }
+        }
+
+        private static Type GetMemberInfoTypeForEnum(PocoColumn pc)
+        {
+            if (pc.MemberInfo.GetMemberInfoType().IsEnum)
+                return pc.MemberInfo.GetMemberInfoType();
+
+            return Nullable.GetUnderlyingType(pc.MemberInfo.GetMemberInfoType());
         }
 
         protected virtual object VisitMemberAccess(MemberExpression m)
@@ -1006,7 +1014,7 @@ namespace NPoco.Expressions
                 if (isNull)
                     return new NullableMemberAccess(pocoColumn, columnName, type);
 
-                if (propertyInfo.PropertyType.IsEnum)
+                if (IsEnum(propertyInfo))
                     return new EnumMemberAccess(pocoColumn, columnName, type);
 
                 return new MemberAccessString(pocoColumn, columnName, type);
@@ -1016,6 +1024,12 @@ namespace NPoco.Expressions
             var lambda = Expression.Lambda<Func<object>>(memberExp);
             var getter = lambda.Compile();
             return getter();
+        }
+
+        private static bool IsEnum(PropertyInfo propertyInfo)
+        {
+            var underlyingType = Nullable.GetUnderlyingType(propertyInfo.PropertyType);
+            return propertyInfo.PropertyType.IsEnum || (underlyingType != null && underlyingType.IsEnum);
         }
 
         private Type GetCorrectType(MemberExpression m)

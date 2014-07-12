@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using NPoco.Expressions;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -204,6 +205,22 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             var user = Database.SingleOrDefault<UserWithNullableId>("select 2 days from users u where u.userid = 1");
             Assert.NotNull(user);
             Assert.AreEqual(Days.Mon, user.Days);
+        }
+
+        [Test]
+        public void WhereExpressionWithNullableEnum()
+        {
+            var sqlExpression = new DefaultSqlExpression<UserWithNullableId>(Database);
+            sqlExpression.Where(x => x.NameEnum == NameEnum.Bobby);
+            Assert.AreEqual(sqlExpression.Context.Params[0], "Bobby");
+        }
+
+        [Test]
+        public void WhereExpressionWithNullableEnumAndValueIsNull()
+        {
+            var sqlExpression = new DefaultSqlExpression<UserWithNullableId>(Database);
+            sqlExpression.Where(x => x.NameEnum == null);
+            Assert.AreEqual(sqlExpression.Context.Params.Length, 0);
         }
         
         [Test]

@@ -84,6 +84,7 @@ namespace NPoco.Tests.Common
     {
         public long? UserId { get; set; }
         public UserIdEnum? UserId2 { get; set; }
+        [ColumnType(typeof(string))]
         public NameEnum? NameEnum { get; set; }
         public Days Days { get; set; }
     }

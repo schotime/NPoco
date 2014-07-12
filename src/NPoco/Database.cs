@@ -440,7 +440,8 @@ namespace NPoco
                 value = _dbType.MapParameterValue(value);
 
                 var t = value.GetType();
-                if (t.IsEnum)		// PostgreSQL .NET driver wont cast enum to int
+                var underlyingT = Nullable.GetUnderlyingType(t);
+                if (t.IsEnum || (underlyingT != null && underlyingT.IsEnum))		// PostgreSQL .NET driver wont cast enum to int
                 {
                     p.Value = (int)value;
                 }
