@@ -11,6 +11,8 @@ namespace NPoco
         IDbConnection Connection { get; }
         IDbTransaction Transaction { get; }
         IDataParameter CreateParameter();
+        void AddParameter(IDbCommand cmd, object value);
+        IDbCommand CreateCommand(IDbConnection connection, string sql, params object[] args);
         ITransaction GetTransaction();
         ITransaction GetTransaction(IsolationLevel isolationLevel);
         void SetTransaction(IDbTransaction tran);

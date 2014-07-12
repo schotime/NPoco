@@ -407,7 +407,7 @@ namespace NPoco
         }
 
         // Add a parameter to a DB command
-        void AddParam(IDbCommand cmd, object value, string parameterPrefix)
+        public virtual void AddParameter(IDbCommand cmd, object value)
         {
             // Convert value to from poco type to db type
             if (Mapper != null && value != null)
@@ -421,12 +421,12 @@ namespace NPoco
             var idbParam = value as IDbDataParameter;
             if (idbParam != null)
             {
-                idbParam.ParameterName = string.Format("{0}{1}", parameterPrefix, cmd.Parameters.Count);
+                idbParam.ParameterName = string.Format("{0}{1}", _paramPrefix, cmd.Parameters.Count);
                 cmd.Parameters.Add(idbParam);
                 return;
             }
             var p = cmd.CreateParameter();
-            p.ParameterName = string.Format("{0}{1}", parameterPrefix, cmd.Parameters.Count);
+            p.ParameterName = string.Format("{0}{1}", _paramPrefix, cmd.Parameters.Count);
 
             var dbtypeSet = false;
 
@@ -519,7 +519,7 @@ namespace NPoco
         }
 
         // Create a command
-        IDbCommand CreateCommand(IDbConnection connection, string sql, params object[] args)
+        public virtual IDbCommand CreateCommand(IDbConnection connection, string sql, params object[] args)
         {
             // Perform parameter prefix replacements
             if (_paramPrefix != "@")
@@ -534,7 +534,7 @@ namespace NPoco
 
             foreach (var item in args)
             {
-                AddParam(cmd, item, _paramPrefix);
+                AddParameter(cmd, item);
             }
 
             // Notify the DB type
