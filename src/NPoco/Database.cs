@@ -1125,22 +1125,26 @@ namespace NPoco
         public bool Exists<T>(object primaryKey)
         {
             var index = 0;
-            var tableInfo = PocoDataFactory.ForType(typeof (T)).TableInfo;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(tableInfo.PrimaryKey, primaryKey);
-            return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(tableInfo.TableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
+            var pd = PocoDataFactory.ForType(typeof (T));;
+            var primaryKeyValuePairs = ProcessMapper(pd, GetPrimaryKeyValues(pd.TableInfo.PrimaryKey, primaryKey));
+            return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
         }
         public T SingleById<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoDataFactory.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
+            var pd = PocoDataFactory.ForType(typeof (T));
+            var primaryKeyValuePairs = ProcessMapper(pd, GetPrimaryKeyValues(pd.TableInfo.PrimaryKey, primaryKey));
             return Single<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
+
         public T SingleOrDefaultById<T>(object primaryKey)
         {
             var index = 0;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(PocoDataFactory.ForType(typeof(T)).TableInfo.PrimaryKey, primaryKey);
+            var pd = PocoDataFactory.ForType(typeof (T));
+            var primaryKeyValuePairs = ProcessMapper(pd, GetPrimaryKeyValues(pd.TableInfo.PrimaryKey, primaryKey));
             return SingleOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
+
         public T Single<T>(string sql, params object[] args)
         {
             return Query<T>(sql, args).Single();
@@ -1258,14 +1262,8 @@ namespace NPoco
                     names.Add(_dbType.EscapeSqlIdentifier(i.Key));
                     values.Add(string.Format("{0}{1}", _paramPrefix, index++));
 
-                    object val = i.Value.GetValue(poco);
-                    if (Mapper != null)
-                    {
-                        var converter = Mapper.GetToDbConverter(i.Value.ColumnType, i.Value.MemberInfo.GetMemberInfoType());
-                        if (converter != null)
-                            val = converter(val);
-                    }
-
+                    object val = ProcessMapper(i.Value, i.Value.GetValue(poco));
+                    
                     if (i.Value.VersionColumn)
                     {
                         val = (long)val > 0 ? val : 1;
@@ -1388,7 +1386,7 @@ namespace NPoco
                 // Don't update the primary key, but grab the value if we don't have it
                 if (primaryKeyValue == null && primaryKeyValuePairs.ContainsKey(i.Key))
                 {
-                    primaryKeyValuePairs[i.Key] = i.Value.GetValue(poco);
+                    primaryKeyValuePairs[i.Key] = ProcessMapper(i.Value, i.Value.GetValue(poco));
                     continue;
                 }
 
@@ -1399,13 +1397,7 @@ namespace NPoco
                 if (!i.Value.VersionColumn && columns != null && !columns.Contains(i.Value.ColumnName, StringComparer.OrdinalIgnoreCase))
                     continue;
 
-                object value = i.Value.GetValue(poco);
-                if (Mapper != null)
-                {
-                    var converter = Mapper.GetToDbConverter(i.Value.ColumnType, i.Value.MemberInfo.GetMemberInfoType());
-                    if (converter != null)
-                        value = converter(value);
-                }
+                object value = ProcessMapper(i.Value, i.Value.GetValue(poco));
 
                 if (i.Value.VersionColumn)
                 {
@@ -1476,17 +1468,33 @@ namespace NPoco
                 else
                 {
                     var dict = primaryKeyValue as Dictionary<string, object>;
-                    if (dict != null)
-                        return dict;
-                    
-                    primaryKeyValues = multiplePrimaryKeysNames.ToDictionary(x => x, x => primaryKeyValue.GetType().GetProperties().Single(y => string.Equals(x, y.Name, StringComparison.OrdinalIgnoreCase)).GetValue(primaryKeyValue, null), StringComparer.OrdinalIgnoreCase);
+                    primaryKeyValues = dict ?? multiplePrimaryKeysNames.ToDictionary(x => x, x => primaryKeyValue.GetType().GetProperties().Single(y => string.Equals(x, y.Name, StringComparison.OrdinalIgnoreCase)).GetValue(primaryKeyValue, null), StringComparer.OrdinalIgnoreCase);
                 }
             }
             else
             {
                 primaryKeyValues = multiplePrimaryKeysNames.ToDictionary(x => x, x => (object)null, StringComparer.OrdinalIgnoreCase);
             }
+
             return primaryKeyValues;
+        }
+
+        private Dictionary<string, object> ProcessMapper(PocoData pd, Dictionary<string, object> primaryKeyValuePairs)
+        {
+            var keys = primaryKeyValuePairs.Keys.ToArray();
+            foreach (var primaryKeyValuePair in keys)
+            {
+                var col = pd.Columns[primaryKeyValuePair];
+                primaryKeyValuePairs[primaryKeyValuePair] = ProcessMapper(col, primaryKeyValuePairs[primaryKeyValuePair]);
+            }
+            return primaryKeyValuePairs;
+        }
+
+        private object ProcessMapper(PocoColumn pc, object value)
+        {
+            if (Mapper == null) return value;
+            var converter = Mapper.GetToDbConverter(pc.ColumnType, pc.MemberInfo.GetMemberInfoType());
+            return converter != null ? converter(value) : value;
         }
 
         public IUpdateQueryProvider<T> UpdateMany<T>()
@@ -1559,17 +1567,16 @@ namespace NPoco
         public virtual int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
             if (!OnDeleting(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) return 0;
-
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
             var primaryKeyValuePairs = GetPrimaryKeyValues(primaryKeyName, primaryKeyValue);
             // If primary key value not specified, pick it up from the object
             if (primaryKeyValue == null)
             {
-                var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
                 foreach (var i in pd.Columns)
                 {
                     if (primaryKeyValuePairs.ContainsKey(i.Key))
                     {
-                        primaryKeyValuePairs[i.Key] = i.Value.GetValue(poco);
+                        primaryKeyValuePairs[i.Key] = ProcessMapper(i.Value, i.Value.GetValue(poco));
                     }
                 }
             }
@@ -1612,16 +1619,17 @@ namespace NPoco
             var pd = PocoDataFactory.ForType(poco.GetType());
             object pk;
             PocoColumn pc;
+#if !POCO_NO_DYNAMIC
+            if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
+            {
+                return true;
+            }
+            else
+#endif
             if (pd.Columns.TryGetValue(pd.TableInfo.PrimaryKey, out pc))
             {
                 pk = pc.GetValue(poco);
             }
-#if !POCO_NO_DYNAMIC
-            else if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
-            {
-                return true;
-            }
-#endif
             else if (pd.TableInfo.PrimaryKey.Contains(","))
             {
                 foreach (var compositeKey in pd.TableInfo.PrimaryKey.Split(','))
