@@ -1606,9 +1606,16 @@ namespace NPoco
             return Execute(new Sql(string.Format("DELETE FROM {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
-        // Check if a poco represents a new record
+        /// <summary>Checks if a poco represents a new record.</summary>
         public bool IsNew<T>(object poco)
         {
+#if !POCO_NO_DYNAMIC
+            if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
+            {
+                return true;
+            }
+#endif
+
             var pd = PocoDataFactory.ForType(poco.GetType());
             object pk;
             PocoColumn pc;
@@ -1616,12 +1623,6 @@ namespace NPoco
             {
                 pk = pc.GetValue(poco);
             }
-#if !POCO_NO_DYNAMIC
-            else if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
-            {
-                return true;
-            }
-#endif
             else if (pd.TableInfo.PrimaryKey.Contains(","))
             {
                 foreach (var compositeKey in pd.TableInfo.PrimaryKey.Split(','))
