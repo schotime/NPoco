@@ -1613,19 +1613,19 @@ namespace NPoco
             return Execute(new Sql(string.Format("DELETE FROM {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
         }
 
-        // Check if a poco represents a new record
+        /// <summary>Checks if a poco represents a new record.</summary>
         public bool IsNew<T>(object poco)
         {
-            var pd = PocoDataFactory.ForType(poco.GetType());
-            object pk;
-            PocoColumn pc;
 #if !POCO_NO_DYNAMIC
             if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
             {
                 return true;
             }
-            else
 #endif
+            var pd = PocoDataFactory.ForType(poco.GetType());
+            object pk;
+            PocoColumn pc;
+
             if (pd.Columns.TryGetValue(pd.TableInfo.PrimaryKey, out pc))
             {
                 pk = pc.GetValue(poco);
