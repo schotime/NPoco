@@ -1,6 +1,8 @@
 
 using System;
 using System.Data;
+using System.Runtime.ExceptionServices;
+using System.Text;
 
 namespace NPoco.DatabaseTypes
 {
@@ -16,12 +18,21 @@ namespace NPoco.DatabaseTypes
             return string.Format("\"{0}\"", str);
         }
 
-        /*
-        public override string GetExistsSql()
+        public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
-            return "SELECT (SELECT 1 FROM {0} WHERE {1}) AS id FROM RDB$DATABASE";
+            StringBuilder sql = new StringBuilder("SELECT ");
+
+            if (take > 0)
+                sql.AppendFormat("FIRST {0} ", take);
+
+            if (skip > 0)
+                sql.AppendFormat("SKIP {0} ", skip);
+
+            sql.Append(parts.sqlSelectRemoved);
+            return sql.ToString();
         }
-        */
+
+
         public override string GetDefaultInsertSql(string tableName, string[] names, string[] parameters)
         {
             return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", EscapeTableName(tableName), string.Join(",", names), string.Join(",", parameters));
