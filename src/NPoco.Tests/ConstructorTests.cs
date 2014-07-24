@@ -10,10 +10,12 @@ namespace NPoco.Tests
 {
     public class ConstructorTests : BaseDBTest
     {
+        private int testDBType;
+
         [SetUp]
         public void SetUp()
         {
-            var testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
+            testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
             switch (testDBType)
             {
                 case 1: // SQLite In-Memory
@@ -32,8 +34,12 @@ namespace NPoco.Tests
                     Assert.Fail("Database platform not supported for unit testing");
                     return;
 
+                case 8: // Firebird
+                    TestDatabase = new FirebirdDatabase();
+                    break;
+
                 default:
-                    Assert.Fail("Unknown database platform specified");
+                    Assert.Fail("Unknown database platform specified: " + testDBType);
                     return;
             }
         }
@@ -47,14 +53,41 @@ namespace NPoco.Tests
             TestDatabase.Dispose();
         }
 
+        private DatabaseType GetConfiguredDatabaseType()
+        {
+            switch (testDBType)
+            {
+                case 1: // SQLite In-Memory
+                    return new SQLiteDatabaseType();
+                case 2: // SQL Local DB
+                    return new SqlServerDatabaseType();
+                case 3: // SQL Server
+                    return new SqlServer2012DatabaseType();
+                case 4: // SQL CE
+                    return new SqlServerCEDatabaseType();
+                case 5: // MySQL
+                    return new MySqlDatabaseType();
+                case 6: // Oracle
+                    return new OracleDatabaseType();
+                case 7: // Postgres
+                    return new PostgreSQLDatabaseType();
+                case 8: // Firebird
+                    return new FirebirdDatabaseType();
+                default:
+                    Assert.Fail("Unknown database platform specified : " + testDBType);
+                    return null;
+            }
+        }
+
         [Test]
         public void ConstructorWithConnection()
         {
+            var dbType = GetConfiguredDatabaseType();
             var db = new Database(TestDatabase.Connection);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof (SqlServerDatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();
@@ -67,11 +100,12 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionAndDBType()
         {
-            var db = new Database(TestDatabase.Connection, new SqlServer2012DatabaseType());
+            var dbType = GetConfiguredDatabaseType();
+            var db = new Database(TestDatabase.Connection,dbType);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof(SqlServer2012DatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();
@@ -84,11 +118,12 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionDBTypeAndIsolationLevel()
         {
-            var db = new Database(TestDatabase.Connection, new SqlServer2012DatabaseType(), IsolationLevel.ReadUncommitted);
+            var dbType = GetConfiguredDatabaseType();
+            var db = new Database(TestDatabase.Connection, dbType, IsolationLevel.ReadUncommitted);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof(SqlServer2012DatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();
@@ -101,11 +136,12 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionDBTypeIsolationTypeAndSettings()
         {
-            var db = new Database(TestDatabase.Connection, new SqlServer2012DatabaseType(), IsolationLevel.ReadUncommitted, false);
+            var dbType = GetConfiguredDatabaseType();
+            var db = new Database(TestDatabase.Connection, dbType, IsolationLevel.ReadUncommitted, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof(SqlServer2012DatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();
@@ -158,11 +194,12 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionStringAndProviderName()
         {
+            var dbType = GetConfiguredDatabaseType();
             var db = new Database(TestDatabase.ConnectionString, TestDatabase.ProviderName);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof(SqlServerDatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();
@@ -175,11 +212,12 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionStringProviderNameAndSettings()
         {
+            var dbType = GetConfiguredDatabaseType();
             var db = new Database(TestDatabase.ConnectionString, TestDatabase.ProviderName, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof(SqlServerDatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();
@@ -192,11 +230,12 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionStringAndDBType()
         {
-            var db = new Database(TestDatabase.ConnectionString, new SqlServer2012DatabaseType());
+            var dbType = GetConfiguredDatabaseType();
+            var db = new Database(TestDatabase.ConnectionString, dbType);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof(SqlServer2012DatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();
@@ -209,11 +248,12 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionStringDBTypeAndIsolationLevel()
         {
-            var db = new Database(TestDatabase.ConnectionString, new SqlServer2012DatabaseType(), IsolationLevel.ReadUncommitted);
+            var dbType = GetConfiguredDatabaseType();
+            var db = new Database(TestDatabase.ConnectionString, dbType, IsolationLevel.ReadUncommitted);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof(SqlServer2012DatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();
@@ -226,11 +266,12 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionStringDBTypeAndSettings()
         {
-            var db = new Database(TestDatabase.ConnectionString, new SqlServer2012DatabaseType(), IsolationLevel.ReadUncommitted, false);
+            var dbType = GetConfiguredDatabaseType();
+            var db = new Database(TestDatabase.ConnectionString, dbType, IsolationLevel.ReadUncommitted, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof(SqlServer2012DatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();
@@ -243,13 +284,13 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionStringAndDBProvider()
         {
-            var dbType = new SqlServer2012DatabaseType();
+            var dbType = GetConfiguredDatabaseType();
             var provider = DbProviderFactories.GetFactory(dbType.GetProviderName());
             var db = new Database(TestDatabase.ConnectionString, provider);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof(SqlServerDatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();
@@ -262,13 +303,13 @@ namespace NPoco.Tests
         [Test]
         public void ConstructorWithConnectionStringDBProviderAndSettings()
         {
-            var dbType = new SqlServer2012DatabaseType();
+            var dbType = GetConfiguredDatabaseType();
             var provider = DbProviderFactories.GetFactory(dbType.GetProviderName());
             var db = new Database(TestDatabase.ConnectionString, provider, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
-            Assert.AreEqual(typeof(SqlServerDatabaseType), db.DatabaseType.GetType());
+            Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
             // Constructors using a Connection do not close the connection on close/displose
             db.CloseSharedConnection();

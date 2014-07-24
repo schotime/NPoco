@@ -2,6 +2,7 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.IO;
+using NPoco.DatabaseTypes;
 
 namespace NPoco.Tests.Common
 {
@@ -16,6 +17,7 @@ namespace NPoco.Tests.Common
 
         public SQLLocalDatabase()
         {
+            DbType = new SqlServer2012DatabaseType();
             DBPath = Environment.CurrentDirectory;
 
             FQDBFile = DBPath + "\\" + DBFileName;
