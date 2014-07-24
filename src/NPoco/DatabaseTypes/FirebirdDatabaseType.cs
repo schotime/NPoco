@@ -1,7 +1,6 @@
 
 using System;
 using System.Data;
-using System.Runtime.ExceptionServices;
 using System.Text;
 
 namespace NPoco.DatabaseTypes
@@ -13,9 +12,14 @@ namespace NPoco.DatabaseTypes
             return "@";
         }
 
+        public override string EscapeTableName(string tableName)
+        {
+            return tableName;
+        }
+
         public override string EscapeSqlIdentifier(string str)
         {
-            return string.Format("\"{0}\"", str);
+            return str;
         }
 
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
