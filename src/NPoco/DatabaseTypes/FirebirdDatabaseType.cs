@@ -2,6 +2,7 @@
 using System;
 using System.Data;
 using System.Text;
+using NPoco.Expressions;
 
 namespace NPoco.DatabaseTypes
 {
@@ -59,6 +60,11 @@ namespace NPoco.DatabaseTypes
 
             db.ExecuteNonQueryHelper(cmd);
             return -1;
+        }
+
+        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, bool prefixTableName)
+        {
+            return new FirebirdSqlExpression<T>(db, prefixTableName);
         }
 
         public override string GetProviderName()
