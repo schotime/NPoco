@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Data;
-using System.Data.SqlClient;
 using System.IO;
 using FirebirdSql.Data.FirebirdClient;
 using FirebirdSql.Data.Isql;
-using NPoco.DatabaseTypes;
 
 namespace NPoco.Tests.Common
 {
@@ -22,11 +20,13 @@ namespace NPoco.Tests.Common
             DbType = DatabaseType.Firebird;
             ProviderName = DatabaseType.Firebird.GetProviderName();
 
+            // Create one database for each test. Remember to delete after.
             DBPath = Path.GetTempPath();
             DBName = Guid.NewGuid().ToString();
             DBFileName = DBName + ".fdb";
-
             FQDBFile = DBPath + "\\" + DBFileName;
+
+            // ConnectionString Builder
             FbConnectionStringBuilder csb = new FbConnectionStringBuilder();
             csb.Database = FQDBFile;
             csb.DataSource = "localhost";
