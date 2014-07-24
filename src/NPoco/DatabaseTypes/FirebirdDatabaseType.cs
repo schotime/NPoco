@@ -13,6 +13,11 @@ namespace NPoco.DatabaseTypes
             return "@";
         }
 
+        public override void PreExecute(IDbCommand cmd)
+        {
+            cmd.CommandText = cmd.CommandText.Replace("/*poco_dual*/", "from RDB$DATABASE");
+        }
+
         public override string EscapeTableName(string tableName)
         {
             return tableName;
