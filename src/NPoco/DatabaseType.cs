@@ -253,7 +253,7 @@ namespace NPoco
                 return Singleton<SQLiteDatabaseType>.Instance;
             if (typeName.StartsWith("SqlConnection"))
                 return Singleton<SqlServerDatabaseType>.Instance;
-            if (typeName.StartsWith("Firebird"))
+            if (typeName.StartsWith("Fb") || typeName.StartsWith("Firebird"))
                 return Singleton<FirebirdDatabaseType>.Instance;
 
             if (!string.IsNullOrEmpty(providerName))

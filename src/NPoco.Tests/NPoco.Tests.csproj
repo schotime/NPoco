@@ -35,6 +35,10 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="FirebirdSql.Data.FirebirdClient, Version=4.0.0.0, Culture=neutral, PublicKeyToken=3750abcc3150b00c, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\FirebirdSql.Data.FirebirdClient.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\..\lib\nunit.framework.dll</HintPath>
     </Reference>
@@ -56,9 +60,11 @@
     <Compile Include="Common\BaseDBDecoratedTest.cs" />
     <Compile Include="Common\BaseDBFuentTest.cs" />
     <Compile Include="Common\BaseDBTest.cs" />
+    <Compile Include="Common\FirebirdDatabase.cs" />
     <Compile Include="Common\CustomerUser.cs" />
     <Compile Include="Common\ExtraUserInfoDecorated.cs" />
     <Compile Include="Common\ExtraUserInfo.cs" />
+    <Compile Include="Common\FirebirdDefaultMapper.cs" />
     <Compile Include="Common\InMemoryDatabase.cs" />
     <Compile Include="Common\AdHocUser.cs" />
     <Compile Include="Common\SQLLocalDatabase.cs" />
