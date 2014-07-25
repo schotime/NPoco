@@ -1,13 +1,19 @@
 ﻿using System;
 using System.Data;
 using System.IO;
+using System.Threading;
 using FirebirdSql.Data.FirebirdClient;
 using FirebirdSql.Data.Isql;
+using FirebirdSql.Data.Services;
 
 namespace NPoco.Tests.Common
 {
     public class FirebirdDatabase : TestDatabase
     {
+        private const string FbUserName = "NPocoTest";
+        private const string FbUserPass = "test12345";
+        private const string FbRole = "NPoco";
+
         protected string DBName = "UnitTestsDB";
         protected string DBFileName = "UnitTestsDB.fdb";
 
@@ -19,13 +25,16 @@ namespace NPoco.Tests.Common
         {
             DbType = DatabaseType.Firebird;
             ProviderName = DatabaseType.Firebird.GetProviderName();
+            DBPath = Environment.CurrentDirectory;
 
+#if RUN_ALL_TESTS
             // Create one database for each test. Remember to delete after.
             DBPath = Path.Combine(Path.GetTempPath(), "NPoco", "Fb");
             if (!Directory.Exists(DBPath))
                 Directory.CreateDirectory(DBPath);
 
             DBName = Guid.NewGuid().ToString();
+#endif
             DBFileName = DBName + ".fdb";
             FQDBFile = DBPath + "\\" + DBFileName;
 
@@ -35,8 +44,10 @@ namespace NPoco.Tests.Common
             csb.DataSource = "localhost";
             csb.Dialect = 3;
             csb.Charset = "UTF8";
-            csb.UserID = "SYSDBA"; // default user
-            csb.Password = "masterkey"; // default password
+            csb.Pooling = false;
+            csb.Role = FbRole;
+            csb.UserID = FbUserName; 
+            csb.Password = FbUserPass; 
 
             ConnectionString = csb.ToString();
 
@@ -44,7 +55,7 @@ namespace NPoco.Tests.Common
             EnsureSharedConnectionConfigured();
 
             Console.WriteLine("Tables (Constructor): " + Environment.NewLine);
-            var dt = ((FbConnection)Connection).GetSchema("Tables");
+            var dt = ((FbConnection)Connection).GetSchema("Tables", new[] { null, null, null, "TABLE" });
             foreach (DataRow row in dt.Rows)
             {
                 Console.WriteLine((string)row[2]);
@@ -64,24 +75,60 @@ namespace NPoco.Tests.Common
 
         public override void RecreateDataBase()
         {
-            Console.WriteLine("----------------------------");
-            Console.WriteLine("Using SQL Server Local DB   ");
-            Console.WriteLine("----------------------------");
+            // ConnectionString Builder
+            FbConnectionStringBuilder csb = new FbConnectionStringBuilder();
+            csb.DataSource = "localhost";
+            csb.Dialect = 3;
+            csb.Charset = "UTF8";
+            csb.Pooling = false;
+            csb.UserID = "SYSDBA"; // default user
+            csb.Password = "masterkey"; // default password
+
+            string serverConnectionString = csb.ToString();
+            csb.Database = csb.Database = FQDBFile;
+
+            string databaseConnectionString = csb.ToString();
+
+            Console.WriteLine("-------------------------");
+            Console.WriteLine("Using Firebird Database  ");
+            Console.WriteLine("-------------------------");
 
             base.RecreateDataBase();
 
-            // Try to delete database
-            if (File.Exists(FQDBFile)) File.Delete(FQDBFile);
+            // Create simple user
+            FbSecurity security = new FbSecurity();
+            security.ConnectionString = serverConnectionString;
+            var userData = security.DisplayUser(FbUserName);
+            if (userData == null)
+            {
+                userData = new FbUserData();
+                userData.UserName = FbUserName;
+                userData.UserPassword = FbUserPass;
+                security.AddUser(userData);
+            }
+
+            // Try to shutdown & delete database
+            if (File.Exists(FQDBFile))
+            {
+                FbConfiguration configuration = new FbConfiguration();
+                configuration.ConnectionString = databaseConnectionString;
+                try
+                {
+                    configuration.DatabaseShutdown(FbShutdownMode.Forced, 0);
+                    Thread.Sleep(1000);
+                }
+                finally
+                {
+                    File.Delete(FQDBFile);
+                }
+            }
 
             // Create the new DB
-            FbConnection.CreateDatabase(ConnectionString, 4096, true, true);
+            FbConnection.CreateDatabase(databaseConnectionString, 4096, true, true);
             if (!File.Exists(FQDBFile)) throw new Exception("Database failed to create");
 
-           
-
             // Create the Schema
-            const string script = @"
-                
+            string script = @"
 CREATE TABLE Users(
     UserId integer PRIMARY KEY NOT NULL, 
     Name varchar(200), 
@@ -152,14 +199,23 @@ BEGIN
 END^
 
 SET TERM ; ^
-";
+
+CREATE ROLE %role%;
+
+GRANT SELECT, UPDATE, INSERT, DELETE ON Users TO ROLE %role%;
+GRANT SELECT, UPDATE, INSERT, DELETE ON ExtraUserInfos TO ROLE %role%;
+GRANT SELECT, UPDATE, INSERT, DELETE ON Houses TO ROLE %role%;
+GRANT SELECT, UPDATE, INSERT, DELETE ON CompositeObjects TO ROLE %role%;
+
+GRANT %role% TO %user%;
+".Replace("%role%", FbRole).Replace("%user%", FbUserName);
 
 /* 
  * Using new connection so that when a transaction is bound to Connection if it rolls back 
  * it doesn't blow away the tables
  */
 
-            using (var conn = new FbConnection(ConnectionString))
+            using (var conn = new FbConnection(databaseConnectionString))
             {
                 FbScript fbScript = new FbScript(script);
                 fbScript.Parse();
@@ -168,7 +224,7 @@ SET TERM ; ^
 
                 conn.Open();
                 Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
-                var dt = conn.GetSchema("Tables");
+                var dt = conn.GetSchema("Tables", new[] {null, null, null, "TABLE"});
                 foreach (DataRow row in dt.Rows)
                 {
                     Console.WriteLine(row[2]);
@@ -180,6 +236,8 @@ SET TERM ; ^
 
         public override void CleanupDataBase()
         {
+#if RUN_ALL_TESTS
+    
             // Try to delete all fdb files
             foreach(var file in Directory.EnumerateFiles(DBPath, "*.fdb"))
             {
@@ -193,6 +251,7 @@ SET TERM ; ^
                     
                 }
             }
+#endif
         }
     }
 }
