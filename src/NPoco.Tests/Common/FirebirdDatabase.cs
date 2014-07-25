@@ -21,7 +21,10 @@ namespace NPoco.Tests.Common
             ProviderName = DatabaseType.Firebird.GetProviderName();
 
             // Create one database for each test. Remember to delete after.
-            DBPath = Path.GetTempPath();
+            DBPath = Path.Combine(Path.GetTempPath(), "NPoco", "Fb");
+            if (!Directory.Exists(DBPath))
+                Directory.CreateDirectory(DBPath);
+
             DBName = Guid.NewGuid().ToString();
             DBFileName = DBName + ".fdb";
             FQDBFile = DBPath + "\\" + DBFileName;
@@ -177,6 +180,19 @@ SET TERM ; ^
 
         public override void CleanupDataBase()
         {
+            // Try to delete all fdb files
+            foreach(var file in Directory.EnumerateFiles(DBPath, "*.fdb"))
+            {
+                try
+                {
+                    File.Delete(file);
+                    Console.WriteLine("database deleted : "+ file);
+                }
+                catch 
+                {
+                    
+                }
+            }
         }
     }
 }
