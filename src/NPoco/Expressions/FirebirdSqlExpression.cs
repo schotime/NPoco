@@ -10,7 +10,7 @@ namespace NPoco.Expressions
         {
         }
 
-        protected override string SubstringStatement(MemberAccessString quotedColName, int startIndex, int length = -1)
+        protected override string SubstringStatement(MemberAccessString quotedColName, int startIndex, int length)
         {
             if (length >= 0)
                 return string.Format("substring({0} FROM {1} FOR {2})", quotedColName, startIndex, length);

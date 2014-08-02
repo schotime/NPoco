@@ -1530,7 +1530,7 @@ namespace NPoco.Expressions
                     break;
                 case "Substring":
                     var startIndex = Int32.Parse(args[0].ToString()) + 1;
-                    var length = (args.Count > 1) ? Int32.Parse(args[1].ToString()): -1;
+                    var length = (args.Count > 1) ? Int32.Parse(args[1].ToString()) : -1;
                         statement = SubstringStatement(quotedColName, startIndex, length);
                     break;
                 case "Equals":
@@ -1548,7 +1548,7 @@ namespace NPoco.Expressions
         }
 
         // Easy to override
-        protected virtual string SubstringStatement(MemberAccessString quotedColName, int startIndex, int length = -1)
+        protected virtual string SubstringStatement(MemberAccessString quotedColName, int startIndex, int length)
         {
             if (length >= 0)
                 return string.Format("substring({0},{1},{2})", quotedColName, startIndex, length);
