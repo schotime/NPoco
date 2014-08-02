@@ -44,7 +44,7 @@ namespace NPoco
                         var value = cols[i].Value.GetValue(item);
                         if (db.Mapper != null)
                         {
-                            var converter = db.Mapper.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfo.GetMemberInfoType());
+                            var converter = db.Mapper.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfo);
                             if (converter != null)
                             {
                                 value = converter(value);
