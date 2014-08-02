@@ -40,8 +40,8 @@ namespace NPoco.Tests.Common
 
     public class Supervisor : User
     {
-        //[ResultColumn]
-        //public bool IsSupervisor { get; set; }
+        [ResultColumn]
+        public bool IsSupervisor { get; set; }
     }
 
     public class UserWithExtraInfo : User
