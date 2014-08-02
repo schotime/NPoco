@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data.SQLite;
+using NPoco.DatabaseTypes;
 
 namespace NPoco.Tests.Common
 {
@@ -7,8 +8,9 @@ namespace NPoco.Tests.Common
     {
         public InMemoryDatabase()
         {
+            DbType = DatabaseType.SQLite;
             ConnectionString = "Data Source=:memory:;Version=3;";
-            ProviderName = "Npgsql2";
+            ProviderName = DatabaseType.SQLite.GetProviderName();
             
             RecreateDataBase();
             EnsureSharedConnectionConfigured();

@@ -4,7 +4,6 @@ using System.Configuration;
 using System.Linq;
 using NPoco.DatabaseTypes;
 using NPoco.FluentMappings;
-using NPoco.Linq;
 using NPoco.Tests.FluentMappings;
 using NPoco.Tests.FluentTests.QueryTests;
 using NUnit.Framework;
@@ -32,6 +31,8 @@ namespace NPoco.Tests.Common
                     s.OverrideMappingsWith(new FluentMappingOverrides());
                 })
             );
+            
+
 
             var testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
             switch (testDBType)
@@ -47,11 +48,18 @@ namespace NPoco.Tests.Common
                     Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2008DatabaseType()));
                     break;
 
-                case 4:
-                case 5:
-                case 6:
+                case 4: // SQL CE
+                case 5: // MySQL
+                case 6: // Oracle
+                case 7: // Postgres
                     Assert.Fail("Database platform not supported for unit testing");
                     return;
+                case 8: // Firebird
+                    TestDatabase = new FirebirdDatabase();
+                    var db = new Database(TestDatabase.Connection, new FirebirdDatabaseType());
+                    db.Mapper = new FirebirdDefaultMapper();
+                    Database = dbFactory.Build(db);
+                    break;
 
                 default:
                     Assert.Fail("Unknown database platform specified");

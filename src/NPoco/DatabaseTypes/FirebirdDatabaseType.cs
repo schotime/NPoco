@@ -1,6 +1,8 @@
 
 using System;
 using System.Data;
+using System.Text;
+using NPoco.Expressions;
 
 namespace NPoco.DatabaseTypes
 {
@@ -11,17 +13,36 @@ namespace NPoco.DatabaseTypes
             return "@";
         }
 
-        public override string EscapeSqlIdentifier(string str)
+        public override void PreExecute(IDbCommand cmd)
         {
-            return string.Format("\"{0}\"", str);
+            cmd.CommandText = cmd.CommandText.Replace("/*poco_dual*/", "from RDB$DATABASE");
         }
 
-        /*
-        public override string GetExistsSql()
+        public override string EscapeTableName(string tableName)
         {
-            return "SELECT (SELECT 1 FROM {0} WHERE {1}) AS id FROM RDB$DATABASE";
+            return tableName;
         }
-        */
+
+        public override string EscapeSqlIdentifier(string str)
+        {
+            return str;
+        }
+
+        public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
+        {
+            StringBuilder sql = new StringBuilder("SELECT ");
+
+            if (take > 0)
+                sql.AppendFormat("FIRST {0} ", take);
+
+            if (skip > 0)
+                sql.AppendFormat("SKIP {0} ", skip);
+
+            sql.Append(parts.sqlSelectRemoved);
+            return sql.ToString();
+        }
+
+
         public override string GetDefaultInsertSql(string tableName, string[] names, string[] parameters)
         {
             return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", EscapeTableName(tableName), string.Join(",", names), string.Join(",", parameters));
@@ -44,6 +65,11 @@ namespace NPoco.DatabaseTypes
 
             db.ExecuteNonQueryHelper(cmd);
             return -1;
+        }
+
+        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, bool prefixTableName)
+        {
+            return new FirebirdSqlExpression<T>(db, prefixTableName);
         }
 
         public override string GetProviderName()

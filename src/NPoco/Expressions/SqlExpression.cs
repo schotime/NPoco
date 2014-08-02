@@ -1530,13 +1530,8 @@ namespace NPoco.Expressions
                     break;
                 case "Substring":
                     var startIndex = Int32.Parse(args[0].ToString()) + 1;
-                    if (args.Count == 2)
-                    {
-                        var length = Int32.Parse(args[1].ToString());
-                        statement = string.Format("substring({0},{1},{2})", quotedColName, startIndex, length);
-                    }
-                    else
-                        statement = string.Format("substring({0},{1},8000)", quotedColName, startIndex);
+                    var length = (args.Count > 1) ? Int32.Parse(args[1].ToString()): -1;
+                        statement = SubstringStatement(quotedColName, startIndex, length);
                     break;
                 case "Equals":
                     statement = string.Format("({0} = {1})", quotedColName, args[0]);
@@ -1551,6 +1546,16 @@ namespace NPoco.Expressions
             quotedColName.Text = statement;
             return quotedColName;
         }
+
+        // Easy to override
+        protected virtual string SubstringStatement(MemberAccessString quotedColName, int startIndex, int length = -1)
+        {
+            if (length >= 0)
+                return string.Format("substring({0},{1},{2})", quotedColName, startIndex, length);
+            else
+                return string.Format("substring({0},{1},8000})", quotedColName, startIndex);
+        }
+
     }
 
     public class PartialSqlString

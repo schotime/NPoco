@@ -5,6 +5,7 @@ namespace NPoco.Tests.Common
 {
     public abstract class TestDatabase : IDisposable
     {
+        public DatabaseType DbType { get; set; }
         public string ConnectionString { get; set; }
         public string ProviderName { get; set; }
         public IDbConnection Connection { get; set; }

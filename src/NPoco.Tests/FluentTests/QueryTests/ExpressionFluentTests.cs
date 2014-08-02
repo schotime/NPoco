@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
+﻿using System.Linq;
 using NPoco.Expressions;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -36,7 +32,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
         {
             var s = new DefaultSqlExpression<User>(Database, true);
             var joinexp = s.On<CustomerUser>((x, y) => x.Name == y.CustomerName);
-            Assert.AreEqual(joinexp, "([U].[Name] = [CU].[CustomerName])");
+            
+            string expected = string.Format("({0}.{1} = {2}.{3})", 
+                TestDatabase.DbType.EscapeTableName("U"),
+                TestDatabase.DbType.EscapeTableName("Name"),
+                TestDatabase.DbType.EscapeTableName("CU"),
+                TestDatabase.DbType.EscapeTableName("CustomerName"));
+
+            Assert.AreEqual(expected, joinexp);
         }
 
         [Test]
@@ -225,7 +228,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var sqlExpression = new DefaultSqlExpression<UserDecorated>(Database);
             sqlExpression.Select(x => new {x.IsMale, x.Name});
             var selectStatement = sqlExpression.Context.ToSelectStatement();
-            Assert.AreEqual("SELECT [is_male], [Name] \nFROM [Users]", selectStatement);
+
+            string expected = string.Format("SELECT {0}, {1} \nFROM {2}",
+                                            TestDatabase.DbType.EscapeSqlIdentifier("is_male"),
+                                            TestDatabase.DbType.EscapeSqlIdentifier("Name"),
+                                            TestDatabase.DbType.EscapeTableName("Users"));
+                
+            Assert.AreEqual(expected, selectStatement);
         }
     }
 }

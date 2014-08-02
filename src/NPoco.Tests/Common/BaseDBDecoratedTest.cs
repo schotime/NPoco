@@ -38,6 +38,11 @@ namespace NPoco.Tests.Common
                     Assert.Fail("Database platform not supported for unit testing");
                     return;
 
+                case 8: // Firebird
+                    TestDatabase = new FirebirdDatabase();
+                    Database = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), IsolationLevel.ReadUncommitted);
+                    break;
+
                 default:
                     Assert.Fail("Unknown database platform specified");
                     return;
