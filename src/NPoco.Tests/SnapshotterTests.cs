@@ -106,5 +106,53 @@ namespace NPoco.Tests
             Assert.AreEqual(1, snap.UpdatedColumns().Count);
             Assert.AreEqual("Name", snap.UpdatedColumns()[0]);
         }
+
+        [Test]
+        public void GetDiffIncludingObjectPropertiesOnlyByReferenceThough()
+        {
+            var user = new SnapshotOnClass()
+            {
+                Phone = new SnapshotOnClass.PhoneClass()
+                {
+                    Value = "2"
+                }
+            };
+            var snap = _database.StartSnapshot(user);
+
+            user.Name = "Changed";
+            user.Phone.Value = "324";
+
+            Assert.AreEqual(2, snap.Changes().Count);
+            Assert.AreEqual(2, snap.UpdatedColumns().Count);
+            Assert.AreEqual("Name", snap.UpdatedColumns()[0]);
+            Assert.AreEqual("Phone", snap.UpdatedColumns()[1]);
+        }
+
+        [Test]
+        public void GetDiffIncludingLists()
+        {
+            var user = new SnapshotOnClass()
+            {
+                Values = new[] {1, 2, 3}
+            };
+            var snap = _database.StartSnapshot(user);
+            user.Values[0] = 2;
+            
+            Assert.AreEqual(1, snap.Changes().Count);
+            Assert.AreEqual(1, snap.UpdatedColumns().Count);
+            Assert.AreEqual("Values", snap.UpdatedColumns()[0]);
+        }
+    }
+
+    public class SnapshotOnClass
+    {
+        public string Name { get; set; }
+        public PhoneClass Phone { get; set; }
+        public int[] Values { get; set; }
+
+        public class PhoneClass
+        {
+            public string Value { get; set; }
+        }
     }
 }

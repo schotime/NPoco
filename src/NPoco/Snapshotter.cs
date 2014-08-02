@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Xml.Serialization;
 
 namespace NPoco
 {
@@ -12,7 +14,7 @@ namespace NPoco
     {
         public static Snapshot<T> StartSnapshot<T>(this IDatabase d, T obj)
         {
-            return new Snapshot<T>(d, obj);
+            return new Snapshot<T>(d.PocoDataFactory.ForType(obj.GetType()), obj);
         }
 
         public static int Update<T>(this IDatabase d, T obj, Snapshot<T> snapshot)
@@ -29,11 +31,11 @@ namespace NPoco
         T trackedObject;
         PocoData pocoData;
 
-        public Snapshot(IDatabase d, T original)
+        public Snapshot(PocoData data, T original)
         {
-            memberWiseClone = Clone(original);
+            pocoData = data;
+            memberWiseClone = Clone(original, pocoData);
             trackedObject = original;
-            pocoData = d.PocoDataFactory.ForType(typeof(T));
         }
 
         public class Change
@@ -51,7 +53,7 @@ namespace NPoco
 
         public List<Change> Changes()
         {
-            var changes = Diff(memberWiseClone, trackedObject);
+            var changes = Diff(memberWiseClone, trackedObject, pocoData);
             foreach (var c in changes)
             {
                 var typeData = pocoData.Columns.Values.SingleOrDefault(x => x.MemberInfo.Name == c.Name);
@@ -66,41 +68,75 @@ namespace NPoco
             return Changes().Select(x => x.ColumnName).ToList();
         }
 
-        private static T Clone(T myObject)
+        private static T Clone(T myObject, PocoData data)
         {
-            cloner = cloner ?? GenerateCloner();
+            cloner = cloner ?? GenerateCloner(data);
             return cloner(myObject);
         }
 
-        private static List<Change> Diff(T original, T current)
+        private static List<Change> Diff(T original, T current, PocoData pocoData)
         {
-            differ = differ ?? GenerateDiffer();
+            differ = differ ?? GenerateDiffer(pocoData);
             return differ(original, current);
         }
 
-        static List<PropertyInfo> RelevantProperties()
+        static List<PropertyInfo> RelevantProperties(PocoData pocoData)
         {
-            return typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p =>
-                    p.GetSetMethodOnDeclaringType() != null &&
-                    p.GetGetMethod() != null &&
-                    (p.PropertyType.IsValueType ||
-                        p.PropertyType == typeof(string) ||
-                        (p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>)))
-                    ).ToList();
+            return pocoData.Columns.Values.Where(x => !x.MemberInfo.IsField()).Select(x => ((PropertyInfo)x.MemberInfo)).ToList();
         }
 
+        private static bool CompareArrays(byte[] a, byte[] b)
+        {
+            if (a.Length != b.Length)
+                return false;
+
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i])
+                    return false;
+            }
+            return true;
+        }
 
         private static bool AreEqual<U>(U first, U second)
         {
             if (first == null && second == null) return true;
             if (first == null && second != null) return false;
+            if (first != null && second == null) return false;
+
+            var type = typeof (U);
+            if (type.IsClass && type != typeof (string))
+            {
+                return CompareObjects(first, second);
+            }
+
             return first.Equals(second);
         }
 
-        private static Func<T, T, List<Change>> GenerateDiffer()
+        private static bool CompareObjects(object first, object second)
         {
+            return CompareArrays(GenerateBytes(first), GenerateBytes(second));
+        }
 
+        private static byte[] GenerateBytes(object o)
+        {
+            using (var ms = new MemoryStream())
+            {
+                XmlSerializer xs = new XmlSerializer(o.GetTheType());
+                xs.Serialize(ms, o);
+                return ms.ToArray();
+            }
+        }
+
+        private static U GenerateObject<U>(byte[] bytes)
+        {
+            var ms = new MemoryStream(bytes);
+            XmlSerializer xs = new XmlSerializer(typeof(U));
+            return (U)xs.Deserialize(ms);
+        }
+
+        private static Func<T, T, List<Change>> GenerateDiffer(PocoData pocoData)
+        {
             var dm = new DynamicMethod("DoDiff", typeof(List<Change>), new Type[] { typeof(T), typeof(T) }, true);
 
             var il = dm.GetILGenerator();
@@ -114,7 +150,7 @@ namespace NPoco
             // [list]
             il.Emit(OpCodes.Stloc_0);
 
-            foreach (var prop in RelevantProperties())
+            foreach (var prop in RelevantProperties(pocoData))
             {
                 // []
                 il.Emit(OpCodes.Ldarg_0);
@@ -209,7 +245,7 @@ namespace NPoco
 
 
         // adapted from http://stackoverflow.com/a/966466/17174
-        private static Func<T, T> GenerateCloner()
+        private static Func<T, T> GenerateCloner(PocoData pocoData)
         {
             Delegate myExec = null;
             var dm = new DynamicMethod("DoClone", typeof(T), new Type[] { typeof(T) }, true);
@@ -222,7 +258,7 @@ namespace NPoco
             il.Emit(OpCodes.Newobj, ctor);
             il.Emit(OpCodes.Stloc_0);
 
-            foreach (var prop in RelevantProperties())
+            foreach (var prop in RelevantProperties(pocoData))
             {
                 il.Emit(OpCodes.Ldloc_0);
                 // [clone]
@@ -230,6 +266,13 @@ namespace NPoco
                 // [clone, source]
                 il.Emit(OpCodes.Callvirt, prop.GetGetMethod());
                 // [clone, source val]
+
+                if (prop.PropertyType.IsClass && prop.PropertyType != typeof (string))
+                {
+                    il.EmitCall(OpCodes.Call, typeof(Snapshot<T>).GetMethod("DupObj", BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(new Type[] { prop.PropertyType }), null);
+                }
+                // [clone, source val deep cloned]
+
                 il.Emit(OpCodes.Callvirt, prop.GetSetMethodOnDeclaringType()); //prop.GetSetMethod());
                 // []
             }
@@ -242,6 +285,14 @@ namespace NPoco
             myExec = dm.CreateDelegate(typeof(Func<T, T>));
 
             return (Func<T, T>)myExec;
+        }
+
+        private static U DupObj<U>(U obj)
+        {
+            if (obj == null)
+                return default(U);
+            var generateObject = GenerateObject<U>(GenerateBytes(obj));
+            return (U)generateObject;
         }
     }
 }

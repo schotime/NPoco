@@ -1490,13 +1490,6 @@ namespace NPoco
             return primaryKeyValuePairs;
         }
 
-        private object ProcessMapper(PocoColumn pc, object value)
-        {
-            if (Mapper == null) return value;
-            var converter = Mapper.GetToDbConverter(pc.ColumnType, pc.MemberInfo.GetMemberInfoType());
-            return converter != null ? converter(value) : value;
-        }
-
         public IUpdateQueryProvider<T> UpdateMany<T>()
         {
             return new UpdateQueryProvider<T>(this);
@@ -1803,6 +1796,13 @@ namespace NPoco
             IDataReader r = cmd.ExecuteReader();
             OnExecutedCommand(cmd);
             return r;
+        }
+
+        internal object ProcessMapper(PocoColumn pc, object value)
+        {
+            if (Mapper == null) return value;
+            var converter = Mapper.GetToDbConverter(pc.ColumnType, pc.MemberInfo);
+            return converter != null ? converter(value) : value;
         }
     }
 }

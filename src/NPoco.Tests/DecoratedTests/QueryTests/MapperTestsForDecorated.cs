@@ -11,10 +11,10 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         {
             public bool IsGetFromDbConverter { get; set; }
 
-            public override Func<object, object> GetFromDbConverter(Type DestType, Type SourceType)
+            public override Func<object, object> GetFromDbConverter(Type destType, Type sourceType)
             {
                 IsGetFromDbConverter = true;
-                return base.GetFromDbConverter(DestType, SourceType);
+                return base.GetFromDbConverter(destType, sourceType);
             }
         }
 

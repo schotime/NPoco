@@ -11,20 +11,30 @@ namespace NPoco
         {
             return true;
         }
-        public virtual Func<object, object> GetFromDbConverter(MemberInfo mi, Type SourceType)
+
+        public virtual Func<object, object> GetFromDbConverter(MemberInfo destMemberInfo, Type sourceType)
         {
-            var t = mi.GetMemberInfoType();
-            return mi != null ? GetFromDbConverter(t, SourceType) : null;
+            var type = destMemberInfo.GetMemberInfoType();
+            return destMemberInfo != null ? GetFromDbConverter(type, sourceType) : null;
         }
-        public virtual Func<object, object> GetParameterConverter(Type SourceType)
-        {
-            return null;
-        }
-        public virtual Func<object, object> GetFromDbConverter(Type DestType, Type SourceType)
+
+        public virtual Func<object, object> GetFromDbConverter(Type destType, Type sourceType)
         {
             return null;
         }
-        public virtual Func<object, object> GetToDbConverter(Type DestType, Type SourceType)
+
+        public virtual Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo)
+        {
+            var type = sourceMemberInfo.GetMemberInfoType();
+            return sourceMemberInfo != null ? GetToDbConverter(destType, type) : null;
+        }
+
+        public virtual Func<object, object> GetToDbConverter(Type destType, Type SourceType)
+        {
+            return null;
+        }
+
+        public virtual Func<object, object> GetParameterConverter(Type sourceType)
         {
             return null;
         }

@@ -595,7 +595,7 @@ namespace NPoco.Expressions
                 object value = fieldDef.Value.GetValue(item);
                 if (_database.Mapper != null)
                 {
-                    var converter = _database.Mapper.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfo.GetMemberInfoType());
+                    var converter = _database.Mapper.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfo);
                     if (converter != null)
                         value = converter(value);
                 }
