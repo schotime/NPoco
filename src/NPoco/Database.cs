@@ -1560,11 +1560,12 @@ namespace NPoco
         public virtual int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
             if (!OnDeleting(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) return 0;
-            var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
+            
             var primaryKeyValuePairs = GetPrimaryKeyValues(primaryKeyName, primaryKeyValue);
             // If primary key value not specified, pick it up from the object
             if (primaryKeyValue == null)
             {
+                var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
                 foreach (var i in pd.Columns)
                 {
                     if (primaryKeyValuePairs.ContainsKey(i.Key))
