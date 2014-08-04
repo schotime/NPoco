@@ -1,0 +1,196 @@
+<#
+if (string.IsNullOrEmpty(Namespace)) Namespace=ConnectionStringName;
+if (string.IsNullOrEmpty(RepoName) && !string.IsNullOrEmpty(ConnectionStringName)) RepoName=ConnectionStringName + "DB";
+if (string.IsNullOrEmpty(Namespace)) Namespace="PetaPoco";
+if (string.IsNullOrEmpty(RepoName)) RepoName="PetaPocoDB";
+#>
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using NPoco;
+
+namespace <#=Namespace#>
+{
+<# if (GenerateCommon) { #>
+	public partial class <#=RepoName#> : Database
+	{
+		public <#=RepoName#>() 
+			: base("<#=ConnectionStringName#>")
+		{
+			CommonConstruct();
+		}
+
+		public <#=RepoName#>(string connectionStringName) 
+			: base(connectionStringName)
+		{
+			CommonConstruct();
+		}
+		
+		public virtual void CommonConstruct()
+		{
+		    Factory = new DefaultFactory();
+		}
+		
+		public interface IFactory
+		{
+			Database GetInstance();
+		    void BeginTransaction(Database database);
+		    void CompleteTransaction(Database database);
+		}
+
+        public class DefaultFactory : IFactory
+        {
+            [ThreadStatic]
+            static Stack<Database> _stack = new Stack<Database>();
+
+            public Database GetInstance()
+            {
+                return _stack.Count > 0 ? _stack.Peek() : new ApplicationDatabase();
+            }
+
+            public void BeginTransaction(Database database)
+            {
+                _stack.Push(database);
+            }
+
+            public void CompleteTransaction(Database database)
+            {
+                _stack.Pop();
+            }
+        }
+		
+		public static IFactory Factory { get; set; }
+
+        public static Database GetInstance()
+        {
+			return Factory.GetInstance();
+        }
+
+		protected override void OnBeginTransaction()
+		{
+            Factory.BeginTransaction(this);
+		}
+
+        protected override void OnCompleteTransaction()
+		{
+            Factory.CompleteTransaction(this);
+		}
+<# if (GenerateOperations) { #>
+		public class Record<T> where T:new()
+		{
+			public bool IsNew(Database db) { return db.IsNew<T>(this); }
+			public object Insert(Database db) { return db.Insert(this); } <# 
+			if (!TrackModifiedColumns) { #>			
+			public void Save<T>(Database db) { db.Save<T>(this); }
+			public int Update(Database db) { return db.Update(this); }
+<#			}#>			
+			public int Update(Database db, IEnumerable<string> columns) { return db.Update(this, columns); }
+			public static int Update(Database db, string sql, params object[] args) { return db.Update<T>(sql, args); }
+			public static int Update(Database db, Sql sql) { return db.Update<T>(sql); }
+			public int Delete(Database db) { return db.Delete(this); }
+			public static int Delete(Database db, string sql, params object[] args) { return db.Delete<T>(sql, args); }
+			public static int Delete(Database db, Sql sql) { return db.Delete<T>(sql); }
+			public static int Delete(Database db, object primaryKey) { return db.Delete<T>(primaryKey); }
+			public static bool Exists(Database db, object primaryKey) { return db.Exists<T>(primaryKey); }
+			public static T SingleOrDefault(Database db, string sql, params object[] args) { return db.SingleOrDefault<T>(sql, args); }
+			public static T SingleOrDefault(Database db, Sql sql) { return db.SingleOrDefault<T>(sql); }
+			public static T FirstOrDefault(Database db, string sql, params object[] args) { return db.FirstOrDefault<T>(sql, args); }
+			public static T FirstOrDefault(Database db, Sql sql) { return db.FirstOrDefault<T>(sql); }
+			public static T Single(Database db, string sql, params object[] args) { return db.Single<T>(sql, args); }
+			public static T Single(Database db, Sql sql) { return db.Single<T>(sql); }
+			public static T First(Database db, string sql, params object[] args) { return db.First<T>(sql, args); }
+			public static T First(Database db, Sql sql) { return db.First<T>(sql); }
+			public static List<T> Fetch(Database db, string sql, params object[] args) { return db.Fetch<T>(sql, args); }
+			public static List<T> Fetch(Database db, Sql sql) { return db.Fetch<T>(sql); }
+			public static List<T> Fetch(Database db, long page, long itemsPerPage, string sql, params object[] args) { return db.Fetch<T>(page, itemsPerPage, sql, args); }
+			public static List<T> Fetch(Database db, long page, long itemsPerPage, Sql sql) { return db.Fetch<T>(page, itemsPerPage, sql); }
+			public static List<T> SkipTake(Database db, long skip, long take, string sql, params object[] args) { return db.SkipTake<T>(skip, take, sql, args); }
+			public static List<T> SkipTake(Database db, long skip, long take, Sql sql) { return db.SkipTake<T>(skip, take, sql); }
+			public static Page<T> Page(Database db, long page, long itemsPerPage, string sql, params object[] args) { return db.Page<T>(page, itemsPerPage, sql, args); }
+			public static Page<T> Page(Database db, long page, long itemsPerPage, Sql sql) { return db.Page<T>(page, itemsPerPage, sql); }
+			public static IEnumerable<T> Query(Database db, string sql, params object[] args) { return db.Query<T>(sql, args); }
+			public static IEnumerable<T> Query(Database db, Sql sql) { return db.Query<T>(sql); }<# 
+			if (TrackModifiedColumns) { #>			
+			
+			protected HashSet<string> Tracker = new HashSet<string>();
+			private void OnLoaded() { Tracker.Clear(); }
+			protected void Track(string c) { if (!Tracker.Contains(c)) Tracker.Add(c); }
+
+			public int Update(Database db) 
+			{ 
+				if (Tracker.Count == 0)
+					return db.Update(this); 
+
+				var retv = db.Update(this, Tracker.ToArray());
+				Tracker.Clear();
+				return retv;
+			}
+			public void Save(Database db) 
+			{
+                if (this.IsNew(db))
+					Insert(db);
+				else
+					Update(db);
+			}<# 
+			} #>		
+		}<# 
+	} #>	
+	}<# }
+	if (GeneratePocos) 	{
+foreach(Table tbl in from t in tables where !t.Ignore select t)
+{ #>
+    namespace <#=tbl.SchemaName#>
+	{
+		[TableName("[<#=tbl.Schema#>].[<#=tbl.Name#>]")]
+<# 		if (tbl.HasPrimaryKey && tbl.IsSingleKey && tbl.PrimaryKey.IsAutoIncrement && tbl.SequenceName==null) {
+#>		[PrimaryKey("<#=tbl.PrimaryKey.Name#>")]
+<#		} else if (tbl.HasPrimaryKey && tbl.IsSingleKey && tbl.PrimaryKey.IsAutoIncrement && tbl.SequenceName!=null) {
+#>		[PrimaryKey("<#=tbl.PrimaryKey.Name#>", SequenceName="<#=tbl.SequenceName#>")]
+<#		} else if (tbl.HasPrimaryKey && tbl.IsSingleKey && !tbl.PrimaryKey.IsAutoIncrement) {
+#>		[PrimaryKey("<#=tbl.PrimaryKey.Name#>", AutoIncrement=false)]
+<#		} else if (tbl.HasPrimaryKey && tbl.IsCompositeKey) {
+#>		[PrimaryKey("<#=string.Join(",",tbl.PrimaryKeys.Select(x => x.Name))#>")]
+<# 		} 
+#>		[ExplicitColumns]
+		public partial class <#=tbl.ClassName#> <# if (GenerateOperations) { #>: <#=RepoName#>.Record<<#=tbl.ClassName#>> <# } #> 
+		{
+<#		foreach(Column col in from c in tbl.Columns where !c.Ignore select c) {
+			if (col.Name!=col.PropertyName) { 
+#>			[Column("<#=col.Name#>")] <# 
+			} else { 
+#>	        [Column] <# } 
+			if (TrackModifiedColumns) { 
+			#>public <#=col.PropertyType #><#=CheckNullable(col)#> <#=col.PropertyName #> 
+			{ 
+				get { return _<#=col.PropertyName #>; }
+				set { _<#=col.PropertyName #> = value; Track("<#=col.Name#>"); }
+			}
+			<#=col.PropertyType #><#=CheckNullable(col)#> _<#=col.PropertyName #>;
+<#			} else { 
+			#>public <#=col.PropertyType #><#=CheckNullable(col)#> <#=col.PropertyName #> { get; set; }
+<#			}  
+		} 
+		if (GenerateOperations && tbl.HasPrimaryKey) { #>		
+			public static IEnumerable<<#=tbl.ClassName#>> Query(Database db, string[] columns = null<#
+			foreach (var k in tbl.PrimaryKeys) { #>, <#=k.PropertyType #>[] <#=k.PropertyName #> = null<# } #>)
+            {
+                var sql = new Sql();
+
+                if (columns != null)
+                    sql.Select(columns);
+
+                sql.From("[<#=tbl.Schema#>].[<#=tbl.Name#>] (NOLOCK)");
+
+<#				foreach (var k in tbl.PrimaryKeys) { #>
+				if (<#=k.PropertyName #> != null)
+					sql.Where("<#=k.Name#> IN (@0)", <#=k.PropertyName #>);
+<# } #>
+
+                return db.Query<<#=tbl.ClassName#>>(sql);
+            }
+<#		} 
+#>		}
+	}
+<#	} 
+} 
+#>}

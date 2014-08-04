@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco", "NPoco\NPoco.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco.Tests", "NPoco.Tests\NPoco.Tests.csproj", "{66821E67-2EBC-4497-AFF2-82022F95810C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco.Templates", "NPoco.Templates\NPoco.Templates.csproj", "{C761EAA6-C12D-4FED-B753-CDBC8CA5DFDD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +21,10 @@ Global
 		{66821E67-2EBC-4497-AFF2-82022F95810C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{66821E67-2EBC-4497-AFF2-82022F95810C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{66821E67-2EBC-4497-AFF2-82022F95810C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C761EAA6-C12D-4FED-B753-CDBC8CA5DFDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C761EAA6-C12D-4FED-B753-CDBC8CA5DFDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C761EAA6-C12D-4FED-B753-CDBC8CA5DFDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C761EAA6-C12D-4FED-B753-CDBC8CA5DFDD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
