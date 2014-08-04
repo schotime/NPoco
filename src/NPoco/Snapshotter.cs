@@ -130,9 +130,11 @@ namespace NPoco
 
         private static U GenerateObject<U>(byte[] bytes)
         {
-            var ms = new MemoryStream(bytes);
-            XmlSerializer xs = new XmlSerializer(typeof(U));
-            return (U)xs.Deserialize(ms);
+            using (var ms = new MemoryStream(bytes))
+            {
+                XmlSerializer xs = new XmlSerializer(typeof(U));
+                return (U)xs.Deserialize(ms);
+            }
         }
 
         private static Func<T, T, List<Change>> GenerateDiffer(PocoData pocoData)
