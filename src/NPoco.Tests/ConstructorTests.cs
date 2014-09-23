@@ -28,7 +28,13 @@ namespace NPoco.Tests
 
                 case 3: // SQL Server
                 case 4: // SQL CE
+                    Assert.Fail("Database platform not supported for unit testing");
+                    return;
+
                 case 5: // MySQL
+                    TestDatabase = new MySqlDatabase();
+                    break;
+
                 case 6: // Oracle
                 case 7: // Postgres
                     Assert.Fail("Database platform not supported for unit testing");
@@ -89,7 +95,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNotNull(db.Connection);
 
@@ -107,7 +113,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNotNull(db.Connection);
 
@@ -125,7 +131,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNotNull(db.Connection);
 
@@ -143,7 +149,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNotNull(db.Connection);
 
@@ -161,7 +167,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(typeof(SqlServerDatabaseType), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNotNull(db.Connection);
 
@@ -181,7 +187,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(typeof(SqlServerDatabaseType), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNotNull(db.Connection);
 
@@ -201,7 +207,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNull(db.Connection);
 
@@ -219,7 +225,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNull(db.Connection);
 
@@ -237,7 +243,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNull(db.Connection);
 
@@ -255,7 +261,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNull(db.Connection);
 
@@ -273,7 +279,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNull(db.Connection);
 
@@ -292,7 +298,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNull(db.Connection);
 
@@ -311,7 +317,7 @@ namespace NPoco.Tests
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
             Assert.AreEqual(dbType.GetType(), db.DatabaseType.GetType());
 
-            // Constructors using a Connection do not close the connection on close/displose
+            // Constructors using a Connection do not close the connection on close/dispose
             db.CloseSharedConnection();
             Assert.IsNull(db.Connection);
 

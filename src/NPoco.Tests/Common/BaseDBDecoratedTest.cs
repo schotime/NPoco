@@ -32,7 +32,14 @@ namespace NPoco.Tests.Common
 
                 case 3: // SQL Server
                 case 4: // SQL CE
+                    Assert.Fail("Database platform not supported for unit testing");
+                    return;
+                
                 case 5: // MySQL
+                    TestDatabase = new MySqlDatabase();
+                    Database = new Database(TestDatabase.Connection, new MySqlDatabaseType());
+                    break;
+
                 case 6: // Oracle
                 case 7: // Postgres
                     Assert.Fail("Database platform not supported for unit testing");

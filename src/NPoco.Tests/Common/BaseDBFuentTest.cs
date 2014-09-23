@@ -31,8 +31,6 @@ namespace NPoco.Tests.Common
                     s.OverrideMappingsWith(new FluentMappingOverrides());
                 })
             );
-            
-
 
             var testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
             switch (testDBType)
@@ -49,11 +47,19 @@ namespace NPoco.Tests.Common
                     break;
 
                 case 4: // SQL CE
+                    Assert.Fail("Database platform not supported for unit testing");
+                    return;
+
                 case 5: // MySQL
+                    TestDatabase = new MySqlDatabase();
+                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new MySqlDatabaseType()));
+                    break;
+
                 case 6: // Oracle
                 case 7: // Postgres
                     Assert.Fail("Database platform not supported for unit testing");
                     return;
+
                 case 8: // Firebird
                     TestDatabase = new FirebirdDatabase();
                     var db = new Database(TestDatabase.Connection, new FirebirdDatabaseType());

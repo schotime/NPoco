@@ -39,6 +39,11 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\lib\FirebirdSql.Data.FirebirdClient.dll</HintPath>
     </Reference>
+    <Reference Include="MySql.Data, Version=6.9.3.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\MySql.Data.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\..\lib\nunit.framework.dll</HintPath>
     </Reference>
@@ -67,6 +72,7 @@
     <Compile Include="Common\FirebirdDefaultMapper.cs" />
     <Compile Include="Common\InMemoryDatabase.cs" />
     <Compile Include="Common\AdHocUser.cs" />
+    <Compile Include="Common\MySqlDatabase.cs" />
     <Compile Include="Common\SQLLocalDatabase.cs" />
     <Compile Include="Common\TestDatabase.cs" />
     <Compile Include="Common\User.cs" />
