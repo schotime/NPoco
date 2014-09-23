@@ -71,7 +71,7 @@ namespace NPoco
         }
 
         /// <summary>
-        /// Configire the specified type to be mapped to a given db-type
+        /// Configure the specified type to be mapped to a given db-type
         /// </summary>
         protected void AddTypeMap(Type type, DbType dbType)
         {
@@ -139,7 +139,7 @@ namespace NPoco
         /// Builds an SQL query suitable for performing page based queries to the database
         /// </summary>
         /// <param name="skip">The number of rows that should be skipped by the query</param>
-        /// <param name="take">The number of rows that should be retruend by the query</param>
+        /// <param name="take">The number of rows that should be returned by the query</param>
         /// <param name="parts">The original SQL query after being parsed into it's component parts</param>
         /// <param name="args">Arguments to any embedded parameters in the SQL query</param>
         /// <returns>The final SQL query that should be executed.</returns>
@@ -156,7 +156,7 @@ namespace NPoco
         }
 
         /// <summary>
-        /// Returns an SQL Statement that can check for the existance of a row in the database.
+        /// Returns an SQL Statement that can check for the existence of a row in the database.
         /// </summary>
         /// <returns></returns>
         public virtual string GetExistsSql()
