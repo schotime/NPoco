@@ -7,6 +7,23 @@ using System.Threading;
 
 namespace NPoco
 {
+    /// <summary>
+    /// Container for a Memory cache object
+    /// </summary>
+    /// <remarks>
+    /// Better to have one memory cache instance than many so it's memory management can be handled more effectively
+    /// http://stackoverflow.com/questions/8463962/using-multiple-instances-of-memorycache
+    /// </remarks>
+    internal class ManagedCache
+    {
+        public ObjectCache GetCache()
+        {
+            return ObjectCache;
+        }
+
+        static readonly ObjectCache ObjectCache = new MemoryCache("NPoco");
+    }
+
     internal class Cache<TKey, TValue>
     {
         private readonly bool _useManaged;
@@ -30,10 +47,10 @@ namespace NPoco
             return new Cache<TKey, TValue>(true);
         }
 
-        Dictionary<TKey, TValue> _map = new Dictionary<TKey, TValue>();
-        ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
-        ObjectCache _objectCache = new MemoryCache("NPoco");
-
+        readonly Dictionary<TKey, TValue> _map = new Dictionary<TKey, TValue>();
+        readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+        readonly ManagedCache _managedCache = new ManagedCache();
+        
         public int Count
         {
             get
@@ -46,10 +63,11 @@ namespace NPoco
         {
             if (_useManaged)
             {
+                var objectCache = _managedCache.GetCache();
                 //lazy usage of AddOrGetExisting ref: http://stackoverflow.com/questions/10559279/how-to-deal-with-costly-building-operations-using-memorycache/15894928#15894928
                 var newValue = new Lazy<TValue>(factory);
                 // the line belows returns existing item or adds the new value if it doesn't exist
-                var value = (Lazy<TValue>)_objectCache.AddOrGetExisting(key.ToString(), newValue, new CacheItemPolicy
+                var value = (Lazy<TValue>)objectCache.AddOrGetExisting(key.ToString(), newValue, new CacheItemPolicy
                 {
                     //sliding expiration of 1 hr, if the same key isn't used in this 
                     // timeframe it will be removed from the cache
