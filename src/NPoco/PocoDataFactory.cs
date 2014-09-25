@@ -6,7 +6,7 @@ namespace NPoco
     public class PocoDataFactory
     {
         private readonly IMapper _mapper;
-        static Cache<Type, PocoData> _pocoDatas = new Cache<Type, PocoData>();
+        static readonly Cache<Type, PocoData> _pocoDatas = Cache<Type, PocoData>.CreateStaticCache();
 
         public PocoDataFactory(IMapper mapper)
         {
