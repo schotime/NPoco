@@ -28,8 +28,16 @@ namespace NPoco
 
         public Delegate GetFactory(string sql, string connString, int firstColumn, int countColumns, IDataReader r, object instance)
         {
+            //Create a hashed key, we don't want to store so much string data in memory
+            var combiner = new HashCodeCombiner();
+            combiner.AddCaseInsensitiveString(sql);
+            combiner.AddCaseInsensitiveString(connString);
+            combiner.AddInt(firstColumn);
+            combiner.AddObject(instance != GetDefault(_pocoData.type));
+            combiner.AddObject(_pocoData.EmptyNestedObjectNull);
+
             // Check cache
-            var key = string.Format("{0}:{1}:{2}:{3}:{4}:{5}", sql, connString, firstColumn, countColumns, instance != GetDefault(_pocoData.type), _pocoData.EmptyNestedObjectNull);
+            var key = combiner.GetCombinedHashCode();
  
             Func<Delegate> createFactory = () =>
             {

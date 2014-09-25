@@ -66,6 +66,7 @@
     <Compile Include="DatabaseTypes\SqlServerCEDatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerDatabaseType.cs" />
     <Compile Include="Expressions\FirebirdSqlExpression.cs" />
+    <Compile Include="HashCodeCombiner.cs" />
     <Compile Include="Linq\ComplexSqlBuilder.cs" />
     <Compile Include="Linq\DeleteQueryProvider.cs" />
     <Compile Include="Linq\ISimpleQueryProviderExpression.cs" />
