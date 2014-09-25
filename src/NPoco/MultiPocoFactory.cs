@@ -151,8 +151,8 @@ namespace NPoco
         }
 
         // Various cached stuff
-        static Cache<string, object> MultiPocoFactories = new Cache<string, object>();
-        static Cache<string, Delegate> AutoMappers = new Cache<string, Delegate>();
+        static Cache<string, object> MultiPocoFactories = Cache<string, object>.CreateStaticCache();
+        static Cache<string, Delegate> AutoMappers = Cache<string, Delegate>.CreateStaticCache();
 
         // Get (or create) the multi-poco factory for a query
         public static Func<IDataReader, Delegate, TRet> GetMultiPocoFactory<TRet>(Database database, Type[] types, string sql, string connectionString, IDataReader r)
