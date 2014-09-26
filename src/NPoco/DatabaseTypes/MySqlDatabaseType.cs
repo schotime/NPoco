@@ -36,5 +36,10 @@ namespace NPoco.DatabaseTypes
         {
             return "MySql.Data.MySQLClient";
         }
+
+        public override IsolationLevel GetDefaultTransactionIsolationLevel()
+        {
+            return IsolationLevel.RepeatableRead;
+        }
     }
 }
