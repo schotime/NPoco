@@ -52,7 +52,9 @@ namespace NPoco
         public static Delegate GetAutoMapper(Type[] types)
         {
             // Build a key
-            var key = string.Join(":", types.Select(x=>x.ToString()).ToArray());
+            var combiner = new HashCodeCombiner("auto-mapping");
+            combiner.Each(types, (x, t) => x.AddObject(t));
+            var key = combiner.GetCombinedHashCode();
 
             return AutoMappers.Get(key, () =>
             {
@@ -152,17 +154,14 @@ namespace NPoco
 
         // Various cached stuff
         static Cache<string, object> MultiPocoFactories = Cache<string, object>.CreateManagedCache();
-        static Cache<string, Delegate> AutoMappers = Cache<string, Delegate>.CreateStaticCache();
+        static Cache<string, Delegate> AutoMappers = Cache<string, Delegate>.CreateManagedCache();
 
         // Get (or create) the multi-poco factory for a query
         public static Func<IDataReader, Delegate, TRet> GetMultiPocoFactory<TRet>(Database database, Type[] types, IDataReader r)
         {
-            var combiner = new HashCodeCombiner();
+            var combiner = new HashCodeCombiner("multi-mapping");
             combiner.AddObject(typeof(TRet));
-            foreach (var t in types)
-            {
-                combiner.AddObject(t);
-            }
+            combiner.Each(types, (x, t) => x.AddObject(t));
             for (int col = 0; col < r.FieldCount; col++)
             {
                 combiner.AddObject(r.GetFieldType(col));

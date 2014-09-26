@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace NPoco
@@ -13,22 +14,45 @@ namespace NPoco
     /// </remarks>
     internal class HashCodeCombiner
     {
+        public HashCodeCombiner()
+        {
+            
+        }
+
+        public HashCodeCombiner(string seed)
+        {
+            AddCaseInsensitiveString(seed);
+        }
+
         private long _combinedHash = 5381L;
 
-        internal void AddObject(object o)
+        internal HashCodeCombiner AddObject(object o)
         {
             AddInt(o.GetHashCode());
+            return this;
         }
 
-        internal void AddInt(int i)
+        internal HashCodeCombiner AddInt(int i)
         {
             _combinedHash = ((_combinedHash << 5) + _combinedHash) ^ i;
+            return this;
+        }
+
+        internal HashCodeCombiner Each<T>(IEnumerable<T> list, Action<HashCodeCombiner, T> action)
+        {
+            foreach (var item in list)
+            {
+                action(this, item);
+            }
+            
+            return this;
         }
         
-        internal void AddCaseInsensitiveString(string s)
+        internal HashCodeCombiner AddCaseInsensitiveString(string s)
         {
             if (s != null)
                 AddInt((StringComparer.InvariantCultureIgnoreCase).GetHashCode(s));
+            return this;
         }
         
         /// <summary>

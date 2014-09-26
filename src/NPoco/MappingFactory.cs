@@ -31,7 +31,7 @@ namespace NPoco
         public Delegate GetFactory(int firstColumn, int countColumns, IDataReader r, object instance)
         {
             //Create a hashed key, we don't want to store so much string data in memory
-            var combiner = new HashCodeCombiner();
+            var combiner = new HashCodeCombiner("mapping");
             combiner.AddObject(_pocoData.type);
             combiner.AddInt(firstColumn);
             combiner.AddInt(countColumns);
