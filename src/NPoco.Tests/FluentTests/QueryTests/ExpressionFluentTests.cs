@@ -28,6 +28,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchWhereExpressionEquals()
+        {
+            var users = Database.FetchWhere<User>(y => y.UserId.Equals(2));
+            Assert.AreEqual(1, users.Count);
+        }
+
+        [Test]
         public void FetchOnWithSecondGenericType()
         {
             var s = new DefaultSqlExpression<User>(Database, true);
@@ -96,6 +103,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         {
             var users = Database.FetchBy<UserDecorated>(y => y.Where(x => x.Name.StartsWith("Na")));
             Assert.AreEqual(15, users.Count);
+        }
+       
+        [Test]
+        public void FetchByExpressionAndDoesNotStartsWith()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Where(x => !x.Name.StartsWith("Na")));
+            Assert.AreEqual(0, users.Count);
         }
 
         [Test]

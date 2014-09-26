@@ -1057,16 +1057,16 @@ namespace NPoco.Expressions
             }
             catch (System.InvalidOperationException)
             {
-                List<MemberAccessString> exprs = VisitExpressionList(nex.Arguments).OfType<MemberAccessString>().ToList();
+                List<PartialSqlString> exprs = VisitExpressionList(nex.Arguments).OfType<PartialSqlString>().ToList();
                 StringBuilder r = new StringBuilder();
                 for (int i = 0; i < exprs.Count; i++)
                 {
-                    if (_projection)
+                    if (_projection && exprs[i] is MemberAccessString)
                     {
                         selectMembers.Add(new SelectMember()
                         {
-                            EntityType = exprs[i].Type,
-                            PocoColumn = exprs[i].PocoColumn,
+                            EntityType = ((MemberAccessString)exprs[i]).Type,
+                            PocoColumn = ((MemberAccessString)exprs[i]).PocoColumn,
                             SelectSql = exprs[i].Text
                         });
                         continue;
@@ -1129,7 +1129,7 @@ namespace NPoco.Expressions
             return new PartialSqlString(string.Format("(case when {0} then {1} else {2} end)", test, trueSql, falseSql));
         }
 
-        private string CreateParam(object value)
+        protected string CreateParam(object value)
         {
             string paramPlaceholder = paramPrefix + _paramCounter++;
             _params.Add(value);
@@ -1507,34 +1507,33 @@ namespace NPoco.Expressions
                 return null;
 
             List<Object> args = this.VisitExpressionList(m.Arguments);
-            var quotedColName = (MemberAccessString)Visit(m.Object);
-            quotedColName.Text = _projection ? _databaseType.EscapeSqlIdentifier(quotedColName.PocoColumn.AutoAlias) : quotedColName.Text;
+            var columnName = (PartialSqlString)Visit(m.Object);
             string statement;
 
             switch (m.Method.Name)
             {
                 case "ToUpper":
-                    statement = string.Format("upper({0})", quotedColName);
+                    statement = string.Format("upper({0})", columnName);
                     break;
                 case "ToLower":
-                    statement = string.Format("lower({0})", quotedColName);
+                    statement = string.Format("lower({0})", columnName);
                     break;
                 case "StartsWith":
-                    statement = string.Format("upper({0}) like {1}", quotedColName, CreateParam(args[0].ToString().ToUpper() + "%"));
+                    statement = string.Format("upper({0}) like {1}", columnName, CreateParam(args[0].ToString().ToUpper() + "%"));
                     break;
                 case "EndsWith":
-                    statement = string.Format("upper({0}) like {1}", quotedColName, CreateParam("%" + args[0].ToString().ToUpper()));
+                    statement = string.Format("upper({0}) like {1}", columnName, CreateParam("%" + args[0].ToString().ToUpper()));
                     break;
                 case "Contains":
-                    statement = string.Format("upper({0}) like {1}", quotedColName, CreateParam("%" + args[0].ToString().ToUpper() + "%"));
+                    statement = string.Format("upper({0}) like {1}", columnName, CreateParam("%" + args[0].ToString().ToUpper() + "%"));
                     break;
                 case "Substring":
                     var startIndex = Int32.Parse(args[0].ToString()) + 1;
                     var length = (args.Count > 1) ? Int32.Parse(args[1].ToString()) : -1;
-                        statement = SubstringStatement(quotedColName, startIndex, length);
+                    statement = SubstringStatement(columnName, startIndex, length);
                     break;
                 case "Equals":
-                    statement = string.Format("({0} = {1})", quotedColName, args[0]);
+                    statement = string.Format("({0} = {1})", columnName, CreateParam(args[0]));
                     break;
                 case "ToString":
                     statement = string.Empty;
@@ -1543,17 +1542,16 @@ namespace NPoco.Expressions
                     throw new NotSupportedException();
             }
 
-            quotedColName.Text = statement;
-            return quotedColName;
+            return new PartialSqlString(statement);
         }
 
         // Easy to override
-        protected virtual string SubstringStatement(MemberAccessString quotedColName, int startIndex, int length)
+        protected virtual string SubstringStatement(PartialSqlString columnName, int startIndex, int length)
         {
             if (length >= 0)
-                return string.Format("substring({0},{1},{2})", quotedColName, startIndex, length);
+                return string.Format("substring({0},{1},{2})", columnName, CreateParam(startIndex), CreateParam(length));
             else
-                return string.Format("substring({0},{1},8000})", quotedColName, startIndex);
+                return string.Format("substring({0},{1},8000})", columnName, CreateParam(startIndex));
         }
 
     }

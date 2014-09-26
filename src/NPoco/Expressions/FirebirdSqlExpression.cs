@@ -10,12 +10,12 @@ namespace NPoco.Expressions
         {
         }
 
-        protected override string SubstringStatement(MemberAccessString quotedColName, int startIndex, int length)
+        protected override string SubstringStatement(PartialSqlString columnName, int startIndex, int length)
         {
             if (length >= 0)
-                return string.Format("substring({0} FROM {1} FOR {2})", quotedColName, startIndex, length);
+                return string.Format("substring({0} FROM {1} FOR {2})", columnName, CreateParam(startIndex), CreateParam(length));
             else
-                return string.Format("substring({0} FROM {1})", quotedColName, startIndex);
+                return string.Format("substring({0} FROM {1})", columnName, CreateParam(startIndex));
         }
     }
 }
