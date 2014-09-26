@@ -9,7 +9,7 @@ namespace NPoco.FluentMappings
 
         public Map<T> For<T>()
         {
-            var definition = new TypeDefinition(typeof(T));
+            var definition = Config.ContainsKey(typeof(T)) ? Config[typeof(T)] : new TypeDefinition(typeof(T));
             var petaPocoMap = new Map<T>(definition);
             Config[typeof (T)] = definition;
             return petaPocoMap;

@@ -821,7 +821,7 @@ namespace NPoco
 
                     using (r)
                     {
-                        var factory = pd.MappingFactory.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
+                        var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
                         while (true)
                         {
                             T poco;
@@ -935,7 +935,7 @@ namespace NPoco
                         OnException(x);
                         throw;
                     }
-                    var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, sql.SQL, _sharedConnection.ConnectionString, r);
+                    var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, r);
                     if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
                     var bNeedTerminator = false;
                     using (r)
@@ -1067,7 +1067,7 @@ namespace NPoco
                                 break;
 
                             var pd = PocoDataFactory.ForType(types[typeIndex - 1]);
-                            var factory = pd.MappingFactory.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, null);
+                            var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, null);
 
                             while (true)
                             {

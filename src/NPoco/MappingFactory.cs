@@ -28,23 +28,20 @@ namespace NPoco
             _pocoData = pocoData;
         }
 
-        public Delegate GetFactory(string sql, string connString, int firstColumn, int countColumns, IDataReader r, object instance)
+        public Delegate GetFactory(int firstColumn, int countColumns, IDataReader r, object instance)
         {
-            //TODO: It would be nice to remove the irrelevant SQL parts - for a mapping operation anything after the SELECT clause isn't required. 
-            // This would ensure less duplicate entries that get cached, currently both of these queries would be cached even though they are
-            // returning the same structured data:
-            // SELECT * FROM MyTable ORDER BY MyColumn
-            // SELECT * FROM MyTable ORDER BY MyColumn DESC
-
             //Create a hashed key, we don't want to store so much string data in memory
             var combiner = new HashCodeCombiner();
-            combiner.AddCaseInsensitiveString(sql);
-            combiner.AddCaseInsensitiveString(connString);
+            combiner.AddObject(_pocoData.type);
             combiner.AddInt(firstColumn);
+            combiner.AddInt(countColumns);
+            for (int col = 0; col < r.FieldCount; col++)
+            {
+                combiner.AddObject(r.GetFieldType(col));
+            }
             combiner.AddObject(instance != GetDefault(_pocoData.type));
             combiner.AddObject(_pocoData.EmptyNestedObjectNull);
 
-            // Check cache
             var key = combiner.GetCombinedHashCode();
  
             Func<Delegate> createFactory = () =>
