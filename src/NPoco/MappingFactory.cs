@@ -18,8 +18,10 @@ namespace NPoco
         static FieldInfo fldConverters = typeof(MappingFactory).GetField("m_Converters", BindingFlags.Static | BindingFlags.GetField | BindingFlags.NonPublic);
         static MethodInfo fnListGetItem = typeof(List<Func<object, object>>).GetProperty("Item").GetGetMethod();
         static MethodInfo fnInvoke = typeof(Func<object, object>).GetMethod("Invoke");
-        static Cache<Type, Type> _underlyingTypes = new Cache<Type, Type>();
-        Cache<string, Delegate> _pocoFactories = new Cache<string, Delegate>();
+        static Cache<Type, Type> _underlyingTypes = Cache<Type, Type>.CreateStaticCache();
+
+        //This will use a managed cache with items that expire
+        Cache<string, Delegate> _pocoFactories = Cache<string, Delegate>.CreateManagedCache();
 
         public MappingFactory(PocoData pocoData)
         {
@@ -28,8 +30,22 @@ namespace NPoco
 
         public Delegate GetFactory(string sql, string connString, int firstColumn, int countColumns, IDataReader r, object instance)
         {
+            //TODO: It would be nice to remove the irrelevant SQL parts - for a mapping operation anything after the SELECT clause isn't required. 
+            // This would ensure less duplicate entries that get cached, currently both of these queries would be cached even though they are
+            // returning the same structured data:
+            // SELECT * FROM MyTable ORDER BY MyColumn
+            // SELECT * FROM MyTable ORDER BY MyColumn DESC
+
+            //Create a hashed key, we don't want to store so much string data in memory
+            var combiner = new HashCodeCombiner();
+            combiner.AddCaseInsensitiveString(sql);
+            combiner.AddCaseInsensitiveString(connString);
+            combiner.AddInt(firstColumn);
+            combiner.AddObject(instance != GetDefault(_pocoData.type));
+            combiner.AddObject(_pocoData.EmptyNestedObjectNull);
+
             // Check cache
-            var key = string.Format("{0}:{1}:{2}:{3}:{4}:{5}", sql, connString, firstColumn, countColumns, instance != GetDefault(_pocoData.type), _pocoData.EmptyNestedObjectNull);
+            var key = combiner.GetCombinedHashCode();
  
             Func<Delegate> createFactory = () =>
             {
