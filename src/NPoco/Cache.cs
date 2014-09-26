@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Caching;
 using System.Text;
 using System.Threading;
 
@@ -16,12 +15,14 @@ namespace NPoco
     /// </remarks>
     internal class ManagedCache
     {
-        public ObjectCache GetCache()
+#if !POCO_NO_DYNAMIC
+        public System.Runtime.Caching.ObjectCache GetCache()
         {
             return ObjectCache;
         }
 
-        static readonly ObjectCache ObjectCache = new MemoryCache("NPoco");
+        static readonly System.Runtime.Caching.ObjectCache ObjectCache = new System.Runtime.Caching.MemoryCache("NPoco");
+#endif
     }
 
     internal class Cache<TKey, TValue>
@@ -61,13 +62,14 @@ namespace NPoco
 
         public TValue Get(TKey key, Func<TValue> factory)
         {
+#if !POCO_NO_DYNAMIC
             if (_useManaged)
             {
                 var objectCache = _managedCache.GetCache();
                 //lazy usage of AddOrGetExisting ref: http://stackoverflow.com/questions/10559279/how-to-deal-with-costly-building-operations-using-memorycache/15894928#15894928
                 var newValue = new Lazy<TValue>(factory);
                 // the line belows returns existing item or adds the new value if it doesn't exist
-                var value = (Lazy<TValue>)objectCache.AddOrGetExisting(key.ToString(), newValue, new CacheItemPolicy
+                var value = (Lazy<TValue>)objectCache.AddOrGetExisting(key.ToString(), newValue, new System.Runtime.Caching.CacheItemPolicy
                 {
                     //sliding expiration of 1 hr, if the same key isn't used in this 
                     // timeframe it will be removed from the cache
@@ -75,6 +77,7 @@ namespace NPoco
                 });
                 return (value ?? newValue).Value; // Lazy<T> handles the locking itself
             }
+#endif
 
             // Check cache
             _lock.EnterReadLock();
