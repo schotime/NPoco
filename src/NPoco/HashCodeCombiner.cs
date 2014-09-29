@@ -26,15 +26,29 @@ namespace NPoco
 
         private long _combinedHash = 5381L;
 
-        internal HashCodeCombiner AddObject(object o)
-        {
-            AddInt(o.GetHashCode());
-            return this;
-        }
-
         internal HashCodeCombiner AddInt(int i)
         {
             _combinedHash = ((_combinedHash << 5) + _combinedHash) ^ i;
+            return this;
+        }
+
+        internal HashCodeCombiner AddBool(bool b)
+        {
+            AddInt(b.GetHashCode());
+            return this;
+        }
+
+        internal HashCodeCombiner AddType(Type t)
+        {
+            if (t !=  null)
+                AddInt((t.AssemblyQualifiedName ?? t.ToString()).GetHashCode());
+            return this;
+        }
+
+        internal HashCodeCombiner AddCaseInsensitiveString(string s)
+        {
+            if (s != null)
+                AddInt((StringComparer.InvariantCultureIgnoreCase).GetHashCode(s));
             return this;
         }
 
@@ -47,14 +61,7 @@ namespace NPoco
             
             return this;
         }
-        
-        internal HashCodeCombiner AddCaseInsensitiveString(string s)
-        {
-            if (s != null)
-                AddInt((StringComparer.InvariantCultureIgnoreCase).GetHashCode(s));
-            return this;
-        }
-        
+
         /// <summary>
         /// Returns the hex code of the combined hash code
         /// </summary>

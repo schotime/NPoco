@@ -41,5 +41,44 @@ namespace NPoco.Tests
             Assert.AreNotEqual(combiner1.GetCombinedHashCode(), combiner2.GetCombinedHashCode());
         }
 
+        [Test]
+        public void HashCombiner_Test_Type()
+        {
+            var combiner1 = new HashCodeCombiner();
+            combiner1.AddType(typeof(HashCodeCombiner));
+
+            var combiner2 = new HashCodeCombiner();
+            combiner2.AddType(typeof(HashCodeCombiner));
+
+            var combiner3 = new HashCodeCombiner();
+            combiner3.AddType(typeof(HashCodeCombinerTests));
+
+            Assert.AreEqual(combiner1.GetCombinedHashCode(), combiner2.GetCombinedHashCode());
+            Assert.AreNotEqual(combiner2.GetCombinedHashCode(), combiner3.GetCombinedHashCode());
+
+            combiner2.AddType(typeof(HashCodeCombiner));
+
+            Assert.AreNotEqual(combiner1.GetCombinedHashCode(), combiner2.GetCombinedHashCode());
+        }
+
+        [Test]
+        public void HashCombiner_Test_Bool()
+        {
+            var combiner1 = new HashCodeCombiner();
+            combiner1.AddBool(true);
+
+            var combiner2 = new HashCodeCombiner();
+            combiner2.AddBool(true);
+
+            var combiner3 = new HashCodeCombiner();
+            combiner3.AddBool(false);
+
+            Assert.AreEqual(combiner1.GetCombinedHashCode(), combiner2.GetCombinedHashCode());
+            Assert.AreNotEqual(combiner2.GetCombinedHashCode(), combiner3.GetCombinedHashCode());
+
+            combiner2.AddBool(true);
+
+            Assert.AreNotEqual(combiner1.GetCombinedHashCode(), combiner2.GetCombinedHashCode());
+        }
     }
 }

@@ -32,15 +32,15 @@ namespace NPoco
         {
             //Create a hashed key, we don't want to store so much string data in memory
             var combiner = new HashCodeCombiner("mapping");
-            combiner.AddObject(_pocoData.type);
+            combiner.AddType(_pocoData.type);
             combiner.AddInt(firstColumn);
             combiner.AddInt(countColumns);
             for (int col = 0; col < r.FieldCount; col++)
             {
-                combiner.AddObject(r.GetFieldType(col));
+                combiner.AddType(r.GetFieldType(col));
             }
-            combiner.AddObject(instance != GetDefault(_pocoData.type));
-            combiner.AddObject(_pocoData.EmptyNestedObjectNull);
+            combiner.AddBool(instance != GetDefault(_pocoData.type));
+            combiner.AddBool(_pocoData.EmptyNestedObjectNull);
 
             var key = combiner.GetCombinedHashCode();
  

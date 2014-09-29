@@ -53,7 +53,7 @@ namespace NPoco
         {
             // Build a key
             var combiner = new HashCodeCombiner("auto-mapping");
-            combiner.Each(types, (x, t) => x.AddObject(t));
+            combiner.Each(types, (x, t) => x.AddType(t));
             var key = combiner.GetCombinedHashCode();
 
             return AutoMappers.Get(key, () =>
@@ -160,11 +160,11 @@ namespace NPoco
         public static Func<IDataReader, Delegate, TRet> GetMultiPocoFactory<TRet>(Database database, Type[] types, IDataReader r)
         {
             var combiner = new HashCodeCombiner("multi-mapping");
-            combiner.AddObject(typeof(TRet));
-            combiner.Each(types, (x, t) => x.AddObject(t));
+            combiner.AddType(typeof(TRet));
+            combiner.Each(types, (x, t) => x.AddType(t));
             for (int col = 0; col < r.FieldCount; col++)
             {
-                combiner.AddObject(r.GetFieldType(col));
+                combiner.AddType(r.GetFieldType(col));
             }
             var key = combiner.GetCombinedHashCode();
 
