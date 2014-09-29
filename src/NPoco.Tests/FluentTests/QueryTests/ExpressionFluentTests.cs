@@ -127,6 +127,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchByExpressionAndSelectWithSubstring2()
+        {
+            var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new { Name = x.Name.Substring(2) }));
+            Assert.AreEqual("me1", users[0].Name);
+        }
+
+        [Test]
         public void FetchByExpressionAndSelectWithLower()
         {
             var users = Database.FetchBy<UserDecorated>(y => y.Select(x => new {Name = x.Name.ToLower()}));

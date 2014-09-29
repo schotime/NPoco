@@ -1551,7 +1551,7 @@ namespace NPoco.Expressions
             if (length >= 0)
                 return string.Format("substring({0},{1},{2})", columnName, CreateParam(startIndex), CreateParam(length));
             else
-                return string.Format("substring({0},{1},8000})", columnName, CreateParam(startIndex));
+                return string.Format("substring({0},{1},8000)", columnName, CreateParam(startIndex));
         }
 
     }
