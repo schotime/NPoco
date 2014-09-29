@@ -161,6 +161,19 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchWithWhereExpressionNotContains()
+        {
+            var list = new[] { 1, 2, 3, 4 };
+            var users = Database.FetchBy<User>(y => y.Where(x => !list.Contains(x.UserId)));
+
+            Assert.AreEqual(11, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(InMemoryUsers[i+4], users[i]);
+            }
+        }
+
+        [Test]
         public void FetchWithWhereExpressionInAsExtensionMethod()
         {
             var list = new[] {1, 2, 3, 4};

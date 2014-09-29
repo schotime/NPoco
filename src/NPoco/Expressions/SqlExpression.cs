@@ -1224,7 +1224,7 @@ namespace NPoco.Expressions
                 case "Contains":
                     List<Object> args = this.VisitExpressionList(m.Arguments);
                     object quotedColName = args[0];
-                    return BuildInStatement(m.Object, quotedColName);
+                    return new PartialSqlString(BuildInStatement(m.Object, quotedColName));
 
                 default:
                     throw new NotSupportedException();
@@ -1243,7 +1243,7 @@ namespace NPoco.Expressions
                     if (memberExpr.NodeType == ExpressionType.MemberAccess)
                         memberExpr = (m.Arguments[0] as MemberExpression);
 
-                    return BuildInStatement(memberExpr, quotedColName);
+                    return new PartialSqlString(BuildInStatement(memberExpr, quotedColName));
 
                 default:
                     throw new NotSupportedException();
