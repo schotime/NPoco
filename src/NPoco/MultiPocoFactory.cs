@@ -165,6 +165,7 @@ namespace NPoco
             for (int col = 0; col < r.FieldCount; col++)
             {
                 combiner.AddType(r.GetFieldType(col));
+                combiner.AddCaseInsensitiveString(r.GetName(col));
             }
             var key = combiner.GetCombinedHashCode();
 
