@@ -24,6 +24,9 @@ namespace NPoco.Linq
             var selectMembers = _database.DatabaseType.ExpressionVisitor<T>(_database).SelectProjection(projectionExpression);
             var newMembers = GetSelectMembers<T2>(types, selectMembers).ToList();
 
+            ((ISqlExpression)_sqlExpression).SelectMembers.Clear();
+            ((ISqlExpression)_sqlExpression).SelectMembers.AddRange(newMembers);
+
             if (!_joinSqlExpressions.Any())
             {
                 var finalsql = ((ISqlExpression)_sqlExpression).ApplyPaging(_sqlExpression.Context.ToSelectStatement(false), newMembers.Select(x => x.PocoColumn));
@@ -48,7 +51,7 @@ namespace NPoco.Linq
                 {
                     var pocoData = _database.PocoDataFactory.ForType(type);
                     var pk = pocoData.Columns.FirstOrDefault(x => x.Value.ColumnName == pocoData.TableInfo.PrimaryKey);
-                    newMembers.Add(new SelectMember() {EntityType = type, PocoColumn = pk.Value, SelectSql = _database.DatabaseType.EscapeSqlIdentifier(pk.Value.AutoAlias)});
+                    newMembers.Add(new SelectMember() {EntityType = type, PocoColumn = pk.Value});
                 }
             }
             return newMembers;

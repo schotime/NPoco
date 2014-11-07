@@ -222,6 +222,33 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void QueryWithProjectionAndMethod()
+        {
+            var users = Database.Query<User>()
+                .ProjectTo(x => new ProjectUser2 { Age = x.Age, Date = x.DateOfBirth.ToString("yyyy-MM-dd") });
+
+            Assert.AreEqual(21, users[0].Age);
+            Assert.AreEqual("1969-01-01", users[0].Date);
+            Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void QueryWithProjection()
+        {
+            var users = Database.Query<User>()
+                .ProjectTo(x => new ProjectUser2 { Age = x.Age });
+
+            Assert.AreEqual(21, users[0].Age);
+            Assert.AreEqual(15, users.Count);
+        }
+
+        public class ProjectUser2
+        {
+            public int Age { get; set; }
+            public string Date { get; set; }
+        }
+
+        [Test]
         public void QueryWithIncludeNestedOrderByLimitAndProjection()
         {
             var users = Database.Query<User>()

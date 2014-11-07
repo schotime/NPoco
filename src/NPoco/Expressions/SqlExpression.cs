@@ -213,7 +213,7 @@ namespace NPoco.Expressions
             _projection = true;
             Visit(fields);
             _projection = false;
-            var proj = new List<SelectMember>(selectMembers.Union(generalMembers.Select(x=>new SelectMember() { EntityType = x.EntityType, PocoColumn = x.PocoColumn, SelectSql = _databaseType.EscapeSqlIdentifier(x.PocoColumn.AutoAlias) })));
+            var proj = new List<SelectMember>(selectMembers.Union(generalMembers.Select(x=>new SelectMember() { EntityType = x.EntityType, PocoColumn = x.PocoColumn })));
             selectMembers.Clear();
             return proj;
         }
@@ -1503,37 +1503,38 @@ namespace NPoco.Expressions
 
         protected virtual object VisitColumnAccessMethod(MethodCallExpression m)
         {
-            if (_projection)
-                return null;
+            var expression = (PartialSqlString)Visit(m.Object);
 
-            List<Object> args = this.VisitExpressionList(m.Arguments);
-            var columnName = (PartialSqlString)Visit(m.Object);
+            if (_projection && expression is MemberAccessString)
+                return expression;
+
             string statement;
+            List<Object> args = this.VisitExpressionList(m.Arguments);
 
             switch (m.Method.Name)
             {
                 case "ToUpper":
-                    statement = string.Format("upper({0})", columnName);
+                    statement = string.Format("upper({0})", expression);
                     break;
                 case "ToLower":
-                    statement = string.Format("lower({0})", columnName);
+                    statement = string.Format("lower({0})", expression);
                     break;
                 case "StartsWith":
-                    statement = string.Format("upper({0}) like {1}", columnName, CreateParam(args[0].ToString().ToUpper() + "%"));
+                    statement = string.Format("upper({0}) like {1}", expression, CreateParam(args[0].ToString().ToUpper() + "%"));
                     break;
                 case "EndsWith":
-                    statement = string.Format("upper({0}) like {1}", columnName, CreateParam("%" + args[0].ToString().ToUpper()));
+                    statement = string.Format("upper({0}) like {1}", expression, CreateParam("%" + args[0].ToString().ToUpper()));
                     break;
                 case "Contains":
-                    statement = string.Format("upper({0}) like {1}", columnName, CreateParam("%" + args[0].ToString().ToUpper() + "%"));
+                    statement = string.Format("upper({0}) like {1}", expression, CreateParam("%" + args[0].ToString().ToUpper() + "%"));
                     break;
                 case "Substring":
                     var startIndex = Int32.Parse(args[0].ToString()) + 1;
                     var length = (args.Count > 1) ? Int32.Parse(args[1].ToString()) : -1;
-                    statement = SubstringStatement(columnName, startIndex, length);
+                    statement = SubstringStatement(expression, startIndex, length);
                     break;
                 case "Equals":
-                    statement = string.Format("({0} = {1})", columnName, CreateParam(args[0]));
+                    statement = string.Format("({0} = {1})", expression, CreateParam(args[0]));
                     break;
                 case "ToString":
                     statement = string.Empty;
