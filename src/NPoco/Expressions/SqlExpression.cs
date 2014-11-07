@@ -211,7 +211,8 @@ namespace NPoco.Expressions
             sep = string.Empty;
             selectMembers.Clear();
             _projection = true;
-            Visit(fields);
+            var exp = PartialEvaluator.Eval(fields, CanBeEvaluatedLocally);
+            Visit(exp);
             _projection = false;
             var proj = new List<SelectMember>(selectMembers.Union(generalMembers.Select(x=>new SelectMember() { EntityType = x.EntityType, PocoColumn = x.PocoColumn })));
             selectMembers.Clear();
@@ -1191,7 +1192,31 @@ namespace NPoco.Expressions
             if (IsColumnAccess(m))
                 return VisitColumnAccessMethod(m);
 
+            if (_projection && VisitInnerMethodCall(m)) 
+                return null;
+
             return Expression.Lambda(m).Compile().DynamicInvoke();
+        }
+
+        private bool VisitInnerMethodCall(MethodCallExpression m)
+        {
+            bool found = false;
+            foreach (var args in m.Arguments)
+            {
+                if (args.NodeType == ExpressionType.Parameter && args.Type == typeof(T))
+                {
+                    selectMembers.AddRange(modelDef.QueryColumns.Select(x => new SelectMember { PocoColumn = x.Value, EntityType = modelDef.type }));
+                    return true;
+                }
+                
+                var result = Visit(args) as MemberAccessString;
+                found = found || result != null;
+            }
+            if (found)
+            {
+                return true;
+            }
+            return false;
         }
 
         private bool IsStaticArrayMethod(MethodCallExpression m)

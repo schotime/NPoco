@@ -222,6 +222,41 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void QueryWithProjectionAndEnclosedMethod()
+        {
+            var users = Database.Query<User>()
+                .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format("{0:n}", x.Age) });
+
+            Assert.AreEqual("21.00", users[0].FormattedAge);
+            Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void QueryWithProjectionAndEnclosedMethod2()
+        {
+            var users = Database.Query<User>()
+                .ProjectTo(x => new ProjectUser2 { FormattedAge = FormatAge(x) });
+
+            Assert.AreEqual("Age: 21, IsMale: True", users[0].FormattedAge);
+            Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void QueryWithProjectionAndEnclosedMethod3()
+        {
+            var users = Database.Query<User>()
+                .ProjectTo(x => new ProjectUser2 { FormattedAge = x.Age + FormatAge(x) });
+
+            Assert.AreEqual("21Age: 21, IsMale: True", users[0].FormattedAge);
+            Assert.AreEqual(15, users.Count);
+        }
+
+        private string FormatAge(User u)
+        {
+            return string.Format("Age: {0}, IsMale: {1}", u.Age, u.IsMale);
+        }
+
+        [Test]
         public void QueryWithProjectionAndMethod()
         {
             var users = Database.Query<User>()
@@ -245,6 +280,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public class ProjectUser2
         {
             public int Age { get; set; }
+            public string FormattedAge { get; set; }
             public string Date { get; set; }
         }
 
