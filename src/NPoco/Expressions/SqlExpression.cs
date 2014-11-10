@@ -874,7 +874,14 @@ namespace NPoco.Expressions
                         return string.Format("{0}={1}", r, GetQuotedTrueValue());
                     }
                 }
-
+            }
+            else if (lambda.Body.NodeType == ExpressionType.Constant)
+            {
+                var result = Visit(lambda.Body);
+                if (result is bool)
+                {
+                    return ((bool) result) ? "1=1" : "1<>1";
+                }
             }
             return Visit(lambda.Body);
         }

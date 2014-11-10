@@ -48,6 +48,28 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void QueryWithWhereTrue()
+        {
+            var users = Database.Query<User>().Where(x => true).ToList();
+            Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void QueryWithWhereFalse()
+        {
+            var users = Database.Query<User>().Where(x => false).ToList();
+            Assert.AreEqual(0, users.Count);
+        }
+
+        [Test]
+        public void QueryWithWhereUserIdAndTrue()
+        {
+            var users = Database.Query<User>().Where(x => x.UserId == 1 && true).ToList();
+            Assert.AreEqual(1, users.Count);
+            Assert.AreEqual(1, users[0].UserId);
+        }
+
+        [Test]
         public void QueryWithOrderBy()
         {
             var users = Database.Query<User>().OrderBy(x => x.DateOfBirth).ToList();
