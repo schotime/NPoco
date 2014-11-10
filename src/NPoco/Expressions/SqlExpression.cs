@@ -1208,21 +1208,34 @@ namespace NPoco.Expressions
         private bool VisitInnerMethodCall(MethodCallExpression m)
         {
             bool found = false;
-            foreach (var args in m.Arguments)
-            {
-                if (args.NodeType == ExpressionType.Parameter && args.Type == typeof(T))
-                {
-                    selectMembers.AddRange(modelDef.QueryColumns.Select(x => new SelectMember { PocoColumn = x.Value, EntityType = modelDef.type }));
-                    return true;
-                }
-                
-                var result = Visit(args) as MemberAccessString;
-                found = found || result != null;
-            }
-            if (found)
+            if (m.Arguments.Any(args => ProcessMethodSearchRecursively(args, ref found)))
             {
                 return true;
             }
+            return found;
+        }
+
+        private bool ProcessMethodSearchRecursively(Expression args, ref bool found)
+        {
+            if (args.NodeType == ExpressionType.Parameter && args.Type == typeof (T))
+            {
+                selectMembers.AddRange(modelDef.QueryColumns.Select(x => new SelectMember {PocoColumn = x.Value, EntityType = modelDef.type}));
+                return true;
+            }
+
+            var nested = args as MethodCallExpression;
+            if (nested != null)
+            {
+                foreach (var nestedArgs in nested.Arguments)
+                {
+                    if (ProcessMethodSearchRecursively(nestedArgs, ref found))
+                        return true;
+                }   
+            }
+
+            var result = Visit(args) as MemberAccessString;
+            found = found || result != null;
+
             return false;
         }
 

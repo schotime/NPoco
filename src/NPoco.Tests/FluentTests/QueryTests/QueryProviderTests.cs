@@ -267,10 +267,25 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public void QueryWithProjectionAndEnclosedMethod3()
         {
             var users = Database.Query<User>()
+                .ProjectTo(x => new ProjectUser2 { FormattedAge = FormatAge2(string.Format("{0}", string.Format("{0}", x.Age))) });
+
+            Assert.AreEqual("Age: 21", users[0].FormattedAge);
+            Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void QueryWithProjectionAndEnclosedMethod4()
+        {
+            var users = Database.Query<User>()
                 .ProjectTo(x => new ProjectUser2 { FormattedAge = x.Age + FormatAge(x) });
 
             Assert.AreEqual("21Age: 21, IsMale: True", users[0].FormattedAge);
             Assert.AreEqual(15, users.Count);
+        }
+
+        private string FormatAge2(string u)
+        {
+            return string.Format("Age: {0}", u);
         }
 
         private string FormatAge(User u)
