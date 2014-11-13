@@ -36,6 +36,7 @@ namespace NPoco.Linq
         IQueryProvider<T> ThenByDescending(Expression<Func<T, object>> column);
         IQueryProvider<T> Limit(int rows);
         IQueryProvider<T> Limit(int skip, int rows);
+        IQueryProvider<T> Distinct(Expression<Func<T, object>> column);
     }
 
     public interface IQueryProviderWithIncludes<T> : IQueryProvider<T>
@@ -237,6 +238,12 @@ namespace NPoco.Linq
         public IQueryProvider<T> Limit(int skip, int rows)
         {
             _sqlExpression = _sqlExpression.Limit(skip, rows);
+            return this;
+        }
+
+        public IQueryProvider<T> Distinct(Expression<Func<T, object>> column)
+        {
+            _sqlExpression = _sqlExpression.SelectDistinct(column);
             return this;
         }
 
