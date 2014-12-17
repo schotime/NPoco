@@ -54,12 +54,19 @@ namespace NPoco
                         value = db.DatabaseType.MapParameterValue(value);
                         
                         var newType = value.GetTheType();
-                        if (newType != null)
+                        if (newType == typeof(SqlParameter)) 
                         {
-                            table.Columns[i].DataType = newType;
-                        }
+                            values[i] = ((SqlParameter)value).Value;
+                        } 
+                        else 
+                        {
+                            if (newType != null)
+                            {
+                                table.Columns[i].DataType = newType;
+                            }
 
-                        values[i] = value;
+                            values[i] = value;
+                        }
                     }
 
                     table.Rows.Add(values);
