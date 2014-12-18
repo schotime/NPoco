@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
 
 namespace NPoco
 {
@@ -52,7 +51,12 @@ namespace NPoco
                         }
 
                         value = db.DatabaseType.MapParameterValue(value);
-                        
+
+                        if (value.GetTheType() == typeof(SqlParameter))
+                        {
+                            value = ((SqlParameter)value).Value;
+                        }
+
                         var newType = value.GetTheType();
                         if (newType != null)
                         {
