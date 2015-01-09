@@ -196,15 +196,34 @@ namespace NPoco
             return null;
         }
 
-        /// <summary>
-        /// Returns an SQL expression that can be used to specify the return value of auto incremented columns.
-        /// </summary>
-        /// <param name="primaryKeyName">The primary key of the row being inserted.</param>
-        /// <returns>An expression describing how to return the new primary key value</returns>
-        /// <remarks>See the SQLServer database provider for an example of how this method is used.</remarks>
-        public virtual string GetInsertOutputClause(string primaryKeyName)
+        public virtual string GetDefaultInsertSql(string tableName, IEnumerable<string> outputColumns, bool selectLastId, string idColumnName)
         {
-            return string.Empty;
+            var outputClause = GetInsertOutputClause(outputColumns);
+            string selectIdSql = string.Empty;
+            if (selectLastId)
+            {
+                selectIdSql = GetSelectIdSql();
+            }
+            return string.Format("INSERT INTO {0} {1} DEFAULT VALUES {2}", EscapeTableName(tableName), outputClause, selectIdSql);
+        }
+
+        public virtual string GetInsertSql(string tableName, IEnumerable<string> columnNames, IEnumerable<string> outputColumns, IEnumerable<string> values, bool selectLastId, string idColumnName)
+        {
+            var outputClause = GetInsertOutputClause(outputColumns);
+            string selectIdSql = string.Empty;
+            if (selectLastId)
+            {
+                selectIdSql = GetSelectIdSql();
+            }
+            var sql = string.Format("INSERT INTO {0} ({1}){2} VALUES ({3}){4}",
+                                   EscapeTableName(tableName),
+                                   string.Join(",", columnNames.ToArray()),
+                                   outputClause,
+                                   string.Join(",", values.ToArray()),
+                                   selectIdSql
+                                   );
+
+            return sql;
         }
 
         /// <summary>
@@ -216,9 +235,8 @@ namespace NPoco
         /// <param name="poco"></param>
         /// <param name="args"></param>
         /// <returns>The ID of the newly inserted record</returns>
-        public virtual object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco1, object[] args)
-        {
-            cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
+        public virtual object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, IEnumerable<string> outputColumns, T poco1, object[] args)
+        {         
             return db.ExecuteScalarHelper(cmd);
         }
 
@@ -278,12 +296,7 @@ namespace NPoco
             // Assume SQL Server
             return Singleton<SqlServerDatabaseType>.Instance;
         }
-
-        public virtual string GetDefaultInsertSql(string tableName, string[] names, string[] parameters)
-        {
-            return string.Format("INSERT INTO {0} DEFAULT VALUES", EscapeTableName(tableName));
-        }
-
+        
         public virtual IsolationLevel GetDefaultTransactionIsolationLevel()
         {
             return IsolationLevel.ReadCommitted;
@@ -327,6 +340,34 @@ namespace NPoco
         {
             return "System.Data.SqlClient";
         }
+
+        #region private methods
+
+        private string GetSelectIdSql()
+        {
+            return ";\nSELECT @@IDENTITY AS NewID;";
+        }
+
+        private string GetInsertOutputClause(IEnumerable<string> outputColumnNames)
+        {
+            if (outputColumnNames != null && outputColumnNames.Any())
+            {
+                throw new NotSupportedException("OUTPUT columns are not supported by this provider.");
+            }
+            return string.Empty;
+        }
+
+        private string GetUpdateOutputClause(IEnumerable<string> outputColumnNames)
+        {
+            if (outputColumnNames != null && outputColumnNames.Any())
+            {
+                throw new NotSupportedException("OUTPUT columns are not supported by this provider.");
+            }
+            return string.Empty;
+        }
+
+        #endregion
+
 
     }
 }

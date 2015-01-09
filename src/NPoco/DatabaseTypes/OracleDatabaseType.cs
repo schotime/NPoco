@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 
 namespace NPoco.DatabaseTypes
@@ -38,7 +39,7 @@ namespace NPoco.DatabaseTypes
             return null;
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
+        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, IEnumerable<string> outputColumns, T poco1, object[] args)
         {
             if (primaryKeyName != null)
             {

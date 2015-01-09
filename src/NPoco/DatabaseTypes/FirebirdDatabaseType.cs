@@ -3,6 +3,7 @@ using System;
 using System.Data;
 using System.Text;
 using NPoco.Expressions;
+using System.Collections.Generic;
 
 namespace NPoco.DatabaseTypes
 {
@@ -42,23 +43,33 @@ namespace NPoco.DatabaseTypes
             return sql.ToString();
         }
 
-
-        public override string GetDefaultInsertSql(string tableName, string[] names, string[] parameters)
+        public override string GetInsertSql(string tableName, IEnumerable<string> columnNames, IEnumerable<string> outputColumns, IEnumerable<string> values, bool selectLastId, string idColumnName)
         {
-            return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", EscapeTableName(tableName), string.Join(",", names), string.Join(",", parameters));
+            var outputClause = GetInsertOutputClause(outputColumns, selectLastId, idColumnName);
+            var sql = string.Format("INSERT INTO {0} ({1}) VALUES ({3}) {2}",
+                                   EscapeTableName(tableName),
+                                   string.Join(",", columnNames),
+                                   outputClause,
+                                   string.Join(",", values)
+                                   );
+            return sql;
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
+
+        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, IEnumerable<string> outputColumns, T poco1, object[] args)
         {
             if (primaryKeyName != null)
             {
-                cmd.CommandText += string.Format(" returning {0}", EscapeSqlIdentifier(primaryKeyName));
+                // cmd.CommandText += string.Format(" returning {0}", EscapeSqlIdentifier(primaryKeyName));
                 var param = cmd.CreateParameter();
                 param.ParameterName = primaryKeyName;
                 param.Value = DBNull.Value;
                 param.Direction = ParameterDirection.ReturnValue;
                 param.DbType = DbType.Int64;
                 cmd.Parameters.Add(param);
+
+
+                // TODO: ALSO ADD RETURN VALUES FOR OUTPUT COLUMNS?
                 db.ExecuteNonQueryHelper(cmd);
                 return param.Value;
             }
@@ -66,6 +77,8 @@ namespace NPoco.DatabaseTypes
             db.ExecuteNonQueryHelper(cmd);
             return -1;
         }
+
+
 
         public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, bool prefixTableName)
         {
@@ -76,5 +89,29 @@ namespace NPoco.DatabaseTypes
         {
             return "FirebirdSql.Data.FirebirdClient";
         }
+
+        #region private methods
+
+        private string GetInsertOutputClause(IEnumerable<string> outputColumnNames, bool selectLastId, string idColumnName)
+        {
+            bool hasOutputColumns = outputColumnNames != null;
+
+            if (hasOutputColumns || selectLastId)
+            {
+                var builder = new StringBuilder("returning ");
+                builder.Append(string.Join(", ", outputColumnNames));
+
+                if (selectLastId)
+                {
+                    builder.Append(", ");
+                    builder.Append(idColumnName);
+                }
+                return builder.ToString();
+            }
+
+            return string.Empty;
+        }
+
+        #endregion
     }
 }

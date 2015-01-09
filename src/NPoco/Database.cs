@@ -87,7 +87,7 @@ namespace NPoco
         { }
 
         public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel)
-            : this(connectionString, dbType, isolationLevel,  DefaultEnableAutoSelect)
+            : this(connectionString, dbType, isolationLevel, DefaultEnableAutoSelect)
         { }
 
         public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel, bool enableAutoSelect)
@@ -125,7 +125,7 @@ namespace NPoco
             : this(connectionStringName, DefaultEnableAutoSelect)
         { }
 
-        public Database(string connectionStringName,  bool enableAutoSelect)
+        public Database(string connectionStringName, bool enableAutoSelect)
         {
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = false;
@@ -164,7 +164,7 @@ namespace NPoco
         // Automatically close connection
         public void Dispose()
         {
-            if (KeepConnectionAlive) return; 
+            if (KeepConnectionAlive) return;
             CloseSharedConnection();
         }
 
@@ -186,7 +186,7 @@ namespace NPoco
 
         private void OpenSharedConnectionImp(bool isInternal)
         {
-            if (_sharedConnection != null && _sharedConnection.State != ConnectionState.Broken && _sharedConnection.State != ConnectionState.Closed) 
+            if (_sharedConnection != null && _sharedConnection.State != ConnectionState.Broken && _sharedConnection.State != ConnectionState.Closed)
                 return;
 
             ShouldCloseConnectionAutomatically = isInternal;
@@ -370,7 +370,7 @@ namespace NPoco
         // Complete the transaction
         public void CompleteTransaction()
         {
-            if (_transaction == null) 
+            if (_transaction == null)
                 return;
 
             TransactionCount--;
@@ -388,7 +388,7 @@ namespace NPoco
 
             if (_transaction != null)
                 _transaction.Dispose();
-            
+
             _transaction = null;
 
             OnCompleteTransaction();
@@ -644,10 +644,10 @@ namespace NPoco
                     if (val == null || val == DBNull.Value)
                         return default(T);
 
-                    Type t = typeof (T);
+                    Type t = typeof(T);
                     Type u = Nullable.GetUnderlyingType(t);
 
-                    return (T) Convert.ChangeType(val, u ?? t);
+                    return (T)Convert.ChangeType(val, u ?? t);
                 }
             }
             catch (Exception x)
@@ -965,7 +965,7 @@ namespace NPoco
                         }
                         if (bNeedTerminator)
                         {
-                            var poco = (TRet) cb.DynamicInvoke(new object[types.Length]);
+                            var poco = (TRet)cb.DynamicInvoke(new object[types.Length]);
                             if (poco != null)
                             {
                                 yield return poco;
@@ -1008,8 +1008,8 @@ namespace NPoco
             OneTimeCommandTimeout = saveTimeout;
 
             // Get the records
-            result.Items = types.Length > 1 
-                ? Query<T>(types, cb, new Sql(sqlPage, args)).ToList() 
+            result.Items = types.Length > 1
+                ? Query<T>(types, cb, new Sql(sqlPage, args)).ToList()
                 : Query<T>(new Sql(sqlPage, args)).ToList();
 
             // Done
@@ -1079,16 +1079,16 @@ namespace NPoco
                                     switch (typeIndex)
                                     {
                                         case 1:
-                                            list1.Add(((Func<IDataReader, T1, T1>) factory)(r, default(T1)));
+                                            list1.Add(((Func<IDataReader, T1, T1>)factory)(r, default(T1)));
                                             break;
                                         case 2:
-                                            list2.Add(((Func<IDataReader, T2, T2>) factory)(r, default(T2)));
+                                            list2.Add(((Func<IDataReader, T2, T2>)factory)(r, default(T2)));
                                             break;
                                         case 3:
-                                            list3.Add(((Func<IDataReader, T3, T3>) factory)(r, default(T3)));
+                                            list3.Add(((Func<IDataReader, T3, T3>)factory)(r, default(T3)));
                                             break;
                                         case 4:
-                                            list4.Add(((Func<IDataReader, T4, T4>) factory)(r, default(T4)));
+                                            list4.Add(((Func<IDataReader, T4, T4>)factory)(r, default(T4)));
                                             break;
                                     }
                                 }
@@ -1105,11 +1105,11 @@ namespace NPoco
                         switch (types.Length)
                         {
                             case 2:
-                                return ((Func<List<T1>, List<T2>, TRet>) cb)(list1, list2);
+                                return ((Func<List<T1>, List<T2>, TRet>)cb)(list1, list2);
                             case 3:
-                                return ((Func<List<T1>, List<T2>, List<T3>, TRet>) cb)(list1, list2, list3);
+                                return ((Func<List<T1>, List<T2>, List<T3>, TRet>)cb)(list1, list2, list3);
                             case 4:
-                                return ((Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet>) cb)(list1, list2, list3, list4);
+                                return ((Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet>)cb)(list1, list2, list3, list4);
                         }
 
                         return default(TRet);
@@ -1125,14 +1125,14 @@ namespace NPoco
         public bool Exists<T>(object primaryKey)
         {
             var index = 0;
-            var pd = PocoDataFactory.ForType(typeof (T));;
+            var pd = PocoDataFactory.ForType(typeof(T)); ;
             var primaryKeyValuePairs = ProcessMapper(pd, GetPrimaryKeyValues(pd.TableInfo.PrimaryKey, primaryKey));
             return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
         }
         public T SingleById<T>(object primaryKey)
         {
             var index = 0;
-            var pd = PocoDataFactory.ForType(typeof (T));
+            var pd = PocoDataFactory.ForType(typeof(T));
             var primaryKeyValuePairs = ProcessMapper(pd, GetPrimaryKeyValues(pd.TableInfo.PrimaryKey, primaryKey));
             return Single<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
@@ -1140,7 +1140,7 @@ namespace NPoco
         public T SingleOrDefaultById<T>(object primaryKey)
         {
             var index = 0;
-            var pd = PocoDataFactory.ForType(typeof (T));
+            var pd = PocoDataFactory.ForType(typeof(T));
             var primaryKeyValuePairs = ProcessMapper(pd, GetPrimaryKeyValues(pd.TableInfo.PrimaryKey, primaryKey));
             return SingleOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
@@ -1220,7 +1220,7 @@ namespace NPoco
         public object Insert<T>(string tableName, string primaryKeyName, T poco)
         {
             return Insert(tableName, primaryKeyName, true, poco);
-        }
+        }        
 
         // Insert a poco into a table.  If the poco has a property with the same name 
         // as the primary key the id of the new record is assigned to it.  Either way,
@@ -1240,10 +1240,13 @@ namespace NPoco
                 var index = 0;
                 var versionName = "";
 
+
                 foreach (var i in pd.Columns)
                 {
-                    // Don't insert result columns
-                    if (i.Value.ResultColumn || i.Value.ComputedColumn)
+                    bool isOutput = i.Value.OutputColumn && i.Value.OutputColumnMode.HasFlag(OutputColumnMode.Insert);
+
+                    // Don't insert result columns, computed columns, or OUTPUT columns.
+                    if (i.Value.ResultColumn || i.Value.ComputedColumn || isOutput)
                         continue;
 
                     // Don't insert the primary key (except under oracle where we need bring in the next sequence value)
@@ -1263,7 +1266,7 @@ namespace NPoco
                     values.Add(string.Format("{0}{1}", _paramPrefix, index++));
 
                     object val = ProcessMapper(i.Value, i.Value.GetValue(poco));
-                    
+
                     if (i.Value.VersionColumn)
                     {
                         val = (long)val > 0 ? val : 1;
@@ -1274,23 +1277,17 @@ namespace NPoco
                 }
 
                 var sql = string.Empty;
-                var outputClause = String.Empty;
-                if (autoIncrement)
-                {
-                    outputClause = _dbType.GetInsertOutputClause(primaryKeyName);
-                }
+                bool hasOutputColumns = pd.InsertOutputColumns != null && pd.InsertOutputColumns.Length > 0;
 
-                if (names.Count != 0)
+
+                bool insertAllDefaultValues = names.Count == 0;
+                if (insertAllDefaultValues)
                 {
-                    sql = string.Format("INSERT INTO {0} ({1}){2} VALUES ({3})",
-                                        _dbType.EscapeTableName(tableName),
-                                        string.Join(",", names.ToArray()),
-                                        outputClause,
-                                        string.Join(",", values.ToArray()));
+                    sql = _dbType.GetDefaultInsertSql(tableName, pd.InsertOutputColumns, autoIncrement, primaryKeyName);
                 }
                 else
                 {
-                    sql = _dbType.GetDefaultInsertSql(tableName, names.ToArray(), values.ToArray());
+                    sql = _dbType.GetInsertSql(tableName, names, pd.InsertOutputColumns, values, autoIncrement, primaryKeyName);
                 }
 
                 using (var cmd = CreateCommand(_sharedConnection, sql, rawvalues.ToArray()))
@@ -1305,7 +1302,8 @@ namespace NPoco
                         }
                     }
 
-                    if (!autoIncrement)
+                    // If no auto increment, and no output columns, just do ordinary execute non query.
+                    if (!autoIncrement && !hasOutputColumns)
                     {
                         ExecuteNonQueryHelper(cmd);
 
@@ -1316,19 +1314,99 @@ namespace NPoco
                             return null;
                     }
 
-                    object id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, poco, rawvalues.ToArray());
+                    // If there are output columns we may need to do an executereader to get the returned values
+                    // and map them back to the properties.
+                    // it's also possible that the database provider sets up return parameters that contain these values, 
+                    // rather than using execute reader.      
+                    bool idFound = false;
+                    object pocoId = null;
 
-                    // Assign the ID back to the primary key property
-                    if (primaryKeyName != null && id != null && id.GetType().IsValueType)
+                    if (hasOutputColumns)
                     {
-                        PocoColumn pc;
-                        if (pd.Columns.TryGetValue(primaryKeyName, out pc))
+                        // This might have to be db provider specific.
+                        // could some providers use return paramaters rather than a datareader?
+                        var r = ExecuteReaderHelper(cmd);
+                        using (r)
                         {
-                            pc.SetValue(poco, pc.ChangeType(id));
+                            Dictionary<string, int> ordinals = new Dictionary<string, int>();
+                            foreach (var outputCol in pd.InsertOutputColumns)
+                            {
+                                ordinals[outputCol] = r.GetOrdinal(outputCol);
+                            }
+                            while (r.Read())
+                            {
+                                PocoColumn outputColumn;
+                                foreach (var ord in ordinals)
+                                {
+                                    if (pd.Columns.TryGetValue(ord.Key, out outputColumn))
+                                    {
+                                        var value = r.GetValue(ord.Value);
+                                        outputColumn.SetValue(poco, value);
+                                    }
+                                    else
+                                    {
+                                        // Unexpected output value in results.. don't do anything with it.
+                                    }
+                                }
+
+                                if (autoIncrement)
+                                {
+                                    // check for the returned id (some providers might return it in the datareader.
+                                    int idOrdinal = r.GetOrdinal(primaryKeyName);
+                                    if (idOrdinal >= 0)
+                                    {
+                                        pocoId = r.GetValue(idOrdinal);
+                                        idFound = true;
+                                    }
+
+                                }
+
+                            }
+                        }
+
+                        // If autoid, but the id wasn't found in the returned datareader, or command return paramaters,
+                        // then check for a next result set.
+                        if (autoIncrement && !idFound)
+                        {
+                            bool nextResult = r.NextResult();
+                            if (nextResult)
+                            {
+                                // check for a scalar value?
+                                if (r.FieldCount == 1)
+                                {
+                                    while (r.Read())
+                                    {
+                                        pocoId = r.GetValue(0);
+                                        idFound = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // No output columns, just autoid.
+                        // If autoincremment we need to get last id.
+                        pocoId = _dbType.ExecuteInsert(this, cmd, primaryKeyName, pd.InsertOutputColumns, poco, rawvalues.ToArray());
+
+                    }
+
+
+                    // If autoid, and we found the id value,
+                    if (autoIncrement && idFound)
+                    {
+                        // Assign the ID back to the primary key property
+                        if (pocoId != null && pocoId.GetType().IsValueType)
+                        {
+                            PocoColumn pc;
+                            if (pd.Columns.TryGetValue(primaryKeyName, out pc))
+                            {
+                                pc.SetValue(poco, pc.ChangeType(pocoId));
+                            }
                         }
                     }
 
-                    return id;
+                    return pocoId;
                 }
             }
             catch (Exception x)
@@ -1514,8 +1592,8 @@ namespace NPoco
         {
             var expression = DatabaseType.ExpressionVisitor<T>(this);
             expression = expression.Select(fields);
-            var columnNames = ((ISqlExpression) expression).SelectMembers.Select(x => x.PocoColumn.ColumnName);
-            var otherNames = ((ISqlExpression) expression).GeneralMembers.Select(x => x.PocoColumn.ColumnName);
+            var columnNames = ((ISqlExpression)expression).SelectMembers.Select(x => x.PocoColumn.ColumnName);
+            var otherNames = ((ISqlExpression)expression).GeneralMembers.Select(x => x.PocoColumn.ColumnName);
             return Update(poco, columnNames.Union(otherNames));
         }
 
@@ -1560,7 +1638,7 @@ namespace NPoco
         public virtual int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
             if (!OnDeleting(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) return 0;
-            
+
             var primaryKeyValuePairs = GetPrimaryKeyValues(primaryKeyName, primaryKeyValue);
             // If primary key value not specified, pick it up from the object
             if (primaryKeyValue == null)

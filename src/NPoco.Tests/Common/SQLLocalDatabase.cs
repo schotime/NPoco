@@ -96,10 +96,27 @@ namespace NPoco.Tests.Common
                     TestEnum varchar(10) NULL,
                     HouseId int NULL,
                     SupervisorId int NULL,
+                    CreatedOn datetime DEFAULT GETDATE() NOT NULL,
+                    ReferenceNo varchar(10) DEFAULT 'XYZ10000' NOT NULL,
+                    LastUpdatedOn datetime NULL,
+                    LastModifiedBy varchar(100) DEFAULT suser_sname()
                 );
             ";
             cmd.ExecuteNonQuery();
 
+            // Create a TRIGGER to generate values on UPDATE.
+            cmd.CommandText = @"
+                CREATE TRIGGER dbo.Users_Updated
+                ON dbo.Users
+                FOR UPDATE 
+                AS BEGIN
+                    UPDATE dbo.Users SET dbo.Users.LastModifiedBy = suser_sname()
+                    FROM INSERTED
+                    WHERE inserted.UserId=Users.UserId
+                END               
+            ";
+            cmd.ExecuteNonQuery();
+            
             cmd.CommandText = @"
                 CREATE TABLE ExtraUserInfos(
                     ExtraUserInfoId int IDENTITY(1,1) PRIMARY KEY NOT NULL, 

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Data;
 
 namespace NPoco.DatabaseTypes
@@ -27,10 +29,18 @@ namespace NPoco.DatabaseTypes
             return "SELECT EXISTS (SELECT 1 FROM {0} WHERE {1})";
         }
 
-        public override string GetDefaultInsertSql(string tableName, string[] names, string[] parameters)
+        public override string GetDefaultInsertSql(string tableName, IEnumerable<string> outputColumns, bool selectLastId, string idColumnName)
         {
-            return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", EscapeTableName(tableName), string.Join(",", names), string.Join(",", parameters));
-        }
+            // INSERT INTO my_table VALUES ()           
+            if (outputColumns != null)
+            {
+                foreach (var item in outputColumns)
+                {
+                    throw new NotSupportedException("MySQL does not support OUTPUT columns");
+                }
+            }
+            return string.Format("INSERT INTO {0} VALUES ()", EscapeTableName(tableName));
+        }        
 
         public override string GetProviderName()
         {

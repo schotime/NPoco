@@ -12,6 +12,8 @@ namespace NPoco
         public string ColumnAlias { get; set; }
         public bool ResultColumn { get; set; }
         public bool ComputedColumn { get; set; }
+        public bool OutputColumn { get; set; }
+        public OutputColumnMode OutputColumnMode { get; set; }
         public bool IgnoreColumn { get; set; }
         public bool VersionColumn { get; set; }
         public bool ForceToUtc { get; set; }
@@ -47,12 +49,19 @@ namespace NPoco
                 ci.ResultColumn = colattr is ResultColumnAttribute;
                 ci.VersionColumn = colattr is VersionColumnAttribute;
                 ci.ComputedColumn = colattr is ComputedColumnAttribute;
+
+                var output = colattr as OutputColumnAttribute;
+                if (output != null)
+                {
+                    ci.OutputColumn = true;
+                    ci.OutputColumnMode = output.OutputColumnMode;
+                }               
                 ci.ColumnAlias = aliasColumn != null ? aliasColumn.Alias : null;
             }
             else
             {
                 ci.ColumnName = mi.Name;
-            }
+            }           
 
             if (columnTypeAttrs.Any())
             {

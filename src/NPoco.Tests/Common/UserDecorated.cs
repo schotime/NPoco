@@ -54,17 +54,23 @@ namespace NPoco.Tests.Common
     [PrimaryKey("UserId")]
     public class UserFieldDecorated
     {
-        [Column("UserId")] private int UserId;
+        [Column("UserId")]
+        private int UserId;
 
-        [Column("Name")] public string Name;
+        [Column("Name")]
+        public string Name;
 
-        [Column("Age")] public int Age;
+        [Column("Age")]
+        public int Age;
 
-        [Column("DateOfBirth")] public DateTime DateOfBirth;
+        [Column("DateOfBirth")]
+        public DateTime DateOfBirth;
 
-        [Column("Savings")] public decimal Savings;
+        [Column("Savings")]
+        public decimal Savings;
 
-        [Column("is_male")] public bool IsMale;
+        [Column("is_male")]
+        public bool IsMale;
     }
 
     [TableName("Users")]
@@ -75,7 +81,8 @@ namespace NPoco.Tests.Common
         [Column("UserId")]
         public int UserId { get; set; }
 
-        [Column("Name")] public readonly string Name;
+        [Column("Name")]
+        public readonly string Name;
     }
 
     [TableName("Users")]
@@ -118,19 +125,43 @@ namespace NPoco.Tests.Common
         public int? Age { get; set; }
     }
 
-     [TableName("Users")]
-     [PrimaryKey("UserId")]
-     [ExplicitColumns]
-     public class UserDecoratedWithAlias
-     {
-         [Column("UserId")]
-         public int UserId { get; set; }
- 
-         [Column("Name")]
-         [Alias("FullName")]
-         public string Name { get; set; }
- 
-         [Column("Age")]
-         public int? Age { get; set; }
-     }
+    [TableName("Users")]
+    [PrimaryKey("UserId")]
+    [ExplicitColumns]
+    public class UserDecoratedWithAlias
+    {
+        [Column("UserId")]
+        public int UserId { get; set; }
+
+        [Column("Name")]
+        [Alias("FullName")]
+        public string Name { get; set; }
+
+        [Column("Age")]
+        public int? Age { get; set; }
+    }
+
+    [TableName("Users")]
+    [PrimaryKey("UserId")]
+    [ExplicitColumns]
+    public class UserDecoratedWithOutput
+    {
+        [Column("UserId")]
+        public int UserId { get; set; }
+
+        [OutputColumn("CreatedOn", OutputColumnMode.Insert)]
+        public DateTime? CreatedOn { get; set; }
+
+        [OutputColumn("ReferenceNo", OutputColumnMode.Insert)]
+        public string ReferenceNumber { get; set; }
+
+        [OutputColumn("LastUpdatedOn", OutputColumnMode.Update)]
+        public DateTime? LastModified { get; set; }
+
+        [OutputColumn()]
+        public string LastModifiedBy { get; set; }
+
+    }
+
+   
 }

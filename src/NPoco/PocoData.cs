@@ -17,6 +17,9 @@ namespace NPoco
      
         protected internal Type type;
         public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected set; }
+        public string[] UpdateOutputColumns { get; protected set; }
+        public string[] InsertOutputColumns { get; protected set; }
+
         public TableInfo TableInfo { get; protected internal set; }
         public Dictionary<string, PocoColumn> Columns { get; protected internal set; }
         private readonly MappingFactory _mappingFactory;
@@ -63,6 +66,8 @@ namespace NPoco
                 pc.ColumnType = ci.ColumnType;
                 pc.ColumnAlias = ci.ColumnAlias;
                 pc.VersionColumn = ci.VersionColumn;
+                pc.OutputColumn = ci.OutputColumn;
+                pc.OutputColumnMode = ci.OutputColumnMode;
 
                 if (Mapper != null && !Mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;
@@ -75,6 +80,11 @@ namespace NPoco
 
             // Build column list for automatic select
             QueryColumns = Columns.Where(c => !c.Value.ResultColumn).ToArray();
+            // Build column list for automatic output clause on INSERT
+            InsertOutputColumns = Columns.Where(c => c.Value.OutputColumnMode.HasFlag(OutputColumnMode.Insert)).Select(c=>c.Key).ToArray();
+            // Build column list for automatic output clause on UPDATE
+            UpdateOutputColumns = Columns.Where(c => c.Value.OutputColumnMode.HasFlag(OutputColumnMode.Update)).Select(c => c.Key).ToArray();
+
         }
 
         protected string CreateAlias(string typeName, Type typeIn)

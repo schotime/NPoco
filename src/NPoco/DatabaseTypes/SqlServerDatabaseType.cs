@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace NPoco.DatabaseTypes
@@ -25,15 +26,46 @@ namespace NPoco.DatabaseTypes
             return sqlPage;
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
+        public override string GetDefaultInsertSql(string tableName, IEnumerable<string> outputColumns, bool selectLastId, string idColumnName)
+        {
+            var outputClause = GetInsertOutputClause(outputColumns);
+            string selectIdSql = string.Empty;
+            if (selectLastId)
+            {
+                selectIdSql = GetSelectIdSql();
+            }
+            return string.Format("INSERT INTO {0} {1} DEFAULT VALUES {2}", EscapeTableName(tableName), outputClause, selectIdSql);
+
+        }
+
+        public override string GetInsertSql(string tableName, IEnumerable<string> columnNames, IEnumerable<string> outputColumns, IEnumerable<string> values, bool selectLastId, string idColumnName)
+        {
+            var outputClause = GetInsertOutputClause(outputColumns);
+            string selectIdSql = string.Empty;
+            if (selectLastId)
+            {
+                selectIdSql = GetSelectIdSql();
+            }
+            var sql = string.Format("INSERT INTO {0} ({1}){2} VALUES ({3}){4}",
+                                   EscapeTableName(tableName),
+                                   string.Join(",", columnNames.ToArray()),
+                                   outputClause,
+                                   string.Join(",", values.ToArray()),
+                                   selectIdSql
+                                   );
+
+            return sql;
+        }
+
+        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, IEnumerable<string> outputColumns, T poco1, object[] args)
         {
             //var pocodata = PocoData.ForType(typeof(T), db.PocoDataFactory);
             //var sql = string.Format("SELECT * FROM {0} WHERE {1} = SCOPE_IDENTITY()", EscapeTableName(pocodata.TableInfo.TableName), EscapeSqlIdentifier(primaryKeyName));
             //return db.SingleInto(poco, ";" + cmd.CommandText + ";" + sql, args);
-            cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
+            // cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
             return db.ExecuteScalarHelper(cmd);
         }
-
+        
         public override string GetExistsSql()
         {
             return "IF EXISTS (SELECT 1 FROM {0} WHERE {1}) SELECT 1 ELSE SELECT 0";
@@ -51,9 +83,9 @@ namespace NPoco.DatabaseTypes
 
         public override DbType? LookupDbType(Type type, string name)
         {
-            if (type == typeof (TimeSpan) || type == typeof(TimeSpan?))
+            if (type == typeof(TimeSpan) || type == typeof(TimeSpan?))
                 return null;
-            
+
             return base.LookupDbType(type, name);
         }
 
@@ -61,5 +93,32 @@ namespace NPoco.DatabaseTypes
         {
             return "System.Data.SqlClient";
         }
+
+        #region private methods
+
+        private string GetSelectIdSql()
+        {
+            return ";SELECT SCOPE_IDENTITY();";
+        }
+
+        private string GetInsertOutputClause(IEnumerable<string> outputColumnNames)
+        {
+            var builder = new StringBuilder("OUTPUT ");
+
+            foreach (var item in outputColumnNames)
+            {
+                builder.Append("INSERTED.");
+                builder.Append(item);
+                builder.Append(",");
+            }
+
+            builder.Remove(builder.Length - 1, 1);
+            return builder.ToString();
+            //return base.GetInsertOutputClause(outputColumnNames);
+        }
+
+        #endregion
+
+
     }
 }

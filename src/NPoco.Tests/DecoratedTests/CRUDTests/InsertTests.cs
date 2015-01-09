@@ -102,5 +102,30 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.AreEqual(user.Name, verify.Name);
             Assert.AreEqual(user.Age, verify.Age);
         }
+        
+        [Test]
+        public void InsertOutputColumnsAssigned()
+        {       
+
+            var poco = new UserDecoratedWithOutput();
+            poco.CreatedOn = null;
+            poco.LastModifiedBy = null;
+            poco.LastModified = null;
+            poco.ReferenceNumber = null;           
+            Database.Insert(poco);
+
+            Assert.IsTrue(poco.UserId > 0, "POCO failed to insert.");
+
+            var verify = Database.SingleOrDefaultById<UserDecoratedWithOutput>(poco.UserId);
+            Assert.IsNotNull(verify);
+
+            Assert.AreEqual(poco.UserId, verify.UserId);
+
+            Assert.AreEqual(poco.CreatedOn, verify.CreatedOn);
+            Assert.AreEqual(poco.ReferenceNumber, verify.ReferenceNumber);
+            Assert.AreEqual(poco.LastModifiedBy, verify.LastModifiedBy);
+         
+        }
+
     }
 }
