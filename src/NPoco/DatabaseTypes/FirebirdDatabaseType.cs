@@ -4,6 +4,7 @@ using System.Data;
 using System.Text;
 using NPoco.Expressions;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace NPoco.DatabaseTypes
 {
@@ -54,9 +55,14 @@ namespace NPoco.DatabaseTypes
                                    );
             return sql;
         }
+        
+        public override string GetDefaultInsertSql(string tableName, IEnumerable<string> outputColumns, bool selectLastId, string idColumnName)
+        {
+            var outputClause = GetInsertOutputClause(outputColumns, selectLastId, idColumnName);
+            return string.Format("INSERT INTO {0} DEFAULT VALUES {1}", EscapeTableName(tableName), outputClause);
+        }
 
-
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, IEnumerable<string> outputColumns, T poco1, object[] args)
+        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco1, object[] args)
         {
             if (primaryKeyName != null)
             {
@@ -78,8 +84,6 @@ namespace NPoco.DatabaseTypes
             return -1;
         }
 
-
-
         public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, bool prefixTableName)
         {
             return new FirebirdSqlExpression<T>(db, prefixTableName);
@@ -94,17 +98,24 @@ namespace NPoco.DatabaseTypes
 
         private string GetInsertOutputClause(IEnumerable<string> outputColumnNames, bool selectLastId, string idColumnName)
         {
-            bool hasOutputColumns = outputColumnNames != null;
+            bool hasOutputColumns = outputColumnNames != null && outputColumnNames.Any();
 
             if (hasOutputColumns || selectLastId)
             {
                 var builder = new StringBuilder("returning ");
-                builder.Append(string.Join(", ", outputColumnNames));
+                if (hasOutputColumns)
+                {
+                    builder.Append(string.Join(", ", outputColumnNames));
+                }
 
                 if (selectLastId)
                 {
-                    builder.Append(", ");
+                    if (hasOutputColumns)
+                    {
+                        builder.Append(", ");
+                    }
                     builder.Append(idColumnName);
+                    //builder.Append(" as NewID");
                 }
                 return builder.ToString();
             }

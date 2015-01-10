@@ -57,7 +57,7 @@ namespace NPoco.DatabaseTypes
             return sql;
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, IEnumerable<string> outputColumns, T poco1, object[] args)
+        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco1, object[] args)
         {
             //var pocodata = PocoData.ForType(typeof(T), db.PocoDataFactory);
             //var sql = string.Format("SELECT * FROM {0} WHERE {1} = SCOPE_IDENTITY()", EscapeTableName(pocodata.TableInfo.TableName), EscapeSqlIdentifier(primaryKeyName));
@@ -65,7 +65,7 @@ namespace NPoco.DatabaseTypes
             // cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
             return db.ExecuteScalarHelper(cmd);
         }
-        
+
         public override string GetExistsSql()
         {
             return "IF EXISTS (SELECT 1 FROM {0} WHERE {1}) SELECT 1 ELSE SELECT 0";
@@ -103,17 +103,22 @@ namespace NPoco.DatabaseTypes
 
         private string GetInsertOutputClause(IEnumerable<string> outputColumnNames)
         {
-            var builder = new StringBuilder("OUTPUT ");
-
-            foreach (var item in outputColumnNames)
+            if (outputColumnNames != null && outputColumnNames.Any())
             {
-                builder.Append("INSERTED.");
-                builder.Append(item);
-                builder.Append(",");
+                var builder = new StringBuilder("OUTPUT ");
+
+                foreach (var item in outputColumnNames)
+                {
+                    builder.Append("INSERTED.");
+                    builder.Append(item);
+                    builder.Append(",");
+                }
+
+                builder.Remove(builder.Length - 1, 1);
+                return builder.ToString();
             }
 
-            builder.Remove(builder.Length - 1, 1);
-            return builder.ToString();
+            return string.Empty;
             //return base.GetInsertOutputClause(outputColumnNames);
         }
 

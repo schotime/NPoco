@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -13,10 +14,42 @@ namespace NPoco.DatabaseTypes
             return sqlPage;
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, IEnumerable<string> outputColumns, T poco1, object[] args)
+        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco1, object[] args)
         {
             db.ExecuteNonQueryHelper(cmd);
             return db.ExecuteScalar<object>("SELECT @@@IDENTITY AS NewID;");
+        }
+
+        public override string GetDefaultInsertSql(string tableName, IEnumerable<string> outputColumns, bool selectLastId, string idColumnName)
+        {
+            if (outputColumns != null)
+            {
+                foreach (var item in outputColumns)
+                {
+                    throw new NotSupportedException("SQL Compact does not support OUTPUT columns");
+                }
+            }
+            throw new NotSupportedException("SQL Compact does not support INSERT of all default values, atleast one column must be included in the INSERT.");         
+        
+        }
+
+        public override string GetInsertSql(string tableName, IEnumerable<string> columnNames, IEnumerable<string> outputColumns, IEnumerable<string> values, bool selectLastId, string idColumnName)
+        {
+            // INSERT INTO my_table VALUES ()           
+            if (outputColumns != null)
+            {
+                foreach (var item in outputColumns)
+                {
+                    throw new NotSupportedException("SQL Compact does not support OUTPUT columns");
+                }
+            }
+          
+            var sql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})",
+                                   EscapeTableName(tableName),
+                                   string.Join(",", columnNames),                                  
+                                   string.Join(",", values)
+                                   );
+            return sql;
         }
 
         public override IsolationLevel GetDefaultTransactionIsolationLevel()

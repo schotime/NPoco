@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Text;
 
 namespace NPoco.DatabaseTypes
 {
@@ -39,11 +41,17 @@ namespace NPoco.DatabaseTypes
             return null;
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, IEnumerable<string> outputColumns, T poco1, object[] args)
+        public virtual string GetDefaultInsertSql(string tableName, IEnumerable<string> outputColumns, bool selectLastId, string idColumnName)
+        {
+            var outputClause = GetInsertOutputClause(outputColumns, selectLastId, idColumnName);
+            return string.Format("INSERT INTO {0} DEFAULT VALUES {1}", EscapeTableName(tableName), outputClause);
+        }
+
+        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco1, object[] args)
         {
             if (primaryKeyName != null)
             {
-                cmd.CommandText += string.Format(" returning {0} into :newid", EscapeSqlIdentifier(primaryKeyName));
+              //  cmd.CommandText += string.Format(" returning {0} into :newid", EscapeSqlIdentifier(primaryKeyName));
                 var param = cmd.CreateParameter();
                 param.ParameterName = ":newid";
                 param.Value = DBNull.Value;
@@ -61,6 +69,37 @@ namespace NPoco.DatabaseTypes
         public override string GetProviderName()
         {
             return "Oracle.DataAccess.Client";
+        }
+
+
+        private string GetInsertOutputClause(IEnumerable<string> outputColumnNames, bool selectLastId, string idColumnName)
+        {
+            bool hasOutputColumns = outputColumnNames != null && outputColumnNames.Any();
+
+            if (hasOutputColumns || selectLastId)
+            {
+                var builder = new StringBuilder("returning ");
+                if (hasOutputColumns)
+                {
+                    foreach (var item in outputColumnNames)
+                    {
+                        builder.AppendFormat("{0} into :{0}", EscapeSqlIdentifier(item));
+                        builder.Append(", ");
+                    }
+
+
+                    builder.Remove(builder.Length - 1, 1);
+
+                }
+
+                if (selectLastId)
+                {                
+                    builder.AppendFormat("{0} into :newid", EscapeSqlIdentifier(idColumnName));
+                }
+                return builder.ToString();
+            }
+
+            return string.Empty;
         }
     }
 }

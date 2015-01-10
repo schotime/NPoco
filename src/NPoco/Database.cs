@@ -1220,7 +1220,7 @@ namespace NPoco
         public object Insert<T>(string tableName, string primaryKeyName, T poco)
         {
             return Insert(tableName, primaryKeyName, true, poco);
-        }        
+        }
 
         // Insert a poco into a table.  If the poco has a property with the same name 
         // as the primary key the id of the new record is assigned to it.  Either way,
@@ -1314,10 +1314,8 @@ namespace NPoco
                             return null;
                     }
 
-                    // If there are output columns we may need to do an executereader to get the returned values
-                    // and map them back to the properties.
-                    // it's also possible that the database provider sets up return parameters that contain these values, 
-                    // rather than using execute reader.      
+                    // If there are output columns, do an execute reader to get the returned values
+                    // and map them back to the properties.                  
                     bool idFound = false;
                     object pocoId = null;
 
@@ -1333,7 +1331,9 @@ namespace NPoco
                             {
                                 ordinals[outputCol] = r.GetOrdinal(outputCol);
                             }
-                            while (r.Read())
+
+
+                            if (r.Read()) // expecting one result containing output values.
                             {
                                 PocoColumn outputColumn;
                                 foreach (var ord in ordinals)
@@ -1351,49 +1351,46 @@ namespace NPoco
 
                                 if (autoIncrement)
                                 {
-                                    // check for the returned id (some providers might return it in the datareader.
-                                    int idOrdinal = r.GetOrdinal(primaryKeyName);
-                                    if (idOrdinal >= 0)
+                                    // check to see if the datareader contains the primary key output
+                                    int idOrdinal;
+                                    if (FindColumnOrdinal(r, primaryKeyName, out idOrdinal))
                                     {
                                         pocoId = r.GetValue(idOrdinal);
-                                        idFound = true;
                                     }
-
                                 }
-
                             }
-                        }
 
-                        // If autoid, but the id wasn't found in the returned datareader, or command return paramaters,
-                        // then check for a next result set.
-                        if (autoIncrement && !idFound)
-                        {
-                            bool nextResult = r.NextResult();
-                            if (nextResult)
+                            // If we haven't found an autoincremental id in the output datareader, 
+                            // we can see if we have another result set - if we do we assume its a scalar value
+                            // in that second result set. This fits with npoco database types that append seperate
+                            // select statements to select the last inserted id.
+                            if (autoIncrement && pocoId == null)
                             {
-                                // check for a scalar value?
-                                if (r.FieldCount == 1)
+                                bool nextResult = r.NextResult();
+                                if (nextResult)
                                 {
-                                    while (r.Read())
+                                    // check for a scalar value in this result set?
+                                    if (r.FieldCount == 1)
                                     {
-                                        pocoId = r.GetValue(0);
-                                        idFound = true;
+                                        while (r.Read())
+                                        {
+                                            pocoId = r.GetValue(0);
+                                        }
                                     }
                                 }
                             }
-                        }
+
+                        }                        
                     }
                     else
                     {
                         // No output columns, just autoid.
                         // If autoincremment we need to get last id.
-                        pocoId = _dbType.ExecuteInsert(this, cmd, primaryKeyName, pd.InsertOutputColumns, poco, rawvalues.ToArray());
-
+                        pocoId = _dbType.ExecuteInsert(this, cmd, primaryKeyName,  poco, rawvalues.ToArray());
                     }
 
-
                     // If autoid, and we found the id value,
-                    if (autoIncrement && idFound)
+                    if (autoIncrement && pocoId != null)
                     {
                         // Assign the ID back to the primary key property
                         if (pocoId != null && pocoId.GetType().IsValueType)
@@ -1436,6 +1433,20 @@ namespace NPoco
             {
                 CloseSharedConnectionInternal();
             }
+        }
+
+        private bool FindColumnOrdinal(IDataReader reader, string columnName, out int ordinal)
+        {
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                if (reader.GetName(i) == columnName)
+                {
+                    ordinal = i;
+                    return true;
+                }
+            }
+            ordinal = -1;
+            return false;
         }
 
         public int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue)

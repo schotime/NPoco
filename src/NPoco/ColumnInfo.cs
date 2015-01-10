@@ -44,7 +44,7 @@ namespace NPoco
             if (colAttrs.Any())
             {
                 var colattr = colAttrs.First();
-                ci.ColumnName = colattr.Name ?? mi.Name;
+                ci.ColumnName = string.IsNullOrEmpty(colattr.Name) ? mi.Name : colattr.Name;
                 ci.ForceToUtc = colattr.ForceToUtc;
                 ci.ResultColumn = colattr is ResultColumnAttribute;
                 ci.VersionColumn = colattr is VersionColumnAttribute;
