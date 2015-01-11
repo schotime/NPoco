@@ -58,7 +58,7 @@ namespace NPoco
                         }
 
                         var newType = value.GetTheType();
-                        if (newType != null)
+                        if (newType != null && newType != typeof(DBNull))
                         {
                             table.Columns[i].DataType = newType;
                         }
