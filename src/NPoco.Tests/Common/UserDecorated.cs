@@ -25,6 +25,9 @@ namespace NPoco.Tests.Common
 
         [Column("is_male")]
         public bool IsMale { get; set; }
+
+        [VersionColumn("Version", VersionColumnType.Timestamp)]
+        public byte[] Version { get; set; }
     }
 
     [TableName("TEST_Users")]

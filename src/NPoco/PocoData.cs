@@ -63,6 +63,7 @@ namespace NPoco
                 pc.ColumnType = ci.ColumnType;
                 pc.ColumnAlias = ci.ColumnAlias;
                 pc.VersionColumn = ci.VersionColumn;
+                pc.VersionColumnType = ci.VersionColumnType;
 
                 if (Mapper != null && !Mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;
