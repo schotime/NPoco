@@ -77,8 +77,8 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         [Test]
         public void UpdatePrimaryKeyVersionConcurrencyException()
         {
-            var poco1 = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
-            var poco2 = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            var poco1 = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
+            var poco2 = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
             
             poco1.Age = 100;
             Database.Update(poco1);
@@ -90,17 +90,48 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         [Test]
         public void UpdatePrimaryKeyNoVersionConcurrencyException()
         {
-            var poco1 = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            var poco1 = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
             
             poco1.Age = 100;
             Database.Update(poco1);
 
-            var poco2 = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            var poco2 = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
 
             poco2.Age = 200;
             Database.Update(poco2);
 
-            var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            var verify = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
+
+            Assert.AreEqual(200, verify.Age);
+        }
+
+        [Test]
+        public void UpdatePrimaryKeyVersionIntConcurrencyException()
+        {
+            var poco1 = Database.SingleOrDefaultById<UserIntVersionDecorated>(InMemoryUsers[1].UserId);
+            var poco2 = Database.SingleOrDefaultById<UserIntVersionDecorated>(InMemoryUsers[1].UserId);
+
+            poco1.Age = 100;
+            Database.Update(poco1);
+
+            poco2.Age = 200;
+            Assert.Throws<DBConcurrencyException>(() => Database.Update(poco2));
+        }
+
+        [Test]
+        public void UpdatePrimaryKeyNoVersionIntConcurrencyException()
+        {
+            var poco1 = Database.SingleOrDefaultById<UserIntVersionDecorated>(InMemoryUsers[1].UserId);
+
+            poco1.Age = 100;
+            Database.Update(poco1);
+
+            var poco2 = Database.SingleOrDefaultById<UserIntVersionDecorated>(InMemoryUsers[1].UserId);
+
+            poco2.Age = 200;
+            Database.Update(poco2);
+
+            var verify = Database.SingleOrDefaultById<UserIntVersionDecorated>(InMemoryUsers[1].UserId);
 
             Assert.AreEqual(200, verify.Age);
         }

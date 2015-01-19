@@ -25,7 +25,22 @@ namespace NPoco.Tests.Common
 
         [Column("is_male")]
         public bool IsMale { get; set; }
+    }
 
+    [TableName("Users")]
+    [PrimaryKey("UserId")]
+    [ExplicitColumns]
+    public class UserIntVersionDecorated : UserDecorated
+    {
+        [VersionColumn("VersionInt", VersionColumnType.Int)]
+        public long VersionInt { get; set; }
+    }
+
+    [TableName("Users")]
+    [PrimaryKey("UserId")]
+    [ExplicitColumns]
+    public class UserTimestampVersionDecorated : UserDecorated
+    {
         [VersionColumn("Version", VersionColumnType.Timestamp)]
         public byte[] Version { get; set; }
     }

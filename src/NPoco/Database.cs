@@ -1270,7 +1270,7 @@ namespace NPoco
 
                     if (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.Int)
                     {
-                        val = (long) val > 0 ? val : 1;
+                        val = Convert.ToInt64(val) > 0 ? val : 1;
                         versionName = i.Key;
                     }
 
