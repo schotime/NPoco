@@ -32,7 +32,7 @@ namespace NPoco.Tests.Common
     [ExplicitColumns]
     public class UserIntVersionDecorated : UserDecorated
     {
-        [VersionColumn("VersionInt", VersionColumnType.Int)]
+        [VersionColumn("VersionInt", VersionColumnType.Number)]
         public long VersionInt { get; set; }
     }
 
@@ -41,7 +41,7 @@ namespace NPoco.Tests.Common
     [ExplicitColumns]
     public class UserTimestampVersionDecorated : UserDecorated
     {
-        [VersionColumn("Version", VersionColumnType.Timestamp)]
+        [VersionColumn("Version", VersionColumnType.RowVersion)]
         public byte[] Version { get; set; }
     }
 

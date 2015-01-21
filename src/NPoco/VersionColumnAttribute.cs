@@ -7,7 +7,7 @@ namespace NPoco
     {
         public VersionColumnType VersionColumnType { get; private set; }
 
-        public VersionColumnAttribute() : this(VersionColumnType.Int) {}
+        public VersionColumnAttribute() : this(VersionColumnType.Number) {}
         public VersionColumnAttribute(VersionColumnType versionColumnType)
         {
             VersionColumnType = versionColumnType;
@@ -20,7 +20,7 @@ namespace NPoco
 
     public enum VersionColumnType
     {
-        Int,
-        Timestamp
+        Number,
+        RowVersion
     }
 }

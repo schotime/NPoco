@@ -66,7 +66,7 @@ namespace NPoco.FluentMappings
                     else if (colattr.VersionColumn.HasValue && colattr.VersionColumn.Value)
                     {
                         pc.VersionColumn = true;
-                        pc.VersionColumnType = colattr.VersionColumnType ?? VersionColumnType.Int;
+                        pc.VersionColumnType = colattr.VersionColumnType ?? VersionColumnType.Number;
                     }
                     else if (colattr.ComputedColumn.HasValue && colattr.ComputedColumn.Value)
                         pc.ComputedColumn = true;

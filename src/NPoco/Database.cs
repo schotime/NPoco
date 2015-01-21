@@ -1245,7 +1245,7 @@ namespace NPoco
                     // Don't insert result columns
                     if (i.Value.ResultColumn 
                         || i.Value.ComputedColumn 
-                        || (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.Timestamp))
+                        || (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.RowVersion))
                     {
                         continue;
                     }
@@ -1268,7 +1268,7 @@ namespace NPoco
 
                     object val = ProcessMapper(i.Value, i.Value.GetValue(poco));
 
-                    if (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.Int)
+                    if (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.Number)
                     {
                         val = Convert.ToInt64(val) > 0 ? val : 1;
                         versionName = i.Key;
@@ -1382,7 +1382,7 @@ namespace NPoco
             var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
             string versionName = null;
             object versionValue = null;
-            VersionColumnType versionColumnType = VersionColumnType.Int;
+            VersionColumnType versionColumnType = VersionColumnType.Number;
 
             var primaryKeyValuePairs = GetPrimaryKeyValues(primaryKeyName, primaryKeyValue);
 
@@ -1408,14 +1408,14 @@ namespace NPoco
                 {
                     versionName = i.Key;
                     versionValue = value;
-                    if (i.Value.VersionColumnType == VersionColumnType.Int)
+                    if (i.Value.VersionColumnType == VersionColumnType.Number)
                     {
-                        versionColumnType = VersionColumnType.Int;
+                        versionColumnType = VersionColumnType.Number;
                         value = Convert.ToInt64(value) + 1;
                     }
-                    else if (i.Value.VersionColumnType == VersionColumnType.Timestamp)
+                    else if (i.Value.VersionColumnType == VersionColumnType.RowVersion)
                     {
-                        versionColumnType = VersionColumnType.Timestamp;
+                        versionColumnType = VersionColumnType.RowVersion;
                         continue;
                     }
                 }
@@ -1449,7 +1449,7 @@ namespace NPoco
             }
 
             // Set Version
-            if (!string.IsNullOrEmpty(versionName) && versionColumnType == VersionColumnType.Int)
+            if (!string.IsNullOrEmpty(versionName) && versionColumnType == VersionColumnType.Number)
             {
                 PocoColumn pc;
                 if (pd.Columns.TryGetValue(versionName, out pc))
