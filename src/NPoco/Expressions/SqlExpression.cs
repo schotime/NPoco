@@ -522,7 +522,7 @@ namespace NPoco.Expressions
             sep = string.Empty;
             generalMembers.Clear();
             Visit(fields);
-            Context.UpdateFields = new List<string>(generalMembers.Select(x => x.PocoColumn.ColumnName));
+            Context.UpdateFields = new List<string>(generalMembers.Select(x => x.PocoColumn.MemberInfo.Name));
             generalMembers.Clear();
             return this;
         }
