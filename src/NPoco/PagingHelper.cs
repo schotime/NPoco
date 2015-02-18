@@ -7,7 +7,7 @@ namespace NPoco
     public class PagingHelper
     {
         public static Regex rxColumns = new Regex(@"\A\s*SELECT\s+((?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|.)*?)(?<!,\s+)\bFROM\b", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-        public static Regex rxOrderBy = new Regex(@"\bORDER\s+BY\s+(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\.\[\] ""`])+(?:\s+(?:ASC|DESC))?(?:\s*,\s*(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\.\[\] ""`])+(?:\s+(?:ASC|DESC))?)*(?!.*FROM)", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
+        public static Regex rxOrderBy = new Regex(@"ORDER\s+BY\s+([\w\.\[\] ""`,]+)(?!.*\))", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
 
         public struct SQLParts
         {
@@ -37,12 +37,13 @@ namespace NPoco
             parts.sqlSelectRemoved = sql.Substring(g.Index);
 
             // Look for the last "ORDER BY <whatever>" clause not part of a ROW_NUMBER expression
-            m = rxOrderBy.Match(parts.sql);
-            if (m.Success)
+            var matches = rxOrderBy.Matches(parts.sql);
+            if (matches.Count > 0)
             {
+                m = matches[matches.Count - 1];
                 g = m.Groups[0];
                 parts.sqlOrderBy = g.ToString();
-                parts.sqlUnordered = rxOrderBy.Replace(parts.sqlUnordered, "");
+                parts.sqlUnordered = rxOrderBy.Replace(parts.sqlUnordered, "", 1, m.Index);
             }
 
             parts.sqlCount = string.Format(@"SELECT COUNT(*) FROM ({0}) peta_tbl", parts.sqlUnordered);
