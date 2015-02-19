@@ -104,5 +104,27 @@ namespace NPoco.Tests
                 var sql = temp.RawSql;
             });
         }
+
+        [Test]
+        public void Test8()
+        {
+            var sqlBuilder = new SqlBuilder();
+            var temp = sqlBuilder.AddTemplate("select * from test where /**where**/ and /**where(test)**/ and id = @0", 1);
+
+            sqlBuilder.WhereNamed("test", "id2 = @0", 2);
+
+            Assert.AreEqual(2, temp.Parameters.Length);
+            Assert.AreEqual("select * from test where  1=1  and  ( id2 = @1 )\n and id = @0", temp.RawSql);
+        }
+
+        [Test]
+        public void Test9()
+        {
+            var sqlBuilder = new SqlBuilder();
+            var temp = sqlBuilder.AddTemplate("select * from test where /**where(test)**/ and id = @0", 1);
+
+            Assert.AreEqual(1, temp.Parameters.Length);
+            Assert.AreEqual("select * from test where  1=1  and id = @0", temp.RawSql);
+        }
     }
 }

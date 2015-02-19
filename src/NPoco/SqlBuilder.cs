@@ -83,16 +83,16 @@ namespace NPoco
             {
                 foreach (var pair in builder.defaultsIfEmpty)
                 {
-                    var fullToken = "/**" + pair.Key + "**/";
+                    var fullToken = @"/\*\*" + pair.Key + @"\*\*/";
                     if (TokenReplacementRequired)
                     {
-                        if (rawSql.Contains(fullToken))
+                        if (Regex.IsMatch(rawSql, fullToken))
                         {
                             throw new Exception(string.Format("Token '{0}' not used. All tokens must be replaced if TokenReplacementRequired switched on.", fullToken));
                         }
                     }
 
-                    rawSql = rawSql.Replace(fullToken, " " + pair.Value + " ");
+                    rawSql = Regex.Replace(rawSql, fullToken, " " + pair.Value + " ");
                 }
 
                 // replace all that is left with empty
@@ -129,7 +129,8 @@ namespace NPoco
 
         readonly Dictionary<string, string> defaultsIfEmpty = new Dictionary<string, string>
         {
-            { "where", "1=1" },
+            { @"where\([\w]+\)", "1=1" },
+            { "where", "1=1"},
             { "select", "1" }
         };
 
@@ -166,6 +167,15 @@ namespace NPoco
         public SqlBuilder Where(string sql, params object[] parameters)
         {
             AddClause("where", sql, parameters, " AND ", " ( ", " )\n");
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a named filter. The Where keyword still needs to be specified. Uses /**where(name)**/
+        /// </summary>
+        public SqlBuilder WhereNamed(string name, string sql, params object[] parameters)
+        {
+            AddClause("where(" + name + ")", sql, parameters, " AND ", " ( ", " )\n");
             return this;
         }
 
