@@ -145,7 +145,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         [Test]
         public void FetchWithWhereExpression()
         {
-            var users = Database.FetchBy<UserDecorated>(y=>y.Where(x=>x.IsMale).OrderBy(x=>x.UserId));
+            var users = Database.Query<UserDecorated>().Where(x => x.IsMale).OrderBy(x => x.UserId).ToList();
             Assert.AreEqual(8, users.Count);
         }
     }

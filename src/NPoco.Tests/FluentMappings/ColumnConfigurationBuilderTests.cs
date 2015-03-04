@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NPoco.FluentMappings;
 using NPoco.Tests.Common;
@@ -120,7 +121,7 @@ namespace NPoco.Tests.FluentMappings
                 scan.Columns.IgnoreWhere(x => x.Name == "Age");
             });
 
-            var pd = map.Config(new Mapper()).Resolver(typeof(User));
+            var pd = map.Config(new Mapper()).Resolver(typeof(User), Cache<string, Type>.CreateStaticCache());
             Assert.False(pd.Columns.ContainsKey("Age"));
         }
 
@@ -134,7 +135,7 @@ namespace NPoco.Tests.FluentMappings
                 scan.Columns.ResultWhere(x => x.Name == "Age");
             });
 
-            var pd = map.Config(new Mapper()).Resolver(typeof(User));
+            var pd = map.Config(new Mapper()).Resolver(typeof(User), Cache<string, Type>.CreateStaticCache());
             Assert.True(pd.Columns.ContainsKey("Age"));
             Assert.True(pd.Columns["Age"].ResultColumn);
         }
@@ -149,7 +150,7 @@ namespace NPoco.Tests.FluentMappings
                 scan.Columns.Named(x => x.Name + "000");
             });
 
-            var pd = map.Config(new Mapper()).Resolver(typeof(User));
+            var pd = map.Config(new Mapper()).Resolver(typeof(User), Cache<string, Type>.CreateStaticCache());
             Assert.True(pd.Columns.ContainsKey("Age000"));
             Assert.AreEqual("Age", pd.Columns["Age000"].MemberInfo.Name);
         }

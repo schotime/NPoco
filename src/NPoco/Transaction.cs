@@ -5,9 +5,9 @@ namespace NPoco
 {
     public class Transaction : ITransaction
     {
-        Database _db;
+        IDatabase _db;
 
-        public Transaction(Database db, IsolationLevel isolationLevel)
+        public Transaction(IDatabase db, IsolationLevel isolationLevel)
         {
             _db = db;
             _db.BeginTransaction(isolationLevel);
@@ -23,7 +23,6 @@ namespace NPoco
         {
             if (_db != null)
             {
-                _db.TransactionIsAborted = true;
                 _db.AbortTransaction();
             }
         }

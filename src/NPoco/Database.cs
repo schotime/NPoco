@@ -329,6 +329,7 @@ namespace NPoco
         // Abort the entire outer most transaction scope
         public void AbortTransaction()
         {
+            TransactionIsAborted = true;
             AbortTransaction(false);
         }
 

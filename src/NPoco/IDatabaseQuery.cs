@@ -20,8 +20,6 @@ namespace NPoco
         List<T> Fetch<T>(Sql sql);
         List<T> Fetch<T>(long page, long itemsPerPage, string sql, params object[] args);
         List<T> Fetch<T>(long page, long itemsPerPage, Sql sql);
-        List<T> FetchBy<T>(Func<SqlExpression<T>, SqlExpression<T>> expression);
-        List<T> FetchWhere<T>(Expression<Func<T, bool>> expression);
         Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args);
         Page<T> Page<T>(long page, long itemsPerPage, Sql sql);
         List<T> SkipTake<T>(long skip, long take, string sql, params object[] args);
