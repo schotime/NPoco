@@ -35,6 +35,23 @@ namespace NPoco
                     arg_val = null;
                     foreach (var o in args_src)
                     {
+                        var dict = o as IDictionary;
+                        if (dict != null)
+                        {
+                            Type[] arguments = dict.GetType().GetGenericArguments();
+
+                            if (arguments[0] == typeof(string))
+                            {
+                                var val = dict[param];
+                                if (val != null)
+                                {
+                                    found = true;
+                                    arg_val = val;
+                                    break;
+                                }
+                            }
+                        }
+
                         var pi = o.GetType().GetProperty(param);
                         if (pi != null)
                         {
