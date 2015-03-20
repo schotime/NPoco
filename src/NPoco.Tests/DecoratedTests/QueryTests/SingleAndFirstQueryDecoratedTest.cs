@@ -216,6 +216,15 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         }
 
         [Test]
+        public void WhereExpressionWithNullableEnumContains()
+        {
+            var sqlExpression = new DefaultSqlExpression<UserWithNullableId>(Database);
+            sqlExpression.Where(x => new List<NameEnum?> { NameEnum.Bill, NameEnum.Bobby }.Contains(x.NameEnum));
+            Assert.AreEqual(sqlExpression.Context.Params[0], "Bill");
+            Assert.AreEqual(sqlExpression.Context.Params[1], "Bobby");
+        }
+
+        [Test]
         public void WhereExpressionWithNullableEnumAndValueIsNull()
         {
             var sqlExpression = new DefaultSqlExpression<UserWithNullableId>(Database);

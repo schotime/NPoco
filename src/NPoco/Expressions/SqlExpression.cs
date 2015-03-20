@@ -1257,8 +1257,7 @@ namespace NPoco.Expressions
             {
                 case "Contains":
                     List<Object> args = this.VisitExpressionList(m.Arguments);
-                    object quotedColName = args[0];
-                    return new PartialSqlString(BuildInStatement(m.Object, quotedColName));
+                    return new PartialSqlString(BuildInStatement(m.Object, args[0]));
 
                 default:
                     throw new NotSupportedException();
@@ -1271,34 +1270,34 @@ namespace NPoco.Expressions
             {
                 case "Contains":
                     List<Object> args = this.VisitExpressionList(m.Arguments);
-                    object quotedColName = args[1];
-
                     Expression memberExpr = m.Arguments[0];
                     if (memberExpr.NodeType == ExpressionType.MemberAccess)
                         memberExpr = (m.Arguments[0] as MemberExpression);
 
-                    return new PartialSqlString(BuildInStatement(memberExpr, quotedColName));
+                    return new PartialSqlString(BuildInStatement(memberExpr, args[1]));
 
                 default:
                     throw new NotSupportedException();
             }
         }
 
-        private StringBuilder FlattenList(IEnumerable inArgs)
+        private StringBuilder FlattenList(IEnumerable inArgs, object partialSqlString)
         {
             StringBuilder sIn = new StringBuilder();
             foreach (Object e in inArgs)
             {
                 if (!typeof(ICollection).IsAssignableFrom(e.GetType()))
                 {
-                    sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(e));
+                    var v = FormatParameters(partialSqlString, e);
+                    sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(v));
                 }
                 else
                 {
                     var listArgs = e as ICollection;
                     foreach (Object el in listArgs)
                     {
-                        sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(el));
+                        var v = FormatParameters(partialSqlString, el);
+                        sIn.AppendFormat("{0}{1}", sIn.Length > 0 ? "," : "", CreateParam(v));
                     }
                 }
             }
@@ -1308,6 +1307,15 @@ namespace NPoco.Expressions
                 sIn.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
             }
             return sIn;
+        }
+
+        private static object FormatParameters(object partialSqlString, object e)
+        {
+            if (partialSqlString is EnumMemberAccess && ((EnumMemberAccess)partialSqlString).PocoColumn.ColumnType == typeof(string))
+            {
+                e = e.ToString();
+            }
+            return e;
         }
 
         protected virtual List<Object> VisitExpressionList(ReadOnlyCollection<Expression> original)
@@ -1492,7 +1500,7 @@ namespace NPoco.Expressions
 
             var inArgs = getter() as IEnumerable;
 
-            var sIn = FlattenList(inArgs);
+            var sIn = FlattenList(inArgs, quotedColName);
 
             statement = string.Format("{0} {1} ({2})", quotedColName, "IN", sIn);
             return statement;
