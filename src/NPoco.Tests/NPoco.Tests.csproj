@@ -100,6 +100,7 @@
     <Compile Include="FormatCommandTest.cs" />
     <Compile Include="HashCodeCombinerTests.cs" />
     <Compile Include="PagingHelper.cs" />
+    <Compile Include="ParameterHelper.cs" />
     <Compile Include="PocoExpandoTests.cs" />
     <Compile Include="SnapshotterTests.cs" />
     <Compile Include="FluentMappings\ColumnConfigurationBuilderTests.cs" />
