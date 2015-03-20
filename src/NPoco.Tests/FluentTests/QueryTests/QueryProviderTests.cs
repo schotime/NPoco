@@ -48,21 +48,28 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
-        public void DistinctQueryWithWhere()
+        public void DistinctQueryWithProjection()
         {
             var userRecordsExist = Database.Query<User>().Distinct(y => new {y.IsMale});
             Assert.AreEqual(2, userRecordsExist.Count);
         }
 
         [Test]
-        public void DistinctQueryWithWhere3()
+        public void DistinctQueryWithProjectionAndLimit()
+        {
+            var userRecordsExist = Database.Query<User>().Limit(1).Distinct(y => new { y.IsMale });
+            Assert.AreEqual(1, userRecordsExist.Count);
+        }
+
+        [Test]
+        public void DistinctQueryWithSimpleProjection()
         {
             var userRecordsExist = Database.Query<User>().Distinct(y => y.IsMale);
             Assert.AreEqual(2, userRecordsExist.Count);
         }
 
         [Test]
-        public void DistinctQueryWithWhere2()
+        public void DistinctQuery()
         {
             var userRecordsExist = Database.Query<User>().Distinct();
             Assert.AreEqual(15, userRecordsExist.Count);
@@ -333,6 +340,17 @@ namespace NPoco.Tests.FluentTests.QueryTests
 
             Assert.AreEqual(21, users[0].Age);
             Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void QueryWithProjectionAndLimit()
+        {
+            var users = Database.Query<User>()
+                .Limit(10)
+                .ProjectTo(x => new { x.Age });
+
+            Assert.AreEqual(21, users[0].Age);
+            Assert.AreEqual(10, users.Count);
         }
 
         public class ProjectUser2

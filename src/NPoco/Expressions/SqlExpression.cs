@@ -1063,8 +1063,7 @@ namespace NPoco.Expressions
                         selectMembers.Add(new SelectMember()
                         {
                             EntityType = ((MemberAccessString)exprs[i]).Type,
-                            PocoColumn = ((MemberAccessString)exprs[i]).PocoColumn,
-                            SelectSql = exprs[i].Text
+                            PocoColumn = ((MemberAccessString)exprs[i]).PocoColumn
                         });
                         continue;
                     }
