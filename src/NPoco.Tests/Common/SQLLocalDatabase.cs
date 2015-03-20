@@ -96,6 +96,8 @@ namespace NPoco.Tests.Common
                     TestEnum varchar(10) NULL,
                     HouseId int NULL,
                     SupervisorId int NULL,
+                    Version rowversion,
+                    VersionInt int default(0) NOT NULL
                 );
             ";
             cmd.ExecuteNonQuery();

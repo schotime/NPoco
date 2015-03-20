@@ -14,6 +14,7 @@ namespace NPoco
         public bool ComputedColumn { get; set; }
         public bool IgnoreColumn { get; set; }
         public bool VersionColumn { get; set; }
+        public VersionColumnType VersionColumnType { get; set; }
         public bool ForceToUtc { get; set; }
         public Type ColumnType { get; set; }
 
@@ -46,6 +47,10 @@ namespace NPoco
                 ci.ForceToUtc = colattr.ForceToUtc;
                 ci.ResultColumn = colattr is ResultColumnAttribute;
                 ci.VersionColumn = colattr is VersionColumnAttribute;
+                if (ci.VersionColumn)
+                {
+                    ci.VersionColumnType = ((VersionColumnAttribute) colattr).VersionColumnType;
+                }
                 ci.ComputedColumn = colattr is ComputedColumnAttribute;
                 ci.ColumnAlias = aliasColumn != null ? aliasColumn.Alias : null;
             }

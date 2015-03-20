@@ -74,6 +74,13 @@ namespace NPoco.FluentMappings
             return this;
         }
 
+        public IColumnBuilder Version(VersionColumnType versionColumnType)
+        {
+            _columnDefinition.VersionColumn = true;
+            _columnDefinition.VersionColumnType = versionColumnType;
+            return this;
+        }
+
         public IColumnBuilder Ignore()
         {
             _columnDefinition.IgnoreColumn = true;

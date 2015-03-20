@@ -25,6 +25,8 @@ namespace NPoco.Linq
         IEnumerable<T> ToEnumerable();
         Page<T> ToPage(int page, int pageSize);
         List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
+        List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
+        List<T> Distinct();
     }
 
     public interface IQueryProvider<T> : IQueryResultProvider<T>
@@ -167,7 +169,7 @@ namespace NPoco.Linq
             if (whereExpression != null)
                 _sqlExpression = _sqlExpression.Where(whereExpression);
 
-            var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true);
+            var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true, false);
 
             return _database.ExecuteScalar<int>(sql);
         }
@@ -209,8 +211,20 @@ namespace NPoco.Linq
         public List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
-            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, types);
+            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, types, false);
             return _database.Query<T>(types, null, sql).Select(projectionExpression.Compile()).ToList();
+        }
+
+        public List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
+        {
+            var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
+            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, types, true);
+            return _database.Query<T>(types, null, sql).Select(projectionExpression.Compile()).ToList();
+        }
+
+        public List<T> Distinct()
+        {
+            return _database.Query<T>(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params).ToList();
         }
 
         public List<T> ToList()
@@ -224,7 +238,7 @@ namespace NPoco.Linq
                 return _database.Query<T>(_sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
 
             var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
-            var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false);
+            var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false, false);
             return _database.Query<T>(types, null, sql);
         }
 

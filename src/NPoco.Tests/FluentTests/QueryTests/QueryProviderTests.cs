@@ -48,6 +48,27 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void DistinctQueryWithWhere()
+        {
+            var userRecordsExist = Database.Query<User>().Distinct(y => new {y.IsMale});
+            Assert.AreEqual(2, userRecordsExist.Count);
+        }
+
+        [Test]
+        public void DistinctQueryWithWhere3()
+        {
+            var userRecordsExist = Database.Query<User>().Distinct(y => y.IsMale);
+            Assert.AreEqual(2, userRecordsExist.Count);
+        }
+
+        [Test]
+        public void DistinctQueryWithWhere2()
+        {
+            var userRecordsExist = Database.Query<User>().Distinct();
+            Assert.AreEqual(15, userRecordsExist.Count);
+        }
+
+        [Test]
         public void QueryWithWhereTrue()
         {
             var users = Database.Query<User>().Where(x => true).ToList();

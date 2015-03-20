@@ -13,7 +13,7 @@ namespace NPoco
     {
         protected internal IMapper Mapper;
         internal bool EmptyNestedObjectNull;
-        private static readonly ThreadSafeDictionary<string, Type> AliasToType = new ThreadSafeDictionary<string, Type>();
+        private readonly Cache<string, Type> aliasToType = Cache<string, Type>.CreateStaticCache();
      
         protected internal Type type;
         public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected set; }
@@ -31,8 +31,9 @@ namespace NPoco
             _mappingFactory = new MappingFactory(this);
         }
 
-        public PocoData(Type t, IMapper mapper) : this()
+        public PocoData(Type t, IMapper mapper, Cache<string, Type> aliasToTypeCache) : this()
         {
+            aliasToType = aliasToTypeCache;
             type = t;
             Mapper = mapper;
             TableInfo = TableInfo.FromPoco(t);
@@ -63,6 +64,7 @@ namespace NPoco
                 pc.ColumnType = ci.ColumnType;
                 pc.ColumnAlias = ci.ColumnAlias;
                 pc.VersionColumn = ci.VersionColumn;
+                pc.VersionColumnType = ci.VersionColumnType;
 
                 if (Mapper != null && !Mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;
@@ -87,9 +89,12 @@ namespace NPoco
             {
                 alias = name + (i == 0 ? string.Empty : i.ToString());
                 i++;
-                if (AliasToType.ContainsKey(alias))
+
+                if (aliasToType.AddIfNotExists(alias, typeIn))
+                {
                     continue;
-                AliasToType.Add(alias, typeIn);
+                }
+
                 result = true;
             } while (result == false);
 

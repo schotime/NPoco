@@ -157,12 +157,12 @@ namespace NPoco.Expressions
 
             public virtual string ToSelectStatement()
             {
-                return ToSelectStatement(true);
+                return ToSelectStatement(true, false);
             }
 
-            public virtual string ToSelectStatement(bool applyPaging)
+            public virtual string ToSelectStatement(bool applyPaging, bool distinct)
             {
-                return _expression.ToSelectStatement(applyPaging);
+                return _expression.ToSelectStatement(applyPaging, distinct);
             }
         }
 
@@ -219,13 +219,9 @@ namespace NPoco.Expressions
             return proj;
         }
 
-        public virtual SqlExpression<T> SelectDistinct<TKey>(Expression<Func<T, TKey>> fields)
+        public virtual List<SelectMember> SelectDistinct<TKey>(Expression<Func<T, TKey>> fields)
         {
-            sep = string.Empty;
-            selectMembers.Clear();
-            var exp = PartialEvaluator.Eval(fields, CanBeEvaluatedLocally);
-            Visit(exp);
-            return this;
+            return SelectProjection(fields);
         }
 
         //public virtual SqlExpression<T> Where()
@@ -620,11 +616,11 @@ namespace NPoco.Expressions
             return WhereExpression;
         }
 
-        protected virtual string ToSelectStatement(bool applyPaging)
+        protected virtual string ToSelectStatement(bool applyPaging, bool isDistinct)
         {
             var sql = new StringBuilder();
 
-            sql.Append(SelectExpression);
+            sql.Append(GetSelectExpression(isDistinct));
             sql.Append(string.IsNullOrEmpty(WhereExpression) ?
                        "" :
                        " \n" + WhereExpression);
@@ -646,23 +642,16 @@ namespace NPoco.Expressions
         //    return OrmLiteConfig.DialectProvider.ToCountStatement(modelDef.ModelType, WhereExpression, null);
         //}
 
-        private string SelectExpression
+        private string GetSelectExpression(bool distinct)
         {
-            get
-            {
-                var selectMembersFromOrderBys = orderByMembers
-                    .Select(x => new SelectMember() { PocoColumn = x.PocoColumn, EntityType = x.EntityType})
-                    .Where(x => !selectMembers.Any(y => y.EntityType == x.EntityType && y.PocoColumn.MemberInfo.Name == x.PocoColumn.MemberInfo.Name));
+            var selectMembersFromOrderBys = orderByMembers
+                .Select(x => new SelectMember() { PocoColumn = x.PocoColumn, EntityType = x.EntityType })
+                .Where(x => !selectMembers.Any(y => y.EntityType == x.EntityType && y.PocoColumn.MemberInfo.Name == x.PocoColumn.MemberInfo.Name));
 
-                var morecols = selectMembers.Concat(selectMembersFromOrderBys);
-                var cols = selectMembers.Count == 0 ? null : morecols.ToList();
-                BuildSelectExpression(cols, false);
-                return selectExpression;
-            }
-            set
-            {
-                selectExpression = value;
-            }
+            var morecols = selectMembers.Concat(selectMembersFromOrderBys);
+            var cols = selectMembers.Count == 0 ? null : morecols.ToList();
+            var selectsql = BuildSelectExpression(cols, distinct);
+            return selectsql;
         }
 
         private string WhereExpression
@@ -1447,10 +1436,10 @@ namespace NPoco.Expressions
             return CreateParam(false);
         }
 
-        private void BuildSelectExpression(List<SelectMember> fields, bool distinct)
+        private string BuildSelectExpression(List<SelectMember> fields, bool distinct)
         {
             var cols = fields ?? modelDef.QueryColumns.Select(x => new SelectMember{ PocoColumn = x.Value, EntityType = modelDef.type });
-            selectExpression = string.Format("SELECT {0}{1} \nFROM {2}",
+            return string.Format("SELECT {0}{1} \nFROM {2}",
                 (distinct ? "DISTINCT " : ""),
                     string.Join(", ", cols.Select(x =>
                     {

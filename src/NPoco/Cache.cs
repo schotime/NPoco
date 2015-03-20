@@ -25,7 +25,7 @@ namespace NPoco
 #endif
     }
 
-    internal class Cache<TKey, TValue>
+    public class Cache<TKey, TValue>
     {
         private readonly bool _useManaged;
 
@@ -109,6 +109,32 @@ namespace NPoco
 
                 // Done
                 return val;
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
+        }
+
+        public bool AddIfNotExists(TKey key, TValue value)
+        {
+            // Cache it
+            _lock.EnterWriteLock();
+            try
+            {
+                // Check again
+                TValue val;
+                if (_map.TryGetValue(key, out val))
+                    return true;
+
+                // Create it
+                val = value;
+
+                // Store it
+                _map.Add(key, val);
+
+                // Done
+                return false;
             }
             finally
             {
