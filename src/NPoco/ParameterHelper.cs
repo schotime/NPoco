@@ -36,15 +36,14 @@ namespace NPoco
 
                     foreach (var o in args_src)
                     {
-                        var dictionary = o as IDictionary;
-                        if (dictionary != null)
+                        var dict = o as IDictionary;
+                        if (dict != null)
                         {
-                            var idic = dictionary;
-                            Type[] arguments = idic.GetType().GetGenericArguments();
+                            Type[] arguments = dict.GetType().GetGenericArguments();
 
                             if (arguments[0] == typeof(string))
                             {
-                                var val = idic[param];
+                                var val = dict[param];
                                 if (val != null)
                                 {
                                     found = true;
