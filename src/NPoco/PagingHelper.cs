@@ -37,7 +37,7 @@ namespace NPoco
             parts.sqlSelectRemoved = sql.Substring(g.Index);
 
             // Look for the last "ORDER BY <whatever>" clause not part of a ROW_NUMBER expression
-            var matches = rxOrderBy.Matches(parts.sql);
+            var matches = rxOrderBy.Matches(parts.sqlUnordered);
             if (matches.Count > 0)
             {
                 m = matches[matches.Count - 1];

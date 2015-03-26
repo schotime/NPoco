@@ -11,7 +11,8 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void Page()
         {
-            var page = Database.Page<User>(2, 5, "SELECT * FROM Users WHERE UserID <= 15 ORDER BY UserID");
+            var page = Database.Page<User>(2, 5, @"
+                SELECT Name, UserID, is_male FROM Users WHERE ( UserID <= 15 ) order by UserID desc, is_male");
 
             foreach (var user in page.Items)
             {
