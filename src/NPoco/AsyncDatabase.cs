@@ -79,7 +79,7 @@ namespace NPoco
         {
             return UpdateAsync(poco, null, columns);
         }
-
+        
         public Task<int> UpdateAsync(object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
             var pd = PocoDataFactory.ForType(poco.GetType());
@@ -90,6 +90,22 @@ namespace NPoco
         {
             return UpdateImp (tableName, primaryKeyName, poco, primaryKeyValue, columns,
                 async (sql, args, next) => next(await ExecuteAsync(sql, args)), TaskAsyncHelper.FromResult(0));
+        }
+
+        public Task<int> DeleteAsync(object poco)
+        {
+            var pd = PocoDataFactory.ForType(poco.GetType());
+            return DeleteAsync(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco);
+        }
+
+        public Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco)
+        {
+            return DeleteAsync(tableName, primaryKeyName, poco, null);
+        }
+
+        public Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
+        {
+            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, ExecuteAsync, TaskAsyncHelper.FromResult(0));
         }
 
         internal async Task<int> ExecuteNonQueryHelperAsync(IDbCommand cmd)

@@ -167,7 +167,7 @@
     <Content Include="License.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
+    <None Condition="$(DefineConstants.Contains('NET40ASYNC'))" Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

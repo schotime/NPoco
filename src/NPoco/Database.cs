@@ -1831,7 +1831,13 @@ namespace NPoco
 
         public virtual int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
-            if (!OnDeleting(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) return 0;
+            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, Execute, 0);
+        }
+
+        protected virtual TRet DeleteImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, Func<string, object[], TRet> executeFunc, TRet defaultRet)
+        {
+            if (!OnDeleting(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) 
+                return defaultRet;
             
             var primaryKeyValuePairs = GetPrimaryKeyValues(primaryKeyName, primaryKeyValue);
             // If primary key value not specified, pick it up from the object
@@ -1850,7 +1856,7 @@ namespace NPoco
             // Do it
             var index = 0;
             var sql = string.Format("DELETE FROM {0} WHERE {1}", _dbType.EscapeTableName(tableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
-            return Execute(sql, primaryKeyValuePairs.Select(x => x.Value).ToArray());
+            return executeFunc(sql, primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
 
         public int Delete(object poco)
