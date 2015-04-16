@@ -1,4 +1,6 @@
-﻿#if !POCO_NO_DYNAMIC
+﻿#if NET45
+using System.Linq.Expressions;
+using NPoco.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -48,72 +50,68 @@ namespace NPoco
         /// <remarks>Inserts a poco into a table.  If the poco has a property with the same name 
         /// as the primary key the id of the new record is assigned to it.  Either way,
         /// the new id is returned.</remarks>
-        public virtual async Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
+        public virtual Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            return await InsertImpAsync(tableName, primaryKeyName, autoIncrement, poco);
+            return InsertImp<T, object, Task<object>>(tableName, primaryKeyName, autoIncrement, poco,
+                async (cmd, pkname, thepoco, rawvalues, next) => 
+                    next(await _dbType.ExecuteInsertAsync(this, cmd, pkname, thepoco, rawvalues.ToArray())), 
+                async (cmd, next) => {
+                     await _dbType.ExecuteNonQueryAsync(this, cmd);
+                     return next();
+                });
         }
 
-        public virtual async Task<object> InsertImpAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
+        public Task<int> UpdateAsync<T>(T poco, Expression<Func<T, object>> fields)
         {
-            if (!OnInserting(new InsertContext(poco, tableName, autoIncrement, primaryKeyName)))
-                return 0;
-
-            try
-            {
-                var preparedSql = InsertStatements.PrepareInsertSql(this, tableName, primaryKeyName, autoIncrement, poco);
-
-                using (var cmd = CreateCommand(_sharedConnection, preparedSql.sql, preparedSql.rawvalues.ToArray()))
-                {
-                    // Assign the Version column
-                    InsertStatements.AssignVersion(poco, preparedSql);
-
-                    if (autoIncrement)
-                    {
-                        var id = await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, poco, preparedSql.rawvalues.ToArray());
-
-                        // Assign the ID back to the primary key property
-                        InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedSql);
-
-                        return id;
-                    }
-                    else
-                    {
-                        await _dbType.ExecuteNonQueryAsync(this, cmd);
-                        return InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, preparedSql);
-                    }
-                }
-            }
-            catch (Exception x)
-            {
-                OnException(x);
-                throw;
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
-            }
+            var expression = DatabaseType.ExpressionVisitor<T>(this);
+            expression = expression.Select(fields);
+            var columnNames = ((ISqlExpression)expression).SelectMembers.Select(x => x.PocoColumn.ColumnName);
+            var otherNames = ((ISqlExpression)expression).GeneralMembers.Select(x => x.PocoColumn.ColumnName);
+            return UpdateAsync(poco, columnNames.Union(otherNames));
         }
 
-        internal Task<int> ExecuteNonQueryHelperAsync(IDbCommand cmd)
+        public Task<int> UpdateAsync(object poco)
+        {
+            return UpdateAsync(poco, null, null);
+        }
+
+        public Task<int> UpdateAsync(object poco, IEnumerable<string> columns)
+        {
+            return UpdateAsync(poco, null, columns);
+        }
+
+        public Task<int> UpdateAsync(object poco, object primaryKeyValue, IEnumerable<string> columns)
+        {
+            var pd = PocoDataFactory.ForType(poco.GetType());
+            return UpdateAsync(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco, primaryKeyValue, columns);
+        }
+
+        public virtual Task<int> UpdateAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
+        {
+            return UpdateImp (tableName, primaryKeyName, poco, primaryKeyValue, columns,
+                async (sql, args, next) => next(await ExecuteAsync(sql, args)), TaskAsyncHelper.FromResult(0));
+        }
+
+        internal async Task<int> ExecuteNonQueryHelperAsync(IDbCommand cmd)
         {
             DoPreExecute(cmd);
-            var result = _dbType.ExecuteNonQueryAsync(this, cmd);
+            var result = await _dbType.ExecuteNonQueryAsync(this, cmd);
             OnExecutedCommand(cmd);
             return result;
         }
 
-        internal Task<object> ExecuteScalarHelperAsync(IDbCommand cmd)
+        internal async Task<object> ExecuteScalarHelperAsync(IDbCommand cmd)
         {
             DoPreExecute(cmd);
-            var result = _dbType.ExecuteScalarAsync(this, cmd);
+            var result = await _dbType.ExecuteScalarAsync(this, cmd);
             OnExecutedCommand(cmd);
             return result;
         }
 
-        internal Task<IDataReader> ExecuteReaderHelperAsync(IDbCommand cmd)
+        internal async Task<IDataReader> ExecuteReaderHelperAsync(IDbCommand cmd)
         {
             DoPreExecute(cmd);
-            var reader = _dbType.ExecuteReaderAsync(this, cmd);
+            var reader = await _dbType.ExecuteReaderAsync(this, cmd);
             OnExecutedCommand(cmd);
             return reader;
         }

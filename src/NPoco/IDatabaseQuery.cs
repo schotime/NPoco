@@ -102,5 +102,14 @@ namespace NPoco
         Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql);
         Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql);
 
+#if NET45
+        System.Threading.Tasks.Task<IEnumerable<T>> QueryAsync<T>(string sql, object[] args);
+        System.Threading.Tasks.Task<IEnumerable<T>> QueryAsync<T>(Sql sql);
+        System.Threading.Tasks.Task<IEnumerable<TRet>> QueryAsync<TRet>(Type[] types, Delegate cb, Sql sql);
+        System.Threading.Tasks.Task<T> ExecuteScalarAsync<T>(string sql, object[] args);
+        System.Threading.Tasks.Task<T> ExecuteScalarAsync<T>(Sql sql);
+        System.Threading.Tasks.Task<int> ExecuteAsync(string sql, params object[] args);
+        System.Threading.Tasks.Task<int> ExecuteAsync(Sql sql);
+#endif
     }
 }

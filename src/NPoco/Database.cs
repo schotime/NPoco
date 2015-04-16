@@ -157,7 +157,7 @@ namespace NPoco
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 
-        internal readonly DatabaseType _dbType;
+        private readonly DatabaseType _dbType;
         public DatabaseType DatabaseType { get { return _dbType; } }
         public IsolationLevel IsolationLevel { get { return _isolationLevel; } }
 
@@ -179,7 +179,7 @@ namespace NPoco
             OpenSharedConnectionImp(false);
         }
 
-        internal void OpenSharedConnectionInternal()
+        private void OpenSharedConnectionInternal()
         {
             OpenSharedConnectionImp(true);
         }
@@ -662,6 +662,76 @@ namespace NPoco
             }
         }
 
+#if NET45
+        // Execute a non-query command
+        public System.Threading.Tasks.Task<int> ExecuteAsync(string sql, params object[] args)
+        {
+            return ExecuteAsync(new Sql(sql, args));
+        }
+
+        public async System.Threading.Tasks.Task<int> ExecuteAsync(Sql Sql)
+        {
+            var sql = Sql.SQL;
+            var args = Sql.Arguments;
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                {
+                    var result = await ExecuteNonQueryHelperAsync(cmd);
+                    return result;
+                }
+            }
+            catch (Exception x)
+            {
+                OnException(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
+        public System.Threading.Tasks.Task<T> ExecuteScalarAsync<T>(string sql, object[] args)
+        {
+            return ExecuteScalarAsync<T>(new Sql(sql, args));
+        }
+
+        public async System.Threading.Tasks.Task<T> ExecuteScalarAsync<T>(Sql Sql)
+        {
+            var sql = Sql.SQL;
+            var args = Sql.Arguments;
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                {
+                    object val = await ExecuteScalarHelperAsync(cmd);
+
+                    if (val == null || val == DBNull.Value)
+                        return await TaskAsyncHelper.FromResult(default(T));
+
+                    Type t = typeof(T);
+                    Type u = Nullable.GetUnderlyingType(t);
+
+                    return (T)Convert.ChangeType(val, u ?? t);
+                }
+            }
+            catch (Exception x)
+            {
+                OnException(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+#endif
+
         public bool EnableAutoSelect { get; set; }
 
         // Return a typed list of pocos
@@ -789,6 +859,165 @@ namespace NPoco
         public IEnumerable<T> Query<T>(Sql Sql)
         {
             return Query(default(T), Sql);
+        }
+
+#if NET45
+        public System.Threading.Tasks.Task<IEnumerable<T>> QueryAsync<T>(string sql, params object[] args)
+        {
+            return QueryAsync<T>(new Sql(sql, args));
+        }
+
+        public System.Threading.Tasks.Task<IEnumerable<T>> QueryAsync<T>(Sql sql)
+        {
+            return QueryAsync(default(T), sql);
+        }
+
+        private async System.Threading.Tasks.Task<IEnumerable<T>> QueryAsync<T>(T instance, Sql Sql)
+        {
+            var sql = Sql.SQL;
+            var args = Sql.Arguments;
+
+            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                {
+                    IDataReader r;
+                    try
+                    {
+                        r = await ExecuteReaderHelperAsync(cmd);
+                    }
+                    catch (Exception x)
+                    {
+                        OnException(x);
+                        throw;
+                    }
+
+                    return Read(instance, r);
+                }
+            }
+            catch
+            {
+                CloseSharedConnectionInternal();
+                throw;
+            }
+        }
+
+        public async System.Threading.Tasks.Task<IEnumerable<TRet>> QueryAsync<TRet>(Type[] types, Delegate cb, Sql sql)
+        {
+            if (types.Length == 1)
+            {
+                return await QueryAsync<TRet>(sql);
+            }
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
+                {
+                    IDataReader r;
+                    try
+                    {
+                        r = await ExecuteReaderHelperAsync(cmd);
+                    }
+                    catch (Exception x)
+                    {
+                        OnException(x);
+                        throw;
+                    }
+                    return Read<TRet>(types, cb, r);
+                }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+#endif
+        private IEnumerable<TRet> Read<TRet>(Type[] types, Delegate cb, IDataReader r)
+        {
+            try
+            {
+                var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, r);
+                if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
+                var bNeedTerminator = false;
+                using (r)
+                {
+                    while (true)
+                    {
+                        TRet poco;
+                        try
+                        {
+                            if (!r.Read()) break;
+                            poco = factory(r, cb);
+                        }
+                        catch (Exception x)
+                        {
+                            OnException(x);
+                            throw;
+                        }
+
+                        if (poco != null)
+                        {
+                            yield return poco;
+                        }
+                        else
+                        {
+                            bNeedTerminator = true;
+                        }
+                    }
+                    if (bNeedTerminator)
+                    {
+                        var poco = (TRet) cb.DynamicInvoke(new object[types.Length]);
+                        if (poco != null)
+                        {
+                            yield return poco;
+                        }
+                        else
+                        {
+                            yield break;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
+        private IEnumerable<T> Read<T>(T instance, IDataReader r)
+        {
+            try
+            {
+                using (r)
+                {
+                    var pd = PocoDataFactory.ForType(typeof(T));
+                    var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
+                    while (true)
+                    {
+                        T poco;
+                        try
+                        {
+                            if (!r.Read()) yield break;
+                            poco = factory(r, instance);
+                        }
+                        catch (Exception x)
+                        {
+                            OnException(x);
+                            throw;
+                        }
+
+                        yield return poco;
+                    }
+                }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
         }
 
         public IQueryProviderWithIncludes<T> Query<T>()
@@ -1228,37 +1457,129 @@ namespace NPoco
         // the new id is returned.
         public virtual object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            return InsertImp(tableName, primaryKeyName, autoIncrement, poco);
+            return InsertImp<T, object, object>(tableName, primaryKeyName, autoIncrement, poco,
+                (cmd, pkname, thepoco, rawvalues, next) =>
+                    next(_dbType.ExecuteInsert(this, cmd, pkname, thepoco, rawvalues.ToArray())), 
+                (cmd, next) => { 
+                    ExecuteNonQueryHelper(cmd);
+                    return next();
+                });
         }
 
-        public virtual object InsertImp<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
+        public delegate TRet AutoIncrementDelegate<in T1, TId, out TRet>(IDbCommand cmd, string primarykey, T1 poco, object[] rawvalues, Func<TId, TId> next);
+
+        public virtual TRet InsertImp<T, TId, TRet>(string tableName, string primaryKeyName, bool autoIncrement, T poco,
+            AutoIncrementDelegate<T, TId, TRet> autoIncrementFunc,
+            Func<IDbCommand, Func<TId>, TRet> nonAutoIncrementFunc)
         {
             if (!OnInserting(new InsertContext(poco, tableName, autoIncrement, primaryKeyName))) 
-                return 0;
+                return default(TRet);
 
             try
             {
-                var preparedSql = InsertStatements.PrepareInsertSql(this, tableName, primaryKeyName, autoIncrement, poco);
+                OpenSharedConnectionInternal();
 
-                using (var cmd = CreateCommand(_sharedConnection, preparedSql.sql, preparedSql.rawvalues.ToArray()))
+                var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
+                var names = new List<string>();
+                var values = new List<string>();
+                var rawvalues = new List<object>();
+                var index = 0;
+                var versionName = "";
+
+                foreach (var i in pd.Columns)
+                {
+                    // Don't insert result columns
+                    if (i.Value.ResultColumn 
+                        || i.Value.ComputedColumn 
+                        || (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.RowVersion))
+                    {
+                        continue;
+                    }
+
+                    // Don't insert the primary key (except under oracle where we need bring in the next sequence value)
+                    if (autoIncrement && primaryKeyName != null && string.Compare(i.Key, primaryKeyName, true) == 0)
+                    {
+                        // Setup auto increment expression
+                        string autoIncExpression = _dbType.GetAutoIncrementExpression(pd.TableInfo);
+                        if (autoIncExpression != null)
+                        {
+                            names.Add(i.Key);
+                            values.Add(autoIncExpression);
+                        }
+                        continue;
+                    }
+
+                    names.Add(_dbType.EscapeSqlIdentifier(i.Key));
+                    values.Add(string.Format("{0}{1}", _paramPrefix, index++));
+
+                    object val = ProcessMapper(i.Value, i.Value.GetValue(poco));
+
+                    if (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.Number)
+                    {
+                        val = Convert.ToInt64(val) > 0 ? val : 1;
+                        versionName = i.Key;
+                    }
+
+                    rawvalues.Add(val);
+                }
+
+                var sql = string.Empty;
+                var outputClause = String.Empty;
+                if (autoIncrement)
+                {
+                    outputClause = _dbType.GetInsertOutputClause(primaryKeyName);
+                }
+
+                if (names.Count != 0)
+                {
+                    sql = string.Format("INSERT INTO {0} ({1}){2} VALUES ({3})",
+                                        _dbType.EscapeTableName(tableName),
+                                        string.Join(",", names.ToArray()),
+                                        outputClause,
+                                        string.Join(",", values.ToArray()));
+                }
+                else
+                {
+                    sql = _dbType.GetDefaultInsertSql(tableName, names.ToArray(), values.ToArray());
+                }
+
+                using (var cmd = CreateCommand(_sharedConnection, sql, rawvalues.ToArray()))
                 {
                     // Assign the Version column
-                    InsertStatements.AssignVersion(poco, preparedSql);
-
-                    if (autoIncrement)
+                    if (!string.IsNullOrEmpty(versionName))
                     {
-                        var id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, poco, preparedSql.rawvalues.ToArray());
+                        PocoColumn pc;
+                        if (pd.Columns.TryGetValue(versionName, out pc))
+                        {
+                            pc.SetValue(poco, pc.ChangeType(1));
+                        }
+                    }
 
-                        // Assign the ID back to the primary key property
-                        InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedSql);
+                    if (!autoIncrement)
+                    {
+                        return nonAutoIncrementFunc(cmd, () =>
+                        {
+                            PocoColumn pkColumn;
+                            if (primaryKeyName != null && pd.Columns.TryGetValue(primaryKeyName, out pkColumn))
+                                return (TId)pkColumn.GetValue(poco);
+                            return default(TId);
+                        });
+                    }
 
+                    return autoIncrementFunc(cmd, primaryKeyName, poco, rawvalues.ToArray(), id =>
+                    {
+                        if (primaryKeyName != null && id != null && id.GetType().IsValueType)
+                        {
+                            PocoColumn pc;
+                            if (pd.Columns.TryGetValue(primaryKeyName, out pc))
+                            {
+                                pc.SetValue(poco, pc.ChangeType(id));
+                            }
+                        }
                         return id;
-                    }
-                    else
-                    {
-                        ExecuteNonQueryHelper(cmd);
-                        return InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, preparedSql);
-                    }
+                    });
+
+                    // Assign the ID back to the primary key property
                 }
             }
             catch (Exception x)
@@ -1295,12 +1616,20 @@ namespace NPoco
             return Update(tableName, primaryKeyName, poco, primaryKeyValue, null);
         }
 
-        // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
         public virtual int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            if (!OnUpdating(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns))) return 0;
+            return UpdateImp(tableName, primaryKeyName, poco, primaryKeyValue, columns,
+                (sql, args, next) => next(Execute(sql, args)), 0);
+        }
 
-            if (columns != null && !columns.Any()) return 0;
+        // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
+        protected virtual TRet UpdateImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
+        {
+            if (!OnUpdating(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns))) 
+                return defaultId;
+
+            if (columns != null && !columns.Any())
+                return defaultId;
 
             var sb = new StringBuilder();
             var index = 0;
@@ -1367,22 +1696,25 @@ namespace NPoco
                 rawvalues.Add(versionValue);
             }
 
-            var result = Execute(sql, rawvalues.ToArray());
-
-            if (result == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
+            var result = executeFunc(sql, rawvalues.ToArray(), (id) =>
             {
-                throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", primaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), versionValue));
-            }
-
-            // Set Version
-            if (!string.IsNullOrEmpty(versionName) && versionColumnType == VersionColumnType.Number)
-            {
-                PocoColumn pc;
-                if (pd.Columns.TryGetValue(versionName, out pc))
+                if (id == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
                 {
-                    pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(versionValue) + 1, pc.MemberInfo.GetMemberInfoType()));
+                    throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", primaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), versionValue));
                 }
-            }
+
+                // Set Version
+                if (!string.IsNullOrEmpty(versionName) && versionColumnType == VersionColumnType.Number)
+                {
+                    PocoColumn pc;
+                    if (pd.Columns.TryGetValue(versionName, out pc))
+                    {
+                        pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(versionValue) + 1, pc.MemberInfo.GetMemberInfoType()));
+                    }
+                }
+
+                return id;
+            });
 
             return result;
         }
@@ -1712,7 +2044,7 @@ namespace NPoco
         private IsolationLevel _isolationLevel;
         private string _lastSql;
         private object[] _lastArgs;
-        internal string _paramPrefix = "@";
+        private string _paramPrefix = "@";
         private VersionExceptionHandling _versionException = VersionExceptionHandling.Exception;
 
         internal int ExecuteNonQueryHelper(IDbCommand cmd)

@@ -4,6 +4,11 @@ namespace NPoco.Tests.Common
 {
     public class User
     {
+        public User()
+        {
+            DateOfBirth = new DateTime(1900, 1, 1);
+        }
+
         public int UserId { get; set; }
         public string Name { get; set; }
         public int Age { get; set; }
