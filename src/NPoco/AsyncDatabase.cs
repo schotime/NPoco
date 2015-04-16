@@ -108,6 +108,113 @@ namespace NPoco
             return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, ExecuteAsync, TaskAsyncHelper.FromResult(0));
         }
 
+        public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
+        {
+            return PageAsync<T>(new[] { typeof(T) }, null, page, itemsPerPage, sql, args);
+        }
+
+        public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql)
+        {
+            return PageAsync<T>(page, itemsPerPage, sql.SQL, sql.Arguments);
+        }
+
+        public Task<Page<T>> PageAsync<T>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
+        {
+            return PageImp<T, Task<Page<T>>>(types, cb, page, itemsPerPage, sql, args,
+                async (paged, thetypes, thesql) =>
+                {
+                    paged.Items = thetypes.Length > 1
+                        ? (await QueryAsync<T>(thetypes, cb, thesql)).ToList()
+                        : (await QueryAsync<T>(thesql)).ToList();
+
+                    return paged;
+                });
+        }
+
+        public async Task<IEnumerable<T>> FetchAsync<T>(string sql, params object[] args)
+        {
+            return (await QueryAsync<T>(sql, args)).ToList();
+        }
+
+        public async Task<IEnumerable<T>> FetchAsync<T>(Sql sql)
+        {
+            return (await QueryAsync<T>(sql)).ToList();
+        }
+
+        public Task<IEnumerable<T>> QueryAsync<T>(string sql, params object[] args)
+        {
+            return QueryAsync<T>(new Sql(sql, args));
+        }
+
+        public Task<IEnumerable<T>> QueryAsync<T>(Sql sql)
+        {
+            return QueryAsync(default(T), sql);
+        }
+
+        private async Task<IEnumerable<T>> QueryAsync<T>(T instance, Sql Sql)
+        {
+            var sql = Sql.SQL;
+            var args = Sql.Arguments;
+
+            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                {
+                    IDataReader r;
+                    try
+                    {
+                        r = await ExecuteReaderHelperAsync(cmd);
+                    }
+                    catch (Exception x)
+                    {
+                        OnException(x);
+                        throw;
+                    }
+
+                    return Read(instance, r);
+                }
+            }
+            catch
+            {
+                CloseSharedConnectionInternal();
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<TRet>> QueryAsync<TRet>(Type[] types, Delegate cb, Sql sql)
+        {
+            if (types.Length == 1)
+            {
+                return await QueryAsync<TRet>(sql);
+            }
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
+                {
+                    IDataReader r;
+                    try
+                    {
+                        r = await ExecuteReaderHelperAsync(cmd);
+                    }
+                    catch (Exception x)
+                    {
+                        OnException(x);
+                        throw;
+                    }
+                    return Read<TRet>(types, cb, r);
+                }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
         internal async Task<int> ExecuteNonQueryHelperAsync(IDbCommand cmd)
         {
             DoPreExecute(cmd);
