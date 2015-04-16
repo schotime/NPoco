@@ -949,6 +949,14 @@ namespace NPoco.Expressions
                     else
                         left = CreateParam(left);
                 }
+                else if (left as MemberAccessString != null && right is int)
+                {
+                    var memberInfoType = ((MemberAccessString)left).PocoColumn.MemberInfo.GetMemberInfoType();
+                    if (memberInfoType == typeof(char) || memberInfoType == typeof(char?))
+                    {
+                        right = CreateParam(Convert.ToChar(right));
+                    }
+                }
                 else if (left as PartialSqlString == null && right as PartialSqlString == null)
                 {
                     var result = Expression.Lambda(b).Compile().DynamicInvoke();

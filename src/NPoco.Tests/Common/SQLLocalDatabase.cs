@@ -97,7 +97,8 @@ namespace NPoco.Tests.Common
                     HouseId int NULL,
                     SupervisorId int NULL,
                     Version rowversion,
-                    VersionInt int default(0) NOT NULL
+                    VersionInt int default(0) NOT NULL,
+                    YorN char NULL
                 );
             ";
             cmd.ExecuteNonQuery();

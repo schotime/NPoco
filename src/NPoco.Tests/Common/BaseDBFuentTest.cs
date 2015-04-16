@@ -103,6 +103,7 @@ namespace NPoco.Tests.Common
                     DateOfBirth = new DateTime(1970, 1, 1).AddYears(i - 1),
                     Savings = 50.00m + (1.01m * (i + 1)),
                     IsMale = (i%2 == 0),
+                    YorN = (i%2 == 0) ? 'Y' : 'N',
                     UniqueId = (i%2 != 0 ? Guid.NewGuid() : (Guid?)null),
                     TimeSpan = new TimeSpan(1,1,1),
                     HouseId = i%2==0?(int?)null:InMemoryHouses[i%5].HouseId,

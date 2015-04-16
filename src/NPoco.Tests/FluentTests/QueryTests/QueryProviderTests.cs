@@ -98,6 +98,28 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void QueryWithWhereChar()
+        {
+            var users = Database.Query<User>().Where(x => x.YorN == 'Y').ToList();
+            Assert.AreEqual(8, users.Count);
+        }
+
+        [Test]
+        public void QueryWithWhereCharNull()
+        {
+            var users = Database.Query<User>().Where(x => x.YorN == null).ToList();
+            Assert.AreEqual(0, users.Count);
+        }
+
+        [Test]
+        public void QueryWithWhereCharVar()
+        {
+            var s = 'Y';
+            var users = Database.Query<User>().Where(x => x.YorN == s && x.Age > 0).ToList();
+            Assert.AreEqual(8, users.Count);
+        }
+
+        [Test]
         public void QueryWithOrderBy()
         {
             var users = Database.Query<User>().OrderBy(x => x.DateOfBirth).ToList();

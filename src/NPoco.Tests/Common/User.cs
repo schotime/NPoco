@@ -14,6 +14,7 @@ namespace NPoco.Tests.Common
         public TimeSpan TimeSpan { get; set; }
         public int? HouseId { get; set; }
         public int? SupervisorId { get; set; }
+        public char? YorN { get; set; }
 
         [ResultColumn]
         public House House { get; set; }
