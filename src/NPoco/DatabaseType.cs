@@ -5,7 +5,6 @@ using System.Data;
 using System.Linq;
 using NPoco.DatabaseTypes;
 using NPoco.Expressions;
-using NPoco.Linq;
 
 namespace NPoco
 {
@@ -216,11 +215,18 @@ namespace NPoco
         /// <param name="poco"></param>
         /// <param name="args"></param>
         /// <returns>The ID of the newly inserted record</returns>
-        public virtual object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco1, object[] args)
+        public virtual object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return db.ExecuteScalarHelper(cmd);
         }
+#if !POCO_NO_DYNAMIC
+        public virtual async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
+        {
+            cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
+            return await db.ExecuteScalarHelperAsync(cmd);
+        }
+#endif
 
         public virtual void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
         {
@@ -328,5 +334,21 @@ namespace NPoco
             return "System.Data.SqlClient";
         }
 
+#if !POCO_NO_DYNAMIC
+        public virtual System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, IDbCommand cmd)
+        {
+            return TaskAsyncHelper.FromResult(cmd.ExecuteNonQuery());
+        }
+
+        public virtual System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, IDbCommand cmd)
+        {
+            return TaskAsyncHelper.FromResult(cmd.ExecuteScalar());
+        }
+
+        public virtual System.Threading.Tasks.Task<IDataReader> ExecuteReaderAsync(Database database, IDbCommand cmd)
+        {
+            return TaskAsyncHelper.FromResult(cmd.ExecuteReader());
+        }
+#endif
     }
 }

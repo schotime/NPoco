@@ -78,7 +78,7 @@ namespace NPoco.Tests.Common
             TestDatabase.Dispose();
         }
 
-        protected void InsertData()
+        protected virtual void InsertData()
         {
             InMemoryUsers = new List<User>();
             InMemoryExtraUserInfos = new List<ExtraUserInfo>();

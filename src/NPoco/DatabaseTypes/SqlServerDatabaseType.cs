@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -25,14 +26,60 @@ namespace NPoco.DatabaseTypes
             return sqlPage;
         }
 
+        private static void AdjustSqlInsertCommandText(IDbCommand cmd)
+        {
+            cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
+        }
+
         public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
         {
             //var pocodata = PocoData.ForType(typeof(T), db.PocoDataFactory);
             //var sql = string.Format("SELECT * FROM {0} WHERE {1} = SCOPE_IDENTITY()", EscapeTableName(pocodata.TableInfo.TableName), EscapeSqlIdentifier(primaryKeyName));
             //return db.SingleInto(poco, ";" + cmd.CommandText + ";" + sql, args);
-            cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
+            AdjustSqlInsertCommandText(cmd);
             return db.ExecuteScalarHelper(cmd);
         }
+
+#if !POCO_NO_DYNAMIC
+        public override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
+        {
+            AdjustSqlInsertCommandText(cmd);
+            return db.ExecuteScalarHelperAsync(cmd);
+        }
+
+        public override System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, IDbCommand cmd)
+        {
+            var sqlCommand = cmd as SqlCommand;
+            if (sqlCommand != null)
+                return sqlCommand.ExecuteNonQueryAsync();
+            return base.ExecuteNonQueryAsync(database, cmd);
+        }
+
+        public override async System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, IDbCommand cmd)
+        {
+            var dbCommand = cmd as SqlCommand;
+            if (dbCommand != null)
+            {
+                using (var reader = await dbCommand.ExecuteReaderAsync())
+                {
+                    if (reader.Read())
+                        return await TaskAsyncHelper.FromResult(reader.GetValue(0));
+                }
+            }
+            return await base.ExecuteScalarAsync(database, cmd);
+        }
+
+        public override async System.Threading.Tasks.Task<IDataReader> ExecuteReaderAsync(Database database, IDbCommand cmd)
+        {
+            var dbCommand = cmd as SqlCommand;
+            if (dbCommand != null)
+            {
+                return await dbCommand.ExecuteReaderAsync();
+            }
+
+            return await base.ExecuteReaderAsync(database, cmd);
+        }
+#endif
 
         public override string GetExistsSql()
         {
@@ -51,9 +98,9 @@ namespace NPoco.DatabaseTypes
 
         public override DbType? LookupDbType(Type type, string name)
         {
-            if (type == typeof (TimeSpan) || type == typeof(TimeSpan?))
+            if (type == typeof(TimeSpan) || type == typeof(TimeSpan?))
                 return null;
-            
+
             return base.LookupDbType(type, name);
         }
 

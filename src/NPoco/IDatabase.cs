@@ -23,6 +23,9 @@ namespace NPoco
         object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco);
         object Insert<T>(string tableName, string primaryKeyName, T poco);
         object Insert<T>(T poco);
+#if !POCO_NO_DYNAMIC
+        System.Threading.Tasks.Task<object> InsertAsync<T>(T poco);
+#endif
         void InsertBulk<T>(IEnumerable<T> pocos);
         int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
         int Update(string tableName, string primaryKeyName, object poco);
