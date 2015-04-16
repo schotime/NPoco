@@ -71,6 +71,8 @@
   <ItemGroup>
     <Compile Include="Common\ColumnInfoTests.cs" />
     <Compile Include="Async\InsertAsyncTests.cs" />
+    <Compile Include="Async\QueryAsyncTests.cs" />
+    <Compile Include="Async\UpdateAsyncTests.cs" />
     <Compile Include="Common\CompositeObjectDecorated.cs" />
     <Compile Include="Common\AssignedPkObjectDecorated.cs" />
     <Compile Include="Common\BaseDBDecoratedTest.cs" />

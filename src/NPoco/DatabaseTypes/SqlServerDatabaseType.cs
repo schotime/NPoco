@@ -40,11 +40,11 @@ namespace NPoco.DatabaseTypes
             return db.ExecuteScalarHelper(cmd);
         }
 
-#if !POCO_NO_DYNAMIC
+#if NET45
         public override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
         {
             AdjustSqlInsertCommandText(cmd);
-            return db.ExecuteScalarHelperAsync(cmd);
+            return ExecuteScalarAsync(db, cmd);
         }
 
         public override System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, IDbCommand cmd)

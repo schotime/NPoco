@@ -220,7 +220,7 @@ namespace NPoco
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return db.ExecuteScalarHelper(cmd);
         }
-#if !POCO_NO_DYNAMIC
+#if NET45
         public virtual async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
@@ -334,20 +334,20 @@ namespace NPoco
             return "System.Data.SqlClient";
         }
 
-#if !POCO_NO_DYNAMIC
+#if NET45
         public virtual System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, IDbCommand cmd)
         {
-            return TaskAsyncHelper.FromResult(cmd.ExecuteNonQuery());
+            throw new NotSupportedException("Async is not supported by the provider you are using");
         }
 
         public virtual System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, IDbCommand cmd)
         {
-            return TaskAsyncHelper.FromResult(cmd.ExecuteScalar());
+            throw new NotSupportedException("Async is not supported by the provider you are using");
         }
 
         public virtual System.Threading.Tasks.Task<IDataReader> ExecuteReaderAsync(Database database, IDbCommand cmd)
         {
-            return TaskAsyncHelper.FromResult(cmd.ExecuteReader());
+            throw new NotSupportedException("Async is not supported by the provider you are using");
         }
 #endif
     }
