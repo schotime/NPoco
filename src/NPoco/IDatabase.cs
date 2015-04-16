@@ -27,6 +27,7 @@ namespace NPoco
         System.Threading.Tasks.Task<object> InsertAsync<T>(T poco);
         System.Threading.Tasks.Task<int> UpdateAsync(object poco);
         System.Threading.Tasks.Task<int> UpdateAsync(object poco, IEnumerable<string> columns);
+        System.Threading.Tasks.Task<int> DeleteAsync(object poco);
 #endif
         void InsertBulk<T>(IEnumerable<T> pocos);
         int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
