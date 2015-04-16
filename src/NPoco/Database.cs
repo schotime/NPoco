@@ -861,81 +861,6 @@ namespace NPoco
             return Query(default(T), Sql);
         }
 
-#if NET45
-        public System.Threading.Tasks.Task<IEnumerable<T>> QueryAsync<T>(string sql, params object[] args)
-        {
-            return QueryAsync<T>(new Sql(sql, args));
-        }
-
-        public System.Threading.Tasks.Task<IEnumerable<T>> QueryAsync<T>(Sql sql)
-        {
-            return QueryAsync(default(T), sql);
-        }
-
-        private async System.Threading.Tasks.Task<IEnumerable<T>> QueryAsync<T>(T instance, Sql Sql)
-        {
-            var sql = Sql.SQL;
-            var args = Sql.Arguments;
-
-            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
-
-            try
-            {
-                OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql, args))
-                {
-                    IDataReader r;
-                    try
-                    {
-                        r = await ExecuteReaderHelperAsync(cmd);
-                    }
-                    catch (Exception x)
-                    {
-                        OnException(x);
-                        throw;
-                    }
-
-                    return Read(instance, r);
-                }
-            }
-            catch
-            {
-                CloseSharedConnectionInternal();
-                throw;
-            }
-        }
-
-        public async System.Threading.Tasks.Task<IEnumerable<TRet>> QueryAsync<TRet>(Type[] types, Delegate cb, Sql sql)
-        {
-            if (types.Length == 1)
-            {
-                return await QueryAsync<TRet>(sql);
-            }
-
-            try
-            {
-                OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
-                {
-                    IDataReader r;
-                    try
-                    {
-                        r = await ExecuteReaderHelperAsync(cmd);
-                    }
-                    catch (Exception x)
-                    {
-                        OnException(x);
-                        throw;
-                    }
-                    return Read<TRet>(types, cb, r);
-                }
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
-            }
-        }
-#endif
         private IEnumerable<TRet> Read<TRet>(Type[] types, Delegate cb, IDataReader r)
         {
             try
@@ -1214,8 +1139,20 @@ namespace NPoco
             }
         }
 
-        // Actual implementation of the multi-poco paging
         public Page<T> Page<T>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
+        {
+            return PageImp<T, Page<T>>(types, cb, page, itemsPerPage, sql, args, (paged, thetypes, thesql) =>
+            {
+                paged.Items = thetypes.Length > 1
+                    ? Query<T>(thetypes, cb, thesql).ToList()
+                    : Query<T>(thesql).ToList();
+
+                return paged;
+            });
+        }
+
+        // Actual implementation of the multi-poco paging
+        protected TRet PageImp<T, TRet>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, object[] args, Func<Page<T>, Type[], Sql, TRet> executeQueryFunc)
         {
             string sqlCount, sqlPage;
 
@@ -1238,12 +1175,7 @@ namespace NPoco
             OneTimeCommandTimeout = saveTimeout;
 
             // Get the records
-            result.Items = types.Length > 1 
-                ? Query<T>(types, cb, new Sql(sqlPage, args)).ToList() 
-                : Query<T>(new Sql(sqlPage, args)).ToList();
-
-            // Done
-            return result;
+            return executeQueryFunc(result, types, new Sql(sqlPage, args));
         }
 
         public TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args)); }
