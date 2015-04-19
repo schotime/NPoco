@@ -204,6 +204,7 @@ namespace NPoco
             if (_sharedConnection.State == ConnectionState.Closed)
             {
                 _sharedConnection.Open();
+                _sharedConnection = OnConnectionOpened(_sharedConnection);
 
                 //using (var cmd = _sharedConnection.CreateCommand())
                 //{
@@ -212,8 +213,6 @@ namespace NPoco
                 //    cmd.ExecuteNonQuery();
                 //}
             }
-
-            _sharedConnection = OnConnectionOpened(_sharedConnection);
         }
 
         private void CloseSharedConnectionInternal()
@@ -1291,20 +1290,27 @@ namespace NPoco
             var primaryKeyValuePairs = ProcessMapper(pd, GetPrimaryKeyValues(pd.TableInfo.PrimaryKey, primaryKey));
             return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
         }
+
         public T SingleById<T>(object primaryKey)
         {
-            var index = 0;
-            var pd = PocoDataFactory.ForType(typeof (T));
-            var primaryKeyValuePairs = ProcessMapper(pd, GetPrimaryKeyValues(pd.TableInfo.PrimaryKey, primaryKey));
-            return Single<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
+            var sql = GenerateSingleByIdSql<T>(primaryKey);
+            return Single<T>(sql);
         }
 
         public T SingleOrDefaultById<T>(object primaryKey)
         {
+            var sql = GenerateSingleByIdSql<T>(primaryKey);
+            return SingleOrDefault<T>(sql);
+        }
+
+        private Sql GenerateSingleByIdSql<T>(object primaryKey)
+        {
             var index = 0;
             var pd = PocoDataFactory.ForType(typeof (T));
             var primaryKeyValuePairs = ProcessMapper(pd, GetPrimaryKeyValues(pd.TableInfo.PrimaryKey, primaryKey));
-            return SingleOrDefault<T>(string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray());
+            var sql = string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
+            var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
+            return new Sql(true, sql, args);
         }
 
         public T Single<T>(string sql, params object[] args)
@@ -1389,129 +1395,33 @@ namespace NPoco
         // the new id is returned.
         public virtual object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            return InsertImp<T, object, object>(tableName, primaryKeyName, autoIncrement, poco,
-                (cmd, pkname, thepoco, rawvalues, next) =>
-                    next(_dbType.ExecuteInsert(this, cmd, pkname, thepoco, rawvalues.ToArray())), 
-                (cmd, next) => { 
-                    ExecuteNonQueryHelper(cmd);
-                    return next();
-                });
-        }
-
-        public delegate TRet AutoIncrementDelegate<in T1, TId, out TRet>(IDbCommand cmd, string primarykey, T1 poco, object[] rawvalues, Func<TId, TId> next);
-
-        public virtual TRet InsertImp<T, TId, TRet>(string tableName, string primaryKeyName, bool autoIncrement, T poco,
-            AutoIncrementDelegate<T, TId, TRet> autoIncrementFunc,
-            Func<IDbCommand, Func<TId>, TRet> nonAutoIncrementFunc)
-        {
             if (!OnInserting(new InsertContext(poco, tableName, autoIncrement, primaryKeyName))) 
-                return default(TRet);
+                return 0;
 
             try
             {
                 OpenSharedConnectionInternal();
 
-                var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
-                var names = new List<string>();
-                var values = new List<string>();
-                var rawvalues = new List<object>();
-                var index = 0;
-                var versionName = "";
+                var preparedInsert = InsertStatements.PrepareInsertSql(this, tableName, primaryKeyName, autoIncrement,poco);
 
-                foreach (var i in pd.Columns)
-                {
-                    // Don't insert result columns
-                    if (i.Value.ResultColumn 
-                        || i.Value.ComputedColumn 
-                        || (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.RowVersion))
-                    {
-                        continue;
-                    }
-
-                    // Don't insert the primary key (except under oracle where we need bring in the next sequence value)
-                    if (autoIncrement && primaryKeyName != null && string.Compare(i.Key, primaryKeyName, true) == 0)
-                    {
-                        // Setup auto increment expression
-                        string autoIncExpression = _dbType.GetAutoIncrementExpression(pd.TableInfo);
-                        if (autoIncExpression != null)
-                        {
-                            names.Add(i.Key);
-                            values.Add(autoIncExpression);
-                        }
-                        continue;
-                    }
-
-                    names.Add(_dbType.EscapeSqlIdentifier(i.Key));
-                    values.Add(string.Format("{0}{1}", _paramPrefix, index++));
-
-                    object val = ProcessMapper(i.Value, i.Value.GetValue(poco));
-
-                    if (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.Number)
-                    {
-                        val = Convert.ToInt64(val) > 0 ? val : 1;
-                        versionName = i.Key;
-                    }
-
-                    rawvalues.Add(val);
-                }
-
-                var sql = string.Empty;
-                var outputClause = String.Empty;
-                if (autoIncrement)
-                {
-                    outputClause = _dbType.GetInsertOutputClause(primaryKeyName);
-                }
-
-                if (names.Count != 0)
-                {
-                    sql = string.Format("INSERT INTO {0} ({1}){2} VALUES ({3})",
-                                        _dbType.EscapeTableName(tableName),
-                                        string.Join(",", names.ToArray()),
-                                        outputClause,
-                                        string.Join(",", values.ToArray()));
-                }
-                else
-                {
-                    sql = _dbType.GetDefaultInsertSql(tableName, names.ToArray(), values.ToArray());
-                }
-
-                using (var cmd = CreateCommand(_sharedConnection, sql, rawvalues.ToArray()))
+                using (var cmd = CreateCommand(_sharedConnection, preparedInsert.Sql, preparedInsert.Rawvalues.ToArray()))
                 {
                     // Assign the Version column
-                    if (!string.IsNullOrEmpty(versionName))
-                    {
-                        PocoColumn pc;
-                        if (pd.Columns.TryGetValue(versionName, out pc))
-                        {
-                            pc.SetValue(poco, pc.ChangeType(1));
-                        }
-                    }
+                    InsertStatements.AssignVersion(poco, preparedInsert);
 
+                    object id;
                     if (!autoIncrement)
                     {
-                        return nonAutoIncrementFunc(cmd, () =>
-                        {
-                            PocoColumn pkColumn;
-                            if (primaryKeyName != null && pd.Columns.TryGetValue(primaryKeyName, out pkColumn))
-                                return (TId)pkColumn.GetValue(poco);
-                            return default(TId);
-                        });
+                        ExecuteNonQueryHelper(cmd);
+                        id = InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, preparedInsert);
+                    }
+                    else
+                    {
+                        id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, poco, preparedInsert.Rawvalues.ToArray());
+                        InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
                     }
 
-                    return autoIncrementFunc(cmd, primaryKeyName, poco, rawvalues.ToArray(), id =>
-                    {
-                        if (primaryKeyName != null && id != null && id.GetType().IsValueType)
-                        {
-                            PocoColumn pc;
-                            if (pd.Columns.TryGetValue(primaryKeyName, out pc))
-                            {
-                                pc.SetValue(poco, pc.ChangeType(id));
-                            }
-                        }
-                        return id;
-                    });
-
-                    // Assign the ID back to the primary key property
+                    return id;
                 }
             }
             catch (Exception x)

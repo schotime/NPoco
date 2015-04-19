@@ -38,5 +38,12 @@ namespace NPoco.Tests.Async
             var users = await Database.Query<User>().ProjectToAsync(x => new { x.Name });
             Assert.AreEqual("Name1", users[0].Name);
         }
+
+        [Test]
+        public async Task PagingAsync()
+        {
+            var records = await Database.PageAsync<User>(2, 5, "SELECT u.* FROM Users u WHERE UserID <= 15");
+            Assert.AreEqual(records.Items.Count, 5);
+        }
     }
 }

@@ -1,13 +1,19 @@
 using System;
 using System.Linq.Expressions;
+#if NET45
+using System.Threading.Tasks;
+#endif
 using NPoco.Expressions;
 
 namespace NPoco.Linq
 {
     public interface IDeleteQueryProvider<T>
     {
-        int Execute();
         IDeleteQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
+        int Execute();
+#if NET45
+        Task<int> ExecuteAsync();
+#endif
     }
 
     public class DeleteQueryProvider<T> : IDeleteQueryProvider<T>
@@ -31,5 +37,12 @@ namespace NPoco.Linq
         {
             return _database.Execute(_sqlExpression.Context.ToDeleteStatement(), _sqlExpression.Context.Params);
         }
+
+#if NET45
+        public Task<int> ExecuteAsync()
+        {
+            return _database.ExecuteAsync(_sqlExpression.Context.ToDeleteStatement(), _sqlExpression.Context.Params);
+        }
+#endif
     }
 }

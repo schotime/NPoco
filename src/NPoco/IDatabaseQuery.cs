@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq.Expressions;
-using NPoco.Expressions;
 using NPoco.Linq;
 #if NET45
 using System.Threading.Tasks;
@@ -107,16 +105,37 @@ namespace NPoco
         Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql);
 
 #if NET45
+        Task<T> SingleByIdAsync<T>(object primaryKey);
+        Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey);
+
         Task<IEnumerable<T>> QueryAsync<T>(string sql, object[] args);
         Task<IEnumerable<T>> QueryAsync<T>(Sql sql);
         Task<IEnumerable<T>> QueryAsync<T>(Type[] types, Delegate cb, Sql sql);
 
-        Task<IEnumerable<T>> FetchAsync<T>(string sql, params object[] args);
-        Task<IEnumerable<T>> FetchAsync<T>(Sql sql);
+        Task<List<T>> FetchAsync<T>(string sql, params object[] args);
+        Task<List<T>> FetchAsync<T>(Sql sql);
+
+        Task<List<T1>> FetchAsync<T1, T2>(Sql sql);
+        Task<List<T1>> FetchAsync<T1, T2, T3>(Sql sql);
+        Task<List<T1>> FetchAsync<T1, T2, T3, T4>(Sql sql);
+        Task<IEnumerable<T1>> QueryAsync<T1, T2>(Sql sql);
+        Task<IEnumerable<T1>> QueryAsync<T1, T2, T3>(Sql sql);
+        Task<IEnumerable<T1>> QueryAsync<T1, T2, T3, T4>(Sql sql);
+        Task<List<T1>> FetchAsync<T1, T2>(string sql, params object[] args);
+        Task<List<T1>> FetchAsync<T1, T2, T3>(string sql, params object[] args);
+        Task<List<T1>> FetchAsync<T1, T2, T3, T4>(string sql, params object[] args);
+        Task<IEnumerable<T1>> QueryAsync<T1, T2>(string sql, params object[] args);
+        Task<IEnumerable<T1>> QueryAsync<T1, T2, T3>(string sql, params object[] args);
+        Task<IEnumerable<T1>> QueryAsync<T1, T2, T3, T4>(string sql, params object[] args);
 
         Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args);
         Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql); 
         Task<Page<T>> PageAsync<T>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, params object[] args);
+
+        Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args);
+        Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, Sql sql);
+        Task<List<T>> SkipTakeAsync<T>(long skip, long take, string sql, params object[] args);
+        Task<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql);
         
         Task<T> ExecuteScalarAsync<T>(string sql, object[] args);
         Task<T> ExecuteScalarAsync<T>(Sql sql);
