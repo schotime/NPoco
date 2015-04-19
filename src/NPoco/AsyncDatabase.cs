@@ -4,8 +4,6 @@ using NPoco.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -50,15 +48,46 @@ namespace NPoco
         /// <remarks>Inserts a poco into a table.  If the poco has a property with the same name 
         /// as the primary key the id of the new record is assigned to it.  Either way,
         /// the new id is returned.</remarks>
-        public virtual Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
+        public virtual async Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            return InsertImp<T, object, Task<object>>(tableName, primaryKeyName, autoIncrement, poco,
-                async (cmd, pkname, thepoco, rawvalues, next) => 
-                    next(await _dbType.ExecuteInsertAsync(this, cmd, pkname, thepoco, rawvalues.ToArray())), 
-                async (cmd, next) => {
-                     await _dbType.ExecuteNonQueryAsync(this, cmd);
-                     return next();
-                });
+            if (!OnInserting(new InsertContext(poco, tableName, autoIncrement, primaryKeyName)))
+                return 0;
+
+            try
+            {
+                OpenSharedConnectionInternal();
+
+                var preparedInsert = InsertStatements.PrepareInsertSql(this, tableName, primaryKeyName, autoIncrement, poco);
+
+                using (var cmd = CreateCommand(_sharedConnection, preparedInsert.Sql, preparedInsert.Rawvalues.ToArray()))
+                {
+                    // Assign the Version column
+                    InsertStatements.AssignVersion(poco, preparedInsert);
+
+                    object id;
+                    if (!autoIncrement)
+                    {
+                        await _dbType.ExecuteNonQueryAsync(this, cmd);
+                        id = InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, preparedInsert);
+                    }
+                    else
+                    {
+                        id = await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, poco, preparedInsert.Rawvalues.ToArray());
+                        InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
+                    }
+
+                    return id;
+                }
+            }
+            catch (Exception x)
+            {
+                OnException(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
         }
 
         public Task<int> UpdateAsync<T>(T poco, Expression<Func<T, object>> fields)
@@ -131,12 +160,34 @@ namespace NPoco
                 });
         }
 
-        public async Task<IEnumerable<T>> FetchAsync<T>(string sql, params object[] args)
+        public Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
+        {
+            return SkipTakeAsync<T>((page - 1) * itemsPerPage, itemsPerPage, sql, args);
+        }
+
+        public Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, Sql sql)
+        {
+            return SkipTakeAsync<T>((page - 1) * itemsPerPage, itemsPerPage, sql.SQL, sql.Arguments);
+        }
+
+        public Task<List<T>> SkipTakeAsync<T>(long skip, long take, string sql, params object[] args)
+        {
+            string sqlCount, sqlPage;
+            BuildPageQueries<T>(skip, take, sql, ref args, out sqlCount, out sqlPage);
+            return FetchAsync<T>(sqlPage, args);
+        }
+
+        public Task<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql)
+        {
+            return SkipTakeAsync<T>(skip, take, sql.SQL, sql.Arguments);
+        }
+
+        public async Task<List<T>> FetchAsync<T>(string sql, params object[] args)
         {
             return (await QueryAsync<T>(sql, args)).ToList();
         }
 
-        public async Task<IEnumerable<T>> FetchAsync<T>(Sql sql)
+        public async Task<List<T>> FetchAsync<T>(Sql sql)
         {
             return (await QueryAsync<T>(sql)).ToList();
         }
@@ -209,10 +260,43 @@ namespace NPoco
                     return Read<TRet>(types, cb, r);
                 }
             }
-            finally
+            catch
             {
                 CloseSharedConnectionInternal();
+                throw;
             }
+        }
+
+        // Multi Fetch (Simple) (SQL builder)
+        public async Task<List<T1>> FetchAsync<T1, T2>(Sql sql) { return (await QueryAsync<T1, T2>(sql)).ToList(); }
+        public async Task<List<T1>> FetchAsync<T1, T2, T3>(Sql sql) { return (await QueryAsync<T1, T2, T3>(sql)).ToList(); }
+        public async Task<List<T1>> FetchAsync<T1, T2, T3, T4>(Sql sql) { return (await QueryAsync<T1, T2, T3, T4>(sql)).ToList(); }
+
+        // Multi Query (Simple) (SQL builder)
+        public Task<IEnumerable<T1>> QueryAsync<T1, T2>(Sql sql) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2) }, null, sql); }
+        public Task<IEnumerable<T1>> QueryAsync<T1, T2, T3>(Sql sql) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, sql); }
+        public Task<IEnumerable<T1>> QueryAsync<T1, T2, T3, T4>(Sql sql) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, sql); }
+
+        // Multi Fetch (Simple)
+        public async Task<List<T1>> FetchAsync<T1, T2>(string sql, params object[] args) { return (await QueryAsync<T1, T2>(sql, args)).ToList(); }
+        public async Task<List<T1>> FetchAsync<T1, T2, T3>(string sql, params object[] args) { return (await QueryAsync<T1, T2, T3>(sql, args)).ToList(); }
+        public async Task<List<T1>> FetchAsync<T1, T2, T3, T4>(string sql, params object[] args) { return (await QueryAsync<T1, T2, T3, T4>(sql, args)).ToList(); }
+
+        // Multi Query (Simple)
+        public Task<IEnumerable<T1>> QueryAsync<T1, T2>(string sql, params object[] args) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2) }, null, new Sql(sql, args)); }
+        public Task<IEnumerable<T1>> QueryAsync<T1, T2, T3>(string sql, params object[] args) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, new Sql(sql, args)); }
+        public Task<IEnumerable<T1>> QueryAsync<T1, T2, T3, T4>(string sql, params object[] args) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, new Sql(sql, args)); }
+
+        public async Task<T> SingleByIdAsync<T>(object primaryKey)
+        {
+            var sql = GenerateSingleByIdSql<T>(primaryKey);
+            return (await QueryAsync<T>(sql)).Single();
+        }
+
+        public async Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey)
+        {
+            var sql = GenerateSingleByIdSql<T>(primaryKey);
+            return (await QueryAsync<T>(sql)).SingleOrDefault();
         }
 
         internal async Task<int> ExecuteNonQueryHelperAsync(IDbCommand cmd)
