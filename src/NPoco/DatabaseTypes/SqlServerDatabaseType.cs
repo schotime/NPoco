@@ -58,15 +58,21 @@ namespace NPoco.DatabaseTypes
         public override async System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, IDbCommand cmd)
         {
             var dbCommand = cmd as SqlCommand;
+            
             if (dbCommand != null)
             {
+#if NET40ASYNC
                 using (var reader = await dbCommand.ExecuteReaderAsync())
                 {
-                    if (reader.Read())
+                    if (reader.FieldCount > 0 && reader.Read())
                         return await TaskAsyncHelper.FromResult(reader.GetValue(0));
+                    return TaskAsyncHelper.FromResult((object)null);
                 }
+#else
+                return await dbCommand.ExecuteScalarAsync().ConfigureAwait(false);
+#endif
             }
-            return await base.ExecuteScalarAsync(database, cmd);
+            return await base.ExecuteScalarAsync(database, cmd).ConfigureAwait(false);
         }
 
         public override async System.Threading.Tasks.Task<IDataReader> ExecuteReaderAsync(Database database, IDbCommand cmd)
@@ -74,10 +80,10 @@ namespace NPoco.DatabaseTypes
             var dbCommand = cmd as SqlCommand;
             if (dbCommand != null)
             {
-                return await dbCommand.ExecuteReaderAsync();
+                return await dbCommand.ExecuteReaderAsync().ConfigureAwait(false);
             }
 
-            return await base.ExecuteReaderAsync(database, cmd);
+            return await base.ExecuteReaderAsync(database, cmd).ConfigureAwait(false);
         }
 #endif
 

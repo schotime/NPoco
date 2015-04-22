@@ -67,12 +67,12 @@ namespace NPoco
                     object id;
                     if (!autoIncrement)
                     {
-                        await _dbType.ExecuteNonQueryAsync(this, cmd);
+                        await _dbType.ExecuteNonQueryAsync(this, cmd).ConfigureAwait(false);
                         id = InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, preparedInsert);
                     }
                     else
                     {
-                        id = await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, poco, preparedInsert.Rawvalues.ToArray());
+                        id = await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, poco, preparedInsert.Rawvalues.ToArray()).ConfigureAwait(false);
                         InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
                     }
 
@@ -118,7 +118,7 @@ namespace NPoco
         public virtual Task<int> UpdateAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
             return UpdateImp (tableName, primaryKeyName, poco, primaryKeyValue, columns,
-                async (sql, args, next) => next(await ExecuteAsync(sql, args)), TaskAsyncHelper.FromResult(0));
+                async (sql, args, next) => next(await ExecuteAsync(sql, args).ConfigureAwait(false)), TaskAsyncHelper.FromResult(0));
         }
 
         public Task<int> DeleteAsync(object poco)
@@ -132,7 +132,7 @@ namespace NPoco
             return DeleteAsync(tableName, primaryKeyName, poco, null);
         }
 
-        public Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
+        public virtual Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
             return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, ExecuteAsync, TaskAsyncHelper.FromResult(0));
         }
@@ -153,8 +153,8 @@ namespace NPoco
                 async (paged, thetypes, thesql) =>
                 {
                     paged.Items = thetypes.Length > 1
-                        ? (await QueryAsync<T>(thetypes, cb, thesql)).ToList()
-                        : (await QueryAsync<T>(thesql)).ToList();
+                        ? (await QueryAsync<T>(thetypes, cb, thesql).ConfigureAwait(false)).ToList()
+                        : (await QueryAsync<T>(thesql).ConfigureAwait(false)).ToList();
 
                     return paged;
                 });
@@ -184,12 +184,12 @@ namespace NPoco
 
         public async Task<List<T>> FetchAsync<T>(string sql, params object[] args)
         {
-            return (await QueryAsync<T>(sql, args)).ToList();
+            return (await QueryAsync<T>(sql, args).ConfigureAwait(false)).ToList();
         }
 
         public async Task<List<T>> FetchAsync<T>(Sql sql)
         {
-            return (await QueryAsync<T>(sql)).ToList();
+            return (await QueryAsync<T>(sql).ConfigureAwait(false)).ToList();
         }
 
         public Task<IEnumerable<T>> QueryAsync<T>(string sql, params object[] args)
@@ -217,7 +217,7 @@ namespace NPoco
                     IDataReader r;
                     try
                     {
-                        r = await ExecuteReaderHelperAsync(cmd);
+                        r = await ExecuteReaderHelperAsync(cmd).ConfigureAwait(false);
                     }
                     catch (Exception x)
                     {
@@ -239,7 +239,7 @@ namespace NPoco
         {
             if (types.Length == 1)
             {
-                return await QueryAsync<TRet>(sql);
+                return await QueryAsync<TRet>(sql).ConfigureAwait(false);
             }
 
             try
@@ -250,7 +250,7 @@ namespace NPoco
                     IDataReader r;
                     try
                     {
-                        r = await ExecuteReaderHelperAsync(cmd);
+                        r = await ExecuteReaderHelperAsync(cmd).ConfigureAwait(false);
                     }
                     catch (Exception x)
                     {
@@ -268,9 +268,9 @@ namespace NPoco
         }
 
         // Multi Fetch (Simple) (SQL builder)
-        public async Task<List<T1>> FetchAsync<T1, T2>(Sql sql) { return (await QueryAsync<T1, T2>(sql)).ToList(); }
-        public async Task<List<T1>> FetchAsync<T1, T2, T3>(Sql sql) { return (await QueryAsync<T1, T2, T3>(sql)).ToList(); }
-        public async Task<List<T1>> FetchAsync<T1, T2, T3, T4>(Sql sql) { return (await QueryAsync<T1, T2, T3, T4>(sql)).ToList(); }
+        public async Task<List<T1>> FetchAsync<T1, T2>(Sql sql) { return (await QueryAsync<T1, T2>(sql).ConfigureAwait(false)).ToList(); }
+        public async Task<List<T1>> FetchAsync<T1, T2, T3>(Sql sql) { return (await QueryAsync<T1, T2, T3>(sql).ConfigureAwait(false)).ToList(); }
+        public async Task<List<T1>> FetchAsync<T1, T2, T3, T4>(Sql sql) { return (await QueryAsync<T1, T2, T3, T4>(sql).ConfigureAwait(false)).ToList(); }
 
         // Multi Query (Simple) (SQL builder)
         public Task<IEnumerable<T1>> QueryAsync<T1, T2>(Sql sql) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2) }, null, sql); }
@@ -278,9 +278,9 @@ namespace NPoco
         public Task<IEnumerable<T1>> QueryAsync<T1, T2, T3, T4>(Sql sql) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, sql); }
 
         // Multi Fetch (Simple)
-        public async Task<List<T1>> FetchAsync<T1, T2>(string sql, params object[] args) { return (await QueryAsync<T1, T2>(sql, args)).ToList(); }
-        public async Task<List<T1>> FetchAsync<T1, T2, T3>(string sql, params object[] args) { return (await QueryAsync<T1, T2, T3>(sql, args)).ToList(); }
-        public async Task<List<T1>> FetchAsync<T1, T2, T3, T4>(string sql, params object[] args) { return (await QueryAsync<T1, T2, T3, T4>(sql, args)).ToList(); }
+        public async Task<List<T1>> FetchAsync<T1, T2>(string sql, params object[] args) { return (await QueryAsync<T1, T2>(sql, args).ConfigureAwait(false)).ToList(); }
+        public async Task<List<T1>> FetchAsync<T1, T2, T3>(string sql, params object[] args) { return (await QueryAsync<T1, T2, T3>(sql, args).ConfigureAwait(false)).ToList(); }
+        public async Task<List<T1>> FetchAsync<T1, T2, T3, T4>(string sql, params object[] args) { return (await QueryAsync<T1, T2, T3, T4>(sql, args).ConfigureAwait(false)).ToList(); }
 
         // Multi Query (Simple)
         public Task<IEnumerable<T1>> QueryAsync<T1, T2>(string sql, params object[] args) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2) }, null, new Sql(sql, args)); }
@@ -290,19 +290,19 @@ namespace NPoco
         public async Task<T> SingleByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
-            return (await QueryAsync<T>(sql)).Single();
+            return (await QueryAsync<T>(sql).ConfigureAwait(false)).Single();
         }
 
         public async Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
-            return (await QueryAsync<T>(sql)).SingleOrDefault();
+            return (await QueryAsync<T>(sql).ConfigureAwait(false)).SingleOrDefault();
         }
 
         internal async Task<int> ExecuteNonQueryHelperAsync(IDbCommand cmd)
         {
             DoPreExecute(cmd);
-            var result = await _dbType.ExecuteNonQueryAsync(this, cmd);
+            var result = await _dbType.ExecuteNonQueryAsync(this, cmd).ConfigureAwait(false);
             OnExecutedCommand(cmd);
             return result;
         }
@@ -310,7 +310,7 @@ namespace NPoco
         internal async Task<object> ExecuteScalarHelperAsync(IDbCommand cmd)
         {
             DoPreExecute(cmd);
-            var result = await _dbType.ExecuteScalarAsync(this, cmd);
+            var result = await _dbType.ExecuteScalarAsync(this, cmd).ConfigureAwait(false);
             OnExecutedCommand(cmd);
             return result;
         }
@@ -318,7 +318,7 @@ namespace NPoco
         internal async Task<IDataReader> ExecuteReaderHelperAsync(IDbCommand cmd)
         {
             DoPreExecute(cmd);
-            var reader = await _dbType.ExecuteReaderAsync(this, cmd);
+            var reader = await _dbType.ExecuteReaderAsync(this, cmd).ConfigureAwait(false);
             OnExecutedCommand(cmd);
             return reader;
         }
