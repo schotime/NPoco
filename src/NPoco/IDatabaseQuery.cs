@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using NPoco.Expressions;
 using NPoco.Linq;
 #if NET45
 using System.Threading.Tasks;

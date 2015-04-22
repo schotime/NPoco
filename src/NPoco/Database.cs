@@ -678,7 +678,7 @@ namespace NPoco
                 OpenSharedConnectionInternal();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
-                    var result = await ExecuteNonQueryHelperAsync(cmd);
+                    var result = await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
                     return result;
                 }
             }
@@ -708,10 +708,10 @@ namespace NPoco
                 OpenSharedConnectionInternal();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
-                    object val = await ExecuteScalarHelperAsync(cmd);
+                    object val = await ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
 
                     if (val == null || val == DBNull.Value)
-                        return await TaskAsyncHelper.FromResult(default(T));
+                        return await TaskAsyncHelper.FromResult(default(T)).ConfigureAwait(false);
 
                     Type t = typeof(T);
                     Type u = Nullable.GetUnderlyingType(t);

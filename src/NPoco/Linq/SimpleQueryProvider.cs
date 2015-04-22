@@ -123,7 +123,6 @@ namespace NPoco.Linq
         {
             if (whereExpression != null)
                 _sqlExpression = _sqlExpression.Where(whereExpression);
-            _sqlExpression = _sqlExpression.Limit(1);
         }
 
         public T FirstOrDefault()
@@ -268,7 +267,7 @@ namespace NPoco.Linq
 #if NET45
         public async System.Threading.Tasks.Task<List<T>> ToListAsync()
         {
-            return (await ToEnumerableAsync()).ToList();
+            return (await ToEnumerableAsync().ConfigureAwait(false)).ToList();
         }
 
         public System.Threading.Tasks.Task<IEnumerable<T>> ToEnumerableAsync()
@@ -284,43 +283,43 @@ namespace NPoco.Linq
         public async System.Threading.Tasks.Task<T> FirstOrDefaultAsync()
         {
             AddLimitAndWhere(null);
-            return (await ToEnumerableAsync()).FirstOrDefault();
+            return (await ToEnumerableAsync().ConfigureAwait(false)).FirstOrDefault();
         }
 
         public async System.Threading.Tasks.Task<T> FirstAsync()
         {
             AddLimitAndWhere(null);
-            return (await ToEnumerableAsync()).First();
+            return (await ToEnumerableAsync().ConfigureAwait(false)).First();
         }
 
         public async System.Threading.Tasks.Task<T> SingleOrDefaultAsync()
         {
             AddLimitAndWhere(null);
-            return (await ToEnumerableAsync()).SingleOrDefault();
+            return (await ToEnumerableAsync().ConfigureAwait(false)).SingleOrDefault();
         }
 
         public async System.Threading.Tasks.Task<T> SingleAsync()
         {
             AddLimitAndWhere(null);
-            return (await ToEnumerableAsync()).Single();
+            return (await ToEnumerableAsync().ConfigureAwait(false)).Single();
         }
 
         public async System.Threading.Tasks.Task<int> CountAsync()
         {
             var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true, false);
-            return await _database.ExecuteScalarAsync<int>(sql);
+            return await _database.ExecuteScalarAsync<int>(sql).ConfigureAwait(false);
         }
 
         public async System.Threading.Tasks.Task<bool> AnyAsync()
         {
-            return (await CountAsync()) > 0;
+            return (await CountAsync().ConfigureAwait(false)) > 0;
         }
 
         public System.Threading.Tasks.Task<Page<T>> ToPageAsync(int page, int pageSize)
         {
             return ToPage(page, pageSize, async (paged, action) =>
             {
-                var list = await ToListAsync();
+                var list = await ToListAsync().ConfigureAwait(false);
                 action(paged, list);
                 return paged;
             });
@@ -330,7 +329,7 @@ namespace NPoco.Linq
         {
             var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, types, false);
-            return (await _database.QueryAsync<T>(types, null, sql)).Select(projectionExpression.Compile()).ToList();
+            return (await _database.QueryAsync<T>(types, null, sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
         }
 #endif
 
