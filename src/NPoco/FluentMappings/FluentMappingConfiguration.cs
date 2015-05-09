@@ -189,7 +189,7 @@ namespace NPoco.FluentMappings
         {
             var maps = mappings;
             var scana = scanner;
-            return new FluentConfig(mapper => new PocoDataFactory((t, aliasCache) =>
+            return new FluentConfig(mapper => new PocoDataFactory((t, aliasCache, pocoDataFactory) =>
             {
                 if (maps != null)
                 {
@@ -205,7 +205,7 @@ namespace NPoco.FluentMappings
                         return new FluentMappingsPocoData(t, typeMapping.Config[t], mapper);
                     }
                 }
-                return new PocoData(t, mapper, aliasCache);
+                return new PocoData(t, mapper, aliasCache, pocoDataFactory);
             }));
         }
 

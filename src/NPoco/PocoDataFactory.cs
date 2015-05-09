@@ -14,12 +14,12 @@ namespace NPoco
             _mapper = mapper;
         }
 
-        public PocoDataFactory(Func<Type, Cache<string, Type>,  PocoData> resolver)
+        public PocoDataFactory(Func<Type, Cache<string, Type>, PocoDataFactory, PocoData> resolver)
         {
             Resolver = resolver;
         }
 
-        public Func<Type, Cache<string, Type>, PocoData> Resolver { get; set; }
+        public Func<Type, Cache<string, Type>, PocoDataFactory, PocoData> Resolver { get; set; }
         public PocoData ForType(Type type)
         {
             return ForType(type, false);
@@ -31,8 +31,8 @@ namespace NPoco
                 throw new InvalidOperationException("Can't use dynamic types with this method");
 #endif
             Func<PocoData> pocoDataFunc = (Resolver == null 
-                ? new Func<PocoData>(() => new PocoData(type, _mapper, _aliasToType)) 
-                : new Func<PocoData>(() => Resolver(type, _aliasToType)));
+                ? new Func<PocoData>(() => new PocoData(type, _mapper, _aliasToType, this)) 
+                : new Func<PocoData>(() => Resolver(type, _aliasToType, this)));
             var pocoData = _pocoDatas.Get(type, pocoDataFunc);
             pocoData.EmptyNestedObjectNull = emptyNestedObjectNull;
             return pocoData;

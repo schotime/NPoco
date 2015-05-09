@@ -18,6 +18,7 @@ namespace NPoco
         public VersionColumnType VersionColumnType;
         public bool ComputedColumn;
         private Type _columnType;
+        private MemberAccessor _memberAccessor;
 
         public Type ColumnType
         {
@@ -32,5 +33,19 @@ namespace NPoco
         public virtual void SetValue(object target, object val) { MemberInfo.SetMemberInfoValue(target, val); }
         public virtual object GetValue(object target) { return MemberInfo.GetMemberInfoValue(target); }
         public virtual object ChangeType(object val) { return Convert.ChangeType(val, MemberInfo.GetMemberInfoType()); }
+
+        public virtual void SetValueFast(object target, object val)
+        {
+            SetupMemberAccessor();
+            _memberAccessor.Set(target, val);
+        }
+
+        private void SetupMemberAccessor()
+        {
+            if (_memberAccessor == null)
+            {
+                _memberAccessor = new MemberAccessor(MemberInfo.DeclaringType, MemberInfo.Name);
+            }
+        }
     }
 }

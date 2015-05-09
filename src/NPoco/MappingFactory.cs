@@ -18,6 +18,7 @@ namespace NPoco
         static FieldInfo fldConverters = typeof(MappingFactory).GetField("m_Converters", BindingFlags.Static | BindingFlags.GetField | BindingFlags.NonPublic);
         static MethodInfo fnListGetItem = typeof(List<Func<object, object>>).GetProperty("Item").GetGetMethod();
         static MethodInfo fnInvoke = typeof(Func<object, object>).GetMethod("Invoke");
+        static MethodInfo newMapper = typeof(NewMappingFactory).GetMethod("Map");
         static Cache<Type, Type> _underlyingTypes = Cache<Type, Type>.CreateStaticCache();
 
         //This will use a managed cache with items that expire
@@ -27,6 +28,8 @@ namespace NPoco
         {
             _pocoData = pocoData;
         }
+
+        public static bool UseNewMapper { get; set; }
 
         public Delegate GetFactory(int firstColumn, int countColumns, IDataReader r, object instance)
         {
@@ -166,26 +169,26 @@ namespace NPoco
                         il.Emit(OpCodes.Ldc_I4_S, countColumns - firstColumn);
                         il.Emit(OpCodes.Newarr, _pocoData.type.GetElementType());
 
-                        var valueset = typeof(Array).GetMethod("SetValue", new[] { typeof(object), typeof(int) });
+                        var valueset = typeof (Array).GetMethod("SetValue", new[] {typeof (object), typeof (int)});
 
                         for (int i = firstColumn; i < firstColumn + countColumns; i++)
                         {
                             // "if (!rdr.IsDBNull(i))"
-                            il.Emit(OpCodes.Ldarg_0);									// arr,rdr
-                            il.Emit(OpCodes.Ldc_I4, i);									// arr,rdr,i
-                            il.Emit(OpCodes.Callvirt, fnIsDBNull);						// arr,bool
+                            il.Emit(OpCodes.Ldarg_0); // arr,rdr
+                            il.Emit(OpCodes.Ldc_I4, i); // arr,rdr,i
+                            il.Emit(OpCodes.Callvirt, fnIsDBNull); // arr,bool
                             var lblNext = il.DefineLabel();
-                            il.Emit(OpCodes.Brtrue_S, lblNext);							// arr
+                            il.Emit(OpCodes.Brtrue_S, lblNext); // arr
 
-                            il.Emit(OpCodes.Dup);		                                    // arr,arr
-                            il.Emit(OpCodes.Ldarg_0);										// arr,arr,rdr
-                            il.Emit(OpCodes.Ldc_I4, i - firstColumn);						// arr,arr,rdr,i
-                            il.Emit(OpCodes.Callvirt, fnGetValue);							// arr,arr,value
+                            il.Emit(OpCodes.Dup); // arr,arr
+                            il.Emit(OpCodes.Ldarg_0); // arr,arr,rdr
+                            il.Emit(OpCodes.Ldc_I4, i - firstColumn); // arr,arr,rdr,i
+                            il.Emit(OpCodes.Callvirt, fnGetValue); // arr,arr,value
 
-                            il.Emit(OpCodes.Ldc_I4, i - firstColumn);                       // arr,arr,value,i
-                            il.Emit(OpCodes.Callvirt, valueset);                            // arr
+                            il.Emit(OpCodes.Ldc_I4, i - firstColumn); // arr,arr,value,i
+                            il.Emit(OpCodes.Callvirt, valueset); // arr
 
-                            il.MarkLabel(lblNext);                  
+                            il.MarkLabel(lblNext);
                         }
 
                         il.Emit(OpCodes.Castclass, _pocoData.type);
@@ -206,7 +209,7 @@ namespace NPoco
                             il.Emit(OpCodes.Newobj, constructorInfo);
                         }
 
-                        LocalBuilder a = il.DeclareLocal(typeof(Int32));
+                        LocalBuilder a = il.DeclareLocal(typeof (Int32));
                         if (_pocoData.EmptyNestedObjectNull)
                         {
                             il.Emit(OpCodes.Ldc_I4, 0);
@@ -218,20 +221,9 @@ namespace NPoco
                         {
                             // Get the PocoColumn for this db column, ignore if not known
                             PocoColumn pc;
-                            if (!TryGetColumnByName(_pocoData.Columns, r.GetName(i), out pc)
-                                || (!pc.MemberInfo.IsField() && ((PropertyInfo)pc.MemberInfo).GetSetMethodOnDeclaringType() == null))
+                            if (!TryGetColumnByName(_pocoData.Columns, r.GetName(i), out pc))
                             {
-                                var pcAlias = _pocoData.Columns.Values.SingleOrDefault(x => x.AutoAlias == r.GetName(i))
-                                    ?? _pocoData.Columns.Values.SingleOrDefault(x => string.Equals(x.ColumnAlias, r.GetName(i), StringComparison.OrdinalIgnoreCase));
-                                
-                                if (pcAlias != null)
-                                {
-                                    pc = pcAlias;
-                                }
-                                else
-                                {
-                                    continue;
-                                }
+                                continue;
                             }
 
                             // Get the source type for this column
@@ -239,13 +231,13 @@ namespace NPoco
                             var dstType = pc.MemberInfo.GetMemberInfoType();
 
                             // "if (!rdr.IsDBNull(i))"
-                            il.Emit(OpCodes.Ldarg_0);										// poco,rdr
-                            il.Emit(OpCodes.Ldc_I4, i);										// poco,rdr,i
-                            il.Emit(OpCodes.Callvirt, fnIsDBNull);							// poco,bool
+                            il.Emit(OpCodes.Ldarg_0); // poco,rdr
+                            il.Emit(OpCodes.Ldc_I4, i); // poco,rdr,i
+                            il.Emit(OpCodes.Callvirt, fnIsDBNull); // poco,bool
                             var lblNext = il.DefineLabel();
-                            il.Emit(OpCodes.Brtrue_S, lblNext);								// poco
+                            il.Emit(OpCodes.Brtrue_S, lblNext); // poco
 
-                            il.Emit(OpCodes.Dup);											// poco,poco
+                            il.Emit(OpCodes.Dup); // poco,poco
 
                             // Do we need to install a converter?
                             var converter = GetConverter(_pocoData.Mapper, pc, srcType, dstType);
@@ -254,19 +246,19 @@ namespace NPoco
                             bool Handled = false;
                             if (converter == null)
                             {
-                                var valuegetter = typeof(IDataRecord).GetMethod("Get" + srcType.Name, new Type[] { typeof(int) });
+                                var valuegetter = typeof (IDataRecord).GetMethod("Get" + srcType.Name, new Type[] {typeof (int)});
                                 if (valuegetter != null
                                     && valuegetter.ReturnType == srcType
                                     && (valuegetter.ReturnType == dstType || valuegetter.ReturnType == Nullable.GetUnderlyingType(dstType)))
                                 {
-                                    il.Emit(OpCodes.Ldarg_0);										// *,rdr
-                                    il.Emit(OpCodes.Ldc_I4, i);										// *,rdr,i
-                                    il.Emit(OpCodes.Callvirt, valuegetter);							// *,value
+                                    il.Emit(OpCodes.Ldarg_0); // *,rdr
+                                    il.Emit(OpCodes.Ldc_I4, i); // *,rdr,i
+                                    il.Emit(OpCodes.Callvirt, valuegetter); // *,value
 
                                     // Convert to Nullable
                                     if (Nullable.GetUnderlyingType(dstType) != null)
                                     {
-                                        il.Emit(OpCodes.Newobj, dstType.GetConstructor(new Type[] { Nullable.GetUnderlyingType(dstType) }));
+                                        il.Emit(OpCodes.Newobj, dstType.GetConstructor(new Type[] {Nullable.GetUnderlyingType(dstType)}));
                                     }
 
                                     PushMemberOntoStack(il, pc); //poco
@@ -281,16 +273,16 @@ namespace NPoco
                                 AddConverterToStack(il, converter);
 
                                 // "value = rdr.GetValue(i)"
-                                il.Emit(OpCodes.Ldarg_0);										// *,rdr
-                                il.Emit(OpCodes.Ldc_I4, i);										// *,rdr,i
-                                il.Emit(OpCodes.Callvirt, fnGetValue);							// *,value
+                                il.Emit(OpCodes.Ldarg_0); // *,rdr
+                                il.Emit(OpCodes.Ldc_I4, i); // *,rdr,i
+                                il.Emit(OpCodes.Callvirt, fnGetValue); // *,value
 
                                 // Call the converter
                                 if (converter != null)
                                     il.Emit(OpCodes.Callvirt, fnInvoke);
 
                                 // Assign it
-                                il.Emit(OpCodes.Unbox_Any, pc.MemberInfo.GetMemberInfoType());          // poco,poco,value
+                                il.Emit(OpCodes.Unbox_Any, pc.MemberInfo.GetMemberInfoType()); // poco,poco,value
 
                                 PushMemberOntoStack(il, pc); //poco
                             }
@@ -331,6 +323,7 @@ namespace NPoco
                             il.MarkLabel(lblElse);
                         }
                     }
+                    
 
                 il.Emit(OpCodes.Ret);
 
@@ -446,6 +439,23 @@ namespace NPoco
                 pc = columns.Values.Where(c => c.MemberInfo.Name == name).FirstOrDefault();
                 found = (pc != null);
             }
+            if (!found)
+            {
+                var pcAlias = columns.Values.SingleOrDefault(x => x.AutoAlias == name)
+                    ?? columns.Values.SingleOrDefault(x => string.Equals(x.ColumnAlias, name, StringComparison.OrdinalIgnoreCase));
+
+                pc = pcAlias;
+                found = (pcAlias != null);
+            }
+
+            if (found)
+            {
+                if (!pc.MemberInfo.IsField() && ((PropertyInfo)pc.MemberInfo).GetSetMethodOnDeclaringType() == null)
+                {
+                    found = false;
+                }
+            }
+
             return found;
         }
     }

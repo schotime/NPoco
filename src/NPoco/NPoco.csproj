@@ -91,6 +91,7 @@
     <Compile Include="DatabaseTypes\SqlServerCEDatabaseType.cs" />
     <Compile Include="DatabaseTypes\SqlServerDatabaseType.cs" />
     <Compile Include="Expressions\FirebirdSqlExpression.cs" />
+    <Compile Include="FastCreate.cs" />
     <Compile Include="HashCodeCombiner.cs" />
     <Compile Include="InsertStatements.cs" />
     <Compile Include="Linq\ComplexSqlBuilder.cs" />
@@ -132,7 +133,9 @@
     <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="IMapper.cs" />
     <Compile Include="InsertContext.cs" />
+    <Compile Include="MemberAccessor.cs" />
     <Compile Include="MultiPocoFactory.cs" />
+    <Compile Include="NewMappingFactory.cs" />
     <Compile Include="Page.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
     <Compile Include="FluentMappings\FluentMappingsPocoData.cs" />

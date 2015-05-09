@@ -975,14 +975,16 @@ namespace NPoco
 
                     using (r)
                     {
-                        var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
+                        //var factory =  pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
+                        var factory = new NewMappingFactory(pd, r);
                         while (true)
                         {
                             T poco;
                             try
                             {
                                 if (!r.Read()) yield break;
-                                poco = factory(r, instance);
+                                //poco = factory(r, instance);
+                                poco = (T)factory.Map(r, instance);
                             }
                             catch (Exception x)
                             {
