@@ -11,12 +11,12 @@ namespace NPoco
 {
     public class PocoData
     {
-        public PocoDataFactory PocoDataFactory { get; private set; }
+        public PocoDataFactory PocoDataFactory { get; protected set; }
         protected internal IMapper Mapper;
         internal bool EmptyNestedObjectNull;
         private readonly Cache<string, Type> aliasToType = Cache<string, Type>.CreateStaticCache();
      
-        protected internal Type type;
+        protected internal Type Type;
         public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected set; }
         public TableInfo TableInfo { get; protected internal set; }
         public Dictionary<string, PocoColumn> Columns { get; protected internal set; }
@@ -36,7 +36,7 @@ namespace NPoco
         {
             PocoDataFactory = pocoDataFactory;
             aliasToType = aliasToTypeCache;
-            type = t;
+            Type = t;
             Mapper = mapper;
             TableInfo = TableInfo.FromPoco(t);
 
@@ -44,7 +44,7 @@ namespace NPoco
             if (Mapper != null)
                 Mapper.GetTableInfo(t, TableInfo);
 
-            var alias = CreateAlias(type.Name, type);
+            var alias = CreateAlias(Type.Name, Type);
             TableInfo.AutoAlias = alias;
             var index = 0;
             
@@ -85,7 +85,7 @@ namespace NPoco
         public object CreateObject()
         {
             if (CreateDelegate == null)
-                CreateDelegate = new FastCreate(type);
+                CreateDelegate = new FastCreate(Type);
             return CreateDelegate.Create();
         }
 

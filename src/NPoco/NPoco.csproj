@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>NPoco</RootNamespace>
     <AssemblyName>NPoco</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
     <DefineConstants>NET45</DefineConstants>
@@ -150,6 +150,14 @@
     <Compile Include="PrimaryKeyAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ResultColumnAttribute.cs" />
+    <Compile Include="RowMappers\ArrayMapper.cs" />
+    <Compile Include="RowMappers\DictionaryMapper.cs" />
+    <Compile Include="RowMappers\GroupResult.cs" />
+    <Compile Include="RowMappers\IRowMapper.cs" />
+    <Compile Include="RowMappers\MyEnumerableExtensions.cs" />
+    <Compile Include="RowMappers\PropertyMapper.cs" />
+    <Compile Include="RowMappers\RowMapperContext.cs" />
+    <Compile Include="RowMappers\ValueTypeMapper.cs" />
     <Compile Include="Singleton.cs" />
     <Compile Include="Snapshotter.cs" />
     <Compile Include="Sql.cs" />

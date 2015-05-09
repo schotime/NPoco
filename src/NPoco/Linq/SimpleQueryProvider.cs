@@ -104,10 +104,12 @@ namespace NPoco.Linq
 
             if (!_joinSqlExpressions.ContainsKey(onSql))
             {
+                var enumerable = SqlExpression<T>.GetProperties(expression).Select(x => x.Name).ToList();
                 _joinSqlExpressions.Add(onSql, new JoinData()
                 {
                     OnSql = onSql,
-                    Type = typeof(T2)
+                    Type = typeof(T2),
+                    BaseName = string.Join("__", enumerable)
                 });
             }
             return this;
@@ -234,14 +236,14 @@ namespace NPoco.Linq
         {
             var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, types, false);
-            return _database.Query<T>(types, null, sql).Select(projectionExpression.Compile()).ToList();
+            return _database.Query<T>(sql).Select(projectionExpression.Compile()).ToList();
         }
 
         public List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, types, true);
-            return _database.Query<T>(types, null, sql).Select(projectionExpression.Compile()).ToList();
+            return _database.Query<T>(sql).Select(projectionExpression.Compile()).ToList();
         }
 
         public List<T> Distinct()
@@ -259,9 +261,9 @@ namespace NPoco.Linq
             if (!_joinSqlExpressions.Any())
                 return _database.Query<T>(_sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
 
-            var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
+            //var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
             var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false, false);
-            return _database.Query<T>(types, null, sql);
+            return _database.Query<T>(sql);
         }
 
 #if NET45

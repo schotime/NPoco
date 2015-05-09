@@ -195,14 +195,14 @@ namespace NPoco.FluentMappings
                 {
                     if (maps.Config.ContainsKey(t))
                     {
-                        return new FluentMappingsPocoData(t, mappings.Config[t], mapper);
+                        return new FluentMappingsPocoData(t, mappings.Config[t], mapper, pocoDataFactory);
                     }
 
                     if (scana != null)
                     {
                         var settings = ProcessSettings(scana);
                         var typeMapping = CreateMappings(settings, new[] { t });
-                        return new FluentMappingsPocoData(t, typeMapping.Config[t], mapper);
+                        return new FluentMappingsPocoData(t, typeMapping.Config[t], mapper, pocoDataFactory);
                     }
                 }
                 return new PocoData(t, mapper, aliasCache, pocoDataFactory);

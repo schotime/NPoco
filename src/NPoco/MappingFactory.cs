@@ -35,7 +35,7 @@ namespace NPoco
         {
             //Create a hashed key, we don't want to store so much string data in memory
             var combiner = new HashCodeCombiner("mapping");
-            combiner.AddType(_pocoData.type);
+            combiner.AddType(_pocoData.Type);
             combiner.AddInt(firstColumn);
             combiner.AddInt(countColumns);
             for (int col = 0; col < r.FieldCount; col++)
@@ -43,7 +43,7 @@ namespace NPoco
                 combiner.AddType(r.GetFieldType(col));
                 combiner.AddCaseInsensitiveString(r.GetName(col));
             }
-            combiner.AddBool(instance != GetDefault(_pocoData.type));
+            combiner.AddBool(instance != GetDefault(_pocoData.Type));
             combiner.AddBool(_pocoData.EmptyNestedObjectNull);
 
             var key = combiner.GetCombinedHashCode();
@@ -51,11 +51,11 @@ namespace NPoco
             Func<Delegate> createFactory = () =>
             {
                 // Create the method
-                var m = new DynamicMethod("poco_factory_" + _pocoFactories.Count, _pocoData.type, new Type[] { typeof(IDataReader), _pocoData.type }, true);
+                var m = new DynamicMethod("poco_factory_" + _pocoFactories.Count, _pocoData.Type, new Type[] { typeof(IDataReader), _pocoData.Type }, true);
                 var il = m.GetILGenerator();
 
 #if !POCO_NO_DYNAMIC
-                if (_pocoData.type == typeof(object))
+                if (_pocoData.Type == typeof(object))
                 {
                     // var poco=new T()
                     il.Emit(OpCodes.Newobj, typeof(PocoExpando).GetConstructor(Type.EmptyTypes));			// obj
@@ -113,11 +113,11 @@ namespace NPoco
                 }
                 else
 #endif
-                    if (_pocoData.type.IsValueType || _pocoData.type == typeof(string) || _pocoData.type == typeof(byte[]))
+                    if (_pocoData.Type.IsValueType || _pocoData.Type == typeof(string) || _pocoData.Type == typeof(byte[]))
                     {
                         // Do we need to install a converter?
                         var srcType = r.GetFieldType(0);
-                        var converter = GetConverter(_pocoData.Mapper, null, srcType, _pocoData.type);
+                        var converter = GetConverter(_pocoData.Mapper, null, srcType, _pocoData.Type);
 
                         // "if (!rdr.IsDBNull(i))"
                         il.Emit(OpCodes.Ldarg_0);										// rdr
@@ -143,9 +143,9 @@ namespace NPoco
                             il.Emit(OpCodes.Callvirt, fnInvoke);
 
                         il.MarkLabel(lblFin);
-                        il.Emit(OpCodes.Unbox_Any, _pocoData.type);								// value converted
+                        il.Emit(OpCodes.Unbox_Any, _pocoData.Type);								// value converted
                     }
-                    else if (_pocoData.type == typeof(Dictionary<string, object>))
+                    else if (_pocoData.Type == typeof(Dictionary<string, object>))
                     {
                         Func<IDataReader, object, Dictionary<string, object>> func = (reader, inst) =>
                         {
@@ -160,14 +160,14 @@ namespace NPoco
                             return dict;
                         };
 
-                        var delegateType = typeof(Func<,,>).MakeGenericType(typeof(IDataReader), _pocoData.type, typeof(Dictionary<string, object>));
+                        var delegateType = typeof(Func<,,>).MakeGenericType(typeof(IDataReader), _pocoData.Type, typeof(Dictionary<string, object>));
                         var localDel = Delegate.CreateDelegate(delegateType, func.Target, func.Method);
                         return localDel;
                     }
-                    else if (_pocoData.type.IsArray)
+                    else if (_pocoData.Type.IsArray)
                     {
                         il.Emit(OpCodes.Ldc_I4_S, countColumns - firstColumn);
-                        il.Emit(OpCodes.Newarr, _pocoData.type.GetElementType());
+                        il.Emit(OpCodes.Newarr, _pocoData.Type.GetElementType());
 
                         var valueset = typeof (Array).GetMethod("SetValue", new[] {typeof (object), typeof (int)});
 
@@ -191,7 +191,7 @@ namespace NPoco
                             il.MarkLabel(lblNext);
                         }
 
-                        il.Emit(OpCodes.Castclass, _pocoData.type);
+                        il.Emit(OpCodes.Castclass, _pocoData.Type);
                     }
                     else
                     {
@@ -201,9 +201,9 @@ namespace NPoco
                         }
                         else
                         {
-                            var constructorInfo = _pocoData.type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null);
+                            var constructorInfo = _pocoData.Type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null);
                             if (constructorInfo == null)
-                                throw new Exception(string.Format("Poco '{0}' has no parameterless constructor", _pocoData.type.FullName));
+                                throw new Exception(string.Format("Poco '{0}' has no parameterless constructor", _pocoData.Type.FullName));
 
                             // var poco=new T()
                             il.Emit(OpCodes.Newobj, constructorInfo);
@@ -297,7 +297,7 @@ namespace NPoco
                             il.MarkLabel(lblNext);
                         }
 
-                        var fnOnLoaded = RecurseInheritedTypes<MethodInfo>(_pocoData.type, (x) => x.GetMethod("OnLoaded", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null));
+                        var fnOnLoaded = RecurseInheritedTypes<MethodInfo>(_pocoData.Type, (x) => x.GetMethod("OnLoaded", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null));
                         if (fnOnLoaded != null)
                         {
                             il.Emit(OpCodes.Dup);
@@ -328,7 +328,7 @@ namespace NPoco
                 il.Emit(OpCodes.Ret);
 
                 // Cache it, return it
-                var del = m.CreateDelegate(Expression.GetFuncType(typeof(IDataReader), _pocoData.type, _pocoData.type));
+                var del = m.CreateDelegate(Expression.GetFuncType(typeof(IDataReader), _pocoData.Type, _pocoData.Type));
                 return del;
             };
 

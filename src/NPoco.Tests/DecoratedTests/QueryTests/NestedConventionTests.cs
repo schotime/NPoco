@@ -4,13 +4,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NPoco.Expressions;
 using NPoco.Tests.Common;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
 
 namespace NPoco.Tests.DecoratedTests.QueryTests
 {
-    public class NestedConventionTests : BaseDBDecoratedTest
+    public class NewMapperTests : BaseDBDecoratedTest
     {
         [Test]
         public void Test1()
@@ -77,16 +77,45 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             Assert.AreEqual("Name", data["Name"]);
             Assert.AreEqual(23, data["Age"]);
         }
+
+        [Test]
+        public void Test9()
+        {
+            var sqlExpression = new DefaultSqlExpression<NestedConvention>(Database, true);
+            sqlExpression.Select(x => new { x.Money.Currency });
+            var selectStatement = sqlExpression.Context.ToSelectStatement();
+            Console.WriteLine(selectStatement);
+        }
+
     }
 
+    public class More : BaseDBFuentTest
+    {
+        [Test]
+        public void Test10()
+        {
+            var d = Database
+                .Query<User>()
+                .Include(x => x.House)
+                .ToEnumerable()
+                .ToList();
+        }
+    }
+
+    [PrimaryKey("")]
     public class NestedConvention
     {
         public string Name { get; set; }
+        [ResultColumn]
         public Money Money { get; set; }
+
+        public int MoneyId { get; set; }
     }
 
+    [PrimaryKey("MoneyId")]
     public class Money
     {
+        public int MoneyId { get; set; }
         public decimal Value { get; set; }
         public string Currency { get; set; }
     }

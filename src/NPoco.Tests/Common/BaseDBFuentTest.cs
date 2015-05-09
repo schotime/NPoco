@@ -16,6 +16,11 @@ namespace NPoco.Tests.Common
         public List<ExtraUserInfo> InMemoryExtraUserInfos { get; set; }
         public List<House> InMemoryHouses { get; set; }
 
+        private static string ToLowerIf(string s, bool clause)
+        {
+            return clause ? s.ToLowerInvariant() : s;
+        }
+
         [SetUp]
         public void SetUp()
         {
@@ -26,8 +31,11 @@ namespace NPoco.Tests.Common
                 {
                     s.Assembly(typeof (User).Assembly);
                     s.IncludeTypes(types.Contains);
-                    s.WithSmartConventions();
-                    s.Columns.ResultWhere(y => ColumnInfo.FromMemberInfo(y).IgnoreColumn);
+                    s.PrimaryKeysNamed(y => ToLowerIf(y.Name + "Id", false));
+                    s.TablesNamed(y => ToLowerIf(Inflector.MakePlural(y.Name), false));
+                    s.Columns.Named(x => ToLowerIf(x.Name, false));
+                    s.Columns.ForceDateTimesToUtcWhere(x => x.GetMemberInfoType() == typeof(DateTime) || x.GetMemberInfoType() == typeof(DateTime?));
+                    s.Columns.ResultWhere(y => ColumnInfo.FromMemberInfo(y).ResultColumn);
                     s.OverrideMappingsWith(new FluentMappingOverrides());
                 })
             );

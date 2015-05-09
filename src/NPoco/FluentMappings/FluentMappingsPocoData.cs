@@ -7,10 +7,11 @@ namespace NPoco.FluentMappings
 {
     public class FluentMappingsPocoData : PocoData
     {
-        public FluentMappingsPocoData(Type t, TypeDefinition typeConfig, IMapper mapper)
+        public FluentMappingsPocoData(Type t, TypeDefinition typeConfig, IMapper mapper, PocoDataFactory pocoDataFactory)
         {
+            PocoDataFactory = pocoDataFactory;
             Mapper = mapper;
-            type = t;
+            Type = t;
             TableInfo = new TableInfo();
 
             // Get the table name
@@ -33,7 +34,7 @@ namespace NPoco.FluentMappings
             if (mapper != null)
                 mapper.GetTableInfo(t, TableInfo);
 
-            var alias = CreateAlias(type.Name, type);
+            var alias = CreateAlias(Type.Name, Type);
             TableInfo.AutoAlias = alias;
             var index = 0;
 
