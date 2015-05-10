@@ -29,7 +29,7 @@ namespace NPoco.Linq
 
             if (!_joinSqlExpressions.Any())
             {
-                var finalsql = ((ISqlExpression)_sqlExpression).ApplyPaging(_sqlExpression.Context.ToSelectStatement(false, distinct), newMembers.Select(x => x.PocoColumns));
+                var finalsql = ((ISqlExpression)_sqlExpression).ApplyPaging(_sqlExpression.Context.ToSelectStatement(false, distinct), newMembers.Select(x => x.PocoColumns), _joinSqlExpressions);
                 return new Sql(finalsql, _sqlExpression.Context.Params);
             }
 
@@ -85,10 +85,15 @@ namespace NPoco.Linq
             var orderbys = string.Empty;
             if (!count && exp.OrderByMembers.Any())
             {
-                var orderMembers = exp.OrderByMembers.Select(x => new
+                var orderMembers = exp.OrderByMembers.Select(x =>
                 {
-                    Column = string.Join("__", x.PocoColumns.Select(z=>z.MemberInfo.Name)), // database.PocoDataFactory.ForType(x.EntityType).Columns.Values.Single(z => z.MemberInfo.Name == x.PocoColumn.MemberInfo.Name),
-                    x.AscDesc
+                    var joinexp = _joinSqlExpressions.Values.FirstOrDefault(z => z.Type == x.EntityType);
+                    var prefix = joinexp != null ? joinexp.BaseName + "__" : "";
+                    return new
+                    {
+                        Column = prefix + string.Join("__", x.PocoColumns.Select(z => z.MemberInfo.Name)),
+                        x.AscDesc
+                    };
                 }).ToList();
 
                 orderbys = "\nORDER BY " + string.Join(", ", orderMembers.Select(x => database.DatabaseType.EscapeSqlIdentifier(x.Column) + " " + x.AscDesc).ToArray());
@@ -104,10 +109,12 @@ namespace NPoco.Linq
                 cols = newMembers.Concat(selectMembers).Select(x =>
                 {
                     var pocoData = database.PocoDataFactory.ForType(x.EntityType);
+                    var joinexp = _joinSqlExpressions.Values.FirstOrDefault(z => z.Type == x.EntityType);
+                    var prefix = joinexp != null ? joinexp.BaseName + "__" : "";
                     return new StringPocoCol
                     {
                         StringCol = database.DatabaseType.EscapeTableName(pocoData.TableInfo.AutoAlias) + "." +
-                                    database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumns.Select(z=>z.MemberInfo.Name))),
+                                    database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(prefix + string.Join("__", x.PocoColumns.Select(z=>z.MemberInfo.Name))),
                         PocoColumn = x.PocoColumns
                     };
                 });
@@ -121,7 +128,7 @@ namespace NPoco.Linq
                 wheres.SQL,
                 orderbys);
 
-            var newsql = ((ISqlExpression)_sqlExpression).ApplyPaging(resultantSql, cols.Select(x=>x.PocoColumn));
+            var newsql = ((ISqlExpression)_sqlExpression).ApplyPaging(resultantSql, cols.Select(x=>x.PocoColumn), _joinSqlExpressions);
 
             return new Sql(newsql, wheres.Arguments);
         }

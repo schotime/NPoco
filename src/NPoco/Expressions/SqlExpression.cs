@@ -67,7 +67,7 @@ namespace NPoco.Expressions
         Type Type { get; }
         List<SelectMember> SelectMembers { get; }
         List<GeneralMember> GeneralMembers { get; }
-        string ApplyPaging(string sql, IEnumerable<PocoColumn[]> columns);
+        string ApplyPaging(string sql, IEnumerable<PocoColumn[]> columns, Dictionary<string, JoinData> joinSqlExpressions);
     }
 
     public abstract class SqlExpression<T> : ISqlExpression
@@ -92,9 +92,9 @@ namespace NPoco.Expressions
         Type ISqlExpression.Type { get { return _type; } }
         object[] ISqlExpression.Params { get { return Context.Params; } }
 
-        string ISqlExpression.ApplyPaging(string sql, IEnumerable<PocoColumn[]> columns)
+        string ISqlExpression.ApplyPaging(string sql, IEnumerable<PocoColumn[]> columns, Dictionary<string, JoinData> joinSqlExpressions)
         {
-            return ApplyPaging(sql, columns);
+            return ApplyPaging(sql, columns, joinSqlExpressions);
         }
 
         private string sep = string.Empty;
@@ -637,7 +637,7 @@ namespace NPoco.Expressions
                        "" :
                        " \n" + OrderByExpression);
 
-            return applyPaging ? ApplyPaging(sql.ToString(), ModelDef.QueryColumns.Select(x=> new[] { x.Value })) : sql.ToString();
+            return applyPaging ? ApplyPaging(sql.ToString(), ModelDef.QueryColumns.Select(x=> new[] { x.Value }), new Dictionary<string, JoinData>()) : sql.ToString();
         }
 
         //public virtual string ToCountStatement()
@@ -1128,30 +1128,6 @@ namespace NPoco.Expressions
                             PocoColumn = ((MemberAccessString)exprs[i]).PocoColumn,
                             PocoColumns = ((MemberAccessString)exprs[i]).PocoColumns,
                         });
-                        continue;
-                    }
-
-                    r.AppendFormat("{0}{1}", r.Length > 0 ? "," : "", exprs[i]);
-                    if (nex.Members[i] != null)
-                    {
-                        var col = modelDef.Columns.SingleOrDefault(x => x.Value.MemberInfo.Name == nex.Members[i].Name);
-                        if (col.Value != null)
-                        {
-                            var sel = new SelectMember()
-                            {
-                                EntityType = modelDef.Type,
-                                SelectSql = exprs[i].ToString(),
-                                PocoColumn = col.Value
-                            };
-                            var memberName = _databaseType.EscapeSqlIdentifier(col.Value.ColumnName);
-                            if (memberName != exprs[i].ToString())
-                            {
-                                var al = string.Format(" AS {0}", _databaseType.EscapeSqlIdentifier(col.Value.MemberInfo.Name));
-                                r.AppendFormat(al);
-                                sel.SelectSql += al;
-                            }
-                            selectMembers.Add(sel);
-                        }
                     }
                 }
                 return r.ToString();
@@ -1527,7 +1503,7 @@ namespace NPoco.Expressions
             return modelDef.Columns.Values.ToList();
         }
 
-        protected virtual string ApplyPaging(string sql, IEnumerable<PocoColumn[]> columns)
+        protected virtual string ApplyPaging(string sql, IEnumerable<PocoColumn[]> columns, Dictionary<string, JoinData> joinSqlExpressions)
         {
             if (!Rows.HasValue || Rows == 0)
                 return sql;
@@ -1539,8 +1515,16 @@ namespace NPoco.Expressions
             PagingHelper.SQLParts parts;
             if (!PagingHelper.SplitSQL(sql, out parts)) throw new Exception("Unable to parse SQL statement for paged query");
 
-            if (columns != null && columns.Any() && _databaseType.UseColumnAliases()) 
-                parts.sqlColumns = string.Join(", ", columns.Select(x => _databaseType.EscapeSqlIdentifier(string.Join("__", x.Select(z=>z.MemberInfo.Name)))).ToArray());
+            if (columns != null && columns.Any() && _databaseType.UseColumnAliases())
+            {
+                parts.sqlColumns = string.Join(", ", columns.Select(x =>
+                {
+                    var first = x.First();
+                    var joinexp = joinSqlExpressions.Values.FirstOrDefault(z => z.Type == first.MemberInfo.DeclaringType);
+                    var prefix = joinexp != null ? joinexp.BaseName + "__" : "";
+                    return _databaseType.EscapeSqlIdentifier(prefix + string.Join("__", x.Select(z => z.MemberInfo.Name)));
+                }).ToArray());
+            }
 
             sqlPage = _databaseType.BuildPageQuery(Skip ?? 0, Rows ?? 0, parts, ref parms);
 
