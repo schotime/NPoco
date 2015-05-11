@@ -8,6 +8,7 @@ namespace NPoco.RowMappers
     public class PropertyMapper : RowMapper
     {
         private List<GroupResult<PosName>> _groupedNames;
+        private Lazy<MapPlan> _mapPlan;
 
         public class PosName
         {
@@ -20,12 +21,14 @@ namespace NPoco.RowMappers
             return true;
         }
 
-        public override void Init(IDataReader dataReader)
+        public override void Init(IDataReader dataReader, PocoData pocoData)
         {
             _groupedNames = Enumerable.Range(0, dataReader.FieldCount)
               .Select(x => new PosName { Pos = x, Name = dataReader.GetName(x) })
               .GroupByMany(x => x.Name, "__")
               .ToList();
+
+            _mapPlan = new Lazy<MapPlan>(() => BuildMapPlan(pocoData));
         }
 
         public override object Map(IDataReader dataReader, RowMapperContext context)
@@ -36,11 +39,8 @@ namespace NPoco.RowMappers
                 //instance = _pocoData.CreateObject();
             }
 
-            foreach (var groupedName in _groupedNames)
-            {
-                AssignFromDataReader(groupedName, dataReader, context.PocoData, context.Instance);
-            }
-
+            _mapPlan.Value(dataReader, context.Instance);
+           
             return context.Instance;
         }
 
@@ -49,7 +49,15 @@ namespace NPoco.RowMappers
             public bool IsSet { get; set; }
         }
 
-        private static AssignResult AssignFromDataReader(GroupResult<PosName> groupedName, IDataReader reader, PocoData pocoData, object instance)
+        public delegate AssignResult MapPlan(IDataReader reader, object instance);
+
+        public MapPlan BuildMapPlan(PocoData pocoData)
+        {
+            var plans = _groupedNames.SelectMany(x => BuildMapPlans(x, pocoData)).ToArray();
+            return (reader, instance) => plans.Select(x => x(reader, instance)).LastOrDefault();
+        }
+
+        public IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, PocoData pocoData)
         {
             var pocoColumn = FindPocoColumn(groupedName, pocoData);
             if (groupedName.SubItems.Any() && pocoColumn != null)
@@ -58,22 +66,24 @@ namespace NPoco.RowMappers
                 if (memberInfoType.IsClass && memberInfoType != typeof(string) && memberInfoType != typeof(byte[]))
                 {
                     var newPoco = pocoData.PocoDataFactory.ForType(memberInfoType);
-                    var newObject = Activator.CreateInstance(memberInfoType);
                     //var newObject = newPoco.CreateObject();
+                    var subPlans = groupedName.SubItems.SelectMany(x => BuildMapPlans(x, newPoco)).ToArray();
 
-                    var results = groupedName.SubItems.Select(x => AssignFromDataReader(x, reader, newPoco, newObject)).ToArray();
-                    if (results.Any(x => x.IsSet))
+                    yield return (reader, instance) =>
                     {
-                        pocoColumn.SetValue(instance, newObject);
-                        //pocoColumn.SetValueFast(instance, newObject);
-                    }
+                        var newObject = Activator.CreateInstance(memberInfoType);
+                        var results = subPlans.Select(x => x(reader, newObject)).ToArray();
+                        
+                        if (results.Any(x => x.IsSet))
+                           pocoColumn.SetValue(instance, newObject);
+                        return new AssignResult();
+                    };
                 }
             }
             else if (pocoColumn != null)
             {
-                return MapValue(groupedName, reader, pocoData, instance, pocoColumn);
+                yield return (reader, instance)=> MapValue(groupedName, reader, pocoData, instance, pocoColumn);
             }
-            return new AssignResult();
         }
 
         private static AssignResult MapValue(GroupResult<PosName> groupedName, IDataReader reader, PocoData pocoData, object instance, PocoColumn pocoColumn)

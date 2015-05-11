@@ -26,7 +26,7 @@ namespace NPoco
         {
             _pocoData = pocoData;
             _rowMapper = RowMappers.FirstOrDefault(x => x.ShouldMap(pocoData));
-            _rowMapper.Init(dataReader);
+            _rowMapper.Init(dataReader, pocoData);
         }
 
         public object Map(IDataReader dataReader, object instance)

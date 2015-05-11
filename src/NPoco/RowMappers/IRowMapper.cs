@@ -7,14 +7,14 @@ namespace NPoco.RowMappers
     {
         bool ShouldMap(PocoData pocoData);
         object Map(IDataReader dataReader, RowMapperContext context);
-        void Init(IDataReader dataReader);
+        void Init(IDataReader dataReader, PocoData pocoData);
     }
 
     public abstract class RowMapper : IRowMapper
     {
         public abstract bool ShouldMap(PocoData pocoData);
 
-        public virtual void Init(IDataReader dataReader)
+        public virtual void Init(IDataReader dataReader, PocoData pocoData)
         {
             
         }
