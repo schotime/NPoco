@@ -921,7 +921,15 @@ namespace NPoco.Expressions
             {
                 left = Visit(b.Left);
                 right = Visit(b.Right);
+                
+                var customAttribute = ((MemberExpression)b.Left).Member.GetCustomAttributes(typeof(CustomColumnDbTypeAttribute), false);
 
+                if (customAttribute.Any() &&
+                    ((CustomColumnDbTypeAttribute)customAttribute[0]).Type.Equals(DbType.AnsiString))
+                {
+                    right = new AnsiString((string) right);
+                }
+                
                 if (left as EnumMemberAccess != null && right as PartialSqlString == null)
                 {
                     var pc = ((EnumMemberAccess)left).PocoColumn;
