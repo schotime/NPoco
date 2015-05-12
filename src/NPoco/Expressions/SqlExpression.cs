@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Text;
 using System.Collections.ObjectModel;
+using System.Data;
+using System.Linq;
 using System.Linq.Expressions;
-using NPoco.Linq;
+using System.Reflection;
+using System.Text;
 
 namespace NPoco.Expressions
 {
