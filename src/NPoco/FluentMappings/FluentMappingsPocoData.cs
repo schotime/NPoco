@@ -90,7 +90,8 @@ namespace NPoco.FluentMappings
                 }
                 
                 // Store it
-                Columns.Add(pc.ColumnName, pc);
+                if (!Columns.ContainsKey(pc.ColumnName))
+                    Columns.Add(pc.ColumnName, pc);
             }
 
             // Recombine the primary key

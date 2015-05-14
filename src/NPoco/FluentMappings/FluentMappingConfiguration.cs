@@ -70,7 +70,9 @@ namespace NPoco.FluentMappings
                     column.VersionColumn = scannerSettings.VersionPropertiesWhere(prop);
                     column.VersionColumnType = scannerSettings.VersionColumnTypeAs(prop);
                     column.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(prop);
-                    pocoDefn.ColumnConfiguration.Add(prop.Name, column);
+
+                    if (!pocoDefn.ColumnConfiguration.ContainsKey(prop.Name))
+                        pocoDefn.ColumnConfiguration.Add(prop.Name, column);
                 }
 
                 config.Add(type, pocoDefn);

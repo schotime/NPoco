@@ -72,7 +72,8 @@ namespace NPoco
                 pc.AutoAlias = alias + "_" + index++;
 
                 // Store it
-                Columns.Add(pc.ColumnName, pc);
+                if (!Columns.ContainsKey(pc.ColumnName))
+                    Columns.Add(pc.ColumnName, pc);
             }
 
             // Build column list for automatic select
