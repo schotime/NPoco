@@ -22,7 +22,7 @@ namespace NPoco
         {
             var ci = new ColumnInfo();
 
-            var attrs = mi.GetCustomAttributes(true);
+            var attrs = Attribute.GetCustomAttributes(mi, true);
             var colAttrs = attrs.OfType<ColumnAttribute>();
             var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>();
             var ignoreAttrs = attrs.OfType<IgnoreAttribute>();
@@ -30,7 +30,7 @@ namespace NPoco
             // Check if declaring poco has [ExplicitColumns] attribute
             var explicitColumns = mi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Any();
 
-            var aliasColumn = (AliasAttribute) mi.GetCustomAttributes(typeof (AliasAttribute), true).FirstOrDefault();
+            var aliasColumn = (AliasAttribute) Attribute.GetCustomAttributes(mi, typeof(AliasAttribute), true).FirstOrDefault();
             // Ignore column if declarying poco has [ExplicitColumns] attribute
             // and property doesn't have an explicit [Column] attribute,
             // or property has an [Ignore] attribute

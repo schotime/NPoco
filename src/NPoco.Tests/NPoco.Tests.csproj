@@ -55,6 +55,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\ColumnInfoTests.cs" />
     <Compile Include="Common\CompositeObjectDecorated.cs" />
     <Compile Include="Common\AssignedPkObjectDecorated.cs" />
     <Compile Include="Common\BaseDBDecoratedTest.cs" />
