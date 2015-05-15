@@ -100,15 +100,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void Page_MultiPoco()
         {
-            var page = Database.Page<User, ExtraUserInfo, CustomerUser>((user, extra) =>
-            {
-                return new CustomerUser
-                {
-                    Id = user.UserId,
-                    CustomerName = user.Name,
-                    CustomerEmail = extra.Email
-                };
-            }, 2, 5, "SELECT Users.UserId AS UserId, Users.Name, ExtraUserInfos.Email FROM Users INNER JOIN ExtraUserInfos ON Users.UserId = ExtraUserInfos.UserId");
+            var page = Database.Page<CustomerUser>(2, 5, "SELECT Users.UserId AS Id, Users.Name CustomerName, ExtraUserInfos.Email CustomerEmail FROM Users INNER JOIN ExtraUserInfos ON Users.UserId = ExtraUserInfos.UserId");
 
             foreach (var customer in page.Items)
             {

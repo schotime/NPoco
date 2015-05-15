@@ -57,6 +57,7 @@ namespace NPoco.Tests.Common
     [ExplicitColumns]
     public class UserDecoratedWithExtraInfo : UserDecorated
     {
+        [ResultColumn]
         public ExtraUserInfoDecorated ExtraUserInfo { get; set; }
     }
 

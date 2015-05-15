@@ -11,7 +11,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         [Test]
         public void FetchWithComplexObjectFilledAsExpected()
         {
-            var user = Database.Fetch<NestedUser1, NestedUser2, NestedUser3>("select '1' Name, '2' Name, '3' Name /*poco_dual*/").Single();
+            var user = Database.Fetch<NestedUser1>("select '1' Name, '2' User2__Name, '3' User2__User3__Name /*poco_dual*/").Single();
 
             Assert.AreEqual("1", user.Name);
             Assert.AreEqual("2", user.User2.Name);
@@ -21,7 +21,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         [Test]
         public void FetchWithComplexObjectFilledAsExpectedWhenBaseIsNull()
         {
-            var user = Database.Fetch<NestedUser1, NestedUser2, NestedUser3>("select null Name, '2' Name, '3' Name /*poco_dual*/").Single();
+            var user = Database.Fetch<NestedUser1>("select null Name, '2' User2__Name, '3' User2__User3__Name /*poco_dual*/").Single();
 
             Assert.AreEqual(null, user.Name);
             Assert.AreEqual("2", user.User2.Name);
@@ -31,7 +31,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         [Test]
         public void FetchWithComplexObjectFilledAsExpectedWhenNestedIsNull()
         {
-            var user = Database.Fetch<NestedUser1, NestedUser2, NestedUser3>("select '1' Name, null Name, '3' Name /*poco_dual*/").Single();
+            var user = Database.Fetch<NestedUser1>("select '1' Name, null User2__Name, '3' User2__User3__Name /*poco_dual*/").Single();
 
             Assert.AreEqual("1", user.Name);
             Assert.Null(user.User2);
@@ -40,7 +40,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         [Test]
         public void FetchWithComplexObjectFilledAsExpectedWhenNestedNestedIsNull()
         {
-            var user = Database.Fetch<NestedUser1, NestedUser2, NestedUser3>("select '1' Name, '2' Name, null Name /*poco_dual*/").Single();
+            var user = Database.Fetch<NestedUser1>("select '1' Name, '2' User2__Name, null User2__User3__Name /*poco_dual*/").Single();
 
             Assert.AreEqual("1", user.Name);
             Assert.AreEqual("2", user.User2.Name);

@@ -267,26 +267,10 @@ namespace NPoco
             }
         }
 
-        // Multi Fetch (Simple) (SQL builder)
         public async Task<List<T1>> FetchAsync<T1, T2>(Sql sql) { return (await QueryAsync<T1, T2>(sql).ConfigureAwait(false)).ToList(); }
-        public async Task<List<T1>> FetchAsync<T1, T2, T3>(Sql sql) { return (await QueryAsync<T1, T2, T3>(sql).ConfigureAwait(false)).ToList(); }
-        public async Task<List<T1>> FetchAsync<T1, T2, T3, T4>(Sql sql) { return (await QueryAsync<T1, T2, T3, T4>(sql).ConfigureAwait(false)).ToList(); }
 
-        // Multi Query (Simple) (SQL builder)
         public Task<IEnumerable<T1>> QueryAsync<T1, T2>(Sql sql) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2) }, null, sql); }
-        public Task<IEnumerable<T1>> QueryAsync<T1, T2, T3>(Sql sql) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, sql); }
-        public Task<IEnumerable<T1>> QueryAsync<T1, T2, T3, T4>(Sql sql) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, sql); }
-
-        // Multi Fetch (Simple)
-        public async Task<List<T1>> FetchAsync<T1, T2>(string sql, params object[] args) { return (await QueryAsync<T1, T2>(sql, args).ConfigureAwait(false)).ToList(); }
-        public async Task<List<T1>> FetchAsync<T1, T2, T3>(string sql, params object[] args) { return (await QueryAsync<T1, T2, T3>(sql, args).ConfigureAwait(false)).ToList(); }
-        public async Task<List<T1>> FetchAsync<T1, T2, T3, T4>(string sql, params object[] args) { return (await QueryAsync<T1, T2, T3, T4>(sql, args).ConfigureAwait(false)).ToList(); }
-
-        // Multi Query (Simple)
-        public Task<IEnumerable<T1>> QueryAsync<T1, T2>(string sql, params object[] args) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2) }, null, new Sql(sql, args)); }
-        public Task<IEnumerable<T1>> QueryAsync<T1, T2, T3>(string sql, params object[] args) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, new Sql(sql, args)); }
-        public Task<IEnumerable<T1>> QueryAsync<T1, T2, T3, T4>(string sql, params object[] args) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, new Sql(sql, args)); }
-
+ 
         public async Task<T> SingleByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);

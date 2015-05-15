@@ -11,7 +11,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchWithComplexObjectFilledAsExpected()
         {
-            var user = Database.Fetch<UserWithExtraInfo, ExtraUserInfo>("select u.*, e.* from users u inner join extrauserinfos e on u.userid = e.userid where u.userid = 1").Single();
+            var user = Database.Fetch<UserWithExtraInfo>("select u.*, e.ExtraUserInfoId as ExtraUserInfo__ExtraUserInfoId,e.UserId as ExtraUserInfo__UserId,e.Email as ExtraUserInfo__Email,e.Children as ExtraUserInfo__Children from users u inner join extrauserinfos e on u.userid = e.userid where u.userid = 1").Single();
 
             Assert.NotNull(user.ExtraUserInfo);
             Assert.AreEqual(InMemoryExtraUserInfos[0].ExtraUserInfoId, user.ExtraUserInfo.ExtraUserInfoId);
@@ -23,7 +23,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchWithComplexReturnsNullExtraUserInfoPropertyIfAllColumnsNull()
         {
-            var user = Database.Fetch<UserWithExtraInfo, ExtraUserInfo>("select u.*, e.* from users u left join extrauserinfos e on u.userid = -1 where u.userid = 1").Single();
+            var user = Database.Fetch<UserWithExtraInfo>("select u.*, e.ExtraUserInfoId as ExtraUserInfo__ExtraUserInfoId,e.UserId as ExtraUserInfo__UserId,e.Email as ExtraUserInfo__Email,e.Children as ExtraUserInfo__Children from users u left join extrauserinfos e on u.userid = -1 where u.userid = 1").Single();
 
             Assert.Null(user.ExtraUserInfo);
             Assert.True(user.UserId > 0);
@@ -32,7 +32,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchWithComplexReturnsSecondObjectIfFirstIsNull()
         {
-            var user = Database.Fetch<UserWithExtraInfo, ExtraUserInfo>("select u.*, e.* from extrauserinfos u left join users e on u.userid = -1 where u.userid = 1").Single();
+            var user = Database.Fetch<UserWithExtraInfo>("select u.*, e.ExtraUserInfoId as ExtraUserInfo__ExtraUserInfoId,e.UserId as ExtraUserInfo__UserId,e.Email as ExtraUserInfo__Email,e.Children as ExtraUserInfo__Children from extrauserinfos u left join users e on u.userid = -1 where u.userid = 1").Single();
 
             Assert.NotNull(user.ExtraUserInfo);
             Assert.True(user.UserId == 0);
@@ -42,7 +42,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchWithAllNullsReturnsNonNullObject()
         {
-            var user = Database.Fetch<UserWithExtraInfo>("select e.* from users u left join extrauserinfos e on u.userid = -1 where u.userid = 1").Single();
+            var user = Database.Fetch<UserWithExtraInfo>("select  e.ExtraUserInfoId as ExtraUserInfo__ExtraUserInfoId,e.UserId as ExtraUserInfo__UserId,e.Email as ExtraUserInfo__Email,e.Children as ExtraUserInfo__Children from users u left join extrauserinfos e on u.userid = -1 where u.userid = 1").Single();
 
             Assert.NotNull(user);
         }

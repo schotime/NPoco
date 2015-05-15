@@ -1003,66 +1003,12 @@ namespace NPoco
             }
         }
 
-        // Multi Fetch
-        public List<TRet> Fetch<T1, T2, TRet>(Func<T1, T2, TRet> cb, string sql, params object[] args) { return Query(cb, sql, args).ToList(); }
-        public List<TRet> Fetch<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, string sql, params object[] args) { return Query(cb, sql, args).ToList(); }
-        public List<TRet> Fetch<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, string sql, params object[] args) { return Query(cb, sql, args).ToList(); }
-
-        // Multi Query
-        public IEnumerable<TRet> Query<T1, T2, TRet>(Func<T1, T2, TRet> cb, string sql, params object[] args) { return Query<TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args)); }
-        public IEnumerable<TRet> Query<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, string sql, params object[] args) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, new Sql(sql, args)); }
-        public IEnumerable<TRet> Query<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, string sql, params object[] args) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, new Sql(sql, args)); }
-
-        // Multi Page
-        public Page<TRet> Page<T1, T2, TRet>(Func<T1, T2, TRet> cb, long page, long itemsPerPage, string sql, params object[] args) { return Page<TRet>(new[] { typeof(T1), typeof(T2) }, cb, page, itemsPerPage, sql, args); }
-        public Page<TRet> Page<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, long page, long itemsPerPage, string sql, params object[] args) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, page, itemsPerPage, sql, args); }
-        public Page<TRet> Page<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, long page, long itemsPerPage, string sql, params object[] args) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, page, itemsPerPage, sql, args); }
-
         // Multi Fetch (SQL builder)
         public List<TRet> Fetch<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query(cb, sql).ToList(); }
-        public List<TRet> Fetch<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, Sql sql) { return Query(cb, sql).ToList(); }
-        public List<TRet> Fetch<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, Sql sql) { return Query(cb, sql).ToList(); }
 
         // Multi Query (SQL builder)
         public IEnumerable<TRet> Query<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2) }, cb, sql); }
-        public IEnumerable<TRet> Query<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, sql); }
-        public IEnumerable<TRet> Query<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, sql); }
-
-        // Multi Page (SQL builder)
-        public Page<TRet> Page<T1, T2, TRet>(Func<T1, T2, TRet> cb, long page, long itemsPerPage, Sql sql) { return Page<TRet>(new[] { typeof(T1), typeof(T2) }, cb, page, itemsPerPage, sql.SQL, sql.Arguments); }
-        public Page<TRet> Page<T1, T2, T3, TRet>(Func<T1, T2, T3, TRet> cb, long page, long itemsPerPage, Sql sql) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, page, itemsPerPage, sql.SQL, sql.Arguments); }
-        public Page<TRet> Page<T1, T2, T3, T4, TRet>(Func<T1, T2, T3, T4, TRet> cb, long page, long itemsPerPage, Sql sql) { return Page<TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, page, itemsPerPage, sql.SQL, sql.Arguments); }
-
-        // Multi Fetch (Simple)
-        public List<T1> Fetch<T1, T2>(string sql, params object[] args) { return Query<T1, T2>(sql, args).ToList(); }
-        public List<T1> Fetch<T1, T2, T3>(string sql, params object[] args) { return Query<T1, T2, T3>(sql, args).ToList(); }
-        public List<T1> Fetch<T1, T2, T3, T4>(string sql, params object[] args) { return Query<T1, T2, T3, T4>(sql, args).ToList(); }
-
-        // Multi Query (Simple)
-        public IEnumerable<T1> Query<T1, T2>(string sql, params object[] args) { return Query<T1>(new[] { typeof(T1), typeof(T2) }, null, new Sql(sql, args)); }
-        public IEnumerable<T1> Query<T1, T2, T3>(string sql, params object[] args) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, new Sql(sql, args)); }
-        public IEnumerable<T1> Query<T1, T2, T3, T4>(string sql, params object[] args) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, new Sql(sql, args)); }
-
-        // Multi Page (Simple)
-        public Page<T1> Page<T1, T2>(long page, long itemsPerPage, string sql, params object[] args) { return Page<T1>(new[] { typeof(T1), typeof(T2) }, null, page, itemsPerPage, sql, args); }
-        public Page<T1> Page<T1, T2, T3>(long page, long itemsPerPage, string sql, params object[] args) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, page, itemsPerPage, sql, args); }
-        public Page<T1> Page<T1, T2, T3, T4>(long page, long itemsPerPage, string sql, params object[] args) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, page, itemsPerPage, sql, args); }
-
-        // Multi Fetch (Simple) (SQL builder)
-        public List<T1> Fetch<T1, T2>(Sql sql) { return Query<T1, T2>(sql).ToList(); }
-        public List<T1> Fetch<T1, T2, T3>(Sql sql) { return Query<T1, T2, T3>(sql).ToList(); }
-        public List<T1> Fetch<T1, T2, T3, T4>(Sql sql) { return Query<T1, T2, T3, T4>(sql).ToList(); }
-
-        // Multi Query (Simple) (SQL builder)
-        public IEnumerable<T1> Query<T1, T2>(Sql sql) { return Query<T1>(new[] { typeof(T1), typeof(T2) }, null, sql); }
-        public IEnumerable<T1> Query<T1, T2, T3>(Sql sql) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, sql); }
-        public IEnumerable<T1> Query<T1, T2, T3, T4>(Sql sql) { return Query<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, sql); }
-
-        // Multi Page (Simple) (SQL Builder)
-        public Page<T1> Page<T1, T2>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
-        public Page<T1> Page<T1, T2, T3>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
-        public Page<T1> Page<T1, T2, T3, T4>(long page, long itemsPerpage, Sql sql) { return Page<T1>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, null, page, itemsPerpage, sql.SQL, sql.Arguments); }
-
+   
         // Actual implementation of the multi-poco query
         public IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql)
         {

@@ -11,7 +11,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         [Test]
         public void FetchWithComplexObjectFilledAsExpected()
         {
-            var user = Database.Fetch<UserDecoratedWithExtraInfo, ExtraUserInfoDecorated>("select u.*, e.* from users u inner join extrauserinfos e on u.userid = e.userid where u.userid = 1").Single();
+            var user = Database.Fetch<UserDecoratedWithExtraInfo>("select u.*, e.ExtraUserInfoId as ExtraUserInfo__ExtraUserInfoId,e.UserId as ExtraUserInfo__UserId,e.Email as ExtraUserInfo__Email,e.Children as ExtraUserInfo__Children from users u inner join extrauserinfos e on u.userid = e.userid where u.userid = 1").Single();
 
             Assert.NotNull(user.ExtraUserInfo);
             Assert.AreEqual(InMemoryExtraUserInfos[0].ExtraUserInfoId, user.ExtraUserInfo.ExtraUserInfoId);
