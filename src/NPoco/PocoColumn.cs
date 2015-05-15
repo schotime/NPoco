@@ -12,13 +12,23 @@ namespace NPoco
 
         public TableInfo TableInfo;
         public string ColumnName;
-        public MemberInfo MemberInfo;
+
+        public MemberInfo MemberInfo
+        {
+            get { return _memberInfo; }
+            set { 
+                _memberInfo = value; 
+                SetupMemberAccessor(); 
+            }
+        }
+
         public bool ResultColumn;
         public bool VersionColumn;
         public VersionColumnType VersionColumnType;
         public bool ComputedColumn;
         private Type _columnType;
         private MemberAccessor _memberAccessor;
+        private MemberInfo _memberInfo;
 
         public Type ColumnType
         {
@@ -36,16 +46,12 @@ namespace NPoco
 
         public virtual void SetValueFast(object target, object val)
         {
-            SetupMemberAccessor();
             _memberAccessor.Set(target, val);
         }
 
         private void SetupMemberAccessor()
         {
-            if (_memberAccessor == null)
-            {
-                _memberAccessor = new MemberAccessor(MemberInfo.DeclaringType, MemberInfo.Name);
-            }
+            _memberAccessor = new MemberAccessor(MemberInfo.DeclaringType, MemberInfo.Name);
         }
     }
 }

@@ -14,8 +14,8 @@ namespace NPoco.RowMappers
             if (dataReader.IsDBNull(0))
                 return null;
 
-            var convertedValue = GetConvertedValue(dataReader, 0, context.PocoData, context.Type);
-            return convertedValue;
+            var converter = GetConverter(context.PocoData, null, dataReader.GetFieldType(0), context.Type) ?? (x=>x);
+            return converter(dataReader.GetValue(0));
         }
     }
 }

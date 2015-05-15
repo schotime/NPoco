@@ -21,12 +21,10 @@ namespace NPoco.RowMappers
 
         public abstract object Map(IDataReader dataReader, RowMapperContext context);
 
-        protected static object GetConvertedValue(IDataReader reader, int index, PocoData pocoData, Type desType)
+        public static Func<object, object> GetConverter(PocoData pocoData, PocoColumn pocoColumn, Type sourceType, Type desType)
         {
-            var value = reader.GetValue(index);
-            var converter = MappingFactory.GetConverter(pocoData.Mapper, null, reader.GetFieldType(index), desType);
-            var convertedValue = converter != null ? converter(value) : value;
-            return convertedValue;
+            var converter = MappingFactory.GetConverter(pocoData.Mapper, pocoColumn, sourceType, desType);
+            return converter;
         }
     }
 }

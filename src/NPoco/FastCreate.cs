@@ -12,16 +12,13 @@ namespace NPoco
         public FastCreate(Type type)
         {
             _type = type;
+            CreateDelegate = GetCreateDelegate();
         }
 
         public Func<object> CreateDelegate { get; set; }
 
         public object Create()
         {
-            if (CreateDelegate == null)
-            {
-                CreateDelegate = GetCreateDelegate();
-            }
             return CreateDelegate();
         }
 

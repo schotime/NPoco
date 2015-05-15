@@ -8,7 +8,7 @@ namespace NPoco.RowMappers
     public class PropertyMapper : RowMapper
     {
         private List<GroupResult<PosName>> _groupedNames;
-        private Lazy<MapPlan> _mapPlan;
+        private MapPlan _mapPlan;
 
         public class PosName
         {
@@ -24,84 +24,87 @@ namespace NPoco.RowMappers
         public override void Init(IDataReader dataReader, PocoData pocoData)
         {
             _groupedNames = Enumerable.Range(0, dataReader.FieldCount)
-              .Select(x => new PosName { Pos = x, Name = dataReader.GetName(x) })
-              .GroupByMany(x => x.Name, "__")
-              .ToList();
+                .Select(x => new PosName {Pos = x, Name = dataReader.GetName(x)})
+                .GroupByMany(x => x.Name, "__")
+                .ToList();
 
-            _mapPlan = new Lazy<MapPlan>(() => BuildMapPlan(pocoData));
+            _mapPlan = BuildMapPlan(dataReader, pocoData);
         }
 
         public override object Map(IDataReader dataReader, RowMapperContext context)
         {
             if (context.Instance == null)
             {
-                context.Instance = Activator.CreateInstance(context.Type);
-                //instance = _pocoData.CreateObject();
+                context.Instance = context.PocoData.CreateObject();
             }
 
-            _mapPlan.Value(dataReader, context.Instance);
+            _mapPlan(dataReader, context.Instance);
            
             return context.Instance;
         }
 
-        public class AssignResult
+        public delegate bool MapPlan(IDataReader reader, object instance);
+
+        public MapPlan BuildMapPlan(IDataReader dataReader, PocoData pocoData)
         {
-            public bool IsSet { get; set; }
+            var plans = _groupedNames.SelectMany(x => BuildMapPlans(x, dataReader, pocoData)).ToArray();
+            return (reader, instance) =>
+            {
+                foreach (MapPlan plan in plans)
+                {
+                    plan(reader, instance);
+                }
+                return true;
+            };
         }
 
-        public delegate AssignResult MapPlan(IDataReader reader, object instance);
-
-        public MapPlan BuildMapPlan(PocoData pocoData)
-        {
-            var plans = _groupedNames.SelectMany(x => BuildMapPlans(x, pocoData)).ToArray();
-            return (reader, instance) => plans.Select(x => x(reader, instance)).LastOrDefault();
-        }
-
-        public IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, PocoData pocoData)
+        public IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, IDataReader dataReader, PocoData pocoData)
         {
             var pocoColumn = FindPocoColumn(groupedName, pocoData);
             if (groupedName.SubItems.Any() && pocoColumn != null)
             {
                 var memberInfoType = pocoColumn.MemberInfo.GetMemberInfoType();
-                if (memberInfoType.IsClass && memberInfoType != typeof(string) && memberInfoType != typeof(byte[]))
+                if (memberInfoType.IsClass && memberInfoType != typeof(string) && !memberInfoType.IsArray)
                 {
                     var newPoco = pocoData.PocoDataFactory.ForType(memberInfoType);
-                    //var newObject = newPoco.CreateObject();
-                    var subPlans = groupedName.SubItems.SelectMany(x => BuildMapPlans(x, newPoco)).ToArray();
+                    var subPlans = groupedName.SubItems.SelectMany(x => BuildMapPlans(x, dataReader, newPoco)).ToArray();
 
                     yield return (reader, instance) =>
                     {
-                        var newObject = Activator.CreateInstance(memberInfoType);
-                        var results = subPlans.Select(x => x(reader, newObject)).ToArray();
+                        var newObject = newPoco.CreateObject();
+                        var shouldSetNestedObject = false;
                         
-                        if (results.Any(x => x.IsSet))
-                           pocoColumn.SetValue(instance, newObject);
-                        return new AssignResult();
+                        foreach (var subPlan in subPlans)
+                        {
+                            shouldSetNestedObject |= subPlan(reader, newObject);
+                        }
+
+                        if (shouldSetNestedObject)
+                        {
+                            pocoColumn.SetValueFast(instance, newObject);
+                        }
+                        return false;
                     };
                 }
             }
             else if (pocoColumn != null)
             {
-                yield return (reader, instance)=> MapValue(groupedName, reader, pocoData, instance, pocoColumn);
+                var destType = pocoColumn.MemberInfo.GetMemberInfoType();
+                var converter = GetConverter(pocoData, pocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
+                yield return (reader, instance) => MapValue(groupedName.Key.Pos, reader, converter, instance, pocoColumn, destType);
             }
         }
 
-        private static AssignResult MapValue(GroupResult<PosName> groupedName, IDataReader reader, PocoData pocoData, object instance, PocoColumn pocoColumn)
+        public static bool MapValue(int index, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn, Type destType)
         {
-            var isDbNull = reader.IsDBNull(groupedName.Key.Pos);
-            if (!isDbNull)
+            if (!reader.IsDBNull(index))
             {
-                var convertedValue = GetConvertedValue(reader, groupedName.Key.Pos, pocoData, pocoColumn.MemberInfo.GetMemberInfoType());
-                pocoColumn.SetValue(instance, convertedValue);
-                //pocoColumn.SetValueFast(instance, convertedValue);
-
-                return new AssignResult
-                {
-                    IsSet = true
-                };
+                var value = converter != null ? converter(reader.GetValue(index)) : reader.GetValue(index);
+                pocoColumn.SetValueFast(instance, value);
+                return true;
             }
 
-            return new AssignResult();
+            return false;
         }
 
         private static PocoColumn FindPocoColumn(GroupResult<PosName> groupedName, PocoData pocoData)

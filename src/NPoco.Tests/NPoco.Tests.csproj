@@ -97,7 +97,6 @@
     <Compile Include="DecoratedTests\QueryTests\AdvancedFetchDecoratedTest.cs" />
     <Compile Include="DecoratedTests\QueryTests\ConverterDecoratedTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\MapperTestsForDecorated.cs" />
-    <Compile Include="DecoratedTests\QueryTests\NestedConventionTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\NestedNestedFetchDecoratedTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\OneToManyDecoratedTests.cs" />
     <Compile Include="DecoratedTests\QueryTests\FetchAndQueryDecoratedTests.cs" />
@@ -118,6 +117,9 @@
     <Compile Include="FluentTests\QueryTests\SingleAndFirstQueryFluentTest.cs" />
     <Compile Include="FormatCommandTest.cs" />
     <Compile Include="HashCodeCombinerTests.cs" />
+    <Compile Include="NewMapper\FakeReader.cs" />
+    <Compile Include="NewMapper\NestedConventionTests.cs" />
+    <Compile Include="NewMapper\OldFakeReader.cs" />
     <Compile Include="PagingHelper.cs" />
     <Compile Include="ParameterHelper.cs" />
     <Compile Include="PocoExpandoTests.cs" />

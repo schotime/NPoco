@@ -38,13 +38,22 @@ namespace NPoco
             {
                 throw new Exception(string.Format("Property \"{0}\" does not exist for type " + "{1}.", memberName, targetType));
             }
-            
-            _canRead = memberInfo.IsField() || ((PropertyInfo)memberInfo).CanRead;
-            _canWrite = memberInfo.IsField() || ((PropertyInfo)memberInfo).CanWrite;
+
+            _canRead = memberInfo.IsField() || ((PropertyInfo) memberInfo).CanRead;
+            _canWrite = memberInfo.IsField() || ((PropertyInfo) memberInfo).CanWrite;
             _memberType = memberInfo.GetMemberInfoType();
             _member = memberInfo;
 
             InitTypes();
+
+            if (_canWrite)
+            {
+                SetDelegate = GetSetDelegate();
+            }
+            else
+            {
+                throw new Exception(string.Format("Property \"{0}\" does" + " not have a set method.", _memberName));
+            }
         }
 
         private Action<object, object> SetDelegate = null;
@@ -56,18 +65,7 @@ namespace NPoco
         /// <param name="value">Value to set.</param>
         public void Set(object target, object value)
         {
-            if (_canWrite)
-            {
-                if (SetDelegate == null)
-                {
-                    SetDelegate = GetSetDelegate();
-                }
-                SetDelegate(target, value);
-            }
-            else
-            {
-                throw new Exception(string.Format("Property \"{0}\" does" + " not have a set method.", _memberName));
-            }
+            SetDelegate(target, value);
         }
 
         /// <summary>
@@ -109,7 +107,6 @@ namespace NPoco
             //
 
             Type paramType = _memberType;
-            setIL.DeclareLocal(paramType);
             setIL.Emit(OpCodes.Ldarg_0); //Load the first argument 
             //(target object)
             //Cast to the source type

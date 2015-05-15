@@ -30,10 +30,9 @@ namespace NPoco
             if (type == typeof(System.Dynamic.ExpandoObject) || type == typeof(PocoExpando))
                 throw new InvalidOperationException("Can't use dynamic types with this method");
 #endif
-            Func<PocoData> pocoDataFunc = (Resolver == null 
+            var pocoData = _pocoDatas.Get(type, (Resolver == null 
                 ? new Func<PocoData>(() => new PocoData(type, _mapper, _aliasToType, this)) 
-                : new Func<PocoData>(() => Resolver(type, _aliasToType, this)));
-            var pocoData = _pocoDatas.Get(type, pocoDataFunc);
+                : new Func<PocoData>(() => Resolver(type, _aliasToType, this))));
             pocoData.EmptyNestedObjectNull = emptyNestedObjectNull;
             return pocoData;
         }

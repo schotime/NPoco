@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using NPoco.Expressions;
+using NPoco.RowMappers;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
-namespace NPoco.Tests.DecoratedTests.QueryTests
+namespace NPoco.Tests.NewMapper
 {
     public class NewMapperTests : BaseDBDecoratedTest
     {
@@ -96,6 +95,33 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             Assert.AreEqual("AUD", data.Money.Currency);
             Assert.AreEqual(24, data.Money.Money2.Value);
             Assert.AreEqual("USD", data.Money.Money2.Currency);
+        }
+    }
+
+    public class PerfTests
+    {
+        [Test]
+        public void Test11()
+        {
+            var fakeReader = new FakeReader();
+
+            var sw = Stopwatch.StartNew();
+
+            for (int j = 0; j < 1000; j++)
+            {
+                var newPropertyMapper = new PropertyMapper();
+                var pocoData = new PocoDataFactory((IMapper) null).ForType(typeof (NestedConvention));
+                newPropertyMapper.Init(fakeReader, pocoData);
+
+                for (int i = 0; i < 1000; i++)
+                {
+                    newPropertyMapper.Map(fakeReader, new RowMapperContext() {PocoData = pocoData});
+                }
+            }
+
+            sw.Stop();
+
+            Console.WriteLine(sw.ElapsedMilliseconds);
         }
     }
 
