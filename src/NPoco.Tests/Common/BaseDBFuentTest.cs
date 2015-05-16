@@ -115,7 +115,12 @@ namespace NPoco.Tests.Common
                     UniqueId = (i%2 != 0 ? Guid.NewGuid() : (Guid?)null),
                     TimeSpan = new TimeSpan(1,1,1),
                     HouseId = i%2==0?(int?)null:InMemoryHouses[i%5].HouseId,
-                    SupervisorId = (i+1)%2==0?(i+1):(int?)null
+                    SupervisorId = (i+1)%2==0?(i+1):(int?)null,
+                    Address = i%10 == 0 ? null : new Address()
+                    {
+                        Street = i + " Road Street",
+                        City = "City " + i
+                    }
                 };
                 Database.Insert(user);
                 InMemoryUsers.Add(user);
@@ -138,6 +143,15 @@ namespace NPoco.Tests.Common
             Assert.AreEqual(expected.Age, actual.Age);
             Assert.AreEqual(expected.DateOfBirth, actual.DateOfBirth);
             Assert.AreEqual(expected.Savings, actual.Savings);
+            if (expected.Address != null)
+            {
+                Assert.AreEqual(expected.Address.Street, actual.Address.Street);
+                Assert.AreEqual(expected.Address.City, actual.Address.City);
+            }
+            else
+            {
+                Assert.AreEqual(expected.Address, actual.Address);
+            }
         }
 
         protected void AssertUserHouseValues(User expected, User actual)
@@ -153,7 +167,11 @@ namespace NPoco.Tests.Common
     {
         public FluentMappingOverrides()
         {
-            For<User>().Columns(x => x.Column(y => y.IsMale).WithName("is_male"));
+            For<User>().Columns(x =>
+            {
+                x.Column(y => y.IsMale).WithName("is_male");
+                x.Column(y => y.House).Ignore();
+            });
             For<Supervisor>().UseMap<SupervisorMap>();
             For<Supervisor>().TableName("users").Columns(x => x.Column(y => y.IsMale).WithName("is_male"));
         }

@@ -24,8 +24,16 @@ namespace NPoco.Tests.Common
         [ResultColumn]
         public House House { get; set; }
 
-        [ResultColumn]
-        public Supervisor Supervisor { get; set; }
+        public Address Address { get; set; }
+
+        //[ResultColumn]
+        //public Supervisor Supervisor { get; set; }
+    }
+
+    public class Address
+    {
+        public string Street { get; set; }
+        public string City { get; set; }
     }
 
     public class House

@@ -32,5 +32,10 @@ namespace NPoco
 
             return null;
         }
+        
+        public static bool IsAClass(this Type type)
+        {
+            return type.IsClass && type != typeof (string) && !type.IsArray;
+        }
     }
 }

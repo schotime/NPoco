@@ -50,8 +50,8 @@ namespace NPoco.FluentMappings
 
         public Map<T> PrimaryKey(Expression<Func<T, object>> column, string sequenceName)
         {
-            var propertyInfo = PropertyHelper<T>.GetProperty(column);
-            return PrimaryKey(propertyInfo.Name, sequenceName);
+            var members = MemberHelper<T>.GetMembers(column);
+            return PrimaryKey(members.Last().Name, sequenceName);
         }
 
         public Map<T> PrimaryKey(Expression<Func<T, object>> column)
@@ -62,8 +62,8 @@ namespace NPoco.FluentMappings
 
         public Map<T> PrimaryKey(Expression<Func<T, object>> column, bool autoIncrement)
         {
-            var propertyInfo = PropertyHelper<T>.GetProperty(column);
-            return PrimaryKey(propertyInfo.Name, autoIncrement);
+            var members = MemberHelper<T>.GetMembers(column);
+            return PrimaryKey(members.Last().Name, autoIncrement);
         }
 
         public Map<T> CompositePrimaryKey(params Expression<Func<T, object>>[] columns)
@@ -71,7 +71,7 @@ namespace NPoco.FluentMappings
             var columnNames = new string[columns.Length];
             for (int i = 0; i < columns.Length; i++)
             {
-                columnNames[i] = PropertyHelper<T>.GetProperty(columns[i]).Name;
+                columnNames[i] = MemberHelper<T>.GetMembers(columns[i]).Last().Name;
             }
 
             _petaPocoTypeDefinition.PrimaryKey = string.Join(",", columnNames);

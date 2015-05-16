@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Linq;
 using System.Reflection;
 
 namespace NPoco.FluentMappings
@@ -16,10 +17,11 @@ namespace NPoco.FluentMappings
 
         public IColumnBuilder Column(Expression<Func<T, object>> property)
         {
-            var propertyInfo = PropertyHelper<T>.GetProperty(property);
-            var columnDefinition = new ColumnDefinition() { MemberInfo = propertyInfo };
+            var members = MemberHelper<T>.GetMembers(property);
+            var columnDefinition = new ColumnDefinition() { MemberInfo = members.Last() };
             var builder = new ColumnBuilder(columnDefinition);
-            _columnDefinitions[propertyInfo.Name] = columnDefinition;
+            var key = string.Join("__", members.Select(x => x.Name));
+            _columnDefinitions[key] = columnDefinition;
             return builder;
         }
     }

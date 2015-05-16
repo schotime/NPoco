@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NPoco.FluentMappings;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -108,7 +109,7 @@ namespace NPoco.Tests.FluentMappings
             Assert.AreEqual("Id", columnDefinitions["UserId"].DbColumnName);
             Assert.AreEqual(typeof(long), columnDefinitions["UserId"].DbColumnType);
             Assert.AreEqual(true, columnDefinitions["UserId"].ResultColumn);
-            Assert.AreEqual(PropertyHelper<User>.GetProperty(x => x.UserId), columnDefinitions["UserId"].MemberInfo);
+            Assert.AreEqual(MemberHelper<User>.GetMembers(x => x.UserId).Last(), columnDefinitions["UserId"].MemberInfo);
         }
 
         [Test]
@@ -153,6 +154,19 @@ namespace NPoco.Tests.FluentMappings
             var pd = map.Config(new Mapper()).Resolver(typeof(User), Cache<string, Type>.CreateStaticCache(), new PocoDataFactory(new Mapper()));
             Assert.True(pd.Columns.ContainsKey("Age000"));
             Assert.AreEqual("Age", pd.Columns["Age000"].MemberInfo.Name);
+        }
+
+        [Test]
+        public void NestedColumn()
+        {
+            var columnDefinitions = new Dictionary<string, ColumnDefinition>();
+            var columnBuilder = new ColumnConfigurationBuilder<User>(columnDefinitions);
+
+            columnBuilder
+                .Column(x => x.House.Address);
+
+            Assert.AreEqual(true, columnDefinitions.ContainsKey("House__Address"));
+            Assert.AreEqual(MemberHelper<User>.GetMembers(x => x.House.Address).Last(), columnDefinitions["House__Address"].MemberInfo);
         }
     }
 }

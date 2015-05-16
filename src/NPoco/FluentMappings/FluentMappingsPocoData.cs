@@ -7,100 +7,109 @@ namespace NPoco.FluentMappings
 {
     public class FluentMappingsPocoData : PocoData
     {
-        public FluentMappingsPocoData(Type t, TypeDefinition typeConfig, IMapper mapper, PocoDataFactory pocoDataFactory)
+        private readonly TypeDefinition _typeConfig;
+
+        public FluentMappingsPocoData(Type type, TypeDefinition typeConfig, IMapper mapper, Cache<string, Type> aliasToTypeCache, PocoDataFactory pocoDataFactory) : 
+            base(type, mapper, aliasToTypeCache, pocoDataFactory)
         {
-            PocoDataFactory = pocoDataFactory;
-            Mapper = mapper;
-            Type = t;
-            TableInfo = new TableInfo();
+            _typeConfig = typeConfig;
+        }
+
+        protected override string GetColumnName(string prefix, string columnName)
+        {
+            return columnName;
+        }
+
+        protected override TableInfo GetTableInfo(Type type)
+        {
+            var tableInfo = new TableInfo();
 
             // Get the table name
-            var a = typeConfig.TableName ?? "";
-            TableInfo.TableName = a.Length == 0 ? t.Name : a;
+            var a = _typeConfig.TableName ?? "";
+            tableInfo.TableName = a.Length == 0 ? type.Name : a;
 
             // Get the primary key
-            a = typeConfig.PrimaryKey ?? "";
-            TableInfo.PrimaryKey = a.Length == 0 ? "ID" : a;
+            a = _typeConfig.PrimaryKey ?? "";
+            tableInfo.PrimaryKey = a.Length == 0 ? "ID" : a;
 
-            a = typeConfig.SequenceName ?? "";
-            TableInfo.SequenceName = a.Length == 0 ? null : a;
+            a = _typeConfig.SequenceName ?? "";
+            tableInfo.SequenceName = a.Length == 0 ? null : a;
 
-            TableInfo.AutoIncrement = typeConfig.AutoIncrement ?? true;
+            tableInfo.AutoIncrement = _typeConfig.AutoIncrement ?? true;
 
             // Set autoincrement false if primary key has multiple columns
-            TableInfo.AutoIncrement = TableInfo.AutoIncrement ? !TableInfo.PrimaryKey.Contains(',') : TableInfo.AutoIncrement;
+            tableInfo.AutoIncrement = tableInfo.AutoIncrement ? !tableInfo.PrimaryKey.Contains(',') : tableInfo.AutoIncrement;
 
-            // Call column mapper
-            if (mapper != null)
-                mapper.GetTableInfo(t, TableInfo);
+            return tableInfo;
+        }
 
-            var alias = CreateAlias(Type.Name, Type);
-            TableInfo.AutoAlias = alias;
-            var index = 0;
+        protected override ColumnInfo GetColumnInfo(MemberInfo mi, MemberInfo[] memberInfos)
+        {
+            var columnInfo = new ColumnInfo();
+            var key = string.Join("__", memberInfos.Select(x => x.Name).Concat(new[] { mi.Name }));
+            
+            bool explicitColumns = _typeConfig.ExplicitColumns ?? false;
+            var isColumnDefined = _typeConfig.ColumnConfiguration.ContainsKey(key);
 
-            // Work out bound properties
-            bool explicitColumns = typeConfig.ExplicitColumns ?? false;
-            Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
-            var originalPK = TableInfo.PrimaryKey.Split(',');
-            foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(t))
+            if (isColumnDefined && _typeConfig.ColumnConfiguration[key].IsComplexMapping)
             {
-                // Work out if properties is to be included
-                var isColumnDefined = typeConfig.ColumnConfiguration.ContainsKey(mi.Name);
-                if (explicitColumns && !isColumnDefined) continue;
+                if (_typeConfig.ColumnConfiguration[key].IgnoreColumn.HasValue && _typeConfig.ColumnConfiguration[key].IgnoreColumn.Value)
+                    columnInfo.IgnoreColumn = true;
 
-                if (isColumnDefined && (typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.HasValue && typeConfig.ColumnConfiguration[mi.Name].IgnoreColumn.Value))
-                    continue;
-                
-                var pc = new PocoColumn();
-                pc.TableInfo = TableInfo;
-                pc.MemberInfo = mi;
-                pc.AutoAlias = alias + "_" + index++;
-                
-                // Work out the DB column name
-                if (isColumnDefined)
-                {
-                    var colattr = typeConfig.ColumnConfiguration[mi.Name];
-                    pc.ColumnName = colattr.DbColumnName;
-                    pc.ColumnAlias = colattr.DbColumnAlias;
-                    if (colattr.ResultColumn.HasValue && colattr.ResultColumn.Value)
-                        pc.ResultColumn = true;
-                    else if (colattr.VersionColumn.HasValue && colattr.VersionColumn.Value)
-                    {
-                        pc.VersionColumn = true;
-                        pc.VersionColumnType = colattr.VersionColumnType ?? VersionColumnType.Number;
-                    }
-                    else if (colattr.ComputedColumn.HasValue && colattr.ComputedColumn.Value)
-                        pc.ComputedColumn = true;
-
-                    if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)
-                        pc.ForceToUtc = true;
-
-                    for (int i = 0; i < originalPK.Length; i++)
-                    {
-                        if (originalPK[i].Equals(mi.Name, StringComparison.OrdinalIgnoreCase))
-                            originalPK[i] = (pc.ColumnName ?? mi.Name);
-                    }
-
-                    pc.ColumnType = colattr.DbColumnType;
-                }
-                if (pc.ColumnName == null)
-                {
-                    pc.ColumnName = mi.Name;
-                    if (mapper != null && !mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
-                        continue;
-                }
-                
-                // Store it
-                if (!Columns.ContainsKey(pc.ColumnName))
-                    Columns.Add(pc.ColumnName, pc);
+                columnInfo.ComplexMapping = true;
+                return columnInfo;
             }
 
-            // Recombine the primary key
-            TableInfo.PrimaryKey = String.Join(",", originalPK);
+            if (explicitColumns && !isColumnDefined)
+                columnInfo.IgnoreColumn = true;
 
-            // Build column list for automatic select
-            QueryColumns = Columns.Where(x => !x.Value.ResultColumn).ToArray();
+            if (isColumnDefined && (_typeConfig.ColumnConfiguration[key].IgnoreColumn.HasValue && _typeConfig.ColumnConfiguration[key].IgnoreColumn.Value))
+                columnInfo.IgnoreColumn = true;
 
+            // Work out the DB column name
+            if (isColumnDefined)
+            {
+                var colattr = _typeConfig.ColumnConfiguration[key];
+                columnInfo.ColumnName = colattr.DbColumnName;
+                columnInfo.ColumnAlias = colattr.DbColumnAlias;
+                if (colattr.ResultColumn.HasValue && colattr.ResultColumn.Value)
+                {
+                    columnInfo.ResultColumn = true;
+                }
+                else if (colattr.VersionColumn.HasValue && colattr.VersionColumn.Value)
+                {
+                    columnInfo.VersionColumn = true;
+                    columnInfo.VersionColumnType = colattr.VersionColumnType ?? VersionColumnType.Number;
+                }
+                else if (colattr.ComputedColumn.HasValue && colattr.ComputedColumn.Value)
+                {
+                    columnInfo.ComputedColumn = true;
+                }
+
+                if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)
+                {
+                    columnInfo.ForceToUtc = true;
+                }
+
+                columnInfo.ColumnType = colattr.DbColumnType;
+
+                if (memberInfos.Length == 0)
+                {
+                    var originalPk = TableInfo.PrimaryKey.Split(',');
+                    for (int i = 0; i < originalPk.Length; i++)
+                    {
+                        if (originalPk[i].Equals(mi.Name, StringComparison.OrdinalIgnoreCase))
+                            originalPk[i] = (columnInfo.ColumnName ?? mi.Name);
+                    }
+                    TableInfo.PrimaryKey = String.Join(",", originalPk);
+                }
+            }
+            else
+            {
+                columnInfo.IgnoreColumn = true;
+            }
+            
+            return columnInfo;
         }
     }
 }

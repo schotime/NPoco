@@ -1008,17 +1008,22 @@ namespace NPoco.Expressions
                     || m.Expression.NodeType == ExpressionType.Convert
                     || m.Expression.NodeType == ExpressionType.MemberAccess))
             {
-                var propertyInfos = GetProperties(m).ToArray();
+                var propertyInfos = GetMembers(m).ToArray();
                 var type = GetCorrectType(m);
-                
-                var localModelDef = _database.PocoDataFactory.ForType(type);
-                var pocoColumns = propertyInfos.Select(z =>
-                {
-                    var pc = localModelDef.Columns.Values.SingleOrDefault(x => x.MemberInfo.Name == z.Name);
-                    localModelDef = _database.PocoDataFactory.ForType(z.PropertyType);
-                    return pc;
-                }).Where(x => x != null).ToArray();
+   
+                var localModelDef = _database.PocoDataFactory.ForType(_type);
 
+                var pocoColumns = localModelDef.Columns.Values
+                    .Where(x => x.MemberInfoChain.Select(y => y.Name).Concat(new[] {x.MemberInfo.Name}).SequenceEqual(propertyInfos.Select(y => y.Name)))
+                    .ToArray();
+                        
+                //    propertyInfos.Select(z =>
+                //{
+                //    var pc = localModelDef.Members.SingleOrDefault(x => x.MemberInfo.Name == z.Name);
+                //    localModelDef = _database.PocoDataFactory.ForType(z.PropertyType);
+                //    return pc;
+                //}).Where(x => x != null).ToArray();
+                
                 var pocoColumn = pocoColumns[pocoColumns.Length-1];
                 var columnName = (PrefixFieldWithTableName
                                           ? _databaseType.EscapeTableName(pocoColumn.TableInfo.AutoAlias) + "."
@@ -1035,7 +1040,7 @@ namespace NPoco.Expressions
                 if (isNull)
                     return new NullableMemberAccess(pocoColumn, pocoColumns, columnName, type);
 
-                if (IsEnum((PropertyInfo)pocoColumn.MemberInfo))
+                if (IsEnum(pocoColumn.MemberInfo))
                     return new EnumMemberAccess(pocoColumn, pocoColumns, columnName, type);
 
                 return new MemberAccessString(pocoColumn, pocoColumns, columnName, type);
@@ -1067,7 +1072,7 @@ namespace NPoco.Expressions
             return memberExpr;
         }
 
-        public static IEnumerable<PropertyInfo> GetProperties(Expression expression)
+        public static IEnumerable<MemberInfo> GetMembers(Expression expression)
         {
             var memberExpression = expression as MemberExpression ?? GetMemberExpression(expression);
             if (memberExpression == null)
@@ -1075,20 +1080,20 @@ namespace NPoco.Expressions
                 yield break;
             }
 
-            var property = memberExpression.Member as PropertyInfo;
+            var member = memberExpression.Member;
 
-            foreach (var propertyInfo in GetProperties(memberExpression.Expression))
+            foreach (var memberInfo in GetMembers(memberExpression.Expression))
             {
-                yield return propertyInfo;
+                yield return memberInfo;
             }
 
-            yield return property;
+            yield return member;
         }
 
-        private static bool IsEnum(PropertyInfo propertyInfo)
+        private static bool IsEnum(MemberInfo memberInfo)
         {
-            var underlyingType = Nullable.GetUnderlyingType(propertyInfo.PropertyType);
-            return propertyInfo.PropertyType.IsEnum || (underlyingType != null && underlyingType.IsEnum);
+            var underlyingType = Nullable.GetUnderlyingType(memberInfo.GetMemberInfoType());
+            return memberInfo.GetMemberInfoType().IsEnum || (underlyingType != null && underlyingType.IsEnum);
         }
 
         private Type GetCorrectType(MemberExpression m)
@@ -1491,7 +1496,7 @@ namespace NPoco.Expressions
                     {
                         if (x.SelectSql == null)
                             return (PrefixFieldWithTableName
-                                ? _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + _databaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumns.Select(z=>z.MemberInfo.Name)))
+                                ? _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + _databaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumns.Last().MemberInfoChain.Select(y=>y.Name)))
                                 : _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName));
                         return x.SelectSql;
                     }).ToArray()),

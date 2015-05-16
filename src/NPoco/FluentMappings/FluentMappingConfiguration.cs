@@ -57,24 +57,13 @@ namespace NPoco.FluentMappings
                     ExplicitColumns = true
                 };
 
-                foreach (var prop in ReflectionUtils.GetFieldsAndPropertiesForClasses(type))
+                foreach (var columnDefinition in GetColumnDefinitions(scannerSettings, type, new List<MemberInfo>()))
                 {
-                    var column = new ColumnDefinition();
-                    column.MemberInfo = prop;
-                    column.DbColumnName = scannerSettings.PropertiesNamed(prop);
-                    column.DbColumnAlias = scannerSettings.AliasNamed(prop);
-                    column.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(prop));
-                    column.DbColumnType = scannerSettings.DbColumnTypesAs(prop);
-                    column.ResultColumn = scannerSettings.ResultPropertiesWhere(prop);
-                    column.ComputedColumn = scannerSettings.ComputedPropertiesWhere(prop);
-                    column.VersionColumn = scannerSettings.VersionPropertiesWhere(prop);
-                    column.VersionColumnType = scannerSettings.VersionColumnTypeAs(prop);
-                    column.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(prop);
-
-                    if (!pocoDefn.ColumnConfiguration.ContainsKey(prop.Name))
-                        pocoDefn.ColumnConfiguration.Add(prop.Name, column);
+                    var key = string.Join("__", columnDefinition.MemberInfoChain.Select(x => x.Name));
+                    if (!pocoDefn.ColumnConfiguration.ContainsKey(key))
+                        pocoDefn.ColumnConfiguration.Add(key, columnDefinition);
                 }
-
+                
                 config.Add(type, pocoDefn);
             }
 
@@ -87,6 +76,47 @@ namespace NPoco.FluentMappings
 
             var pocoMappings = new Mappings {Config = config};
             return pocoMappings;
+        }
+
+        private static IEnumerable<ColumnDefinition> GetColumnDefinitions(ConventionScannerSettings scannerSettings, Type type, List<MemberInfo> memberInfos)
+        {
+            var capturedMembers = memberInfos.ToArray();
+            foreach (var member in ReflectionUtils.GetFieldsAndPropertiesForClasses(type))
+            {
+                if (member.GetMemberInfoType().IsAClass())
+                {
+                    var members = new List<MemberInfo>();
+                    members.AddRange(capturedMembers);
+                    members.Add(member);
+                    foreach (var columnDefinition in GetColumnDefinitions(scannerSettings, member.GetMemberInfoType(), members))
+                    {
+                        yield return columnDefinition;
+                    }
+
+                    yield return new ColumnDefinition()
+                    {
+                        MemberInfoChain = capturedMembers.Concat(new[] {member}).ToArray(),
+                        MemberInfo = member,
+                        IsComplexMapping = true
+                    };
+                }
+                else
+                {
+                    var columnDefinition = new ColumnDefinition();
+                    columnDefinition.MemberInfoChain = capturedMembers.Concat(new[] {member}).ToArray();
+                    columnDefinition.MemberInfo = member;
+                    columnDefinition.DbColumnName = string.Join("__", capturedMembers.Select(x=>scannerSettings.PropertiesNamed(x)).Concat(new[] { scannerSettings.PropertiesNamed(member) }));
+                    columnDefinition.DbColumnAlias = scannerSettings.AliasNamed(member);
+                    columnDefinition.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(member));
+                    columnDefinition.DbColumnType = scannerSettings.DbColumnTypesAs(member);
+                    columnDefinition.ResultColumn = scannerSettings.ResultPropertiesWhere(member);
+                    columnDefinition.ComputedColumn = scannerSettings.ComputedPropertiesWhere(member);
+                    columnDefinition.VersionColumn = scannerSettings.VersionPropertiesWhere(member);
+                    columnDefinition.VersionColumnType = scannerSettings.VersionColumnTypeAs(member);
+                    columnDefinition.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(member);
+                    yield return columnDefinition;
+                }
+            }
         }
 
         private static ConventionScannerSettings ProcessSettings(Action<IConventionScanner> scanner)
@@ -195,17 +225,17 @@ namespace NPoco.FluentMappings
                 {
                     if (maps.Config.ContainsKey(t))
                     {
-                        return new FluentMappingsPocoData(t, mappings.Config[t], mapper, pocoDataFactory);
+                        return new FluentMappingsPocoData(t, mappings.Config[t], mapper, aliasCache, pocoDataFactory).Init();
                     }
 
                     if (scana != null)
                     {
                         var settings = ProcessSettings(scana);
                         var typeMapping = CreateMappings(settings, new[] { t });
-                        return new FluentMappingsPocoData(t, typeMapping.Config[t], mapper, pocoDataFactory);
+                        return new FluentMappingsPocoData(t, typeMapping.Config[t], mapper, aliasCache, pocoDataFactory).Init();
                     }
                 }
-                return new PocoData(t, mapper, aliasCache, pocoDataFactory);
+                return new PocoData(t, mapper, aliasCache, pocoDataFactory).Init();
             }));
         }
 

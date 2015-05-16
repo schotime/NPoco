@@ -127,7 +127,7 @@
     <Compile Include="FluentMappings\Mappings.cs" />
     <Compile Include="FluentMappings\TypeDefinition.cs" />
     <Compile Include="FluentMappings\PropertyBuilderConventions.cs" />
-    <Compile Include="FluentMappings\PropertyHelper.cs" />
+    <Compile Include="FluentMappings\MemberHelper.cs" />
     <Compile Include="IDatabase.cs" />
     <Compile Include="IDatabaseQuery.cs" />
     <Compile Include="IgnoreAttribute.cs" />

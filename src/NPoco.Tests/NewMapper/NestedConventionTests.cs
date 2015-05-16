@@ -153,8 +153,14 @@ namespace NPoco.Tests.NewMapper
     {
         public int MoneyId { get; set; }
 
-        public Money Money2 { get; set; }
+        public Money2 Money2 { get; set; }
 
+        public decimal Value { get; set; }
+        public string Currency { get; set; }
+    }
+
+    public class Money2
+    {
         public decimal Value { get; set; }
         public string Currency { get; set; }
     }

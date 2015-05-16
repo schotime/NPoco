@@ -17,6 +17,8 @@ namespace NPoco
         public VersionColumnType VersionColumnType { get; set; }
         public bool ForceToUtc { get; set; }
         public Type ColumnType { get; set; }
+        public bool ComplexMapping { get; set; }
+        public string ComplexPrefix { get; set; }
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
@@ -26,7 +28,14 @@ namespace NPoco
             var colAttrs = attrs.OfType<ColumnAttribute>();
             var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>();
             var ignoreAttrs = attrs.OfType<IgnoreAttribute>();
+            var complex = attrs.OfType<ComplexMappingAttribute>();
 
+            if (complex.Any())
+            {
+                ci.ComplexPrefix = complex.First().CustomPrefix;
+                return ci;
+            }
+            
             // Check if declaring poco has [ExplicitColumns] attribute
             var explicitColumns = mi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Any();
 
@@ -65,6 +74,16 @@ namespace NPoco
             }
 
             return ci;
+        }
+    }
+
+    public class ComplexMappingAttribute : Attribute
+    {
+        public string CustomPrefix { get; set; }
+
+        public ComplexMappingAttribute(string customPrefix)
+        {
+            CustomPrefix = customPrefix;
         }
     }
 }

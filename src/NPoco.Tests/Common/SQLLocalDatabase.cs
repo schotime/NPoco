@@ -98,7 +98,9 @@ namespace NPoco.Tests.Common
                     SupervisorId int NULL,
                     Version rowversion,
                     VersionInt int default(0) NOT NULL,
-                    YorN char NULL
+                    YorN char NULL,
+                    Address__Street varchar(50) NULL,
+                    Address__City varchar(50) NULL
                 );
             ";
             cmd.ExecuteNonQuery();
@@ -129,6 +131,16 @@ namespace NPoco.Tests.Common
                     TextData nvarchar(512) NULL, 
                     DateEntered datetime NOT NULL,
                     DateUpdated datetime NULL 
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+                CREATE TABLE ComplexMap(
+                    Id int Identity(1,1) PRIMARY KEY NOT NULL, 
+                    Name nvarchar(50) NULL, 
+                    NestedComplexMap__Id int NULL, 
+                    NestedComplexMap__NestedComplexMap2__Id int NULL, 
                 );
             ";
             cmd.ExecuteNonQuery();

@@ -451,17 +451,17 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(users.Count, 1);
         }
 
-        [Test]
-        public void QueryWithInheritedTypesAliasCorrectlyWithJoin()
-        {
-            var users = Database.Query<User>()
-                .Include(x=>x.Supervisor, (user, supervisor) => user.SupervisorId == supervisor.UserId)
-                .Where(x => x.UserId.In(new[] {1,2}))
-                .ToList();
+        //[Test]
+        //public void QueryWithInheritedTypesAliasCorrectlyWithJoin()
+        //{
+        //    var users = Database.Query<User>()
+        //        .Include(x=>x.Supervisor, (user, supervisor) => user.SupervisorId == supervisor.UserId)
+        //        .Where(x => x.UserId.In(new[] {1,2}))
+        //        .ToList();
 
-            Assert.AreEqual(users.Count, 2);
-            Assert.NotNull(users[1].Supervisor);
-        }
+        //    Assert.AreEqual(users.Count, 2);
+        //    Assert.NotNull(users[1].Supervisor);
+        //}
     }
 
     public class ProjectUser

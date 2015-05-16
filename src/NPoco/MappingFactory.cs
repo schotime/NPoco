@@ -221,7 +221,8 @@ namespace NPoco
                         {
                             // Get the PocoColumn for this db column, ignore if not known
                             PocoColumn pc;
-                            if (!TryGetColumnByName(_pocoData.Columns, r.GetName(i), out pc))
+                            PocoMember pm;
+                            if (!TryGetColumnByName(_pocoData, r.GetName(i), out pc, out pm))
                             {
                                 continue;
                             }
@@ -429,8 +430,19 @@ namespace NPoco
             return default(T);
         }
 
-        public static bool TryGetColumnByName(Dictionary<string, PocoColumn> columns, string name, out PocoColumn pc)
+        public static bool TryGetColumnByName(PocoData pocoData, string name, out PocoColumn pc, out PocoMember pm)
         {
+            var columns = pocoData.Columns;
+            var members = pocoData.Members;
+
+            var member = members.FirstOrDefault(x => x.Name == name);
+            if (member != null)
+            {
+                pm = member;
+                pc = null;
+                return true;
+            }
+
             // Try to get the column by name directly (works when the poco property name matches the DB column name).
             var found = (columns.TryGetValue(name, out pc) || columns.TryGetValue(name.Replace("_", ""), out pc));
             if (!found)
@@ -455,6 +467,8 @@ namespace NPoco
                     found = false;
                 }
             }
+
+            pm = null;
 
             return found;
         }

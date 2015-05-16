@@ -104,7 +104,7 @@ namespace NPoco.Linq
 
             if (!_joinSqlExpressions.ContainsKey(onSql))
             {
-                var enumerable = SqlExpression<T>.GetProperties(expression).Select(x => x.Name).ToList();
+                var enumerable = SqlExpression<T>.GetMembers(expression).Select(x => x.Name).ToList();
                 _joinSqlExpressions.Add(onSql, new JoinData()
                 {
                     OnSql = onSql,

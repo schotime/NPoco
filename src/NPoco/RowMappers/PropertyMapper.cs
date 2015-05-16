@@ -47,7 +47,7 @@ namespace NPoco.RowMappers
 
         public MapPlan BuildMapPlan(IDataReader dataReader, PocoData pocoData)
         {
-            var plans = _groupedNames.SelectMany(x => BuildMapPlans(x, dataReader, pocoData)).ToArray();
+            var plans = _groupedNames.SelectMany(x => BuildMapPlans(x, dataReader, pocoData, pocoData.Members)).ToArray();
             return (reader, instance) =>
             {
                 foreach (MapPlan plan in plans)
@@ -58,20 +58,22 @@ namespace NPoco.RowMappers
             };
         }
 
-        public IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, IDataReader dataReader, PocoData pocoData)
+        public IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, IDataReader dataReader, PocoData pocoData, List<PocoMember> pocoMembers)
         {
-            var pocoColumn = FindPocoColumn(groupedName, pocoData);
-            if (groupedName.SubItems.Any() && pocoColumn != null)
+            //var pocoSet = FindPocoColumn(groupedName, pocoData);
+            var pocoMember = pocoMembers
+                .FirstOrDefault(x => x.Name.Equals(groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase));
+
+            if (groupedName.SubItems.Any() && pocoMember != null )
             {
-                var memberInfoType = pocoColumn.MemberInfo.GetMemberInfoType();
-                if (memberInfoType.IsClass && memberInfoType != typeof(string) && !memberInfoType.IsArray)
+                var memberInfoType = pocoMember.MemberInfo.GetMemberInfoType();
+                if (memberInfoType.IsAClass())
                 {
-                    var newPoco = pocoData.PocoDataFactory.ForType(memberInfoType);
-                    var subPlans = groupedName.SubItems.SelectMany(x => BuildMapPlans(x, dataReader, newPoco)).ToArray();
+                    var subPlans = groupedName.SubItems.SelectMany(x => BuildMapPlans(x, dataReader, pocoData, pocoMember.PocoMemberChildren)).ToArray();
 
                     yield return (reader, instance) =>
                     {
-                        var newObject = newPoco.CreateObject();
+                        var newObject = Activator.CreateInstance(memberInfoType);
                         var shouldSetNestedObject = false;
                         
                         foreach (var subPlan in subPlans)
@@ -81,17 +83,18 @@ namespace NPoco.RowMappers
 
                         if (shouldSetNestedObject)
                         {
-                            pocoColumn.SetValueFast(instance, newObject);
+                            pocoMember.MemberInfo.SetMemberInfoValue(instance, newObject);
+                            //pocoMember.PocoColumn.SetValueFast(instance, newObject);
                         }
                         return false;
                     };
                 }
             }
-            else if (pocoColumn != null)
+            else if (pocoMember != null)
             {
-                var destType = pocoColumn.MemberInfo.GetMemberInfoType();
-                var converter = GetConverter(pocoData, pocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
-                yield return (reader, instance) => MapValue(groupedName.Key.Pos, reader, converter, instance, pocoColumn, destType);
+                var destType = pocoMember.MemberInfo.GetMemberInfoType();
+                var converter = GetConverter(pocoData, pocoMember.PocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
+                yield return (reader, instance) => MapValue(groupedName.Key.Pos, reader, converter, instance, pocoMember.PocoColumn, destType);
             }
         }
 
@@ -107,11 +110,22 @@ namespace NPoco.RowMappers
             return false;
         }
 
-        private static PocoColumn FindPocoColumn(GroupResult<PosName> groupedName, PocoData pocoData)
+        private static PocoSet FindPocoColumn(GroupResult<PosName> groupedName, PocoData pocoData)
         {
             PocoColumn pocoColumn;
-            MappingFactory.TryGetColumnByName(pocoData.Columns, groupedName.Item, out pocoColumn);
-            return pocoColumn;
+            PocoMember pocoMember;
+            MappingFactory.TryGetColumnByName(pocoData, groupedName.Item, out pocoColumn, out pocoMember);
+            return new PocoSet
+            {
+                PocoColumn = pocoColumn,
+                PocoMember = pocoMember,
+            };
         }
+    }
+
+    internal class PocoSet
+    {
+        public PocoColumn PocoColumn { get; set; }
+        public PocoMember PocoMember { get; set; }
     }
 }

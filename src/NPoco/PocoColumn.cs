@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace NPoco
@@ -8,17 +9,18 @@ namespace NPoco
         public PocoColumn()
         {
             ForceToUtc = true;
+            MemberInfoChain = new List<MemberInfo>();
         }
 
         public TableInfo TableInfo;
         public string ColumnName;
 
+        public List<MemberInfo> MemberInfoChain { get; set; }
         public MemberInfo MemberInfo
         {
             get { return _memberInfo; }
             set { 
                 _memberInfo = value; 
-                SetupMemberAccessor(); 
             }
         }
 
@@ -41,17 +43,28 @@ namespace NPoco
         public string ColumnAlias { get; set; }
 
         public virtual void SetValue(object target, object val) { MemberInfo.SetMemberInfoValue(target, val); }
-        public virtual object GetValue(object target) { return MemberInfo.GetMemberInfoValue(target); }
+        public virtual object GetValue(object target)
+        {
+            foreach (var memberInfo in MemberInfoChain)
+            {
+                if (memberInfo == _memberInfo)
+                    continue;
+                target = target == null ? null : memberInfo.GetMemberInfoValue(target);
+            }
+            return target == null ? null : MemberInfo.GetMemberInfoValue(target);
+        }
         public virtual object ChangeType(object val) { return Convert.ChangeType(val, MemberInfo.GetMemberInfoType()); }
 
         public virtual void SetValueFast(object target, object val)
         {
+            SetupMemberAccessor();
             _memberAccessor.Set(target, val);
         }
 
         private void SetupMemberAccessor()
         {
-            _memberAccessor = new MemberAccessor(MemberInfo.DeclaringType, MemberInfo.Name);
+            if (_memberAccessor == null)
+                _memberAccessor = new MemberAccessor(MemberInfo.DeclaringType, MemberInfo.Name);
         }
     }
 }
