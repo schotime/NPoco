@@ -19,6 +19,8 @@ namespace NPoco
         public Type ColumnType { get; set; }
         public bool ComplexMapping { get; set; }
         public string ComplexPrefix { get; set; }
+        public bool ReferenceMapping { get; set; }
+        public string ReferenceMemberName { get; set; }
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
@@ -29,13 +31,9 @@ namespace NPoco
             var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>();
             var ignoreAttrs = attrs.OfType<IgnoreAttribute>();
             var complex = attrs.OfType<ComplexMappingAttribute>();
+            var reference = attrs.OfType<ReferenceAttribute>();
 
-            if (complex.Any())
-            {
-                ci.ComplexPrefix = complex.First().CustomPrefix;
-                return ci;
-            }
-            
+          
             // Check if declaring poco has [ExplicitColumns] attribute
             var explicitColumns = mi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Any();
 
@@ -46,6 +44,26 @@ namespace NPoco
             if ((explicitColumns && !colAttrs.Any()) || ignoreAttrs.Any())
             {
                 ci.IgnoreColumn = true;
+            }
+
+            if (reference.Any())
+            {
+                ci.ReferenceMapping = true;
+                ci.ReferenceMemberName = reference.First().Name ?? mi.GetMemberInfoType() + "ID";
+                return ci;
+            }
+
+            if (complex.Any())
+            {
+                ci.ComplexMapping = true;
+                ci.ComplexPrefix = complex.First().CustomPrefix;
+                return ci;
+            }
+
+            if (mi.GetMemberInfoType().IsAClass())
+            {
+                ci.ComplexMapping = true;
+                return ci;
             }
 
             // Read attribute

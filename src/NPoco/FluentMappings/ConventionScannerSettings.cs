@@ -24,7 +24,7 @@ namespace NPoco.FluentMappings
         public Func<Type, bool> PrimaryKeysAutoIncremented { get; set; }
         public Func<Type, string> SequencesNamed { get; set; }
 
-        public Func<MemberInfo, string> PropertiesNamed { get; set; }
+        public Func<MemberInfo, string> DbColumnsNamed { get; set; }
         public Func<MemberInfo, string> AliasNamed { get; set; }
         public Func<MemberInfo, Type> DbColumnTypesAs { get; set; }
         public List<Func<MemberInfo, bool>> IgnorePropertiesWhere { get; set; }
@@ -33,9 +33,11 @@ namespace NPoco.FluentMappings
         public Func<MemberInfo, bool> ResultPropertiesWhere { get; set; }
         public Func<MemberInfo, bool> ComputedPropertiesWhere { get; set; }
         public Func<MemberInfo, bool> ForceDateTimesToUtcWhere { get; set; }
+        public Func<MemberInfo, bool> ReferencePropertiesWhere { get; set; }
+        public Func<MemberInfo, bool> ComplexPropertiesWhere { get; set; }
+        public Func<MemberInfo, string> ReferenceDbColumnsNamed { get; set; }
 
         public bool Lazy { get; set; }
-
         //public bool OverrideWithAttributes { get; set; }
     }
 }

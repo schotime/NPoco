@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using NPoco.Expressions;
+using NPoco.FluentMappings;
 
 namespace NPoco.Linq
 {
@@ -54,7 +55,6 @@ namespace NPoco.Linq
     public interface IQueryProviderWithIncludes<T> : IQueryProvider<T>
     {
         IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression) where T2 : class;
-        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, Expression<Func<T, T2, bool>> onExpression) where T2 : class;
     }
 
     public class QueryProvider<T> : IQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>
@@ -81,37 +81,38 @@ namespace NPoco.Linq
 
         public IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression) where T2 : class
         {
-            return Include(expression, null);
-        }
+            // x => x.House   
+            var memberInfos = MemberHelper<T>.GetMembers(expression);
+            var pocoData1 = _database.PocoDataFactory.ForType(typeof(T));
 
-        public IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, Expression<Func<T, T2, bool>> onExpression) where T2 : class
-        {
-            string onSql;
-            if (onExpression == null)
+            foreach (var memberInfo in memberInfos)
             {
-                var pocoDataT = _database.PocoDataFactory.ForType(typeof(T));
-                var pocoDataT2 = _database.PocoDataFactory.ForType(typeof(T2));
-                var colT2 = pocoDataT2.Columns.Values.Single(x => x.ColumnName == pocoDataT2.TableInfo.PrimaryKey);
-                onSql = _database.DatabaseType.EscapeTableName(pocoDataT.TableInfo.AutoAlias)
-                        + "." + _database.DatabaseType.EscapeSqlIdentifier(colT2.ColumnName)
-                        + " = " + _database.DatabaseType.EscapeTableName(pocoDataT2.TableInfo.AutoAlias)
-                        + "." + _database.DatabaseType.EscapeSqlIdentifier(colT2.ColumnName);
-            }
-            else
-            {
-                onSql = _database.DatabaseType.ExpressionVisitor<T>(_database, true).On(onExpression);
-            }
+                var pocoMember1 = pocoData1.Members.Where(x => x.IsReferenceMapping).Single(x => x.MemberInfo == memberInfo);
+                var pocoColumn1 = pocoMember1.PocoColumn;
+                
+                var pocoData2 = _database.PocoDataFactory.ForType(memberInfo.GetMemberInfoType());
+                
+                var pocoColumn2 = pocoMember1.ReferenceMemberName != null 
+                    ? pocoData2.Members.Single(x => x.Name == pocoMember1.ReferenceMemberName).PocoColumn
+                    : pocoData2.Columns.Values.Single(x => x.ColumnName.Equals(pocoData2.TableInfo.PrimaryKey, StringComparison.InvariantCultureIgnoreCase));
 
-            if (!_joinSqlExpressions.ContainsKey(onSql))
-            {
-                var enumerable = SqlExpression<T>.GetMembers(expression).Select(x => x.Name).ToList();
-                _joinSqlExpressions.Add(onSql, new JoinData()
+                var onSql = _database.DatabaseType.EscapeTableName(pocoData1.TableInfo.AutoAlias)
+                   + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn1.ColumnName)
+                   + " = " + _database.DatabaseType.EscapeTableName(pocoData2.TableInfo.AutoAlias)
+                   + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn2.ColumnName);
+
+                if (!_joinSqlExpressions.ContainsKey(onSql))
                 {
-                    OnSql = onSql,
-                    Type = typeof(T2),
-                    BaseName = string.Join("__", enumerable)
-                });
+                    _joinSqlExpressions.Add(onSql, new JoinData()
+                    {
+                        OnSql = onSql,
+                        Type = pocoData2.Type
+                    });
+                }
+
+                pocoData1 = pocoData2;
             }
+
             return this;
         }
 
@@ -234,15 +235,13 @@ namespace NPoco.Linq
 
         public List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression)
         {
-            var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
-            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, types, false);
+            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
             return _database.Query<T>(sql).Select(projectionExpression.Compile()).ToList();
         }
 
         public List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
         {
-            var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
-            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, types, true);
+            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, true);
             return _database.Query<T>(sql).Select(projectionExpression.Compile()).ToList();
         }
 
@@ -261,7 +260,6 @@ namespace NPoco.Linq
             if (!_joinSqlExpressions.Any())
                 return _database.Query<T>(_sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
 
-            //var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
             var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false, false);
             return _database.Query<T>(sql);
         }
@@ -277,9 +275,8 @@ namespace NPoco.Linq
             if (!_joinSqlExpressions.Any())
                 return _database.QueryAsync<T>(_sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
 
-            var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
             var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false, false);
-            return _database.QueryAsync<T>(types, null, sql);
+            return _database.QueryAsync<T>(sql);
         }
 
         public async System.Threading.Tasks.Task<T> FirstOrDefaultAsync()
@@ -330,7 +327,7 @@ namespace NPoco.Linq
         public async System.Threading.Tasks.Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
-            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, types, false);
+            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
             return (await _database.QueryAsync<T>(types, null, sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
         }
 #endif

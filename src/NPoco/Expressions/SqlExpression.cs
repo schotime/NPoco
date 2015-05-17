@@ -648,7 +648,7 @@ namespace NPoco.Expressions
         private string GetSelectExpression(bool distinct)
         {
             var selectMembersFromOrderBys = orderByMembers
-                .Select(x => new SelectMember() { PocoColumn = x.PocoColumn, EntityType = x.EntityType })
+                .Select(x => new SelectMember() { PocoColumn = x.PocoColumn, EntityType = x.EntityType, PocoColumns = new[] { x.PocoColumn }})
                 .Where(x => !selectMembers.Any(y => y.EntityType == x.EntityType && y.PocoColumn.MemberInfo.Name == x.PocoColumn.MemberInfo.Name));
 
             var morecols = selectMembers.Concat(selectMembersFromOrderBys);
@@ -1013,8 +1013,8 @@ namespace NPoco.Expressions
    
                 var localModelDef = _database.PocoDataFactory.ForType(_type);
 
-                var pocoColumns = localModelDef.Columns.Values
-                    .Where(x => x.MemberInfoChain.Select(y => y.Name).Concat(new[] {x.MemberInfo.Name}).SequenceEqual(propertyInfos.Select(y => y.Name)))
+                var pocoColumns = localModelDef.AllColumns
+                    .Where(x => x.MemberInfoChain.Select(y => y.Name).SequenceEqual(propertyInfos.Select(y => y.Name)))
                     .ToArray();
                         
                 //    propertyInfos.Select(z =>
@@ -1024,7 +1024,17 @@ namespace NPoco.Expressions
                 //    return pc;
                 //}).Where(x => x != null).ToArray();
                 
-                var pocoColumn = pocoColumns[pocoColumns.Length-1];
+                var pocoColumn = pocoColumns.LastOrDefault();
+
+                if (pocoColumn == null)
+                {
+                    var newDef = _database.PocoDataFactory.ForType(type);
+                    pocoColumns = newDef.AllColumns
+                        .Where(x => x.MemberInfoChain.Select(y => y.Name).SequenceEqual(propertyInfos.Select(y => y.Name)))
+                        .ToArray();
+                    pocoColumn = pocoColumns.LastOrDefault();
+                }
+
                 var columnName = (PrefixFieldWithTableName
                                           ? _databaseType.EscapeTableName(pocoColumn.TableInfo.AutoAlias) + "."
                                           : "")
@@ -1522,13 +1532,7 @@ namespace NPoco.Expressions
 
             if (columns != null && columns.Any() && _databaseType.UseColumnAliases())
             {
-                parts.sqlColumns = string.Join(", ", columns.Select(x =>
-                {
-                    var first = x.First();
-                    var joinexp = joinSqlExpressions.Values.FirstOrDefault(z => z.Type == first.MemberInfo.DeclaringType);
-                    var prefix = joinexp != null ? joinexp.BaseName + "__" : "";
-                    return _databaseType.EscapeSqlIdentifier(prefix + string.Join("__", x.Select(z => z.MemberInfo.Name)));
-                }).ToArray());
+                parts.sqlColumns = string.Join(", ", columns.Select(x => _databaseType.EscapeSqlIdentifier(string.Join("__", x.Last().MemberInfoChain.Select(z => z.Name)))).ToArray());
             }
 
             sqlPage = _databaseType.BuildPageQuery(Skip ?? 0, Rows ?? 0, parts, ref parms);

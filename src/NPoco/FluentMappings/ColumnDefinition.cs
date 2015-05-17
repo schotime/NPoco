@@ -17,5 +17,7 @@ namespace NPoco.FluentMappings
         public bool? ForceUtc { get; set; }
         public MemberInfo[] MemberInfoChain { get; set; }
         public bool IsComplexMapping { get; set; }
+        public bool? IsReferenceMember { get; set; }
+        public MemberInfo ReferenceMember { get; set; }
     }
 }

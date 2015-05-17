@@ -96,7 +96,7 @@ namespace NPoco.Tests.Common
             {
                 var house = new House()
                 {
-                    Address = i + " Road Street, Suburb"
+                    //Address = i + " Road Street, Suburb"
                 };
                 Database.Insert(house);
                 InMemoryHouses.Add(house);
@@ -170,7 +170,7 @@ namespace NPoco.Tests.Common
             For<User>().Columns(x =>
             {
                 x.Column(y => y.IsMale).WithName("is_male");
-                x.Column(y => y.House).Ignore();
+                x.Column(y => y.House).WithName("HouseId").Reference();
             });
             For<Supervisor>().UseMap<SupervisorMap>();
             For<Supervisor>().TableName("users").Columns(x => x.Column(y => y.IsMale).WithName("is_male"));

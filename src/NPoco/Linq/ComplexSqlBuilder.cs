@@ -19,42 +19,21 @@ namespace NPoco.Linq
             _joinSqlExpressions = joinSqlExpressions;
         }
 
-        public Sql GetSqlForProjection<T2>(Expression<Func<T, T2>> projectionExpression, Type[] types, bool distinct)
+        public Sql GetSqlForProjection<T2>(Expression<Func<T, T2>> projectionExpression, bool distinct)
         {
             var selectMembers = _database.DatabaseType.ExpressionVisitor<T>(_database).SelectProjection(projectionExpression);
-            var newMembers = GetSelectMembers<T2>(types, selectMembers).ToList();
 
             ((ISqlExpression)_sqlExpression).SelectMembers.Clear();
-            ((ISqlExpression)_sqlExpression).SelectMembers.AddRange(newMembers);
+            ((ISqlExpression)_sqlExpression).SelectMembers.AddRange(selectMembers);
 
             if (!_joinSqlExpressions.Any())
             {
-                var finalsql = ((ISqlExpression)_sqlExpression).ApplyPaging(_sqlExpression.Context.ToSelectStatement(false, distinct), newMembers.Select(x => x.PocoColumns), _joinSqlExpressions);
+                var finalsql = ((ISqlExpression)_sqlExpression).ApplyPaging(_sqlExpression.Context.ToSelectStatement(false, distinct), selectMembers.Select(x => x.PocoColumns), _joinSqlExpressions);
                 return new Sql(finalsql, _sqlExpression.Context.Params);
             }
 
-            var sql = BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), newMembers, false, distinct);
+            var sql = BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), selectMembers, false, distinct);
             return sql;
-        }
-
-        private IEnumerable<SelectMember> GetSelectMembers<T2>(IEnumerable<Type> types, List<SelectMember> selectMembers)
-        {
-            var newMembers = new List<SelectMember>();
-            foreach (var type in types)
-            {
-                var membersForType = selectMembers.Where(x => x.EntityType == type).ToList();
-                if (membersForType.Any())
-                {
-                    newMembers.AddRange(membersForType);
-                }
-                else
-                {
-                    var pocoData = _database.PocoDataFactory.ForType(type);
-                    var pk = pocoData.Columns.FirstOrDefault(x => x.Value.ColumnName == pocoData.TableInfo.PrimaryKey);
-                    newMembers.Add(new SelectMember() { EntityType = type, PocoColumn = pk.Value, PocoColumns = new[] { pk.Value } });
-                }
-            }
-            return newMembers;
         }
 
         public Sql BuildJoin(IDatabase database, SqlExpression<T> sqlExpression, List<JoinData> joinSqlExpressions, List<SelectMember> newMembers, bool count, bool distinct)
@@ -68,7 +47,7 @@ namespace NPoco.Linq
             var cols = modelDef.QueryColumns.Select((x, j) => new StringPocoCol
             {
                 StringCol = database.DatabaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." +
-                            database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(x.Value.MemberInfo.Name),
+                            database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(string.Join("__", x.Value.MemberInfoChain.Select(y=>y.Name))),
                 PocoColumn = new[] { x.Value }
             });
 
@@ -78,7 +57,7 @@ namespace NPoco.Linq
             wheres.Append(string.IsNullOrEmpty(where) ? string.Empty : "\n" + where, sqlExpression.Context.Params);
 
             // build joins and add cols
-            var joins = BuildJoinSql(database, joinSqlExpressions, ref cols);
+            var joins = BuildJoinSql(modelDef, database, joinSqlExpressions, ref cols);
 
             // build orderbys
             ISqlExpression exp = sqlExpression;
@@ -87,11 +66,9 @@ namespace NPoco.Linq
             {
                 var orderMembers = exp.OrderByMembers.Select(x =>
                 {
-                    var joinexp = _joinSqlExpressions.Values.FirstOrDefault(z => z.Type == x.EntityType);
-                    var prefix = joinexp != null ? joinexp.BaseName + "__" : "";
                     return new
                     {
-                        Column = prefix + string.Join("__", x.PocoColumns.Select(z => z.MemberInfo.Name)),
+                        Column = string.Join("__", x.PocoColumns.Last().MemberInfoChain.Select(z => z.Name)),
                         x.AscDesc
                     };
                 }).ToList();
@@ -109,12 +86,10 @@ namespace NPoco.Linq
                 cols = newMembers.Concat(selectMembers).Select(x =>
                 {
                     var pocoData = database.PocoDataFactory.ForType(x.EntityType);
-                    var joinexp = _joinSqlExpressions.Values.FirstOrDefault(z => z.Type == x.EntityType);
-                    var prefix = joinexp != null ? joinexp.BaseName + "__" : "";
                     return new StringPocoCol
                     {
                         StringCol = database.DatabaseType.EscapeTableName(pocoData.TableInfo.AutoAlias) + "." +
-                                    database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(prefix + string.Join("__", x.PocoColumns.Select(z=>z.MemberInfo.Name))),
+                                    database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumns.Last().MemberInfoChain.Select(z=>z.Name))),
                         PocoColumn = x.PocoColumns
                     };
                 });
@@ -133,25 +108,25 @@ namespace NPoco.Linq
             return new Sql(newsql, wheres.Arguments);
         }
 
-        private static string BuildJoinSql(IDatabase database, List<JoinData> joinSqlExpressions, ref IEnumerable<StringPocoCol> cols)
+        private static string BuildJoinSql(PocoData pocoData, IDatabase database, List<JoinData> joinSqlExpressions, ref IEnumerable<StringPocoCol> cols)
         {
             var joins = new List<string>();
 
+            var pocoD = pocoData;
             foreach (var joinSqlExpression in joinSqlExpressions)
             {
-                var type = joinSqlExpression.Type;
-                var joinModelDef = database.PocoDataFactory.ForType(type);
-                var tableName = database.DatabaseType.EscapeTableName(joinModelDef.TableInfo.TableName);
+                var member = pocoD.Members.First(x => x.MemberInfo.GetMemberInfoType() == joinSqlExpression.Type);
 
-                JoinData expression = joinSqlExpression;
-                cols = cols.Concat(joinModelDef.QueryColumns.Select((x, j) => new StringPocoCol
+                cols = cols.Concat(member.PocoMemberChildren.Where(x=>!x.IsReferenceMapping).Select(x => new StringPocoCol
                 {
-                    StringCol = database.DatabaseType.EscapeTableName(joinModelDef.TableInfo.AutoAlias)
-                                + "." + database.DatabaseType.EscapeSqlIdentifier(x.Value.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(expression.BaseName + "__" + x.Value.MemberInfo.Name),
-                    PocoColumn = new[] { x.Value }
+                    StringCol = database.DatabaseType.EscapeTableName(x.PocoColumn.TableInfo.AutoAlias)
+                                + "." + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumn.MemberInfoChain.Select(z => z.Name))),
+                    PocoColumn = new[] { x.PocoColumn }
                 }));
 
-                joins.Add("  LEFT JOIN " + tableName + " " + database.DatabaseType.EscapeTableName(joinModelDef.TableInfo.AutoAlias) + " ON " + joinSqlExpression.OnSql);
+                joins.Add("  LEFT JOIN " + member.PocoColumn.TableInfo.TableName + " " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.AutoAlias) + " ON " + joinSqlExpression.OnSql);
+
+                pocoD = pocoData.PocoDataFactory.ForType(joinSqlExpression.Type);
             }
 
             return joins.Any() ? " \n" + string.Join(" \n", joins.ToArray()) : string.Empty;

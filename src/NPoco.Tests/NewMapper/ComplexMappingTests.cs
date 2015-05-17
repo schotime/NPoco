@@ -15,9 +15,12 @@ namespace NPoco.Tests.NewMapper
         {
             var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(ComplexMap));
 
-            Assert.AreEqual(4, pocoData.Columns.Count);
+            Assert.AreEqual(5, pocoData.Columns.Count);
+            Assert.AreEqual(true, pocoData.Columns.ContainsKey("Id"));
             Assert.AreEqual(true, pocoData.Columns.ContainsKey("Name"));
             Assert.AreEqual(true, pocoData.Columns.ContainsKey("NestedComplexMap__Id"));
+            Assert.AreEqual(true, pocoData.Columns.ContainsKey("NestedComplexMap__NestedComplexMap2__Id"));
+            Assert.AreEqual(true, pocoData.Columns.ContainsKey("NestedComplexMap2__Id"));
         }
 
         [Test]
@@ -89,6 +92,7 @@ namespace NPoco.Tests.NewMapper
         public int Id { get; set; }
         public string Name { get; set; }
         public NestedComplexMap NestedComplexMap { get; set; }
+        public NestedComplexMap2 NestedComplexMap2 { get; set; }
     }
 
     public class NestedComplexMap

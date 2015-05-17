@@ -14,7 +14,7 @@ namespace NPoco.FluentMappings
 
         public IColumnsBuilderConventions Named(Func<MemberInfo, string> propertiesNamedFunc)
         {
-            _scannerSettings.PropertiesNamed = propertiesNamedFunc;
+            _scannerSettings.DbColumnsNamed = propertiesNamedFunc;
             return this;
         }
 

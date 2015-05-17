@@ -21,7 +21,7 @@ namespace NPoco.Tests.Common
         public int? SupervisorId { get; set; }
         public char? YorN { get; set; }
 
-        [ResultColumn]
+        [Reference]
         public House House { get; set; }
 
         public Address Address { get; set; }
@@ -32,6 +32,13 @@ namespace NPoco.Tests.Common
 
     public class Address
     {
+        public string Street { get; set; }
+        public string City { get; set; }
+    }
+
+    public class Address2
+    {
+        public int Id { get; set; }
         public string Street { get; set; }
         public string City { get; set; }
     }

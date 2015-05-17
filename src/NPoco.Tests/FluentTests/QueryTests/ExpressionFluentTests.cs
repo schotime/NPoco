@@ -37,11 +37,11 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchOnWithSecondGenericType()
         {
-            var s = new DefaultSqlExpression<User>(Database, true);
+            var s = new DefaultSqlExpression<CustomerUserJoin>(Database, true);
             var joinexp = s.On<CustomerUser>((x, y) => x.Name == y.CustomerName);
             
             string expected = string.Format("({0}.{1} = {2}.{3})", 
-                TestDatabase.DbType.EscapeTableName("U"),
+                TestDatabase.DbType.EscapeTableName("CUJ"),
                 TestDatabase.DbType.EscapeTableName("Name"),
                 TestDatabase.DbType.EscapeTableName("CU"),
                 TestDatabase.DbType.EscapeTableName("CustomerName"));
@@ -59,8 +59,12 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchByExpressionWithParametersAndOrderBy()
         {
-            var users = Database.Query<UserDecorated>().Where(x => x.Name == "Name1").OrderBy(x => x.UserId).ProjectTo(x => new { x.Name });
+            var users = Database.Query<UserDecorated>()
+                .Where(x => x.Name == "Name1")
+                .OrderBy(x => x.UserId)
+                .ProjectTo(x => new { x.Name });
             Assert.AreEqual(1, users.Count);
+            Assert.AreEqual("Name1", users[0].Name);
         }
 
         [Test]

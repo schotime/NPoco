@@ -11,4 +11,11 @@ namespace NPoco.Tests.Common
         public string CustomerName { get; set; }
         public string CustomerEmail { get; set; }
     }
+
+    public class CustomerUserJoin
+    {
+        [Reference]
+        public CustomerUser CustomerUser { get; set; }
+        public string Name { get; set; }
+    }
 }

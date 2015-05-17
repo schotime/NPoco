@@ -92,6 +92,7 @@ namespace NPoco
                 _lock.ExitReadLock();
             }
 
+            TValue newValueFromFactory = factory();
 
             // Cache it
             _lock.EnterWriteLock();
@@ -102,7 +103,7 @@ namespace NPoco
                     return val;
 
                 // Create it
-                val = factory();
+                val = newValueFromFactory;
 
                 // Store it
                 _map.Add(key, val);
