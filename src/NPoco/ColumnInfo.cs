@@ -19,7 +19,7 @@ namespace NPoco
         public Type ColumnType { get; set; }
         public bool ComplexMapping { get; set; }
         public string ComplexPrefix { get; set; }
-        public bool ReferenceMapping { get; set; }
+        public ReferenceMappingType ReferenceMappingType { get; set; }
         public string ReferenceMemberName { get; set; }
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
@@ -48,7 +48,7 @@ namespace NPoco
 
             if (reference.Any())
             {
-                ci.ReferenceMapping = true;
+                ci.ReferenceMappingType = reference.First().ReferenceMappingType;
                 ci.ReferenceMemberName = reference.First().Name ?? mi.GetMemberInfoType() + "ID";
                 return ci;
             }

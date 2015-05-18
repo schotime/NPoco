@@ -67,7 +67,8 @@ namespace NPoco.FluentMappings
 
             if (isColumnDefined && typeConfig.ColumnConfiguration[key].IsReferenceMember.HasValue && typeConfig.ColumnConfiguration[key].IsReferenceMember.Value)
             {
-                columnInfo.ReferenceMapping = true;
+                if (typeConfig.ColumnConfiguration[key].ReferenceMappingType != null)
+                    columnInfo.ReferenceMappingType = typeConfig.ColumnConfiguration[key].ReferenceMappingType.Value;
 
                 if (typeConfig.ColumnConfiguration[key].ReferenceMember != null)
                     columnInfo.ReferenceMemberName = typeConfig.ColumnConfiguration[key].ReferenceMember.Name;

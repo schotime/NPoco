@@ -83,18 +83,20 @@ namespace NPoco.Linq
         {
             var memberInfos = MemberHelper<T>.GetMembers(expression);
             var pocoData1 = _database.PocoDataFactory.ForType(typeof(T));
+            var members = pocoData1.Members;
 
             foreach (var memberInfo in memberInfos)
             {
-                var pocoMember1 = pocoData1.Members.Where(x => x.IsReferenceMapping).Single(x => x.MemberInfo == memberInfo);
-                var pocoColumn1 = pocoMember1.PocoColumn;
-                
-                var pocoData2 = _database.PocoDataFactory.ForType(memberInfo.GetMemberInfoType());
-                var pocoColumn2 = pocoData2.Members.Single(x => x.Name == pocoMember1.ReferenceMemberName).PocoColumn;
+                var pocoMember = members
+                    .Where(x => x.ReferenceMappingType != ReferenceMappingType.None)
+                    .Single(x => x.MemberInfo == memberInfo);
+
+                var pocoColumn1 = pocoMember.PocoColumn;
+                var pocoColumn2 = pocoMember.PocoMemberChildren.Single(x => x.Name == pocoMember.ReferenceMemberName).PocoColumn;
 
                 var onSql = _database.DatabaseType.EscapeTableName(pocoData1.TableInfo.AutoAlias)
                    + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn1.ColumnName)
-                   + " = " + _database.DatabaseType.EscapeTableName(pocoData2.TableInfo.AutoAlias)
+                   + " = " + _database.DatabaseType.EscapeTableName(pocoColumn2.TableInfo.AutoAlias)
                    + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn2.ColumnName);
 
                 if (!_joinSqlExpressions.ContainsKey(onSql))
@@ -102,11 +104,11 @@ namespace NPoco.Linq
                     _joinSqlExpressions.Add(onSql, new JoinData()
                     {
                         OnSql = onSql,
-                        Type = pocoData2.Type
+                        MemberInfo = memberInfo
                     });
                 }
 
-                pocoData1 = pocoData2;
+                members = pocoMember.PocoMemberChildren;
             }
 
             return this;
@@ -322,9 +324,8 @@ namespace NPoco.Linq
 
         public async System.Threading.Tasks.Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression)
         {
-            var types = new[] { typeof(T) }.Concat(_joinSqlExpressions.Values.Select(x => x.Type)).ToArray();
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
-            return (await _database.QueryAsync<T>(types, null, sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
+            return (await _database.QueryAsync<T>(sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
         }
 #endif
 

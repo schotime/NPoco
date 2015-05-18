@@ -263,6 +263,19 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void QueryWithIncludeOneToOne()
+        {
+            var users = Database.Query<User>().Include(x => x.ExtraUserInfo).ToList();
+
+            Assert.AreEqual(15, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(InMemoryUsers[i], users[i]);
+                AssertExtraUserInfo(InMemoryExtraUserInfos[i], users[i].ExtraUserInfo);
+            }
+        }
+
+        [Test]
         public void QueryWithIncludeAndNestedWhere()
         {
             var users = Database.Query<User>().Include(x => x.House).Where(x=> x.House.Address == InMemoryHouses[0].Address).ToList();

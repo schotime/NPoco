@@ -14,13 +14,16 @@ namespace NPoco
         public PocoMember()
         {
             PocoMemberChildren = new List<PocoMember>();
+            ReferenceMappingType = ReferenceMappingType.None;
         }
 
         public string Name { get { return MemberInfo.Name; } }
         public MemberInfo MemberInfo { get; set; }
         public PocoColumn PocoColumn { get; set; }
         public List<PocoMember> PocoMemberChildren { get; set; }
-        public bool IsReferenceMapping { get; set; }
+
+        public ReferenceMappingType ReferenceMappingType { get; set; }
+        public TableInfo ReferenceTableInfo { get; set; }
         public string ReferenceMemberName { get; set; }
     }
 
@@ -73,7 +76,7 @@ namespace NPoco
             AllColumns = GetPocoColumns(Members, true).Where(x => x != null).ToList();
 
             // Build column list for automatic select
-            QueryColumns = Columns.Where(c => !c.Value.ResultColumn && !c.Value.IsReferenceColumn).ToArray();
+            QueryColumns = Columns.Where(c => !c.Value.ResultColumn && c.Value.ReferenceMappingType == ReferenceMappingType.None).ToArray();
 
             return this;
         }
@@ -95,9 +98,12 @@ namespace NPoco
         {
             foreach (var member in members)
             {
-                yield return member.PocoColumn;
-                
-                foreach (var pocoMemberChild in GetPocoColumns(member.PocoMemberChildren.Where(x => all || !member.IsReferenceMapping).ToList(), all))
+                if (all || member.ReferenceMappingType != ReferenceMappingType.OneToOne)
+                {
+                    yield return member.PocoColumn;
+                }
+
+                foreach (var pocoMemberChild in GetPocoColumns(member.PocoMemberChildren.Where(x => all || member.ReferenceMappingType == ReferenceMappingType.None).ToList(), all))
                 {
                     yield return pocoMemberChild;
                 }
@@ -115,9 +121,9 @@ namespace NPoco
                     continue;
 
                 var pocoMemberChildren = new List<PocoMember>();
-                var newTableInfo = ci.ReferenceMapping ? PocoDataFactory.ForType(mi.GetMemberInfoType()).TableInfo : tableInfo;
+                var newTableInfo = ci.ReferenceMappingType != ReferenceMappingType.None ? PocoDataFactory.ForType(mi.GetMemberInfoType()).TableInfo : tableInfo;
 
-                if (ci.ComplexMapping || ci.ReferenceMapping)
+                if (ci.ComplexMapping || ci.ReferenceMappingType != ReferenceMappingType.None)
                 {
                     var members = new List<MemberInfo>();
                     members.AddRange(capturedMembers);
@@ -134,8 +140,8 @@ namespace NPoco
                 }
 
                 var pc = new PocoColumn();
-                pc.IsReferenceColumn = ci.ReferenceMapping;
-                pc.TableInfo = newTableInfo;
+                pc.ReferenceMappingType = ci.ReferenceMappingType;
+                pc.TableInfo = tableInfo;
                 pc.MemberInfo = mi;
                 pc.MemberInfoChain = new[] {mi}.ToList();
                 pc.ColumnName = GetColumnName(prefix, ci.ColumnName);
@@ -153,9 +159,13 @@ namespace NPoco
                 yield return new PocoMember()
                 {
                     MemberInfo = mi,
+                    ReferenceTableInfo = newTableInfo,
                     PocoColumn = ci.ComplexMapping ? null : pc,
-                    IsReferenceMapping = ci.ReferenceMapping,
-                    ReferenceMemberName = ci.ReferenceMemberName ?? (ci.ReferenceMapping ? pocoMemberChildren.Single(x=>x.PocoColumn.ColumnName.Equals(newTableInfo.PrimaryKey, StringComparison.InvariantCultureIgnoreCase)).Name : null),
+                    ReferenceMappingType = ci.ReferenceMappingType,
+                    ReferenceMemberName = ci.ReferenceMemberName ?? 
+                        (ci.ReferenceMappingType != ReferenceMappingType.None 
+                            ? pocoMemberChildren.Single(x=>x.PocoColumn.ColumnName.Equals(newTableInfo.PrimaryKey, StringComparison.InvariantCultureIgnoreCase)).Name 
+                            : null),
                     PocoMemberChildren = pocoMemberChildren,
                 };
             }

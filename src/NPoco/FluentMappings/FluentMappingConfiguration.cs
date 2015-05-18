@@ -101,6 +101,7 @@ namespace NPoco.FluentMappings
                         MemberInfo = member,
                         IsComplexMapping = complexProperty,
                         IsReferenceMember = referenceProperty,
+                        ReferenceMappingType = referenceProperty ? ReferenceMappingType.Foreign : ReferenceMappingType.None,
                         DbColumnName = referenceProperty ? scannerSettings.ReferenceDbColumnsNamed(member) : null
                     };
                 }
@@ -223,6 +224,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.ForceUtc = overrideColumnDefinition.Value.ForceUtc ?? convColDefinition.ForceUtc;
                     convColDefinition.IsReferenceMember = overrideColumnDefinition.Value.IsReferenceMember ?? convColDefinition.IsReferenceMember;
                     convColDefinition.ReferenceMember = overrideColumnDefinition.Value.ReferenceMember ?? convColDefinition.ReferenceMember;
+                    convColDefinition.ReferenceMappingType = overrideColumnDefinition.Value.ReferenceMappingType ?? convColDefinition.ReferenceMappingType;
                 }
             }
         }

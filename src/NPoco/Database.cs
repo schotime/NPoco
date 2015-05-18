@@ -1431,34 +1431,44 @@ namespace NPoco
 
             var primaryKeyValuePairs = GetPrimaryKeyValues(primaryKeyName, primaryKeyValue);
 
-            foreach (var i in pd.Columns)
+            foreach (var pocoColumn in pd.Columns.Values)
             {
                 // Don't update the primary key, but grab the value if we don't have it
-                if (primaryKeyValue == null && primaryKeyValuePairs.ContainsKey(i.Key))
+                if (primaryKeyValue == null && primaryKeyValuePairs.ContainsKey(pocoColumn.ColumnName))
                 {
-                    primaryKeyValuePairs[i.Key] = ProcessMapper(i.Value, i.Value.GetValue(poco));
+                    primaryKeyValuePairs[pocoColumn.ColumnName] = ProcessMapper(pocoColumn, pocoColumn.GetValue(poco));
                     continue;
                 }
 
                 // Dont update result only columns
-                if (i.Value.ResultColumn || i.Value.ComputedColumn)
+                if (pocoColumn.ResultColumn || pocoColumn.ComputedColumn)
                     continue;
 
-                if (!i.Value.VersionColumn && columns != null && !columns.Contains(i.Value.ColumnName, StringComparer.OrdinalIgnoreCase))
+                if (!pocoColumn.VersionColumn && columns != null && !columns.Contains(pocoColumn.ColumnName, StringComparer.OrdinalIgnoreCase))
                     continue;
 
-                object value = ProcessMapper(i.Value, i.Value.GetValue(poco));
-
-                if (i.Value.VersionColumn)
+                object value;
+                if (pocoColumn.ReferenceMappingType == ReferenceMappingType.Foreign)
                 {
-                    versionName = i.Key;
+                    var member = pd.Members.Single(x => x.MemberInfo == pocoColumn.MemberInfo);
+                    var column = member.PocoMemberChildren.Single(x => x.Name == member.ReferenceMemberName);
+                    value = ProcessMapper(column.PocoColumn, column.PocoColumn.GetValue(poco));
+                }
+                else
+                {
+                    value = ProcessMapper(pocoColumn, pocoColumn.GetValue(poco));
+                }
+
+                if (pocoColumn.VersionColumn)
+                {
+                    versionName = pocoColumn.ColumnName;
                     versionValue = value;
-                    if (i.Value.VersionColumnType == VersionColumnType.Number)
+                    if (pocoColumn.VersionColumnType == VersionColumnType.Number)
                     {
                         versionColumnType = VersionColumnType.Number;
                         value = Convert.ToInt64(value) + 1;
                     }
-                    else if (i.Value.VersionColumnType == VersionColumnType.RowVersion)
+                    else if (pocoColumn.VersionColumnType == VersionColumnType.RowVersion)
                     {
                         versionColumnType = VersionColumnType.RowVersion;
                         continue;
@@ -1468,7 +1478,7 @@ namespace NPoco
                 // Build the sql
                 if (index > 0)
                     sb.Append(", ");
-                sb.AppendFormat("{0} = @{1}", _dbType.EscapeSqlIdentifier(i.Key), index++);
+                sb.AppendFormat("{0} = @{1}", _dbType.EscapeSqlIdentifier(pocoColumn.ColumnName), index++);
 
                 rawvalues.Add(value);
             }

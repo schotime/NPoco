@@ -116,16 +116,16 @@ namespace NPoco.Linq
 
             foreach (var joinSqlExpression in joinSqlExpressions)
             {
-                var member = members.First(x => x.MemberInfo.GetMemberInfoType() == joinSqlExpression.Type);
+                var member = members.First(x => x.MemberInfo == joinSqlExpression.MemberInfo);
 
-                cols = cols.Concat(member.PocoMemberChildren.Where(x=>!x.IsReferenceMapping).Select(x => new StringPocoCol
+                cols = cols.Concat(member.PocoMemberChildren.Where(x=> x.ReferenceMappingType == ReferenceMappingType.None).Select(x => new StringPocoCol
                 {
                     StringCol = database.DatabaseType.EscapeTableName(x.PocoColumn.TableInfo.AutoAlias)
                                 + "." + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumn.MemberInfoChain.Select(z => z.Name))),
                     PocoColumn = new[] { x.PocoColumn }
                 }));
 
-                joins.Add("  LEFT JOIN " + member.PocoColumn.TableInfo.TableName + " " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.AutoAlias) + " ON " + joinSqlExpression.OnSql);
+                joins.Add("  LEFT JOIN " + member.ReferenceTableInfo.TableName + " " + database.DatabaseType.EscapeTableName(member.ReferenceTableInfo.AutoAlias) + " ON " + joinSqlExpression.OnSql);
 
                 members = member.PocoMemberChildren;
             }

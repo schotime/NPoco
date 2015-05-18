@@ -154,6 +154,12 @@ namespace NPoco.Tests.Common
             }
         }
 
+        protected void AssertExtraUserInfo(ExtraUserInfo extraUserInfo, ExtraUserInfo actualUserInfo)
+        {
+            Assert.AreEqual(extraUserInfo.UserId, actualUserInfo.UserId);
+            Assert.AreEqual(extraUserInfo.Email, actualUserInfo.Email);
+        }
+
         protected void AssertUserHouseValues(User expected, User actual)
         {
             if (actual.House == null)
@@ -171,6 +177,7 @@ namespace NPoco.Tests.Common
             {
                 x.Column(y => y.IsMale).WithName("is_male");
                 x.Column(y => y.House).WithName("HouseId").Reference();
+                x.Column(y => y.ExtraUserInfo).WithName("UserId").Reference(z => z.UserId, ReferenceMappingType.OneToOne);
             });
             For<Supervisor>().UseMap<SupervisorMap>();
             For<Supervisor>().TableName("users").Columns(x => x.Column(y => y.IsMale).WithName("is_male"));

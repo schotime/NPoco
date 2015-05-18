@@ -26,6 +26,9 @@ namespace NPoco.Tests.Common
 
         public Address Address { get; set; }
 
+        [Reference]
+        public ExtraUserInfo ExtraUserInfo { get; set; }
+
         //[ResultColumn]
         //public Supervisor Supervisor { get; set; }
     }
