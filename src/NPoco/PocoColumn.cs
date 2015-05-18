@@ -42,6 +42,8 @@ namespace NPoco
         public string AutoAlias { get; set; }
         public string ColumnAlias { get; set; }
 
+        public bool IsReferenceColumn { get; set; }
+
         public virtual void SetValue(object target, object val) { MemberInfo.SetMemberInfoValue(target, val); }
         public virtual object GetValue(object target)
         {

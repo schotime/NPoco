@@ -81,7 +81,6 @@ namespace NPoco.Linq
 
         public IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression) where T2 : class
         {
-            // x => x.House   
             var memberInfos = MemberHelper<T>.GetMembers(expression);
             var pocoData1 = _database.PocoDataFactory.ForType(typeof(T));
 
@@ -91,10 +90,7 @@ namespace NPoco.Linq
                 var pocoColumn1 = pocoMember1.PocoColumn;
                 
                 var pocoData2 = _database.PocoDataFactory.ForType(memberInfo.GetMemberInfoType());
-                
-                var pocoColumn2 = pocoMember1.ReferenceMemberName != null 
-                    ? pocoData2.Members.Single(x => x.Name == pocoMember1.ReferenceMemberName).PocoColumn
-                    : pocoData2.Columns.Values.Single(x => x.ColumnName.Equals(pocoData2.TableInfo.PrimaryKey, StringComparison.InvariantCultureIgnoreCase));
+                var pocoColumn2 = pocoData2.Members.Single(x => x.Name == pocoMember1.ReferenceMemberName).PocoColumn;
 
                 var onSql = _database.DatabaseType.EscapeTableName(pocoData1.TableInfo.AutoAlias)
                    + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn1.ColumnName)

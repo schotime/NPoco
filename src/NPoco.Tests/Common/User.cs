@@ -17,7 +17,7 @@ namespace NPoco.Tests.Common
         public bool IsMale { get; set; }
         public Guid? UniqueId { get; set; }
         public TimeSpan TimeSpan { get; set; }
-        public int? HouseId { get; set; }
+        //public int? HouseId { get; set; }
         public int? SupervisorId { get; set; }
         public char? YorN { get; set; }
 

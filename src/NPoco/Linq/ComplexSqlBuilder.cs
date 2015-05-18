@@ -112,10 +112,11 @@ namespace NPoco.Linq
         {
             var joins = new List<string>();
 
-            var pocoD = pocoData;
+            List<PocoMember> members = pocoData.Members;
+
             foreach (var joinSqlExpression in joinSqlExpressions)
             {
-                var member = pocoD.Members.First(x => x.MemberInfo.GetMemberInfoType() == joinSqlExpression.Type);
+                var member = members.First(x => x.MemberInfo.GetMemberInfoType() == joinSqlExpression.Type);
 
                 cols = cols.Concat(member.PocoMemberChildren.Where(x=>!x.IsReferenceMapping).Select(x => new StringPocoCol
                 {
@@ -126,7 +127,7 @@ namespace NPoco.Linq
 
                 joins.Add("  LEFT JOIN " + member.PocoColumn.TableInfo.TableName + " " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.AutoAlias) + " ON " + joinSqlExpression.OnSql);
 
-                pocoD = pocoData.PocoDataFactory.ForType(joinSqlExpression.Type);
+                members = member.PocoMemberChildren;
             }
 
             return joins.Any() ? " \n" + string.Join(" \n", joins.ToArray()) : string.Empty;

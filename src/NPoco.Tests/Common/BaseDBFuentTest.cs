@@ -96,7 +96,7 @@ namespace NPoco.Tests.Common
             {
                 var house = new House()
                 {
-                    //Address = i + " Road Street, Suburb"
+                    Address = i + " Road Street, Suburb"
                 };
                 Database.Insert(house);
                 InMemoryHouses.Add(house);
@@ -114,7 +114,7 @@ namespace NPoco.Tests.Common
                     YorN = (i%2 == 0) ? 'Y' : 'N',
                     UniqueId = (i%2 != 0 ? Guid.NewGuid() : (Guid?)null),
                     TimeSpan = new TimeSpan(1,1,1),
-                    HouseId = i%2==0?(int?)null:InMemoryHouses[i%5].HouseId,
+                    House = i%2==0 ? null : InMemoryHouses[i%5],
                     SupervisorId = (i+1)%2==0?(i+1):(int?)null,
                     Address = i%10 == 0 ? null : new Address()
                     {

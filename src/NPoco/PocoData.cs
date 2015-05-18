@@ -69,11 +69,11 @@ namespace NPoco
 
             // Work out bound properties
             Members = GetPocoMembers(Type, TableInfo, Mapper, new List<MemberInfo>()).ToList();
-            Columns = GetPocoColumns(Members, x => !x.IsReferenceMapping).Where(x => x != null).ToDictionary(x => x.ColumnName, x => x, StringComparer.OrdinalIgnoreCase);
-            AllColumns = GetPocoColumns(Members, x => true).Where(x => x != null).ToList();
+            Columns = GetPocoColumns(Members, false).Where(x => x != null).ToDictionary(x => x.ColumnName, x => x, StringComparer.OrdinalIgnoreCase);
+            AllColumns = GetPocoColumns(Members, true).Where(x => x != null).ToList();
 
             // Build column list for automatic select
-            QueryColumns = Columns.Where(c => !c.Value.ResultColumn).ToArray();
+            QueryColumns = Columns.Where(c => !c.Value.ResultColumn && !c.Value.IsReferenceColumn).ToArray();
 
             return this;
         }
@@ -91,12 +91,14 @@ namespace NPoco
             return ci;
         }
 
-        private static IEnumerable<PocoColumn> GetPocoColumns(IEnumerable<PocoMember> members, Func<PocoMember, bool> predicate)
+        private static IEnumerable<PocoColumn> GetPocoColumns(IEnumerable<PocoMember> members, bool all)
         {
-            foreach (var member in members.Where(predicate))
+            foreach (var member in members)
             {
                 yield return member.PocoColumn;
-                foreach (var pocoMemberChild in GetPocoColumns(member.PocoMemberChildren, predicate))
+                
+                var member1 = member;
+                foreach (var pocoMemberChild in GetPocoColumns(member.PocoMemberChildren.Where(x => all || !member1.IsReferenceMapping), all))
                 {
                     yield return pocoMemberChild;
                 }
@@ -134,6 +136,7 @@ namespace NPoco
                 }
 
                 var pc = new PocoColumn();
+                pc.IsReferenceColumn = ci.ReferenceMapping;
                 pc.TableInfo = newTableInfo;
                 pc.MemberInfo = mi;
                 pc.MemberInfoChain = new[] {mi}.ToList();
@@ -151,12 +154,13 @@ namespace NPoco
                     continue;
 
                 // Store it
+                
                 yield return new PocoMember()
                 {
                     MemberInfo = mi,
                     PocoColumn = ci.ComplexMapping ? null : pc,
                     IsReferenceMapping = ci.ReferenceMapping,
-                    ReferenceMemberName = ci.ReferenceMemberName,
+                    ReferenceMemberName = ci.ReferenceMemberName ?? (ci.ReferenceMapping ? pocoMemberChildren.Single(x=>x.PocoColumn.ColumnName.Equals(newTableInfo.PrimaryKey, StringComparison.InvariantCultureIgnoreCase)).Name : null),
                     PocoMemberChildren = pocoMemberChildren,
                 };
             }

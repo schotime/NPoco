@@ -1025,15 +1025,19 @@ namespace NPoco.Expressions
                 //}).Where(x => x != null).ToArray();
                 
                 var pocoColumn = pocoColumns.LastOrDefault();
-
                 if (pocoColumn == null)
                 {
-                    var newDef = _database.PocoDataFactory.ForType(type);
-                    pocoColumns = newDef.AllColumns
-                        .Where(x => x.MemberInfoChain.Select(y => y.Name).SequenceEqual(propertyInfos.Select(y => y.Name)))
-                        .ToArray();
-                    pocoColumn = pocoColumns.LastOrDefault();
+                    throw new Exception("Did you forget to include the property eg. Include(x => x.Address)");
                 }
+
+                //if (pocoColumn == null)
+                //{
+                //    var newDef = _database.PocoDataFactory.ForType(type);
+                //    pocoColumns = newDef.AllColumns
+                //        .Where(x => x.MemberInfoChain.Select(y => y.Name).SequenceEqual(propertyInfos.Select(y => y.Name)))
+                //        .ToArray();
+                //    pocoColumn = pocoColumns.LastOrDefault();
+                //}
 
                 var columnName = (PrefixFieldWithTableName
                                           ? _databaseType.EscapeTableName(pocoColumn.TableInfo.AutoAlias) + "."

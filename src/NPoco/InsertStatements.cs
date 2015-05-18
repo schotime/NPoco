@@ -26,38 +26,48 @@ namespace NPoco
                 var index = 0;
                 var versionName = "";
 
-                foreach (var i in pd.Columns)
+                foreach (var pocoColumn in pd.Columns.Values)
                 {
                     // Don't insert result columns
-                    if (i.Value.ResultColumn
-                        || i.Value.ComputedColumn
-                        || (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.RowVersion))
+                    if (pocoColumn.ResultColumn
+                        || pocoColumn.ComputedColumn
+                        || (pocoColumn.VersionColumn && pocoColumn.VersionColumnType == VersionColumnType.RowVersion))
                     {
                         continue;
                     }
 
                     // Don't insert the primary key (except under oracle where we need bring in the next sequence value)
-                    if (autoIncrement && primaryKeyName != null && string.Compare(i.Key, primaryKeyName, true) == 0)
+                    if (autoIncrement && primaryKeyName != null && string.Compare(pocoColumn.ColumnName, primaryKeyName, true) == 0)
                     {
                         // Setup auto increment expression
                         string autoIncExpression = database.DatabaseType.GetAutoIncrementExpression(pd.TableInfo);
                         if (autoIncExpression != null)
                         {
-                            names.Add(i.Key);
+                            names.Add(pocoColumn.ColumnName);
                             values.Add(autoIncExpression);
                         }
                         continue;
                     }
 
-                    names.Add(database.DatabaseType.EscapeSqlIdentifier(i.Key));
+                    names.Add(database.DatabaseType.EscapeSqlIdentifier(pocoColumn.ColumnName));
                     values.Add(string.Format("{0}{1}", database._paramPrefix, index++));
 
-                    object val = database.ProcessMapper(i.Value, i.Value.GetValue(poco));
+                    object val;
+                    if (pocoColumn.IsReferenceColumn)
+                    {
+                        var member = pd.Members.Single(x => x.MemberInfo == pocoColumn.MemberInfo);
+                        var column = member.PocoMemberChildren.Single(x => x.Name == member.ReferenceMemberName);
+                        val = database.ProcessMapper(pocoColumn, column.PocoColumn.GetValue(poco));
+                    }
+                    else
+                    {
+                        val = database.ProcessMapper(pocoColumn, pocoColumn.GetValue(poco));
+                    }
 
-                    if (i.Value.VersionColumn && i.Value.VersionColumnType == VersionColumnType.Number)
+                    if (pocoColumn.VersionColumn && pocoColumn.VersionColumnType == VersionColumnType.Number)
                     {
                         val = Convert.ToInt64(val) > 0 ? val : 1;
-                        versionName = i.Key;
+                        versionName = pocoColumn.ColumnName;
                     }
 
                     rawvalues.Add(val);
