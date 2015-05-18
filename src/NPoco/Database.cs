@@ -749,22 +749,6 @@ namespace NPoco
             return Fetch<T>("");
         }
 
-        public List<T> FetchWhere<T>(Expression<Func<T, bool>> expression)
-        {
-            var ev = _dbType.ExpressionVisitor<T>(this, true);
-            var query = ev.Where(expression);
-            var sql = query.Context.ToSelectStatement();
-            return Fetch<T>(sql, query.Context.Params.ToArray());
-        }
-
-        public List<T> FetchBy<T>(Func<SqlExpression<T>, SqlExpression<T>> expression)
-        {
-            var ev = _dbType.ExpressionVisitor<T>(this, true);
-            var query = expression(ev);
-            var sql = query.Context.ToSelectStatement();
-            return Fetch<T>(sql, query.Context.Params.ToArray());
-        }
-
         public void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage)
         {
             // Add auto select clause
