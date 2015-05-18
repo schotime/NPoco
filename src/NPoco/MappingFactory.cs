@@ -453,9 +453,7 @@ namespace NPoco
             }
             if (!found)
             {
-                var pcAlias = columns.Values.SingleOrDefault(x => x.AutoAlias == name)
-                    ?? columns.Values.SingleOrDefault(x => string.Equals(x.ColumnAlias, name, StringComparison.OrdinalIgnoreCase));
-
+                var pcAlias = columns.Values.SingleOrDefault(x => string.Equals(x.ColumnAlias, name, StringComparison.OrdinalIgnoreCase));
                 pc = pcAlias;
                 found = (pcAlias != null);
             }

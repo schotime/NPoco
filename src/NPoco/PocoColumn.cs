@@ -16,13 +16,7 @@ namespace NPoco
         public string ColumnName;
 
         public List<MemberInfo> MemberInfoChain { get; set; }
-        public MemberInfo MemberInfo
-        {
-            get { return _memberInfo; }
-            set { 
-                _memberInfo = value; 
-            }
-        }
+        public MemberInfo MemberInfo { get; set; }
 
         public bool ResultColumn;
         public bool VersionColumn;
@@ -30,7 +24,6 @@ namespace NPoco
         public bool ComputedColumn;
         private Type _columnType;
         private MemberAccessor _memberAccessor;
-        private MemberInfo _memberInfo;
 
         public Type ColumnType
         {
@@ -39,7 +32,6 @@ namespace NPoco
         }
 
         public bool ForceToUtc { get; set; }
-        public string AutoAlias { get; set; }
         public string ColumnAlias { get; set; }
 
         public bool IsReferenceColumn { get; set; }
@@ -49,12 +41,11 @@ namespace NPoco
         {
             foreach (var memberInfo in MemberInfoChain)
             {
-                if (memberInfo == _memberInfo)
-                    continue;
                 target = target == null ? null : memberInfo.GetMemberInfoValue(target);
             }
-            return target == null ? null : MemberInfo.GetMemberInfoValue(target);
+            return target;
         }
+
         public virtual object ChangeType(object val) { return Convert.ChangeType(val, MemberInfo.GetMemberInfoType()); }
 
         public virtual void SetValueFast(object target, object val)

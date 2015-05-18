@@ -97,8 +97,7 @@ namespace NPoco
             {
                 yield return member.PocoColumn;
                 
-                var member1 = member;
-                foreach (var pocoMemberChild in GetPocoColumns(member.PocoMemberChildren.Where(x => all || !member1.IsReferenceMapping), all))
+                foreach (var pocoMemberChild in GetPocoColumns(member.PocoMemberChildren.Where(x => all || !member.IsReferenceMapping).ToList(), all))
                 {
                     yield return pocoMemberChild;
                 }
@@ -107,7 +106,6 @@ namespace NPoco
 
         private IEnumerable<PocoMember> GetPocoMembers(Type type, TableInfo tableInfo, IMapper mapper, List<MemberInfo> memberInfos, string prefix = null)
         {
-            var index = 0;
             var capturedMembers = memberInfos.ToArray();
             foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(type))
             {
@@ -148,13 +146,10 @@ namespace NPoco
                 pc.ColumnAlias = ci.ColumnAlias;
                 pc.VersionColumn = ci.VersionColumn;
                 pc.VersionColumnType = ci.VersionColumnType;
-                pc.AutoAlias = tableInfo.AutoAlias + "_" + index++;
 
                 if (mapper != null && !mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;
 
-                // Store it
-                
                 yield return new PocoMember()
                 {
                     MemberInfo = mi,

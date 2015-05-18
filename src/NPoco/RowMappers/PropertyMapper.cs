@@ -109,23 +109,5 @@ namespace NPoco.RowMappers
 
             return false;
         }
-
-        private static PocoSet FindPocoColumn(GroupResult<PosName> groupedName, PocoData pocoData)
-        {
-            PocoColumn pocoColumn;
-            PocoMember pocoMember;
-            MappingFactory.TryGetColumnByName(pocoData, groupedName.Item, out pocoColumn, out pocoMember);
-            return new PocoSet
-            {
-                PocoColumn = pocoColumn,
-                PocoMember = pocoMember,
-            };
-        }
-    }
-
-    internal class PocoSet
-    {
-        public PocoColumn PocoColumn { get; set; }
-        public PocoMember PocoMember { get; set; }
     }
 }
