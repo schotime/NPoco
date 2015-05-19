@@ -60,11 +60,14 @@ namespace NPoco.RowMappers
 
         public IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, IDataReader dataReader, PocoData pocoData, List<PocoMember> pocoMembers)
         {
-            //var pocoSet = FindPocoColumn(groupedName, pocoData);
+            // find pocomember by property name
             var pocoMember = pocoMembers
                 .FirstOrDefault(x => x.Name.Equals(groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase));
 
-            if (groupedName.SubItems.Any() && pocoMember != null )
+            if (pocoMember == null)
+                yield break;
+
+            if (groupedName.SubItems.Any())
             {
                 var memberInfoType = pocoMember.MemberInfo.GetMemberInfoType();
                 if (memberInfoType.IsAClass())
@@ -73,7 +76,7 @@ namespace NPoco.RowMappers
 
                     yield return (reader, instance) =>
                     {
-                        var newObject = Activator.CreateInstance(memberInfoType);
+                        var newObject = pocoMember.Create();
                         var shouldSetNestedObject = false;
                         
                         foreach (var subPlan in subPlans)
@@ -83,22 +86,21 @@ namespace NPoco.RowMappers
 
                         if (shouldSetNestedObject)
                         {
-                            pocoMember.MemberInfo.SetMemberInfoValue(instance, newObject);
-                            //pocoMember.PocoColumn.SetValueFast(instance, newObject);
+                            pocoMember.SetValue(instance, newObject);
                         }
                         return false;
                     };
                 }
             }
-            else if (pocoMember != null)
+            else
             {
                 var destType = pocoMember.MemberInfo.GetMemberInfoType();
                 var converter = GetConverter(pocoData, pocoMember.PocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
-                yield return (reader, instance) => MapValue(groupedName.Key.Pos, reader, converter, instance, pocoMember.PocoColumn, destType);
+                yield return (reader, instance) => MapValue(groupedName.Key.Pos, reader, converter, instance, pocoMember.PocoColumn);
             }
         }
 
-        public static bool MapValue(int index, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn, Type destType)
+        public static bool MapValue(int index, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn)
         {
             if (!reader.IsDBNull(index))
             {

@@ -123,6 +123,19 @@ namespace NPoco.Tests.NewMapper
 
             Console.WriteLine(sw.ElapsedMilliseconds);
         }
+
+        [Test]
+        public void Test1()
+        {
+            var pocoData = new PocoDataFactory((IMapper) null).ForType(typeof (RecursionUser));
+        }
+    }
+
+    public class RecursionUser
+    {
+        public string Name { get; set; }
+        public RecursionUser Supervisor { get; set; }
+        public RecursionUser CreatedBy { get; set; }
     }
 
     public class More : BaseDBFuentTest

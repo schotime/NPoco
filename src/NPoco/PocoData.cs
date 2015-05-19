@@ -25,16 +25,32 @@ namespace NPoco
         public ReferenceMappingType ReferenceMappingType { get; set; }
         public TableInfo ReferenceTableInfo { get; set; }
         public string ReferenceMemberName { get; set; }
+
+        private FastCreate _creator;
+        public object Create()
+        {
+            if (_creator == null)
+                _creator = new FastCreate(MemberInfo.GetMemberInfoType());
+            return _creator.Create();
+        }
+
+        private MemberAccessor _memberAccessor;
+        public void SetValue(object target, object value)
+        {
+            if (_memberAccessor == null)
+                _memberAccessor= new MemberAccessor(MemberInfo.DeclaringType, Name);
+            _memberAccessor.Set(target, value);
+        }
     }
 
     public class PocoData
     {
         public PocoDataFactory PocoDataFactory { get; protected set; }
-        protected internal IMapper Mapper;
+        protected internal IMapper Mapper { get; set; }
         internal bool EmptyNestedObjectNull;
         private readonly Cache<string, Type> aliasToType;
-     
-        protected internal Type Type;
+
+        protected internal Type Type { get; protected set; }
         public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected set; }
         public TableInfo TableInfo { get; protected internal set; }
         public Dictionary<string, PocoColumn> Columns { get; protected internal set; }
@@ -71,7 +87,7 @@ namespace NPoco
                 Mapper.GetTableInfo(Type, TableInfo);
 
             // Work out bound properties
-            Members = GetPocoMembers(Type, TableInfo, Mapper, new List<MemberInfo>()).ToList();
+            Members = GetPocoMembers(true, Type, TableInfo, Mapper, new List<MemberInfo>(), new Dictionary<Type, int>()).ToList();
             Columns = GetPocoColumns(Members, false).Where(x => x != null).ToDictionary(x => x.ColumnName, x => x, StringComparer.OrdinalIgnoreCase);
             AllColumns = GetPocoColumns(Members, true).Where(x => x != null).ToList();
 
@@ -110,7 +126,7 @@ namespace NPoco
             }
         } 
 
-        private IEnumerable<PocoMember> GetPocoMembers(Type type, TableInfo tableInfo, IMapper mapper, List<MemberInfo> memberInfos, string prefix = null)
+        private IEnumerable<PocoMember> GetPocoMembers(bool first, Type type, TableInfo tableInfo, IMapper mapper, List<MemberInfo> memberInfos, Dictionary<Type, int> typeCounts, string prefix = null)
         {
             var capturedMembers = memberInfos.ToArray();
             foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(type))
@@ -128,14 +144,24 @@ namespace NPoco
                     var members = new List<MemberInfo>();
                     members.AddRange(capturedMembers);
                     members.Add(mi);
-                    
-                    foreach (var pocoMember in GetPocoMembers(mi.GetMemberInfoType(), newTableInfo, mapper, members, GetNewPrefix(prefix, ci.ComplexPrefix ?? mi.Name).TrimStart('_')))
+
+                    if (first)
                     {
-                        if (pocoMember.PocoColumn != null)
+                        typeCounts = new Dictionary<Type, int>();
+                    }
+
+                    var count = IncreaseTypeCount(typeCounts, mi.GetMemberInfoType());
+                    if (count < 3)
+                    {
+                        foreach (var pocoMember in GetPocoMembers(false, mi.GetMemberInfoType(), newTableInfo, mapper, members, typeCounts, GetNewPrefix(prefix, ci.ComplexPrefix ?? mi.Name).TrimStart('_')))
                         {
-                            pocoMember.PocoColumn.MemberInfoChain = new List<MemberInfo>(members.Concat(new[] { pocoMember.MemberInfo }));
+                            if (pocoMember.PocoColumn != null)
+                            {
+                                pocoMember.PocoColumn.MemberInfoChain = new List<MemberInfo>(members.Concat(new[] { pocoMember.MemberInfo }));
+                            }
+
+                            pocoMemberChildren.Add(pocoMember);
                         }
-                        pocoMemberChildren.Add(pocoMember);
                     }
                 }
 
@@ -169,6 +195,15 @@ namespace NPoco
                     PocoMemberChildren = pocoMemberChildren,
                 };
             }
+        }
+
+        private int IncreaseTypeCount(Dictionary<Type, int> typeCounts, Type getMemberInfoType)
+        {
+            if (typeCounts.ContainsKey(getMemberInfoType))
+            {
+                return typeCounts[getMemberInfoType] = typeCounts[getMemberInfoType] + 1;
+            }
+            return typeCounts[getMemberInfoType] = 1;
         }
 
         protected virtual string GetColumnName(string prefix, string columnName)
