@@ -87,7 +87,7 @@ namespace NPoco
                 Mapper.GetTableInfo(Type, TableInfo);
 
             // Work out bound properties
-            Members = GetPocoMembers(true, Type, TableInfo, Mapper, new List<MemberInfo>(), new Dictionary<Type, int>()).ToList();
+            Members = GetPocoMembers(true, Type, TableInfo, Mapper, new List<MemberInfo>()).ToList();
             Columns = GetPocoColumns(Members, false).Where(x => x != null).ToDictionary(x => x.ColumnName, x => x, StringComparer.OrdinalIgnoreCase);
             AllColumns = GetPocoColumns(Members, true).Where(x => x != null).ToList();
 
@@ -126,7 +126,7 @@ namespace NPoco
             }
         } 
 
-        private IEnumerable<PocoMember> GetPocoMembers(bool first, Type type, TableInfo tableInfo, IMapper mapper, List<MemberInfo> memberInfos, Dictionary<Type, int> typeCounts, string prefix = null)
+        private IEnumerable<PocoMember> GetPocoMembers(bool first, Type type, TableInfo tableInfo, IMapper mapper, List<MemberInfo> memberInfos, string prefix = null)
         {
             var capturedMembers = memberInfos.ToArray();
             foreach (var mi in ReflectionUtils.GetFieldsAndPropertiesForClasses(type))
@@ -145,23 +145,19 @@ namespace NPoco
                     members.AddRange(capturedMembers);
                     members.Add(mi);
 
-                    if (first)
+                    if (capturedMembers.GroupBy(x => x.GetMemberInfoType()).Any(x => x.Count() >= 2))
                     {
-                        typeCounts = new Dictionary<Type, int>();
+                        continue;
                     }
-
-                    var count = IncreaseTypeCount(typeCounts, mi.GetMemberInfoType());
-                    if (count < 3)
+                    
+                    foreach (var pocoMember in GetPocoMembers(false, mi.GetMemberInfoType(), newTableInfo, mapper, members, GetNewPrefix(prefix, ci.ComplexPrefix ?? mi.Name).TrimStart('_')))
                     {
-                        foreach (var pocoMember in GetPocoMembers(false, mi.GetMemberInfoType(), newTableInfo, mapper, members, typeCounts, GetNewPrefix(prefix, ci.ComplexPrefix ?? mi.Name).TrimStart('_')))
+                        if (pocoMember.PocoColumn != null)
                         {
-                            if (pocoMember.PocoColumn != null)
-                            {
-                                pocoMember.PocoColumn.MemberInfoChain = new List<MemberInfo>(members.Concat(new[] { pocoMember.MemberInfo }));
-                            }
-
-                            pocoMemberChildren.Add(pocoMember);
+                            pocoMember.PocoColumn.MemberInfoChain = new List<MemberInfo>(members.Concat(new[] { pocoMember.MemberInfo }));
                         }
+
+                        pocoMemberChildren.Add(pocoMember);
                     }
                 }
 
@@ -195,15 +191,6 @@ namespace NPoco
                     PocoMemberChildren = pocoMemberChildren,
                 };
             }
-        }
-
-        private int IncreaseTypeCount(Dictionary<Type, int> typeCounts, Type getMemberInfoType)
-        {
-            if (typeCounts.ContainsKey(getMemberInfoType))
-            {
-                return typeCounts[getMemberInfoType] = typeCounts[getMemberInfoType] + 1;
-            }
-            return typeCounts[getMemberInfoType] = 1;
         }
 
         protected virtual string GetColumnName(string prefix, string columnName)
