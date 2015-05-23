@@ -15,6 +15,8 @@ namespace NPoco
         {
             ReferenceMappingType = referenceMappingType;
         }
+
+        public string ReferenceName { get; set; }
     }
 
     public enum ReferenceMappingType

@@ -96,6 +96,28 @@ namespace NPoco.Tests.NewMapper
             Assert.AreEqual(24, data.Money.Money2.Value);
             Assert.AreEqual("USD", data.Money.Money2.Currency);
         }
+
+        [Test]
+        public void Test11()
+        {
+            var data = Database.Query<RecursionUser>()
+                .Include(x => x.CreatedBy.Supervisor)
+                .Include(x => x.CreatedBy.CreatedBy)
+                .Include(x => x.Supervisor.CreatedBy)
+                .Include(x => x.Supervisor.Supervisor)
+                .ToList();
+
+            for (int i = 0; i < data.Count; i++)
+            {
+                Assert.AreEqual("Name" + (i+1), data[i].Name);
+                Assert.AreEqual("Name" + 1, data[i].CreatedBy.Name);
+                Assert.AreEqual("Name" + 2, data[i].CreatedBy.Supervisor.Name);
+                Assert.AreEqual("Name" + 1, data[i].CreatedBy.CreatedBy.Name);
+                Assert.AreEqual("Name" + 2, data[i].Supervisor.Name);
+                Assert.AreEqual("Name" + 1, data[i].Supervisor.CreatedBy.Name);
+                Assert.AreEqual("Name" + 2, data[i].Supervisor.Supervisor.Name);
+            }
+        }
     }
 
     public class PerfTests
@@ -110,12 +132,12 @@ namespace NPoco.Tests.NewMapper
             for (int j = 0; j < 1000; j++)
             {
                 var newPropertyMapper = new PropertyMapper();
-                var pocoData = new PocoDataFactory((IMapper) null).ForType(typeof (NestedConvention));
+                var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(NestedConvention));
                 newPropertyMapper.Init(fakeReader, pocoData);
 
                 for (int i = 0; i < 1000; i++)
                 {
-                    newPropertyMapper.Map(fakeReader, new RowMapperContext() {PocoData = pocoData});
+                    newPropertyMapper.Map(fakeReader, new RowMapperContext() { PocoData = pocoData });
                 }
             }
 
@@ -127,14 +149,22 @@ namespace NPoco.Tests.NewMapper
         [Test]
         public void Test1()
         {
-            var pocoData = new PocoDataFactory((IMapper) null).ForType(typeof (RecursionUser));
+            var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(RecursionUser));
+
+            Assert.AreEqual(3, pocoData.Members.Count);
+            Assert.AreEqual("Id", pocoData.Members[0].Name);
+            Assert.AreEqual("Name", pocoData.Members[1].Name);
+            Assert.AreEqual("CreatedBy", pocoData.Members[2].Name);
         }
     }
 
     public class RecursionUser
     {
+        public int Id { get; set; }
         public string Name { get; set; }
+        [Reference(ReferenceName = "Id")]
         public RecursionUser Supervisor { get; set; }
+        [Reference(ReferenceName = "Id")]
         public RecursionUser CreatedBy { get; set; }
     }
 
@@ -143,11 +173,19 @@ namespace NPoco.Tests.NewMapper
         [Test]
         public void Test1()
         {
-            var d = Database
+            var result = Database
                 .Query<User>()
                 .Include(x => x.House)
+                .Include(x => x.ExtraUserInfo)
                 .ToEnumerable()
                 .ToList();
+
+            for (int i = 0; i < result.Count; i++)
+            {
+                AssertUserValues(InMemoryUsers[i], result[i]);
+                AssertExtraUserInfo(InMemoryExtraUserInfos[i], result[i].ExtraUserInfo);
+                AssertUserHouseValues(InMemoryUsers[i], result[i]);
+            }
         }
     }
 

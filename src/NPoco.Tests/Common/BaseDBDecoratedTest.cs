@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using NPoco.DatabaseTypes;
+using NPoco.Tests.NewMapper;
 using NUnit.Framework;
 
 namespace NPoco.Tests.Common
@@ -101,8 +102,16 @@ namespace NPoco.Tests.Common
                 };
                 Database.Insert(composite);
                 InMemoryCompositeObjects.Add(composite);
-            }
 
+                var recursionUser = new RecursionUser
+                {
+                    Name = "Name" + (i + 1),
+                    CreatedBy = new RecursionUser() {Id = 1},
+                    Supervisor = new RecursionUser() {Id = 2}
+                };
+                Database.Insert(recursionUser);
+            }
+            
             // Verify DB record counts
             var userCount = Database.ExecuteScalar<int>("SELECT COUNT(UserId) FROM Users");
             Assert.AreEqual(InMemoryUsers.Count, userCount, "Test User Data not in sync db has " + userCount + " records, but the in memory copy has only " + InMemoryUsers.Count + " records.");

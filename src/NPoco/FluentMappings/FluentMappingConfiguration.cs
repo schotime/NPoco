@@ -90,10 +90,15 @@ namespace NPoco.FluentMappings
                     var members = new List<MemberInfo>();
                     members.AddRange(capturedMembers);
                     members.Add(member);
-                    foreach (var columnDefinition in GetColumnDefinitions(scannerSettings, member.GetMemberInfoType(), members, referenceProperty))
+
+                    var columnDefinitions = GetColumnDefinitions(scannerSettings, member.GetMemberInfoType(), members, referenceProperty).ToList();
+
+                    foreach (var columnDefinition in columnDefinitions)
                     {
                         yield return columnDefinition;
                     }
+
+                    var referenceDbColumnsNamed = scannerSettings.ReferenceDbColumnsNamed(member);
 
                     yield return new ColumnDefinition()
                     {
@@ -102,7 +107,8 @@ namespace NPoco.FluentMappings
                         IsComplexMapping = complexProperty,
                         IsReferenceMember = referenceProperty,
                         ReferenceMappingType = referenceProperty ? ReferenceMappingType.Foreign : ReferenceMappingType.None,
-                        DbColumnName = referenceProperty ? scannerSettings.ReferenceDbColumnsNamed(member) : null
+                        ReferenceMember = referenceProperty ? columnDefinitions.Single(x=>x.DbColumnName.Equals(referenceDbColumnsNamed, StringComparison.InvariantCultureIgnoreCase)).MemberInfo : null,
+                        DbColumnName = referenceProperty ? referenceDbColumnsNamed : null
                     };
                 }
                 else
@@ -233,23 +239,23 @@ namespace NPoco.FluentMappings
         {
             var maps = mappings;
             var scana = scanner;
-            return new FluentConfig(mapper => new PocoDataFactory((t, aliasCache, pocoDataFactory) =>
+            return new FluentConfig(mapper => new PocoDataFactory((t, pocoDataFactory) =>
             {
                 if (maps != null)
                 {
                     if (maps.Config.ContainsKey(t))
                     {
-                        return new FluentMappingsPocoData(t, mappings, mapper, aliasCache, pocoDataFactory).Init();
+                        return new FluentMappingsPocoData(t, mappings, mapper, pocoDataFactory).Init();
                     }
 
                     if (scana != null)
                     {
                         var settings = ProcessSettings(scana);
                         var typeMapping = CreateMappings(settings, new[] { t });
-                        return new FluentMappingsPocoData(t, typeMapping, mapper, aliasCache, pocoDataFactory).Init();
+                        return new FluentMappingsPocoData(t, typeMapping, mapper, pocoDataFactory).Init();
                     }
                 }
-                return new PocoData(t, mapper, aliasCache, pocoDataFactory).Init();
+                return new PocoData(t, mapper, pocoDataFactory).Init();
             }));
         }
 

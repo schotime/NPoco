@@ -141,6 +141,17 @@ namespace NPoco.Tests.Common
                     Name nvarchar(50) NULL, 
                     NestedComplexMap__Id int NULL, 
                     NestedComplexMap__NestedComplexMap2__Id int NULL, 
+                    NestedComplexMap2__Id int NULL
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+                CREATE TABLE RecursionUser(
+                    Id int Identity(1,1) PRIMARY KEY NOT NULL, 
+                    Name nvarchar(50) NULL, 
+                    CreatedById int NULL, 
+                    SupervisorId int NULL
                 );
             ";
             cmd.ExecuteNonQuery();

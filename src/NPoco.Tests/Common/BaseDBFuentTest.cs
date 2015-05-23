@@ -176,7 +176,7 @@ namespace NPoco.Tests.Common
             For<User>().Columns(x =>
             {
                 x.Column(y => y.IsMale).WithName("is_male");
-                x.Column(y => y.House).WithName("HouseId").Reference();
+                x.Column(y => y.House).WithName("HouseId").Reference(z => z.HouseId);
                 x.Column(y => y.ExtraUserInfo).WithName("UserId").Reference(z => z.UserId, ReferenceMappingType.OneToOne);
             });
             For<Supervisor>().UseMap<SupervisorMap>();

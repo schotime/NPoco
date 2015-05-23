@@ -1019,7 +1019,7 @@ namespace NPoco.Expressions
                         
                 //    propertyInfos.Select(z =>
                 //{
-                //    var pc = localModelDef.Members.SingleOrDefault(x => x.MemberInfo.Name == z.Name);
+                //    var pc = localModelDef.Members.SingleOrDefault(x => x.PocoMember.Name == z.Name);
                 //    localModelDef = _database.PocoDataFactory.ForType(z.PropertyType);
                 //    return pc;
                 //}).Where(x => x != null).ToArray();

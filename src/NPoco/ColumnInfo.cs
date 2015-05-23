@@ -49,7 +49,8 @@ namespace NPoco
             if (reference.Any())
             {
                 ci.ReferenceMappingType = reference.First().ReferenceMappingType;
-                ci.ReferenceMemberName = reference.First().Name ?? mi.GetMemberInfoType() + "ID";
+                ci.ReferenceMemberName = reference.First().ReferenceName ?? "Id";
+                ci.ColumnName = reference.First().Name ?? mi.Name + "Id";
                 return ci;
             }
 

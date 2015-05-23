@@ -92,9 +92,10 @@ namespace NPoco.Linq
                     .Single(x => x.MemberInfo == memberInfo);
 
                 var pocoColumn1 = pocoMember.PocoColumn;
-                var pocoColumn2 = pocoMember.PocoMemberChildren.Single(x => x.Name == pocoMember.ReferenceMemberName).PocoColumn;
+                var pocoMember2 = pocoMember.PocoMemberChildren.Single(x => x.Name == pocoMember.ReferenceMemberName);
+                var pocoColumn2 = pocoMember2.PocoColumn;
 
-                var onSql = _database.DatabaseType.EscapeTableName(pocoData1.TableInfo.AutoAlias)
+                var onSql = _database.DatabaseType.EscapeTableName(pocoColumn1.TableInfo.AutoAlias)
                    + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn1.ColumnName)
                    + " = " + _database.DatabaseType.EscapeTableName(pocoColumn2.TableInfo.AutoAlias)
                    + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn2.ColumnName);
@@ -104,7 +105,8 @@ namespace NPoco.Linq
                     _joinSqlExpressions.Add(onSql, new JoinData()
                     {
                         OnSql = onSql,
-                        MemberInfo = memberInfo
+                        PocoMember = pocoMember2,
+                        PocoMembers = pocoMember.PocoMemberChildren
                     });
                 }
 
