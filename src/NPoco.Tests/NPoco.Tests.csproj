@@ -117,6 +117,7 @@
     <Compile Include="FluentTests\QueryTests\SingleAndFirstQueryFluentTest.cs" />
     <Compile Include="FormatCommandTest.cs" />
     <Compile Include="HashCodeCombinerTests.cs" />
+    <Compile Include="MemberAccessorTests.cs" />
     <Compile Include="NewMapper\ComplexMappingTests.cs" />
     <Compile Include="NewMapper\FakeReader.cs" />
     <Compile Include="NewMapper\NestedConventionTests.cs" />

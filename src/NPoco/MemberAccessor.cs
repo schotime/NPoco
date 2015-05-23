@@ -54,7 +54,14 @@ namespace NPoco
             {
                 throw new Exception(string.Format("Property \"{0}\" does" + " not have a set method.", _memberName));
             }
+
+            if (_canRead)
+            {
+                GetDelegate = GetGetDelegate();
+            }
         }
+
+        private Func<object, object> GetDelegate = null;
 
         private Action<object, object> SetDelegate = null;
 
@@ -66,6 +73,11 @@ namespace NPoco
         public void Set(object target, object value)
         {
             SetDelegate(target, value);
+        }
+
+        public object Get(object target)
+        {
+            return GetDelegate(target);
         }
 
         /// <summary>
@@ -151,6 +163,45 @@ namespace NPoco
 
             var del = setMethod.CreateDelegate(Expression.GetActionType(setParamTypes));
             return del as Action<object, object>;
+        }
+
+        private Func<object, object> GetGetDelegate()
+        {
+            Type[] setParamTypes = new[] { typeof(object) };
+            Type setReturnType = typeof (object);
+
+            var getMethod = new DynamicMethod(Guid.NewGuid().ToString(), setReturnType, setParamTypes, true);
+            // From the method, get an ILGenerator. This is used to
+            // emit the IL that we want.
+            //
+            ILGenerator getIL = getMethod.GetILGenerator();
+            
+            getIL.DeclareLocal(typeof(object));
+            getIL.Emit(OpCodes.Ldarg_0); //Load the first argument
+            //(target object)
+            //Cast to the source type
+            getIL.Emit(OpCodes.Castclass, this._targetType);
+            //Get the property value
+
+            if (_member.IsField())
+            {
+                getIL.Emit(OpCodes.Ldfld, (FieldInfo)_member);
+            }
+            else
+            {
+                var targetGetMethod = ((PropertyInfo) _member).GetGetMethod();
+                getIL.EmitCall(OpCodes.Call, targetGetMethod, null);
+                if (targetGetMethod.ReturnType.IsValueType)
+                {
+                    getIL.Emit(OpCodes.Box, targetGetMethod.ReturnType);
+                    //Box if necessary
+                }
+            }
+
+            getIL.Emit(OpCodes.Ret);
+
+            var del = getMethod.CreateDelegate(Expression.GetFuncType(setParamTypes.Concat(new[]{setReturnType}).ToArray()));
+            return del as Func<object, object>;
         }
     }
 }

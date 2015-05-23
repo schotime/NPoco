@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace NPoco
@@ -16,6 +17,7 @@ namespace NPoco
         public string ColumnName;
 
         public List<MemberInfo> MemberInfoChain { get; set; }
+
         public MemberInfo MemberInfo { get; set; }
 
         public bool ResultColumn;
@@ -24,6 +26,7 @@ namespace NPoco
         public bool ComputedColumn;
         private Type _columnType;
         private MemberAccessor _memberAccessor;
+        private List<MemberAccessor> _memberAccessorChain = new List<MemberAccessor>();
 
         public Type ColumnType
         {
@@ -36,13 +39,22 @@ namespace NPoco
 
         public ReferenceMappingType ReferenceMappingType { get; set; }
 
-        public virtual void SetValue(object target, object val) { MemberInfo.SetMemberInfoValue(target, val); }
+        public virtual void SetValue(object target, object val)
+        {
+            SetValueFast(target, val);
+            //MemberInfo.SetMemberInfoValue(target, val);
+        }
         public virtual object GetValue(object target)
         {
-            foreach (var memberInfo in MemberInfoChain)
+            SetupMemberAccessorChain();
+            foreach (var memberInfo in _memberAccessorChain)
             {
-                target = target == null ? null : memberInfo.GetMemberInfoValue(target);
+                target = target == null ? null : memberInfo.Get(target);
             }
+            //foreach (var memberInfo in MemberInfoChain)
+            //{
+            //    target = target == null ? null : memberInfo.GetMemberInfoValue(target);
+            //}
             return target;
         }
 
@@ -54,10 +66,32 @@ namespace NPoco
             _memberAccessor.Set(target, val);
         }
 
+        public virtual object GetValueFast(object target)
+        {
+            SetupMemberAccessor();
+            return _memberAccessor.Get(target);
+        }
+
         private void SetupMemberAccessor()
         {
             if (_memberAccessor == null)
                 _memberAccessor = new MemberAccessor(MemberInfo.DeclaringType, MemberInfo.Name);
+        }
+
+        private void SetupMemberAccessorChain()
+        {
+            if (_memberAccessorChain.Count == 0)
+            {
+                foreach (var memberInfo in MemberInfoChain)
+                {
+                    _memberAccessorChain.Add(new MemberAccessor(memberInfo.DeclaringType, memberInfo.Name));
+                }
+            }
+
+            if (_memberAccessor == null)
+            {
+                _memberAccessor = _memberAccessorChain.Last();
+            }
         }
     }
 }
