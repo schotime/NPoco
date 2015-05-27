@@ -15,6 +15,7 @@ namespace NPoco
         int Execute(Sql sql);
         T ExecuteScalar<T>(string sql, params object[] args);
         T ExecuteScalar<T>(Sql sql);
+        List<T> FetchBy<T>(Func<SqlExpression<T>, SqlExpression<T>> expression);
         List<T> Fetch<T>();
         List<T> Fetch<T>(string sql, params object[] args);
         List<T> Fetch<T>(Sql sql);
