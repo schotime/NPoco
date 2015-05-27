@@ -50,10 +50,10 @@ namespace NPoco
             {
                 SetDelegate = GetSetDelegate();
             }
-            else
-            {
-                throw new Exception(string.Format("Property \"{0}\" does" + " not have a set method.", _memberName));
-            }
+            //else
+            //{
+            //    throw new Exception(string.Format("Property \"{0}\" does" + " not have a set method.", _memberName));
+            //}
 
             if (_canRead)
             {
@@ -72,12 +72,19 @@ namespace NPoco
         /// <param name="value">Value to set.</param>
         public void Set(object target, object value)
         {
-            SetDelegate(target, value);
+            if (SetDelegate != null)
+            {
+                SetDelegate(target, value);
+            }
         }
 
         public object Get(object target)
         {
-            return GetDelegate(target);
+            if (GetDelegate != null)
+            {
+                return GetDelegate(target);
+            }
+            return null;
         }
 
         /// <summary>

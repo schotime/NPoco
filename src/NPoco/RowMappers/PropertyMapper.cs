@@ -62,7 +62,8 @@ namespace NPoco.RowMappers
         {
             // find pocomember by property name
             var pocoMember = pocoMembers
-                .FirstOrDefault(x => x.Name.Equals(groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase));
+                .FirstOrDefault(x => x.Name.Equals(groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase)
+                                     || (x.PocoColumn != null && string.Equals(x.PocoColumn.ColumnAlias, groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase)));
 
             if (pocoMember == null)
                 yield break;

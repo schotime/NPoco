@@ -32,7 +32,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void FetchWithComplexReturnsSecondObjectIfFirstIsNull()
         {
-            var user = Database.Fetch<UserWithExtraInfo>("select u.*, e.ExtraUserInfoId as ExtraUserInfo__ExtraUserInfoId,e.UserId as ExtraUserInfo__UserId,e.Email as ExtraUserInfo__Email,e.Children as ExtraUserInfo__Children from extrauserinfos u left join users e on u.userid = -1 where u.userid = 1").Single();
+            var user = Database.Fetch<UserWithExtraInfo>("select u.*, e.ExtraUserInfoId as ExtraUserInfo__ExtraUserInfoId,e.UserId as ExtraUserInfo__UserId,e.Email as ExtraUserInfo__Email,e.Children as ExtraUserInfo__Children from extrauserinfos e left join users u on u.userid = -1 where e.userid = 1").Single();
 
             Assert.NotNull(user.ExtraUserInfo);
             Assert.True(user.UserId == 0);
