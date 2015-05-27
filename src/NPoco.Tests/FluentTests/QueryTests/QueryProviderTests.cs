@@ -458,6 +458,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(users.Count, 1);
         }
 
+        [Test]
+        public void QueryUsingForWhereQueryBuilder()
+        {
+            var queryBuilder = new QueryBuilder<User>().Where(x => x.UserId == 1);
+            var user = Database.Query<User>().From(queryBuilder).Single();
+            Assert.AreEqual(1, user.UserId);
+        }
+
         //[Test]
         //public void QueryWithInheritedTypesAliasCorrectlyWithJoin()
         //{

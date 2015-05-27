@@ -955,9 +955,13 @@ namespace NPoco.Expressions
                 else if (left as MemberAccessString != null && right is int)
                 {
                     var memberInfoType = ((MemberAccessString)left).PocoColumn.MemberInfo.GetMemberInfoType();
-                    if (memberInfoType == typeof(char) || memberInfoType == typeof(char?))
+                    if (memberInfoType == typeof (char) || memberInfoType == typeof (char?))
                     {
                         right = CreateParam(Convert.ToChar(right));
+                    }
+                    else
+                    {
+                        right = CreateParam(right);
                     }
                 }
                 else if (left as PartialSqlString == null && right as PartialSqlString == null)

@@ -22,7 +22,9 @@ namespace NPoco.Linq
         bool Any();
         bool Any(Expression<Func<T, bool>> whereExpression);
         List<T> ToList();
+        List<dynamic> ToDynamicList();
         IEnumerable<T> ToEnumerable();
+        IEnumerable<dynamic> ToDynamicEnumerable();
         Page<T> ToPage(int page, int pageSize);
         List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
@@ -50,6 +52,7 @@ namespace NPoco.Linq
         IQueryProvider<T> ThenByDescending(Expression<Func<T, object>> column);
         IQueryProvider<T> Limit(int rows);
         IQueryProvider<T> Limit(int skip, int rows);
+        IQueryProvider<T> From(QueryBuilder<T> builder);
     }
 
     public interface IQueryProviderWithIncludes<T> : IQueryProvider<T>
@@ -116,13 +119,53 @@ namespace NPoco.Linq
             return this;
         }
 
-        public IQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression)
+        public IQueryProvider<T> From(QueryBuilder<T> builder)
         {
-            _sqlExpression = _sqlExpression.Where(whereExpression);
+            if (!builder.Data.Skip.HasValue && builder.Data.Rows.HasValue)
+            {
+                Limit(builder.Data.Rows.Value);
+            }
+
+            if (builder.Data.Skip.HasValue && builder.Data.Rows.HasValue)
+            {
+                Limit(builder.Data.Skip.Value, builder.Data.Rows.Value);
+            }
+
+            if (builder.Data.WhereExpression != null)
+            {
+                Where(builder.Data.WhereExpression);
+            }
+
+            if (builder.Data.OrderByExpression != null)
+            {
+                OrderBy(builder.Data.OrderByExpression);
+            }
+
+            if (builder.Data.OrderByDescendingExpression != null)
+            {
+                OrderByDescending(builder.Data.OrderByDescendingExpression);
+            }
+
+            if (builder.Data.ThenByExpression.Any())
+            {
+                foreach (var expression in builder.Data.ThenByExpression)
+                {
+                    ThenBy(expression);
+                }
+            }
+
+            if (builder.Data.ThenByDescendingExpression.Any())
+            {
+                foreach (var expression in builder.Data.ThenByDescendingExpression)
+                {
+                    ThenByDescending(expression);
+                }
+            }
+            
             return this;
         }
 
-        private void AddLimitAndWhere(Expression<Func<T, bool>> whereExpression)
+        private void AddWhere(Expression<Func<T, bool>> whereExpression)
         {
             if (whereExpression != null)
                 _sqlExpression = _sqlExpression.Where(whereExpression);
@@ -135,7 +178,7 @@ namespace NPoco.Linq
 
         public T FirstOrDefault(Expression<Func<T, bool>> whereExpression)
         {
-            AddLimitAndWhere(whereExpression);
+            AddWhere(whereExpression);
             return ToEnumerable().FirstOrDefault();
         }
 
@@ -146,7 +189,7 @@ namespace NPoco.Linq
 
         public T First(Expression<Func<T, bool>> whereExpression)
         {
-            AddLimitAndWhere(whereExpression);
+            AddWhere(whereExpression);
             return ToEnumerable().First();
         }
 
@@ -157,7 +200,7 @@ namespace NPoco.Linq
 
         public T SingleOrDefault(Expression<Func<T, bool>> whereExpression)
         {
-            AddLimitAndWhere(whereExpression);
+            AddWhere(whereExpression);
             return ToEnumerable().SingleOrDefault();
         }
 
@@ -168,7 +211,7 @@ namespace NPoco.Linq
 
         public T Single(Expression<Func<T, bool>> whereExpression)
         {
-            AddLimitAndWhere(whereExpression);
+            AddWhere(whereExpression);
             return ToEnumerable().Single();
         }
 
@@ -255,13 +298,31 @@ namespace NPoco.Linq
             return ToEnumerable().ToList();
         }
 
+        public List<dynamic> ToDynamicList()
+        {
+            return ToDynamicEnumerable().ToList();
+        }
+
         public IEnumerable<T> ToEnumerable()
         {
-            if (!_joinSqlExpressions.Any())
-                return _database.Query<T>(_sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
-
-            var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false, false);
+            var sql = BuildSql();
             return _database.Query<T>(sql);
+        }
+
+        public IEnumerable<dynamic> ToDynamicEnumerable()
+        {
+            var sql = BuildSql();
+            return _database.Query<dynamic>(sql);
+        }
+
+        private Sql BuildSql()
+        {
+            Sql sql;
+            if (_joinSqlExpressions.Any())
+                sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false, false);
+            else
+                sql = new Sql(true, _sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
+            return sql;
         }
 
 #if NET45
@@ -281,25 +342,25 @@ namespace NPoco.Linq
 
         public async System.Threading.Tasks.Task<T> FirstOrDefaultAsync()
         {
-            AddLimitAndWhere(null);
+            AddWhere(null);
             return (await ToEnumerableAsync().ConfigureAwait(false)).FirstOrDefault();
         }
 
         public async System.Threading.Tasks.Task<T> FirstAsync()
         {
-            AddLimitAndWhere(null);
+            AddWhere(null);
             return (await ToEnumerableAsync().ConfigureAwait(false)).First();
         }
 
         public async System.Threading.Tasks.Task<T> SingleOrDefaultAsync()
         {
-            AddLimitAndWhere(null);
+            AddWhere(null);
             return (await ToEnumerableAsync().ConfigureAwait(false)).SingleOrDefault();
         }
 
         public async System.Threading.Tasks.Task<T> SingleAsync()
         {
-            AddLimitAndWhere(null);
+            AddWhere(null);
             return (await ToEnumerableAsync().ConfigureAwait(false)).Single();
         }
 
@@ -330,6 +391,12 @@ namespace NPoco.Linq
             return (await _database.QueryAsync<T>(sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
         }
 #endif
+
+        public IQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression)
+        {
+            _sqlExpression = _sqlExpression.Where(whereExpression);
+            return this;
+        }
 
         public IQueryProvider<T> Limit(int rows)
         {

@@ -151,10 +151,11 @@ namespace NPoco.Tests.NewMapper
         {
             var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(RecursionUser));
 
-            Assert.AreEqual(3, pocoData.Members.Count);
+            Assert.AreEqual(4, pocoData.Members.Count);
             Assert.AreEqual("Id", pocoData.Members[0].Name);
             Assert.AreEqual("Name", pocoData.Members[1].Name);
-            Assert.AreEqual("CreatedBy", pocoData.Members[2].Name);
+            Assert.AreEqual("Supervisor", pocoData.Members[2].Name);
+            Assert.AreEqual("CreatedBy", pocoData.Members[3].Name);
         }
     }
 
@@ -186,6 +187,17 @@ namespace NPoco.Tests.NewMapper
                 AssertExtraUserInfo(InMemoryExtraUserInfos[i], result[i].ExtraUserInfo);
                 AssertUserHouseValues(InMemoryUsers[i], result[i]);
             }
+        }
+
+        [Test]
+        public void Test2()
+        {
+            var result = Database
+                .Query<User>()
+                .Include(x => x.ExtraUserInfo)
+                .ToDynamicList();
+
+            Assert.AreEqual(1, result[0].extrauserinfo__extrauserinfoid);
         }
     }
 
