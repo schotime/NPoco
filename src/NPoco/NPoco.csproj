@@ -37,7 +37,6 @@
     <DefineConstants>NET45</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.JScript" />
     <Reference Condition="!$(DefineConstants.Contains('POCO_NO_DYNAMIC')) And $(DefineConstants.Contains('NET40ASYNC'))" Include="Microsoft.Threading.Tasks">
       <HintPath>..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
     </Reference>

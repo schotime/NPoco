@@ -18,7 +18,6 @@ namespace NPoco
         static FieldInfo fldConverters = typeof(MappingFactory).GetField("m_Converters", BindingFlags.Static | BindingFlags.GetField | BindingFlags.NonPublic);
         static MethodInfo fnListGetItem = typeof(List<Func<object, object>>).GetProperty("Item").GetGetMethod();
         static MethodInfo fnInvoke = typeof(Func<object, object>).GetMethod("Invoke");
-        static MethodInfo newMapper = typeof(NewMappingFactory).GetMethod("Map");
         static Cache<Type, Type> _underlyingTypes = Cache<Type, Type>.CreateStaticCache();
 
         //This will use a managed cache with items that expire
