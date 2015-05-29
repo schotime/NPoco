@@ -766,7 +766,7 @@ namespace NPoco
         // Fetch a page	
         public Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
-            return Page<T>(new[] { typeof(T) }, null, page, itemsPerPage, sql, args);
+            return Page<T>(typeof(T), null, page, itemsPerPage, sql, args);
         }
 
         public Page<T> Page<T>(long page, long itemsPerPage, Sql sql)
@@ -844,57 +844,57 @@ namespace NPoco
             return Query(default(T), Sql);
         }
 
-        private IEnumerable<TRet> Read<TRet>(Type[] types, Delegate cb, IDataReader r)
-        {
-            try
-            {
-                var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, r);
-                if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
-                var bNeedTerminator = false;
-                using (r)
-                {
-                    while (true)
-                    {
-                        TRet poco;
-                        try
-                        {
-                            if (!r.Read()) break;
-                            poco = factory(r, cb);
-                        }
-                        catch (Exception x)
-                        {
-                            OnException(x);
-                            throw;
-                        }
+        //private IEnumerable<TRet> Read<TRet>(Type[] types, Delegate cb, IDataReader r)
+        //{
+        //    try
+        //    {
+        //        var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, r);
+        //        if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
+        //        var bNeedTerminator = false;
+        //        using (r)
+        //        {
+        //            while (true)
+        //            {
+        //                TRet poco;
+        //                try
+        //                {
+        //                    if (!r.Read()) break;
+        //                    poco = factory(r, cb);
+        //                }
+        //                catch (Exception x)
+        //                {
+        //                    OnException(x);
+        //                    throw;
+        //                }
 
-                        if (poco != null)
-                        {
-                            yield return poco;
-                        }
-                        else
-                        {
-                            bNeedTerminator = true;
-                        }
-                    }
-                    if (bNeedTerminator)
-                    {
-                        var poco = (TRet) cb.DynamicInvoke(new object[types.Length]);
-                        if (poco != null)
-                        {
-                            yield return poco;
-                        }
-                        else
-                        {
-                            yield break;
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
-            }
-        }
+        //                if (poco != null)
+        //                {
+        //                    yield return poco;
+        //                }
+        //                else
+        //                {
+        //                    bNeedTerminator = true;
+        //                }
+        //            }
+        //            if (bNeedTerminator)
+        //            {
+        //                var poco = (TRet) cb.DynamicInvoke(new object[types.Length]);
+        //                if (poco != null)
+        //                {
+        //                    yield return poco;
+        //                }
+        //                else
+        //                {
+        //                    yield break;
+        //                }
+        //            }
+        //        }
+        //    }
+        //    finally
+        //    {
+        //        CloseSharedConnectionInternal();
+        //    }
+        //}
 
         private IEnumerable<T> Read<T>(T instance, IDataReader r)
         {
@@ -988,103 +988,100 @@ namespace NPoco
             }
         }
 
-        // Multi Fetch (SQL builder)
-        public List<TRet> Fetch<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query(cb, sql).ToList(); }
+        //// Multi Fetch (SQL builder)
+        //public List<TRet> Fetch<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query(cb, sql).ToList(); }
 
-        // Multi Query (SQL builder)
-        public IEnumerable<TRet> Query<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2) }, cb, sql); }
+        //// Multi Query (SQL builder)
+        //public IEnumerable<TRet> Query<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2) }, cb, sql); }
    
-        // Actual implementation of the multi-poco query
-        public IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql)
+        //// Actual implementation of the multi-poco query
+        //public IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql)
+        //{
+        //    if (types.Length == 1)
+        //    {
+        //        foreach (var item in Query<TRet>(sql))
+        //        {
+        //            yield return item;
+        //        }
+
+        //        yield break;
+        //    }
+
+        //    try
+        //    {
+        //        OpenSharedConnectionInternal();
+        //        using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
+        //        {
+        //            IDataReader r;
+        //            try
+        //            {
+        //                r = ExecuteReaderHelper(cmd);
+        //            }
+        //            catch (Exception x)
+        //            {
+        //                OnException(x);
+        //                throw;
+        //            }
+        //            var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, r);
+        //            if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
+        //            var bNeedTerminator = false;
+        //            using (r)
+        //            {
+        //                while (true)
+        //                {
+        //                    TRet poco;
+        //                    try
+        //                    {
+        //                        if (!r.Read()) break;
+        //                        poco = factory(r, cb);
+        //                    }
+        //                    catch (Exception x)
+        //                    {
+        //                        OnException(x);
+        //                        throw;
+        //                    }
+
+        //                    if (poco != null)
+        //                    {
+        //                        yield return poco;
+        //                    }
+        //                    else
+        //                    {
+        //                        bNeedTerminator = true;
+        //                    }
+        //                }
+        //                if (bNeedTerminator)
+        //                {
+        //                    var poco = (TRet) cb.DynamicInvoke(new object[types.Length]);
+        //                    if (poco != null)
+        //                    {
+        //                        yield return poco;
+        //                    }
+        //                    else
+        //                    {
+        //                        yield break;
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //    finally
+        //    {
+        //        CloseSharedConnectionInternal();
+        //    }
+        //}
+
+        public Page<T> Page<T>(Type type, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
         {
-            if (types.Length == 1)
+            return PageImp<T, Page<T>>(type, cb, page, itemsPerPage, sql, args, (paged, thetypes, thesql) =>
             {
-                foreach (var item in Query<TRet>(sql))
-                {
-                    yield return item;
-                }
-
-                yield break;
-            }
-
-            try
-            {
-                OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
-                {
-                    IDataReader r;
-                    try
-                    {
-                        r = ExecuteReaderHelper(cmd);
-                    }
-                    catch (Exception x)
-                    {
-                        OnException(x);
-                        throw;
-                    }
-                    var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, r);
-                    if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
-                    var bNeedTerminator = false;
-                    using (r)
-                    {
-                        while (true)
-                        {
-                            TRet poco;
-                            try
-                            {
-                                if (!r.Read()) break;
-                                poco = factory(r, cb);
-                            }
-                            catch (Exception x)
-                            {
-                                OnException(x);
-                                throw;
-                            }
-
-                            if (poco != null)
-                            {
-                                yield return poco;
-                            }
-                            else
-                            {
-                                bNeedTerminator = true;
-                            }
-                        }
-                        if (bNeedTerminator)
-                        {
-                            var poco = (TRet) cb.DynamicInvoke(new object[types.Length]);
-                            if (poco != null)
-                            {
-                                yield return poco;
-                            }
-                            else
-                            {
-                                yield break;
-                            }
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
-            }
-        }
-
-        public Page<T> Page<T>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
-        {
-            return PageImp<T, Page<T>>(types, cb, page, itemsPerPage, sql, args, (paged, thetypes, thesql) =>
-            {
-                paged.Items = thetypes.Length > 1
-                    ? Query<T>(thetypes, cb, thesql).ToList()
-                    : Query<T>(thesql).ToList();
-
+                paged.Items =  Query<T>(thesql).ToList();
                 return paged;
             });
         }
 
         // Actual implementation of the multi-poco paging
-        protected TRet PageImp<T, TRet>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, object[] args, Func<Page<T>, Type[], Sql, TRet> executeQueryFunc)
+        protected TRet PageImp<T, TRet>(Type type, Delegate cb, long page, long itemsPerPage, string sql, object[] args, Func<Page<T>, Type, Sql, TRet> executeQueryFunc)
         {
             string sqlCount, sqlPage;
 
@@ -1107,7 +1104,7 @@ namespace NPoco
             OneTimeCommandTimeout = saveTimeout;
 
             // Get the records
-            return executeQueryFunc(result, types, new Sql(sqlPage, args));
+            return executeQueryFunc(result, type, new Sql(sqlPage, args));
         }
 
         public TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args)); }
@@ -1161,7 +1158,8 @@ namespace NPoco
                                 break;
 
                             var pd = PocoDataFactory.ForType(types[typeIndex - 1]);
-                            var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, null);
+                            //var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, null);
+                            var factory = new NewMappingFactory(pd, r);
 
                             while (true)
                             {
@@ -1173,16 +1171,16 @@ namespace NPoco
                                     switch (typeIndex)
                                     {
                                         case 1:
-                                            list1.Add(((Func<IDataReader, T1, T1>) factory)(r, default(T1)));
+                                            list1.Add((T1) factory.Map(r, default(T1)));
                                             break;
                                         case 2:
-                                            list2.Add(((Func<IDataReader, T2, T2>) factory)(r, default(T2)));
+                                            list2.Add((T2) factory.Map(r, default(T2)));
                                             break;
                                         case 3:
-                                            list3.Add(((Func<IDataReader, T3, T3>) factory)(r, default(T3)));
+                                            list3.Add((T3) factory.Map(r, default(T3)));
                                             break;
                                         case 4:
-                                            list4.Add(((Func<IDataReader, T4, T4>) factory)(r, default(T4)));
+                                            list4.Add((T4) factory.Map(r, default(T4)));
                                             break;
                                     }
                                 }

@@ -39,6 +39,12 @@ namespace NPoco.RowMappers
             }
 
             _mapPlan(dataReader, context.Instance);
+
+            var result = context.Instance as IOnLoaded;
+            if (result != null)
+            {
+                result.OnLoaded();
+            }
            
             return context.Instance;
         }
@@ -61,9 +67,7 @@ namespace NPoco.RowMappers
         public IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, IDataReader dataReader, PocoData pocoData, List<PocoMember> pocoMembers)
         {
             // find pocomember by property name
-            var pocoMember = pocoMembers
-                .FirstOrDefault(x => x.Name.Equals(groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase)
-                                     || (x.PocoColumn != null && string.Equals(x.PocoColumn.ColumnAlias, groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase)));
+            var pocoMember = FindMember(pocoMembers, groupedName);
 
             if (pocoMember == null)
                 yield break;
@@ -99,6 +103,12 @@ namespace NPoco.RowMappers
                 var converter = GetConverter(pocoData, pocoMember.PocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
                 yield return (reader, instance) => MapValue(groupedName.Key.Pos, reader, converter, instance, pocoMember.PocoColumn);
             }
+        }
+
+        private static PocoMember FindMember(List<PocoMember> pocoMembers, GroupResult<PosName> groupedName)
+        {
+            return pocoMembers.FirstOrDefault(x => x.Name.Equals(groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase)
+                                                   || (x.PocoColumn != null && string.Equals(x.PocoColumn.ColumnAlias, groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase)));
         }
 
         public static bool MapValue(int index, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn)

@@ -56,16 +56,8 @@ namespace NPoco
         public List<PocoMember> Members { get; protected internal set; }
         public List<PocoColumn> AllColumns { get; protected internal set; }
 
-        private readonly MappingFactory _mappingFactory;
-
-        public MappingFactory MappingFactory
-        {
-            get { return _mappingFactory; }
-        }
-
         public PocoData()
         {
-            _mappingFactory = new MappingFactory(this);
         }
 
         public PocoData(Type type, IMapper mapper, PocoDataFactory pocoDataFactory) : this()

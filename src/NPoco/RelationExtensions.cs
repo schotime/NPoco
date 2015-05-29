@@ -7,27 +7,27 @@ namespace NPoco
 {
     public static class RelationExtensions
     {
-        public static List<T> FetchOneToMany<T, T1>(this IDatabase db, Func<T, object> key, Sql Sql)
-        {
-            var relator = new Relator();
-            return db.Fetch<T, T1, T>((a, b) => relator.OneToMany(a, b, key), Sql);
-        }
+        //public static List<T> FetchOneToMany<T, T1>(this IDatabase db, Func<T, object> key, Sql Sql)
+        //{
+        //    var relator = new Relator();
+        //    return db.Fetch<T, T1, T>((a, b) => relator.OneToMany(a, b, key), Sql);
+        //}
 
-        public static List<T> FetchOneToMany<T, T1>(this IDatabase db, Func<T, object> key, Func<T1, object> manyKey, Sql Sql)
-        {
-            var relator = new Relator();
-            return db.Fetch<T, T1, T>((a, b) => relator.OneToMany(a, b, key, manyKey), Sql);
-        }
+        //public static List<T> FetchOneToMany<T, T1>(this IDatabase db, Func<T, object> key, Func<T1, object> manyKey, Sql Sql)
+        //{
+        //    var relator = new Relator();
+        //    return db.Fetch<T, T1, T>((a, b) => relator.OneToMany(a, b, key, manyKey), Sql);
+        //}
 
-        public static List<T> FetchOneToMany<T, T1>(this IDatabase db, Func<T, object> key, string sql, params object[] args)
-        {
-            return db.FetchOneToMany<T, T1>(key, new Sql(sql, args));
-        }
+        //public static List<T> FetchOneToMany<T, T1>(this IDatabase db, Func<T, object> key, string sql, params object[] args)
+        //{
+        //    return db.FetchOneToMany<T, T1>(key, new Sql(sql, args));
+        //}
         
-        public static List<T> FetchOneToMany<T, T1>(this IDatabase db, Func<T, object> key, Func<T1, object> manyKey, string sql, params object[] args)
-        {
-            return db.FetchOneToMany<T, T1>(key, manyKey, new Sql(sql, args));
-        }     
+        //public static List<T> FetchOneToMany<T, T1>(this IDatabase db, Func<T, object> key, Func<T1, object> manyKey, string sql, params object[] args)
+        //{
+        //    return db.FetchOneToMany<T, T1>(key, manyKey, new Sql(sql, args));
+        //}     
     }
 
     public class Relator

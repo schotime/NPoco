@@ -26,11 +26,11 @@ namespace NPoco
         List<T> SkipTake<T>(long skip, long take, string sql, params object[] args);
         List<T> SkipTake<T>(long skip, long take, Sql sql);
 
-        List<TRet> Fetch<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql);
+        //List<TRet> Fetch<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql);
    
-        IEnumerable<TRet> Query<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql);
+        //IEnumerable<TRet> Query<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql);
        
-        IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql);
+        //IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql);
 
         IEnumerable<T> Query<T>(string sql, params object[] args);
         IEnumerable<T> Query<T>(Sql sql);
@@ -78,17 +78,17 @@ namespace NPoco
 
         Task<IEnumerable<T>> QueryAsync<T>(string sql, object[] args);
         Task<IEnumerable<T>> QueryAsync<T>(Sql sql);
-        Task<IEnumerable<T>> QueryAsync<T>(Type[] types, Delegate cb, Sql sql);
+        //Task<IEnumerable<T>> QueryAsync<T>(Type[] types, Delegate cb, Sql sql);
 
         Task<List<T>> FetchAsync<T>(string sql, params object[] args);
         Task<List<T>> FetchAsync<T>(Sql sql);
 
-        Task<List<T1>> FetchAsync<T1, T2>(Sql sql);
-        Task<IEnumerable<T1>> QueryAsync<T1, T2>(Sql sql);
+        //Task<List<T1>> FetchAsync<T1, T2>(Sql sql);
+        //Task<IEnumerable<T1>> QueryAsync<T1, T2>(Sql sql);
 
         Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args);
         Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql); 
-        Task<Page<T>> PageAsync<T>(Type[] types, Delegate cb, long page, long itemsPerPage, string sql, params object[] args);
+        Task<Page<T>> PageAsync<T>(Type type, Delegate cb, long page, long itemsPerPage, string sql, params object[] args);
 
         Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args);
         Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, Sql sql);

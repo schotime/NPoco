@@ -94,6 +94,7 @@
     <Compile Include="FastCreate.cs" />
     <Compile Include="HashCodeCombiner.cs" />
     <Compile Include="InsertStatements.cs" />
+    <Compile Include="IOnLoaded.cs" />
     <Compile Include="Linq\ComplexSqlBuilder.cs" />
     <Compile Include="Linq\DeleteQueryProvider.cs" />
     <Compile Include="Linq\ISimpleQueryProviderExpression.cs" />
@@ -102,7 +103,6 @@
     <Compile Include="Linq\QueryBuilderData.cs" />
     <Compile Include="Linq\SimpleQueryProvider.cs" />
     <Compile Include="Linq\UpdateQueryProvider.cs" />
-    <Compile Include="MappingFactory.cs" />
     <Compile Include="DefaultMapper.cs" />
     <Compile Include="Expressions\DefaultSqlExpression.cs" />
     <Compile Include="DeleteContext.cs" />
@@ -135,8 +135,8 @@
     <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="IMapper.cs" />
     <Compile Include="InsertContext.cs" />
+    <Compile Include="MappingFactory.cs" />
     <Compile Include="MemberAccessor.cs" />
-    <Compile Include="MultiPocoFactory.cs" />
     <Compile Include="NewMappingFactory.cs" />
     <Compile Include="Page.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
