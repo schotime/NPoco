@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Text;
 using System.Collections.ObjectModel;
+using System.Data;
+using System.Linq;
 using System.Linq.Expressions;
-using NPoco.Linq;
+using System.Reflection;
+using System.Text;
 
 namespace NPoco.Expressions
 {
@@ -918,7 +917,15 @@ namespace NPoco.Expressions
             {
                 left = Visit(b.Left);
                 right = Visit(b.Right);
+                
+                var customAttribute = ((MemberExpression)b.Left).Member.GetCustomAttributes(typeof(CustomColumnDbTypeAttribute), false);
 
+                if (customAttribute.Any() &&
+                    ((CustomColumnDbTypeAttribute)customAttribute[0]).Type.Equals(DbType.AnsiString))
+                {
+                    right = new AnsiString((string) right);
+                }
+                
                 if (left as EnumMemberAccess != null && right as PartialSqlString == null)
                 {
                     var pc = ((EnumMemberAccess)left).PocoColumn;

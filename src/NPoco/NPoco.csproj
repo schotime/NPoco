@@ -121,6 +121,7 @@
     <Compile Include="ReflectionUtils.cs" />
     <Compile Include="RelationExtensions.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />
+    <Compile Include="CustomColumnDbTypeAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ResultColumnAttribute.cs" />
     <Compile Include="Singleton.cs" />

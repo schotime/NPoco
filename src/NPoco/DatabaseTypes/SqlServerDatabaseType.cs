@@ -53,6 +53,11 @@ namespace NPoco.DatabaseTypes
         {
             if (type == typeof (TimeSpan) || type == typeof(TimeSpan?))
                 return null;
+                
+            if (type == typeof (AnsiString))
+            {
+                return DbType.AnsiString;
+            }
             
             return base.LookupDbType(type, name);
         }
