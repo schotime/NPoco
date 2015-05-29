@@ -82,7 +82,8 @@ namespace NPoco
 
         static List<PropertyInfo> RelevantProperties(PocoData pocoData)
         {
-            return pocoData.Columns.Values.Where(x => !x.MemberInfo.IsField()).Select(x => ((PropertyInfo)x.MemberInfo)).ToList();
+            var relevantProperties = pocoData.Members.Where(x => !x.MemberInfo.IsField()).Select(x => ((PropertyInfo) x.MemberInfo)).ToList();
+            return relevantProperties;
         }
 
         private static bool CompareArrays(byte[] a, byte[] b)

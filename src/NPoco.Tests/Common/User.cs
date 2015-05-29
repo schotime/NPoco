@@ -10,7 +10,7 @@ namespace NPoco.Tests.Common
         }
 
         public int UserId { get; set; }
-        public string Name { get; set; }
+        public virtual string Name { get; set; }
         public int Age { get; set; }
         public DateTime DateOfBirth { get; set; }
         public decimal Savings { get; set; }

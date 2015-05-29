@@ -159,7 +159,7 @@ namespace NPoco
                 MethodInfo targetSetMethod = ((PropertyInfo)this._member).GetSetMethodOnDeclaringType();
                 if (targetSetMethod != null)
                 {
-                    setIL.EmitCall(OpCodes.Call, targetSetMethod, null);
+                    setIL.Emit(OpCodes.Callvirt, targetSetMethod);
                 }
                 else
                 {
@@ -197,7 +197,7 @@ namespace NPoco
             else
             {
                 var targetGetMethod = ((PropertyInfo) _member).GetGetMethod();
-                getIL.EmitCall(OpCodes.Call, targetGetMethod, null);
+                getIL.Emit(OpCodes.Callvirt, targetGetMethod);
                 if (targetGetMethod.ReturnType.IsValueType)
                 {
                     getIL.Emit(OpCodes.Box, targetGetMethod.ReturnType);

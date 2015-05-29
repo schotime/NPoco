@@ -29,6 +29,9 @@ namespace NPoco.Tests
             public MyMappings()
             {
                 For<Admin>().Columns(y => y.Column(x => x.Age).WithName("TheAge"));
+                For<Admin>().Columns(y => y.Column(x => x.Savings).WithName("Savings"));
+                For<Admin>().Columns(y => y.Column(x => x.DateOfBirth).WithName("DateOfBirth"));
+                For<Admin>().Columns(y => y.Column(x => x.Name).WithName("Name"));
             }
         }
 
