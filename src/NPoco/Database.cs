@@ -1623,7 +1623,7 @@ namespace NPoco
         }
 
         /// <summary>Checks if a poco represents a new record.</summary>
-        public bool IsNew<T>(object poco)
+        public bool IsNew<T>(T poco)
         {
 #if !POCO_NO_DYNAMIC
             if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
@@ -1679,7 +1679,7 @@ namespace NPoco
         }
 
         // Insert new record or Update existing record
-        public void Save<T>(object poco)
+        public void Save<T>(T poco)
         {
             var pd = PocoDataFactory.ForType(poco.GetType());
             if (IsNew<T>(poco))
