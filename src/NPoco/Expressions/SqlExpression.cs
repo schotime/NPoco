@@ -446,7 +446,7 @@ namespace NPoco.Expressions
         {
             if (orderByMembers.Count > 0)
             {
-                orderBy = "ORDER BY " + string.Join(", ", orderByMembers.Select(x => (PrefixFieldWithTableName ? _databaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumns.Select(z => z.MemberInfo.Name))) : _databaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumns.Select(z => z.MemberInfo.Name)))) + " " + x.AscDesc).ToArray());
+                orderBy = "ORDER BY " + string.Join(", ", orderByMembers.Select(x => (PrefixFieldWithTableName ? _databaseType.EscapeSqlIdentifier(x.PocoColumns.Last().MemberInfoKey) : _databaseType.EscapeSqlIdentifier(x.PocoColumns.Last().MemberInfoKey)) + " " + x.AscDesc).ToArray());
             }
             else
             {
@@ -1514,7 +1514,7 @@ namespace NPoco.Expressions
                     {
                         if (x.SelectSql == null)
                             return (PrefixFieldWithTableName
-                                ? _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + _databaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumns.Last().MemberInfoChain.Select(y=>y.Name)))
+                                ? _databaseType.EscapeTableName(modelDef.TableInfo.AutoAlias) + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + _databaseType.EscapeSqlIdentifier(x.PocoColumns.Last().MemberInfoKey)
                                 : _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName));
                         return x.SelectSql;
                     }).ToArray()),
@@ -1540,7 +1540,7 @@ namespace NPoco.Expressions
 
             if (columns != null && columns.Any() && _databaseType.UseColumnAliases())
             {
-                parts.sqlColumns = string.Join(", ", columns.Select(x => _databaseType.EscapeSqlIdentifier(string.Join("__", x.Last().MemberInfoChain.Select(z => z.Name)))).ToArray());
+                parts.sqlColumns = string.Join(", ", columns.Select(x => _databaseType.EscapeSqlIdentifier(x.Last().MemberInfoKey)).ToArray());
             }
 
             sqlPage = _databaseType.BuildPageQuery(Skip ?? 0, Rows ?? 0, parts, ref parms);

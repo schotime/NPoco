@@ -50,7 +50,7 @@ namespace NPoco.Linq
                 {
                     var col = new StringPocoCol();
                     col.StringCol = database.DatabaseType.EscapeTableName(x.TableInfo.AutoAlias) + "." +
-                                    database.DatabaseType.EscapeSqlIdentifier(x.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(string.Join("__", x.MemberInfoChain.Select(y => y.Name)));
+                                    database.DatabaseType.EscapeSqlIdentifier(x.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(x.MemberInfoKey);
                     col.PocoColumn = new[] { x };
                     return col;
                 }).ToList();
@@ -72,7 +72,7 @@ namespace NPoco.Linq
                 {
                     return new
                     {
-                        Column = string.Join("__", x.PocoColumns.Last().MemberInfoChain.Select(z => z.Name)),
+                        Column = x.PocoColumns.Last().MemberInfoKey,
                         x.AscDesc
                     };
                 }).ToList();
@@ -92,7 +92,7 @@ namespace NPoco.Linq
                     return new StringPocoCol
                     {
                         StringCol = database.DatabaseType.EscapeTableName(x.PocoColumn.TableInfo.AutoAlias) + "." +
-                                    database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumns.Last().MemberInfoChain.Select(z=>z.Name))),
+                                    database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumns.Last().MemberInfoKey),
                         PocoColumn = x.PocoColumns
                     };
                 }).ToList();
@@ -125,7 +125,7 @@ namespace NPoco.Linq
                     .Select(x => new StringPocoCol
                 {
                     StringCol = database.DatabaseType.EscapeTableName(x.PocoColumn.TableInfo.AutoAlias)
-                                + "." + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(string.Join("__", x.PocoColumn.MemberInfoChain.Select(z => z.Name))),
+                                + "." + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.MemberInfoKey),
                     PocoColumn = new[] { x.PocoColumn }
                 })).ToList();
 

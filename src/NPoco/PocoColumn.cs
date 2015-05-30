@@ -13,11 +13,16 @@ namespace NPoco
             MemberInfoChain = new List<MemberInfo>();
         }
 
+        public static string GenerateKey(IEnumerable<MemberInfo> memberInfoChain)
+        {
+            return string.Join("__", memberInfoChain.Select(x => x.Name));
+        }
+
         public TableInfo TableInfo;
         public string ColumnName;
 
         public List<MemberInfo> MemberInfoChain { get; set; }
-
+        public string MemberInfoKey { get { return GenerateKey(MemberInfoChain); } }
         public MemberInfo MemberInfo { get; set; }
 
         public bool ResultColumn;

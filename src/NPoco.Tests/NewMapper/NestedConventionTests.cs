@@ -118,6 +118,20 @@ namespace NPoco.Tests.NewMapper
                 Assert.AreEqual("Name" + 2, data[i].Supervisor.Supervisor.Name);
             }
         }
+
+        [Test]
+        public void Test12()
+        {
+            var user = Database.Fetch<Name>().First();
+            Assert.AreEqual("Name1", user.TheName);
+        }
+    }
+
+    [TableName("Users")]
+    public class Name
+    {
+        [Column("Name")]
+        public virtual string TheName { get; set; }
     }
 
     public class PerfTests

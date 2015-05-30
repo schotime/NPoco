@@ -20,7 +20,7 @@ namespace NPoco.FluentMappings
             var members = MemberHelper<T>.GetMembers(property);
             var columnDefinition = new ColumnDefinition() { MemberInfo = members.Last() };
             var builder = new ColumnBuilder<T2>(columnDefinition);
-            var key = string.Join("__", members.Select(x => x.Name));
+            var key = PocoColumn.GenerateKey(members);
             _columnDefinitions[key] = columnDefinition;
             return builder;
         }

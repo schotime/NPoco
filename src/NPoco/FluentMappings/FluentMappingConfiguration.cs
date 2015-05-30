@@ -59,7 +59,7 @@ namespace NPoco.FluentMappings
 
                 foreach (var columnDefinition in GetColumnDefinitions(scannerSettings, type, new List<MemberInfo>()))
                 {
-                    var key = string.Join("__", columnDefinition.MemberInfoChain.Select(x => x.Name));
+                    var key = PocoColumn.GenerateKey(columnDefinition.MemberInfoChain);
                     if (!pocoDefn.ColumnConfiguration.ContainsKey(key))
                         pocoDefn.ColumnConfiguration.Add(key, columnDefinition);
                 }

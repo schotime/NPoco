@@ -25,7 +25,7 @@ namespace NPoco
                     return database.DatabaseType.EscapeSqlIdentifier(c.Value.ColumnName) +
                            (!string.IsNullOrEmpty(c.Value.ColumnAlias)
                                 ? " AS " + database.DatabaseType.EscapeSqlIdentifier(c.Value.ColumnAlias)
-                                : "");
+                                : " AS " + database.DatabaseType.EscapeSqlIdentifier(c.Value.MemberInfoKey));
                 });
                 string cols = String.Join(", ", columns.ToArray());
                 if (!rxFrom.IsMatch(sql))

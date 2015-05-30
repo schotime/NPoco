@@ -51,7 +51,7 @@ namespace NPoco.FluentMappings
         {
             var typeConfig = _mappings.Config[Type];
             var columnInfo = new ColumnInfo();
-            var key = string.Join("__", memberInfos.Select(x => x.Name).Concat(new[] { mi.Name }));
+            var key = PocoColumn.GenerateKey(memberInfos.Concat(new[] { mi }));
 
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
             var isColumnDefined = typeConfig.ColumnConfiguration.ContainsKey(key);
