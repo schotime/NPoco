@@ -46,7 +46,6 @@ namespace NPoco
     {
         public PocoDataFactory PocoDataFactory { get; protected set; }
         protected internal IMapper Mapper { get; set; }
-        internal bool EmptyNestedObjectNull;
         private readonly Cache<string, Type> aliasToType = Cache<string, Type>.CreateStaticCache();
 
         protected internal Type Type { get; protected set; }

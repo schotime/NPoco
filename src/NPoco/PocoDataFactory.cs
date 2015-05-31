@@ -20,11 +20,8 @@ namespace NPoco
         }
 
         public Func<Type, PocoDataFactory, PocoData> Resolver { get; set; }
+
         public PocoData ForType(Type type)
-        {
-            return ForType(type, false);
-        }
-        public PocoData ForType(Type type, bool emptyNestedObjectNull)
         {
 #if !POCO_NO_DYNAMIC
             if (type == typeof(System.Dynamic.ExpandoObject) || type == typeof(PocoExpando))
@@ -33,7 +30,6 @@ namespace NPoco
             var pocoData = _pocoDatas.Get(type, (Resolver == null 
                 ? new Func<PocoData>(() => new PocoData(type, _mapper, this).Init()) 
                 : new Func<PocoData>(() => Resolver(type, this))));
-            pocoData.EmptyNestedObjectNull = emptyNestedObjectNull;
             return pocoData;
         }
         public PocoData ForObject(object o, string primaryKeyName)
