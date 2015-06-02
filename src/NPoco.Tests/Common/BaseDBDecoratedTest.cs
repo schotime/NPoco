@@ -43,6 +43,11 @@ namespace NPoco.Tests.Common
                     Database = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), IsolationLevel.ReadUncommitted);
                     break;
 
+                case 9: // SQL 2012
+                    TestDatabase = new SQLLocalDatabase();
+                    Database = new Database(TestDatabase.Connection, new SqlServer2012DatabaseType(), IsolationLevel.ReadUncommitted); // Need read uncommitted for the transaction tests
+                    break;
+
                 default:
                     Assert.Fail("Unknown database platform specified");
                     return;

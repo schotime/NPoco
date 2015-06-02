@@ -3,6 +3,30 @@ using System.Collections.Generic;
 
 namespace NPoco.Tests.Common
 {
+    [TableName("UsersForSequence")]
+    [PrimaryKey("UserId", SequenceName = "UsersForSequenceIds")]
+    [ExplicitColumns]
+    public class UserDecoratedSequence
+    {
+        [Column("UserId")]
+        public int UserId { get; set; }
+
+        [Column("Name")]
+        public string Name { get; set; }
+
+        [Column("Age")]
+        public int Age { get; set; }
+
+        [Column("DateOfBirth")]
+        public DateTime DateOfBirth { get; set; }
+
+        [Column("Savings")]
+        public decimal Savings { get; set; }
+
+        [Column("is_male")]
+        public bool IsMale { get; set; }
+    }
+
     [TableName("Users")]
     [PrimaryKey("UserId")]
     [ExplicitColumns]

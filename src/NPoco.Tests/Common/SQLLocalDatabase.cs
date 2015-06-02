@@ -104,6 +104,26 @@ namespace NPoco.Tests.Common
             cmd.ExecuteNonQuery();
 
             cmd.CommandText = @"
+                CREATE TABLE UsersForSequence(
+                    UserId int PRIMARY KEY NOT NULL, 
+                    Name nvarchar(200) NULL, 
+                    Age int NULL, 
+                    DateOfBirth datetime NULL, 
+                    Savings decimal(10,5) NULL,
+                    Is_Male tinyint,
+                    UniqueId uniqueidentifier NULL,
+                    TimeSpan time NULL,
+                    TestEnum varchar(10) NULL,
+                    HouseId int NULL,
+                    SupervisorId int NULL,
+                    Version rowversion,
+                    VersionInt int default(0) NOT NULL,
+                    YorN char NULL
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
                 CREATE TABLE ExtraUserInfos(
                     ExtraUserInfoId int IDENTITY(1,1) PRIMARY KEY NOT NULL, 
                     UserId int NOT NULL, 
@@ -139,6 +159,9 @@ namespace NPoco.Tests.Common
             {
                 Console.WriteLine(row[2]);
             }
+
+            cmd.CommandText = @"CREATE SEQUENCE dbo.UsersForSequenceIds AS INT MINVALUE 1 NO MAXVALUE START WITH 1;";
+            cmd.ExecuteNonQuery();
 
             cmd.Dispose();
             conn.Close();
