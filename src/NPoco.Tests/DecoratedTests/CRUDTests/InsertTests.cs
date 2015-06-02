@@ -8,6 +8,32 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
     public class InsertTests : BaseDBDecoratedTest
     {
         [Test]
+        public void InsertPrimaryKeySequenceSql()
+        {
+            const string dataName = "John Doe";
+            const int dataAge = 56;
+            const decimal dataSavings = (decimal)345.23;
+            var dataDateOfBirth = DateTime.Now;
+
+            var poco = new UserDecoratedSequence();
+            poco.Name = dataName;
+            poco.Age = dataAge;
+            poco.Savings = dataSavings;
+            poco.DateOfBirth = dataDateOfBirth;
+            Database.Insert(poco);
+
+            Assert.IsTrue(poco.UserId > 0, "POCO failed to insert.");
+
+            var verify = Database.SingleOrDefaultById<UserDecoratedSequence>(poco.UserId);
+            Assert.IsNotNull(verify);
+
+            Assert.AreEqual(poco.UserId, verify.UserId);
+            Assert.AreEqual(dataName, verify.Name);
+            Assert.AreEqual(dataAge, verify.Age);
+            Assert.AreEqual(dataSavings, verify.Savings);
+        }
+
+        [Test]
         public void InsertPrimaryKeyAutoIncrement()
         {
             const string dataName = "John Doe";

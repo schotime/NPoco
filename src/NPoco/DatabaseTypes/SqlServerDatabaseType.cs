@@ -30,8 +30,13 @@ namespace NPoco.DatabaseTypes
             //var pocodata = PocoData.ForType(typeof(T), db.PocoDataFactory);
             //var sql = string.Format("SELECT * FROM {0} WHERE {1} = SCOPE_IDENTITY()", EscapeTableName(pocodata.TableInfo.TableName), EscapeSqlIdentifier(primaryKeyName));
             //return db.SingleInto(poco, ";" + cmd.CommandText + ";" + sql, args);
-            cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
+            //cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
             return db.ExecuteScalarHelper(cmd);
+        }
+
+        public override string GetInsertOutputClause(string primaryKeyName)
+        {
+            return " OUTPUT INSERTED." + primaryKeyName;
         }
 
         public override string GetExistsSql()
