@@ -123,7 +123,7 @@ namespace NPoco.Tests.NewMapper
         public void Test12()
         {
             var user = Database.Fetch<Name>().First();
-            Assert.AreEqual("Name1", user.TheName);
+            Assert.AreEqual("Name1", user._TheName);
         }
     }
 
@@ -131,7 +131,7 @@ namespace NPoco.Tests.NewMapper
     public class Name
     {
         [Column("Name")]
-        public virtual string TheName { get; set; }
+        public virtual string _TheName { get; set; }
     }
 
     public class PerfTests

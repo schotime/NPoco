@@ -107,8 +107,14 @@ namespace NPoco.RowMappers
 
         private static PocoMember FindMember(List<PocoMember> pocoMembers, GroupResult<PosName> groupedName)
         {
-            return pocoMembers.FirstOrDefault(x => x.Name.Equals(groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase)
-                                                   || (x.PocoColumn != null && string.Equals(x.PocoColumn.ColumnAlias, groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase)));
+            return pocoMembers.FirstOrDefault(x => IsEqual(groupedName, x.Name)
+                                                   || (x.PocoColumn != null && IsEqual(groupedName, x.PocoColumn.ColumnAlias)));
+        }
+
+        private static bool IsEqual(GroupResult<PosName> groupedName, string value)
+        {
+            return value.Equals(groupedName.Item, StringComparison.InvariantCultureIgnoreCase)
+                || value.Equals(groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase);
         }
 
         public static bool MapValue(int index, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn)

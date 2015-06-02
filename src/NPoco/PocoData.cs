@@ -150,7 +150,7 @@ namespace NPoco
                         newTableInfo = GetTableInfo(mi.GetMemberInfoType());
                     }
 
-                    var newPrefix = GetNewPrefix(capturedPrefix, ci.ReferenceMappingType != ReferenceMappingType.None ? "" : (ci.ComplexPrefix ?? mi.Name)).TrimStart('_');
+                    var newPrefix = GetNewPrefix(capturedPrefix, ci.ReferenceMappingType != ReferenceMappingType.None ? "" : (ci.ComplexPrefix ?? mi.Name));
 
                     foreach (var pocoMember in GetPocoMembers(mi.GetMemberInfoType(), newTableInfo, mapper, members, newPrefix))
                     {
@@ -198,7 +198,12 @@ namespace NPoco
 
         private static string GetNewPrefix(string prefix, string end)
         {
-            return string.Join("__", new[] {prefix, end}).TrimStart('_');
+            var list = new List<string>();
+            if (!string.IsNullOrWhiteSpace(prefix))
+                list.Add(prefix);
+            if (!string.IsNullOrWhiteSpace(end))
+                list.Add(end);
+            return string.Join("__", list);
         }
 
         public object CreateObject()
