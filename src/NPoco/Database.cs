@@ -905,6 +905,7 @@ namespace NPoco
                     var pd = PocoDataFactory.ForType(typeof(T));
                     //var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
                     var factory = new NewMappingFactory(pd, r);
+                    object pk;
                     while (true)
                     {
                         T poco;
@@ -918,6 +919,8 @@ namespace NPoco
                             OnException(x);
                             throw;
                         }
+
+                        if (GetPrimaryKeyValues())
 
                         yield return poco;
                     }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -82,8 +83,8 @@ namespace NPoco.RowMappers
                     yield return (reader, instance) =>
                     {
                         var newObject = pocoMember.Create();
-                        var shouldSetNestedObject = false;
                         
+                        var shouldSetNestedObject = false;
                         foreach (var subPlan in subPlans)
                         {
                             shouldSetNestedObject |= subPlan(reader, newObject);
@@ -91,6 +92,13 @@ namespace NPoco.RowMappers
 
                         if (shouldSetNestedObject)
                         {
+                            if (pocoMember.IsList)
+                            {
+                                var t = typeof (List<>).MakeGenericType(pocoMember.ListType);
+                                var list = Activator.CreateInstance(t);
+                                newObject = t.GetMethod("Add").Invoke(list, new[] { newObject });
+                            }
+
                             pocoMember.SetValue(instance, newObject);
                         }
                         return false;

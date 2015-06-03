@@ -25,6 +25,9 @@ namespace NPoco
         public ReferenceMappingType ReferenceMappingType { get; set; }
         public string ReferenceMemberName { get; set; }
 
+        public bool IsList { get; set; }
+        public Type ListType { get; set; }
+
         private FastCreate _creator;
         public object Create()
         {
