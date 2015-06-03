@@ -113,8 +113,8 @@ namespace NPoco.RowMappers
 
         private static bool IsEqual(GroupResult<PosName> groupedName, string value)
         {
-            return value.Equals(groupedName.Item, StringComparison.InvariantCultureIgnoreCase)
-                || value.Equals(groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase);
+            return string.Equals(value, groupedName.Item, StringComparison.InvariantCultureIgnoreCase)
+                || string.Equals(value, groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase);
         }
 
         public static bool MapValue(int index, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn)
