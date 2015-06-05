@@ -110,6 +110,23 @@ namespace NPoco.Tests.Common
                     Supervisor = new RecursionUser() {Id = 2}
                 };
                 Database.Insert(recursionUser);
+
+                var one = new One()
+                {
+                    Name = "Name" + (i + 1),
+                };
+                Database.Insert(one);
+
+                for (int j = 0; j < (i%3); j++)
+                {
+                    var many = new Many()
+                    {
+                        One = one,
+                        Currency = "Cur" + (i + j + 1),
+                        Value = (i + j + 1)
+                    };
+                    Database.Insert(many);
+                }
             }
             
             // Verify DB record counts

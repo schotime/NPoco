@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -18,6 +19,7 @@ namespace NPoco
         }
 
         public string Name { get { return MemberInfo.Name; } }
+        public Type MemberType { get { return MemberInfo.GetMemberInfoType(); } }
         public MemberInfo MemberInfo { get; set; }
         public PocoColumn PocoColumn { get; set; }
         public List<PocoMember> PocoMemberChildren { get; set; }
@@ -26,14 +28,25 @@ namespace NPoco
         public string ReferenceMemberName { get; set; }
 
         public bool IsList { get; set; }
-        public Type ListType { get; set; }
 
         private FastCreate _creator;
         public object Create()
         {
             if (_creator == null)
-                _creator = new FastCreate(MemberInfo.GetMemberInfoType());
+            {
+                _creator = new FastCreate(IsList
+                                              ? MemberType.GetGenericArguments().First()
+                                              : MemberType);
+            }
+
             return _creator.Create();
+        }
+
+        public IList CreateList()
+        {
+            var listType = typeof(List<>).MakeGenericType(MemberType.GetGenericArguments().First());
+            var list = Activator.CreateInstance(listType);
+            return (IList) list;
         }
 
         private MemberAccessor _memberAccessor;
@@ -106,7 +119,8 @@ namespace NPoco
         {
             foreach (var member in members)
             {
-                if (all || (member.ReferenceMappingType != ReferenceMappingType.OneToOne))
+                if (all || (member.ReferenceMappingType != ReferenceMappingType.OneToOne 
+                         && member.ReferenceMappingType != ReferenceMappingType.Many))
                 {
                     yield return member.PocoColumn;
                 }
@@ -134,7 +148,13 @@ namespace NPoco
                     continue;
 
                 var pocoMemberChildren = new List<PocoMember>();
-                
+
+                var memberInfoType = mi.GetMemberInfoType();
+                if (ci.ReferenceMappingType == ReferenceMappingType.Many)
+                {
+                    memberInfoType = memberInfoType.GetGenericArguments().First();
+                }
+
                 if (ci.ComplexMapping || ci.ReferenceMappingType != ReferenceMappingType.None)
                 {
                     var members = new List<MemberInfo>();
@@ -149,12 +169,12 @@ namespace NPoco
                     var newTableInfo = capturedTableInfo;
                     if (ci.ReferenceMappingType != ReferenceMappingType.None)
                     {
-                        newTableInfo = GetTableInfo(mi.GetMemberInfoType());
+                        newTableInfo = GetTableInfo(memberInfoType);
                     }
 
                     var newPrefix = GetNewPrefix(capturedPrefix, ci.ReferenceMappingType != ReferenceMappingType.None ? "" : (ci.ComplexPrefix ?? mi.Name));
 
-                    foreach (var pocoMember in GetPocoMembers(mi.GetMemberInfoType(), newTableInfo, mapper, members, newPrefix))
+                    foreach (var pocoMember in GetPocoMembers(memberInfoType, newTableInfo, mapper, members, newPrefix))
                     {
                         if (pocoMember.PocoColumn != null)
                         {
@@ -185,12 +205,38 @@ namespace NPoco
                 yield return new PocoMember()
                 {
                     MemberInfo = mi,
+                    IsList = IsList(mi),
                     PocoColumn = ci.ComplexMapping ? null : pc,
                     ReferenceMappingType = ci.ReferenceMappingType,
                     ReferenceMemberName = ci.ReferenceMemberName,
                     PocoMemberChildren = pocoMemberChildren,
                 };
             }
+        }
+
+        public object[] GetPrimaryKeyValues(object obj)
+        {
+            return PrimaryKeyValues(obj);
+        }
+
+        private Func<object, object[]> _primaryKeyValues;
+        private Func<object, object[]> PrimaryKeyValues
+        {
+            get
+            {
+                if (_primaryKeyValues == null)
+                {
+                    var multiplePrimaryKeysNames = TableInfo.PrimaryKey.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
+                    var members = multiplePrimaryKeysNames.Select(x => Members.FirstOrDefault(y => y.PocoColumn != null && string.Equals(x, y.PocoColumn.ColumnName, StringComparison.OrdinalIgnoreCase))).Where(x=>x != null);
+                    _primaryKeyValues = obj => members.Select(x => x.PocoColumn.GetValue(obj)).ToArray();
+                }
+                return _primaryKeyValues;
+            }
+        }
+
+        public static bool IsList(MemberInfo mi)
+        {
+            return mi.GetMemberInfoType().GetInterfaces().Any(x=>x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>));
         }
 
         protected virtual string GetColumnName(string prefix, string columnName)

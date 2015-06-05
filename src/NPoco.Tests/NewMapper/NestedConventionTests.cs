@@ -109,7 +109,7 @@ namespace NPoco.Tests.NewMapper
 
             for (int i = 0; i < data.Count; i++)
             {
-                Assert.AreEqual("Name" + (i+1), data[i].Name);
+                Assert.AreEqual("Name" + (i + 1), data[i].Name);
                 Assert.AreEqual("Name" + 1, data[i].CreatedBy.Name);
                 Assert.AreEqual("Name" + 2, data[i].CreatedBy.Supervisor.Name);
                 Assert.AreEqual("Name" + 1, data[i].CreatedBy.CreatedBy.Name);
@@ -124,6 +124,66 @@ namespace NPoco.Tests.NewMapper
         {
             var user = Database.Fetch<Name>().First();
             Assert.AreEqual("Name1", user._TheName);
+        }
+
+        [Test]
+        public void Test13()
+        {
+            var user = ((Database)Database).QueryImp<One>(null, x => x.Items, new Sql(@"
+select 'Name1' Name, null Items__Value, null Items__Currency /*poco_dual*/
+union all
+select 'Name1' Name, 12 Items__Value, 'USD' Items__Currency /*poco_dual*/
+union all
+select 'Name2' Name, 14 Items__Value, 'YEN' Items__Currency /*poco_dual*/
+union all
+select 'Name2' Name, 15 Items__Value, 'GBP' Items__Currency /*poco_dual*/
+union all
+select 'Name3' Name, 16 Items__Value, 'EUR' Items__Currency /*poco_dual*/
+union all 
+select 'Name4' Name, null Items__Value, null Items__Currency /*poco_dual*/
+union all 
+select 'Name5' Name, 17 Items__Value, 'CHN' Items__Currency /*poco_dual*/
+union all 
+select 'Name5' Name, null Items__Value, null Items__Currency /*poco_dual*/
+")).ToList();
+
+
+            Assert.AreEqual(5, user.Count);
+            
+            Assert.AreEqual("Name1", user[0].Name);
+            Assert.AreEqual(1, user[0].Items.Count);
+            Assert.AreEqual(12, user[0].Items[0].Value);
+            Assert.AreEqual("USD", user[0].Items[0].Currency);
+
+            Assert.AreEqual("Name2", user[1].Name);
+            Assert.AreEqual(2, user[1].Items.Count);
+            Assert.AreEqual(14, user[1].Items[0].Value);
+            Assert.AreEqual("YEN", user[1].Items[0].Currency);
+            Assert.AreEqual(15, user[1].Items[1].Value);
+            Assert.AreEqual("GBP", user[1].Items[1].Currency);
+            
+            Assert.AreEqual("Name3", user[2].Name);
+            Assert.AreEqual(1, user[2].Items.Count);
+            Assert.AreEqual(16, user[2].Items[0].Value);
+            Assert.AreEqual("EUR", user[2].Items[0].Currency);
+
+            Assert.AreEqual("Name4", user[3].Name);
+            Assert.AreEqual(null, user[3].Items);
+
+            Assert.AreEqual("Name5", user[4].Name);
+            Assert.AreEqual(1, user[4].Items.Count);
+            Assert.AreEqual(17, user[4].Items[0].Value);
+            Assert.AreEqual("CHN", user[4].Items[0].Currency);
+
+        }
+
+        [Test]
+        public void Test14()
+        {
+            var ones = Database.Query<One>()
+                .IncludeMany(x => x.Items)
+                .ToList();
+
         }
     }
 
@@ -171,6 +231,26 @@ namespace NPoco.Tests.NewMapper
             Assert.AreEqual("Supervisor", pocoData.Members[2].Name);
             Assert.AreEqual("CreatedBy", pocoData.Members[3].Name);
         }
+    }
+
+    [TableName("Ones"), PrimaryKey("Id")]
+    public class One
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+
+        [Reference(ReferenceMappingType.Many, Name =  "Id", ReferenceName = "One")]
+        public List<Many> Items { get; set; }
+    }
+
+    [TableName("Manys"), PrimaryKey("Id")]
+    public class Many
+    {
+        public int Id { get; set; }
+        [Reference(ReferenceMappingType.Foreign, Name = "OneId", ReferenceName = "Id")]
+        public One One { get; set; }
+        public int Value { get; set; }
+        public string Currency { get; set; }
     }
 
     public class RecursionUser

@@ -14,14 +14,17 @@
  */
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using NPoco.Expressions;
+using NPoco.FluentMappings;
 using NPoco.Linq;
 
 namespace NPoco
@@ -844,74 +847,26 @@ namespace NPoco
             return Query(default(T), Sql);
         }
 
-        //private IEnumerable<TRet> Read<TRet>(Type[] types, Delegate cb, IDataReader r)
-        //{
-        //    try
-        //    {
-        //        var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, r);
-        //        if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
-        //        var bNeedTerminator = false;
-        //        using (r)
-        //        {
-        //            while (true)
-        //            {
-        //                TRet poco;
-        //                try
-        //                {
-        //                    if (!r.Read()) break;
-        //                    poco = factory(r, cb);
-        //                }
-        //                catch (Exception x)
-        //                {
-        //                    OnException(x);
-        //                    throw;
-        //                }
-
-        //                if (poco != null)
-        //                {
-        //                    yield return poco;
-        //                }
-        //                else
-        //                {
-        //                    bNeedTerminator = true;
-        //                }
-        //            }
-        //            if (bNeedTerminator)
-        //            {
-        //                var poco = (TRet) cb.DynamicInvoke(new object[types.Length]);
-        //                if (poco != null)
-        //                {
-        //                    yield return poco;
-        //                }
-        //                else
-        //                {
-        //                    yield break;
-        //                }
-        //            }
-        //        }
-        //    }
-        //    finally
-        //    {
-        //        CloseSharedConnectionInternal();
-        //    }
-        //}
-
-        private IEnumerable<T> Read<T>(T instance, IDataReader r)
+        private IEnumerable<T> Read<T>(T instance, IDataReader r, Expression<Func<T, IEnumerable>> listExpression)
         {
             try
             {
                 using (r)
                 {
                     var pd = PocoDataFactory.ForType(typeof(T));
-                    //var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
                     var factory = new NewMappingFactory(pd, r);
-                    object pk;
+
+                    object prevPoco = null;
+                    var listFunc = listExpression != null ? listExpression.Compile() : null;
+                    var key = PocoColumn.GenerateKey(MemberChainHelper.GetMembers(listExpression));
+                    var pocoMember = pd.Members.FirstOrDefault(x => x.Name == key);
+                    
                     while (true)
                     {
                         T poco;
                         try
                         {
-                            if (!r.Read()) yield break;
+                            if (!r.Read()) break;
                             poco = (T)factory.Map(r, instance);
                         }
                         catch (Exception x)
@@ -920,9 +875,35 @@ namespace NPoco
                             throw;
                         }
 
-                        if (GetPrimaryKeyValues())
+                        if (prevPoco != null)
+                        {
+                            if (pocoMember != null
+                                && listFunc != null
+                                && pd.GetPrimaryKeyValues(poco).SequenceEqual(pd.GetPrimaryKeyValues(prevPoco)))
+                            {
+                                SetListValue(listFunc, pocoMember, prevPoco, poco);
+                                continue;
+                            }
 
-                        yield return poco;
+                            if (listFunc != null)
+                            {
+                                SetForeignList(listFunc((T) prevPoco), pocoMember, prevPoco);
+                            }
+
+                            yield return (T)prevPoco;
+                        }
+
+                        prevPoco = poco;
+                    }
+
+                    if (prevPoco != null)
+                    {
+                        if (listFunc != null)
+                        {
+                            SetForeignList(listFunc((T) prevPoco), pocoMember, prevPoco);
+                        }
+
+                        yield return (T)prevPoco;
                     }
                 }
             }
@@ -932,12 +913,54 @@ namespace NPoco
             }
         }
 
+        private static void SetListValue<T>(Func<T, IEnumerable> listFunc, PocoMember pocoMember, object prevPoco, T poco)
+        {
+            var prevList = listFunc((T)prevPoco) as IList;
+            var currentList = listFunc(poco);
+
+            if (prevList == null && currentList != null)
+            {
+                prevList = pocoMember.CreateList();
+                pocoMember.SetValue(prevPoco, prevList);
+            }
+
+            if (prevList != null && currentList != null)
+            {
+                foreach (var item in currentList)
+                {
+                    prevList.Add(item);
+                }
+            }
+        }
+
+        private static void SetForeignList(IEnumerable currentList, PocoMember pocoMember, object prevPoco)
+        {
+            if (currentList == null)
+                return;
+
+            var foreign = pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName &&
+                                                                            x.ReferenceMappingType == ReferenceMappingType.Foreign);
+
+            if (foreign == null)
+                return;
+
+            foreach (var item in currentList)
+            {
+                foreign.SetValue(item, prevPoco);
+            }
+        }
+
         public IQueryProviderWithIncludes<T> Query<T>()
         {
             return new QueryProvider<T>(this);
         }
 
         private IEnumerable<T> Query<T>(T instance, Sql Sql)
+        {
+            return QueryImp(instance, null, Sql);
+        }
+
+        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -950,7 +973,6 @@ namespace NPoco
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
                     IDataReader r;
-                    var pd = PocoDataFactory.ForType(typeof(T));
                     try
                     {
                         r = ExecuteReaderHelper(cmd);
@@ -961,27 +983,9 @@ namespace NPoco
                         throw;
                     }
 
-                    using (r)
+                    foreach (var item in Read(instance, r, listExpression))
                     {
-                        //var factory =  pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
-                        var factory = new NewMappingFactory(pd, r);
-                        while (true)
-                        {
-                            T poco;
-                            try
-                            {
-                                if (!r.Read()) yield break;
-                                //poco = factory(r, instance);
-                                poco = (T)factory.Map(r, instance);
-                            }
-                            catch (Exception x)
-                            {
-                                OnException(x);
-                                throw;
-                            }
-
-                            yield return poco;
-                        }
+                        yield return item;
                     }
                 }
             }
@@ -991,92 +995,9 @@ namespace NPoco
             }
         }
 
-        //// Multi Fetch (SQL builder)
-        //public List<TRet> Fetch<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query(cb, sql).ToList(); }
-
-        //// Multi Query (SQL builder)
-        //public IEnumerable<TRet> Query<T1, T2, TRet>(Func<T1, T2, TRet> cb, Sql sql) { return Query<TRet>(new[] { typeof(T1), typeof(T2) }, cb, sql); }
-   
-        //// Actual implementation of the multi-poco query
-        //public IEnumerable<TRet> Query<TRet>(Type[] types, Delegate cb, Sql sql)
-        //{
-        //    if (types.Length == 1)
-        //    {
-        //        foreach (var item in Query<TRet>(sql))
-        //        {
-        //            yield return item;
-        //        }
-
-        //        yield break;
-        //    }
-
-        //    try
-        //    {
-        //        OpenSharedConnectionInternal();
-        //        using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
-        //        {
-        //            IDataReader r;
-        //            try
-        //            {
-        //                r = ExecuteReaderHelper(cmd);
-        //            }
-        //            catch (Exception x)
-        //            {
-        //                OnException(x);
-        //                throw;
-        //            }
-        //            var factory = MultiPocoFactory.GetMultiPocoFactory<TRet>(this, types, r);
-        //            if (cb == null) cb = MultiPocoFactory.GetAutoMapper(types.ToArray());
-        //            var bNeedTerminator = false;
-        //            using (r)
-        //            {
-        //                while (true)
-        //                {
-        //                    TRet poco;
-        //                    try
-        //                    {
-        //                        if (!r.Read()) break;
-        //                        poco = factory(r, cb);
-        //                    }
-        //                    catch (Exception x)
-        //                    {
-        //                        OnException(x);
-        //                        throw;
-        //                    }
-
-        //                    if (poco != null)
-        //                    {
-        //                        yield return poco;
-        //                    }
-        //                    else
-        //                    {
-        //                        bNeedTerminator = true;
-        //                    }
-        //                }
-        //                if (bNeedTerminator)
-        //                {
-        //                    var poco = (TRet) cb.DynamicInvoke(new object[types.Length]);
-        //                    if (poco != null)
-        //                    {
-        //                        yield return poco;
-        //                    }
-        //                    else
-        //                    {
-        //                        yield break;
-        //                    }
-        //                }
-        //            }
-        //        }
-        //    }
-        //    finally
-        //    {
-        //        CloseSharedConnectionInternal();
-        //    }
-        //}
-
         public Page<T> Page<T>(Type type, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
         {
-            return PageImp<T, Page<T>>(type, cb, page, itemsPerPage, sql, args, (paged, thetypes, thesql) =>
+            return PageImp<T, Page<T>>(type, page, itemsPerPage, sql, args, (paged, thetypes, thesql) =>
             {
                 paged.Items =  Query<T>(thesql).ToList();
                 return paged;
@@ -1084,7 +1005,7 @@ namespace NPoco
         }
 
         // Actual implementation of the multi-poco paging
-        protected TRet PageImp<T, TRet>(Type type, Delegate cb, long page, long itemsPerPage, string sql, object[] args, Func<Page<T>, Type, Sql, TRet> executeQueryFunc)
+        protected TRet PageImp<T, TRet>(Type type, long page, long itemsPerPage, string sql, object[] args, Func<Page<T>, Type, Sql, TRet> executeQueryFunc)
         {
             string sqlCount, sqlPage;
 
@@ -1512,7 +1433,7 @@ namespace NPoco
             return string.Join(" AND ", primaryKeyValuePair.Select((x, i) => x.Value == null || x.Value == DBNull.Value ? string.Format("{0} IS NULL", _dbType.EscapeSqlIdentifier(x.Key)) : string.Format("{0} = @{1}", _dbType.EscapeSqlIdentifier(x.Key), tempIndex + i)).ToArray());
         }
 
-        private Dictionary<string, object> GetPrimaryKeyValues(string primaryKeyName, object primaryKeyValue)
+        private static Dictionary<string, object> GetPrimaryKeyValues(string primaryKeyName, object primaryKeyValue)
         {
             Dictionary<string, object> primaryKeyValues;
 

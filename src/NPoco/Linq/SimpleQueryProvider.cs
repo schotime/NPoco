@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using NPoco.Expressions;
 using NPoco.FluentMappings;
 
@@ -57,17 +59,19 @@ namespace NPoco.Linq
 
     public interface IQueryProviderWithIncludes<T> : IQueryProvider<T>
     {
+        IQueryProvider<T> IncludeMany(Expression<Func<T, IEnumerable>> expression);
         IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression) where T2 : class;
     }
 
     public class QueryProvider<T> : IQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>
     {
-        private readonly IDatabase _database;
+        private readonly Database _database;
         private SqlExpression<T> _sqlExpression;
         private Dictionary<string, JoinData> _joinSqlExpressions = new Dictionary<string, JoinData>();
         private readonly ComplexSqlBuilder<T> _buildComplexSql;
+        private Expression<Func<T, IEnumerable>> _listExpression = null;
 
-        public QueryProvider(IDatabase database, Expression<Func<T, bool>> whereExpression)
+        public QueryProvider(Database database, Expression<Func<T, bool>> whereExpression)
         {
             _database = database;
             _sqlExpression = database.DatabaseType.ExpressionVisitor<T>(database, true);
@@ -75,18 +79,28 @@ namespace NPoco.Linq
             _sqlExpression = _sqlExpression.Where(whereExpression);
         }
 
-        public QueryProvider(IDatabase database)
+        public QueryProvider(Database database)
             : this(database, null)
         {
         }
 
         SqlExpression<T> ISimpleQueryProviderExpression<T>.AtlasSqlExpression { get { return _sqlExpression; } }
 
+        public IQueryProvider<T> IncludeMany(Expression<Func<T, IEnumerable>> expression)
+        {
+            _listExpression = expression;
+            return QueryProviderWithIncludes(expression);
+        }
+
         public IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression) where T2 : class
         {
-            var memberInfos = MemberHelper<T>.GetMembers(expression);
-            var pocoData1 = _database.PocoDataFactory.ForType(typeof(T));
-            var members = pocoData1.Members;
+            return QueryProviderWithIncludes(expression);
+        }
+
+        private IQueryProviderWithIncludes<T> QueryProviderWithIncludes(Expression expression)
+        {
+            var memberInfos = MemberChainHelper.GetMembers(expression);
+            var members = _database.PocoDataFactory.ForType(typeof (T)).Members;
 
             foreach (var memberInfo in memberInfos)
             {
@@ -99,9 +113,9 @@ namespace NPoco.Linq
                 var pocoColumn2 = pocoMember2.PocoColumn;
 
                 var onSql = _database.DatabaseType.EscapeTableName(pocoColumn1.TableInfo.AutoAlias)
-                   + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn1.ColumnName)
-                   + " = " + _database.DatabaseType.EscapeTableName(pocoColumn2.TableInfo.AutoAlias)
-                   + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn2.ColumnName);
+                            + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn1.ColumnName)
+                            + " = " + _database.DatabaseType.EscapeTableName(pocoColumn2.TableInfo.AutoAlias)
+                            + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn2.ColumnName);
 
                 if (!_joinSqlExpressions.ContainsKey(onSql))
                 {
@@ -306,13 +320,13 @@ namespace NPoco.Linq
         public IEnumerable<T> ToEnumerable()
         {
             var sql = BuildSql();
-            return _database.Query<T>(sql);
+            return _database.QueryImp(default(T), _listExpression, sql);
         }
 
         public IEnumerable<dynamic> ToDynamicEnumerable()
         {
             var sql = BuildSql();
-            return _database.Query<dynamic>(sql);
+            return _database.QueryImp<dynamic>(null, null, sql);
         }
 
         private Sql BuildSql()

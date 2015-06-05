@@ -1,4 +1,5 @@
 ﻿#if NET45
+using System.Collections;
 using System.Linq.Expressions;
 using NPoco.Expressions;
 using System;
@@ -149,7 +150,7 @@ namespace NPoco
 
         public Task<Page<T>> PageAsync<T>(Type type, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
         {
-            return PageImp<T, Task<Page<T>>>(type, cb, page, itemsPerPage, sql, args,
+            return PageImp<T, Task<Page<T>>>(type, page, itemsPerPage, sql, args,
                 async (paged, thetypes, thesql) =>
                 {
                     paged.Items = (await QueryAsync<T>(thesql).ConfigureAwait(false)).ToList();
@@ -196,10 +197,10 @@ namespace NPoco
 
         public Task<IEnumerable<T>> QueryAsync<T>(Sql sql)
         {
-            return QueryAsync(default(T), sql);
+            return QueryAsync(default(T), null, sql);
         }
 
-        private async Task<IEnumerable<T>> QueryAsync<T>(T instance, Sql Sql)
+        internal async Task<IEnumerable<T>> QueryAsync<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -222,7 +223,7 @@ namespace NPoco
                         throw;
                     }
 
-                    return Read(instance, r);
+                    return Read(instance, r, listExpression);
                 }
             }
             catch
@@ -232,42 +233,6 @@ namespace NPoco
             }
         }
 
-        //public async Task<IEnumerable<TRet>> QueryAsync<TRet>(Type[] types, Delegate cb, Sql sql)
-        //{
-        //    if (types.Length == 1)
-        //    {
-        //        return await QueryAsync<TRet>(sql).ConfigureAwait(false);
-        //    }
-
-        //    try
-        //    {
-        //        OpenSharedConnectionInternal();
-        //        using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
-        //        {
-        //            IDataReader r;
-        //            try
-        //            {
-        //                r = await ExecuteReaderHelperAsync(cmd).ConfigureAwait(false);
-        //            }
-        //            catch (Exception x)
-        //            {
-        //                OnException(x);
-        //                throw;
-        //            }
-        //            return Read<TRet>(types, cb, r);
-        //        }
-        //    }
-        //    catch
-        //    {
-        //        CloseSharedConnectionInternal();
-        //        throw;
-        //    }
-        //}
-
-        //public async Task<List<T1>> FetchAsync<T1, T2>(Sql sql) { return (await QueryAsync<T1, T2>(sql).ConfigureAwait(false)).ToList(); }
-
-        //public Task<IEnumerable<T1>> QueryAsync<T1, T2>(Sql sql) { return QueryAsync<T1>(new[] { typeof(T1), typeof(T2) }, null, sql); }
- 
         public async Task<T> SingleByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);

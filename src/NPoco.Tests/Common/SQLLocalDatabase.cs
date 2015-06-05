@@ -156,6 +156,24 @@ namespace NPoco.Tests.Common
             ";
             cmd.ExecuteNonQuery();
 
+            cmd.CommandText = @"
+                CREATE TABLE Ones(
+                    Id int Identity(1,1) PRIMARY KEY NOT NULL, 
+                    Name nvarchar(50) NULL
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+                CREATE TABLE Manys(
+                    Id int Identity(1,1) PRIMARY KEY NOT NULL, 
+                    OneId int NOT NULL, 
+                    Value int NULL, 
+                    Currency nvarchar(50) NULL
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
             Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
             var dt = conn.GetSchema("Tables");
             foreach (DataRow row in dt.Rows)

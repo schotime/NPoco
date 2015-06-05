@@ -1012,7 +1012,7 @@ namespace NPoco.Expressions
                     || m.Expression.NodeType == ExpressionType.Convert
                     || m.Expression.NodeType == ExpressionType.MemberAccess))
             {
-                var propertyInfos = GetMembers(m).ToArray();
+                var propertyInfos = MemberChainHelper.GetMembers(m).ToArray();
                 var type = GetCorrectType(m);
    
                 var localModelDef = _database.PocoDataFactory.ForType(_type);
@@ -1068,44 +1068,6 @@ namespace NPoco.Expressions
             var lambda = Expression.Lambda<Func<object>>(memberExp);
             var getter = lambda.Compile();
             return getter();
-        }
-
-        private static MemberExpression GetMemberExpression(Expression method)
-        {
-            LambdaExpression lambda = method as LambdaExpression;
-            if (lambda == null)
-                return null;
-
-            MemberExpression memberExpr = null;
-
-            if (lambda.Body.NodeType == ExpressionType.Convert)
-            {
-                memberExpr = ((UnaryExpression)lambda.Body).Operand as MemberExpression;
-            }
-            else if (lambda.Body.NodeType == ExpressionType.MemberAccess)
-            {
-                memberExpr = lambda.Body as MemberExpression;
-            }
-
-            return memberExpr;
-        }
-
-        public static IEnumerable<MemberInfo> GetMembers(Expression expression)
-        {
-            var memberExpression = expression as MemberExpression ?? GetMemberExpression(expression);
-            if (memberExpression == null)
-            {
-                yield break;
-            }
-
-            var member = memberExpression.Member;
-
-            foreach (var memberInfo in GetMembers(memberExpression.Expression))
-            {
-                yield return memberInfo;
-            }
-
-            yield return member;
         }
 
         private static bool IsEnum(MemberInfo memberInfo)

@@ -27,7 +27,7 @@ namespace NPoco.FluentMappings
             //        throw new InvalidOperationException();
             //}
 
-            return SqlExpression<T>.GetMembers(selector).ToArray();
+            return MemberChainHelper.GetMembers(selector).ToArray();
         }
     }
 }

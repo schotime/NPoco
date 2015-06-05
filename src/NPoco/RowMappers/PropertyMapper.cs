@@ -92,11 +92,11 @@ namespace NPoco.RowMappers
 
                         if (shouldSetNestedObject)
                         {
-                            if (pocoMember.IsList)
+                            if (pocoMember.ReferenceMappingType == ReferenceMappingType.Many)
                             {
-                                var t = typeof (List<>).MakeGenericType(pocoMember.ListType);
-                                var list = Activator.CreateInstance(t);
-                                newObject = t.GetMethod("Add").Invoke(list, new[] { newObject });
+                                var list = pocoMember.CreateList();
+                                list.Add(newObject);
+                                newObject = list;
                             }
 
                             pocoMember.SetValue(instance, newObject);

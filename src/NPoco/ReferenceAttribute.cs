@@ -23,6 +23,7 @@ namespace NPoco
     {
         None,
         OneToOne,
-        Foreign
+        Foreign,
+        Many
     }
 }
