@@ -1,63 +1,10 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Text;
 
 namespace NPoco
 {
-    public class PocoMember
-    {
-        public PocoMember()
-        {
-            PocoMemberChildren = new List<PocoMember>();
-            ReferenceMappingType = ReferenceMappingType.None;
-        }
-
-        public string Name { get { return MemberInfo.Name; } }
-        public Type MemberType { get { return MemberInfo.GetMemberInfoType(); } }
-        public MemberInfo MemberInfo { get; set; }
-        public PocoColumn PocoColumn { get; set; }
-        public List<PocoMember> PocoMemberChildren { get; set; }
-
-        public ReferenceMappingType ReferenceMappingType { get; set; }
-        public string ReferenceMemberName { get; set; }
-
-        public bool IsList { get; set; }
-
-        private FastCreate _creator;
-        public object Create()
-        {
-            if (_creator == null)
-            {
-                _creator = new FastCreate(IsList
-                                              ? MemberType.GetGenericArguments().First()
-                                              : MemberType);
-            }
-
-            return _creator.Create();
-        }
-
-        public IList CreateList()
-        {
-            var listType = typeof(List<>).MakeGenericType(MemberType.GetGenericArguments().First());
-            var list = Activator.CreateInstance(listType);
-            return (IList) list;
-        }
-
-        private MemberAccessor _memberAccessor;
-        public void SetValue(object target, object value)
-        {
-            if (_memberAccessor == null)
-                _memberAccessor= new MemberAccessor(MemberInfo.DeclaringType, Name);
-            _memberAccessor.Set(target, value);
-        }
-    }
-
     public class PocoData
     {
         public PocoDataFactory PocoDataFactory { get; protected set; }
@@ -247,11 +194,11 @@ namespace NPoco
         private static string GetNewPrefix(string prefix, string end)
         {
             var list = new List<string>();
-            if (!string.IsNullOrWhiteSpace(prefix))
+            if (!string.IsNullOrEmpty(prefix))
                 list.Add(prefix);
-            if (!string.IsNullOrWhiteSpace(end))
+            if (!string.IsNullOrEmpty(end))
                 list.Add(end);
-            return string.Join("__", list);
+            return string.Join("__", list.ToArray());
         }
 
         public object CreateObject()

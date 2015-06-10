@@ -118,7 +118,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.MemberInfo = member;
 
                     var prefixProperty = isReferenceProperty ? Enumerable.Empty<string>() : capturedMembers.Select(x => scannerSettings.DbColumnsNamed(x));
-                    columnDefinition.DbColumnName = string.Join("__", prefixProperty.Concat(new[] { scannerSettings.DbColumnsNamed(member) }));
+                    columnDefinition.DbColumnName = string.Join("__", prefixProperty.Concat(new[] { scannerSettings.DbColumnsNamed(member) }).ToArray());
                     
                     columnDefinition.DbColumnAlias = scannerSettings.AliasNamed(member);
                     columnDefinition.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(member));

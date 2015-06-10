@@ -847,7 +847,7 @@ namespace NPoco
             return Query(default(T), Sql);
         }
 
-        private IEnumerable<T> Read<T>(T instance, IDataReader r, Expression<Func<T, IEnumerable>> listExpression)
+        private IEnumerable<T> Read<T>(T instance, IDataReader r)
         {
             try
             {
@@ -855,19 +855,60 @@ namespace NPoco
                 {
                     var pd = PocoDataFactory.ForType(typeof(T));
                     var factory = new NewMappingFactory(pd, r);
+                    while (true)
+                    {
+                        T poco;
+                        try
+                        {
+                            if (!r.Read()) yield break;
+                            poco = (T) factory.Map(r, instance);
+                        }
+                        catch (Exception x)
+                        {
+                            OnException(x);
+                            throw;
+                        }
 
+                        yield return poco;
+                    }
+                }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
+        private IEnumerable<T> ReadOneToMany<T>(T instance, IDataReader r, Expression<Func<T, IEnumerable>> listExpression, Func<T, object[]> idFunc)
+        {
+            Func<T, IEnumerable> listFunc = null;
+            PocoMember pocoMember = null;
+            PocoMember foreignMember = null;
+
+            try
+            {
+                using (r)
+                {
+                    var pocoData = PocoDataFactory.ForType(typeof (T));
+                    if (listExpression != null)
+                    {
+                        idFunc = idFunc ?? (x => pocoData.GetPrimaryKeyValues(x));
+                        listFunc = listExpression.Compile();
+                        var key = PocoColumn.GenerateKey(MemberChainHelper.GetMembers(listExpression));
+                        pocoMember = pocoData.Members.FirstOrDefault(x => x.Name == key);
+                        foreignMember = pocoMember != null ? pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName && x.ReferenceMappingType == ReferenceMappingType.Foreign) : null;
+                    }
+
+                    var factory = new NewMappingFactory(pocoData, r);
                     object prevPoco = null;
-                    var listFunc = listExpression != null ? listExpression.Compile() : null;
-                    var key = PocoColumn.GenerateKey(MemberChainHelper.GetMembers(listExpression));
-                    var pocoMember = pd.Members.FirstOrDefault(x => x.Name == key);
-                    
+
                     while (true)
                     {
                         T poco;
                         try
                         {
                             if (!r.Read()) break;
-                            poco = (T)factory.Map(r, instance);
+                            poco = (T) factory.Map(r, instance);
                         }
                         catch (Exception x)
                         {
@@ -877,19 +918,15 @@ namespace NPoco
 
                         if (prevPoco != null)
                         {
-                            if (pocoMember != null
-                                && listFunc != null
-                                && pd.GetPrimaryKeyValues(poco).SequenceEqual(pd.GetPrimaryKeyValues(prevPoco)))
+                            if (listFunc != null
+                                && pocoMember != null
+                                && idFunc(poco).SequenceEqual(idFunc((T) prevPoco)))
                             {
-                                SetListValue(listFunc, pocoMember, prevPoco, poco);
+                                OneToManyHelper.SetListValue(listFunc, pocoMember, prevPoco, poco);
                                 continue;
                             }
 
-                            if (listFunc != null)
-                            {
-                                SetForeignList(listFunc((T) prevPoco), pocoMember, prevPoco);
-                            }
-
+                            OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
                             yield return (T)prevPoco;
                         }
 
@@ -898,11 +935,7 @@ namespace NPoco
 
                     if (prevPoco != null)
                     {
-                        if (listFunc != null)
-                        {
-                            SetForeignList(listFunc((T) prevPoco), pocoMember, prevPoco);
-                        }
-
+                        OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
                         yield return (T)prevPoco;
                     }
                 }
@@ -913,43 +946,6 @@ namespace NPoco
             }
         }
 
-        private static void SetListValue<T>(Func<T, IEnumerable> listFunc, PocoMember pocoMember, object prevPoco, T poco)
-        {
-            var prevList = listFunc((T)prevPoco) as IList;
-            var currentList = listFunc(poco);
-
-            if (prevList == null && currentList != null)
-            {
-                prevList = pocoMember.CreateList();
-                pocoMember.SetValue(prevPoco, prevList);
-            }
-
-            if (prevList != null && currentList != null)
-            {
-                foreach (var item in currentList)
-                {
-                    prevList.Add(item);
-                }
-            }
-        }
-
-        private static void SetForeignList(IEnumerable currentList, PocoMember pocoMember, object prevPoco)
-        {
-            if (currentList == null)
-                return;
-
-            var foreign = pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName &&
-                                                                            x.ReferenceMappingType == ReferenceMappingType.Foreign);
-
-            if (foreign == null)
-                return;
-
-            foreach (var item in currentList)
-            {
-                foreign.SetValue(item, prevPoco);
-            }
-        }
-
         public IQueryProviderWithIncludes<T> Query<T>()
         {
             return new QueryProvider<T>(this);
@@ -957,10 +953,10 @@ namespace NPoco
 
         private IEnumerable<T> Query<T>(T instance, Sql Sql)
         {
-            return QueryImp(instance, null, Sql);
+            return QueryImp(instance, null, null, Sql);
         }
 
-        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Sql Sql)
+        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Func<T, object[]> idFunc, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -983,7 +979,8 @@ namespace NPoco
                         throw;
                     }
 
-                    foreach (var item in Read(instance, r, listExpression))
+                    var read = listExpression != null ? ReadOneToMany(instance, r, listExpression, idFunc) : Read(instance, r);
+                    foreach (var item in read)
                     {
                         yield return item;
                     }
@@ -993,6 +990,26 @@ namespace NPoco
             {
                 CloseSharedConnectionInternal();
             }
+        }
+
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Sql sql)
+        {
+            return QueryImp(default(T), many, null, sql).ToList();
+        }
+
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, string sql, params object[] args)
+        {
+            return FetchOneToMany(many, new Sql(sql, args));
+        }
+
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Func<T, object> idFunc, Sql sql)
+        {
+            return QueryImp(default(T), many, x => new[] { idFunc(x) }, sql).ToList();
+        }
+
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Func<T, object> idFunc, string sql, params object[] args)
+        {
+            return FetchOneToMany(many, idFunc, new Sql(sql, args));
         }
 
         public Page<T> Page<T>(Type type, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)

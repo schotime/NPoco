@@ -25,7 +25,7 @@ namespace NPoco
         public NewMappingFactory(PocoData pocoData, IDataReader dataReader)
         {
             _pocoData = pocoData;
-            _rowMapper = RowMappers.FirstOrDefault(x => x.ShouldMap(pocoData));
+            _rowMapper = RowMappers.First(x => x.ShouldMap(pocoData));
             _rowMapper.Init(dataReader, pocoData);
         }
 

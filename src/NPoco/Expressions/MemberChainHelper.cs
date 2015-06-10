@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NPoco.Expressions
 {
@@ -20,7 +18,7 @@ namespace NPoco.Expressions
 
             if (lambda.Body.NodeType == ExpressionType.Convert)
             {
-                memberExpr = ((UnaryExpression)lambda.Body).Operand as MemberExpression;
+                memberExpr = ((UnaryExpression) lambda.Body).Operand as MemberExpression;
             }
             else if (lambda.Body.NodeType == ExpressionType.MemberAccess)
             {

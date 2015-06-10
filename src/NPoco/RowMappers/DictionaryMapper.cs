@@ -14,9 +14,12 @@ namespace NPoco.RowMappers
 
         public override object Map(IDataReader dataReader, RowMapperContext context)
         {
-            var target = context.Type == typeof(object)
-                             ? (IDictionary<string, object>)new PocoExpando()
-                             : new Dictionary<string, object>();
+            IDictionary<string, object> target = new Dictionary<string, object>();
+
+#if !POCO_NO_DYNAMIC
+            if (context.Type == typeof(object))
+                target = new PocoExpando();
+#endif
 
             for (int i = 0; i < dataReader.FieldCount; i++)
             {

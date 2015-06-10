@@ -197,10 +197,10 @@ namespace NPoco
 
         public Task<IEnumerable<T>> QueryAsync<T>(Sql sql)
         {
-            return QueryAsync(default(T), null, sql);
+            return QueryAsync(default(T), null, null, sql);
         }
 
-        internal async Task<IEnumerable<T>> QueryAsync<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Sql Sql)
+        internal async Task<IEnumerable<T>> QueryAsync<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Func<T, object[]> idFunc, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -223,7 +223,7 @@ namespace NPoco
                         throw;
                     }
 
-                    return Read(instance, r, listExpression);
+                    return listExpression != null ? ReadOneToMany(instance, r, listExpression, idFunc) : Read(instance, r);
                 }
             }
             catch

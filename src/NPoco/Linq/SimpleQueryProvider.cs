@@ -3,9 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using NPoco.Expressions;
-using NPoco.FluentMappings;
 
 namespace NPoco.Linq
 {
@@ -24,9 +22,11 @@ namespace NPoco.Linq
         bool Any();
         bool Any(Expression<Func<T, bool>> whereExpression);
         List<T> ToList();
-        List<dynamic> ToDynamicList();
         IEnumerable<T> ToEnumerable();
+#if !POCO_NO_DYNAMIC
+        List<dynamic> ToDynamicList();
         IEnumerable<dynamic> ToDynamicEnumerable();
+#endif
         Page<T> ToPage(int page, int pageSize);
         List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
@@ -293,18 +293,18 @@ namespace NPoco.Linq
         public List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
-            return _database.Query<T>(sql).Select(projectionExpression.Compile()).ToList();
+            return ExecuteQuery(sql).Select(projectionExpression.Compile()).ToList();
         }
 
         public List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, true);
-            return _database.Query<T>(sql).Select(projectionExpression.Compile()).ToList();
+            return ExecuteQuery(sql).Select(projectionExpression.Compile()).ToList();
         }
 
         public List<T> Distinct()
         {
-            return _database.Query<T>(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params).ToList();
+            return ExecuteQuery(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params)).ToList();
         }
 
         public List<T> ToList()
@@ -312,23 +312,30 @@ namespace NPoco.Linq
             return ToEnumerable().ToList();
         }
 
+        public IEnumerable<T> ToEnumerable()
+        {
+            var sql = BuildSql();
+            return ExecuteQuery(sql);
+        }
+
+#if !POCO_NO_DYNAMIC
         public List<dynamic> ToDynamicList()
         {
             return ToDynamicEnumerable().ToList();
         }
-
-        public IEnumerable<T> ToEnumerable()
-        {
-            var sql = BuildSql();
-            return _database.QueryImp(default(T), _listExpression, sql);
-        }
-
+        
         public IEnumerable<dynamic> ToDynamicEnumerable()
         {
             var sql = BuildSql();
-            return _database.QueryImp<dynamic>(null, null, sql);
+            return _database.QueryImp<dynamic>(null, null, null, sql);
         }
-
+#endif
+   
+        private IEnumerable<T> ExecuteQuery(Sql sql)
+        {
+            return _database.QueryImp(default(T), _listExpression, null, sql);
+        }
+        
         private Sql BuildSql()
         {
             Sql sql;

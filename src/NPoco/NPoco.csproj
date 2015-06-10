@@ -75,6 +75,7 @@
     <Compile Include="ColumnAttribute.cs" />
     <Compile Include="ColumnInfo.cs" />
     <Compile Include="ColumnTypeAttribute.cs" />
+    <Compile Include="ComplexMappingAttribute.cs" />
     <Compile Include="ComputedColumnAttribute.cs" />
     <Compile Include="Database.cs" />
     <Compile Include="DatabaseFactory.cs" />
@@ -139,6 +140,7 @@
     <Compile Include="MappingFactory.cs" />
     <Compile Include="MemberAccessor.cs" />
     <Compile Include="NewMappingFactory.cs" />
+    <Compile Include="OneToManyHelper.cs" />
     <Compile Include="Page.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
     <Compile Include="FluentMappings\FluentMappingsPocoData.cs" />
@@ -148,6 +150,7 @@
     <Compile Include="PocoData.cs" />
     <Compile Include="PocoDataFactory.cs" />
     <Compile Include="PocoExpando.cs" />
+    <Compile Include="PocoMember.cs" />
     <Compile Include="ReferenceAttribute.cs" />
     <Compile Include="ReflectionUtils.cs" />
     <Compile Include="RelationExtensions.cs" />

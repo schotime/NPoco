@@ -15,7 +15,7 @@ namespace NPoco
 
         public static string GenerateKey(IEnumerable<MemberInfo> memberInfoChain)
         {
-            return string.Join("__", memberInfoChain.Select(x => x.Name));
+            return string.Join("__", memberInfoChain.Select(x => x.Name).ToArray());
         }
 
         public TableInfo TableInfo;
