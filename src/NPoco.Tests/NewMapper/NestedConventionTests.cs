@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using NPoco.Expressions;
-using NPoco.RowMappers;
 using NPoco.Tests.Common;
+using NPoco.Tests.NewMapper.Models;
 using NUnit.Framework;
 
 namespace NPoco.Tests.NewMapper
@@ -122,7 +122,7 @@ namespace NPoco.Tests.NewMapper
         [Test]
         public void Test12()
         {
-            var user = Database.Fetch<Name>().First();
+            var user = Database.Fetch<UsersNameProjection>().First();
             Assert.AreEqual("Name1", user._TheName);
         }
 
@@ -179,11 +179,20 @@ select 5 Id,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual*/
             Assert.AreEqual(1, user[4].Items.Count);
             Assert.AreEqual(17, user[4].Items[0].Value);
             Assert.AreEqual("CHN", user[4].Items[0].Currency);
-
         }
 
         [Test]
         public void Test14()
+        {
+            var data = Database.Fetch<UserWithAddress>().First();
+            Assert.AreEqual("Name1", data.Name);
+            Assert.AreEqual("Street1", data.Address.StreetName);
+            Assert.AreEqual(1, data.Address.StreetNo);
+            Assert.AreEqual(new DateTime(1971, 01, 01), data.Address.MovedInOn);
+        }
+
+        [Test]
+        public void Test144()
         {
             var sw = Stopwatch.StartNew();
 
@@ -194,140 +203,5 @@ select 5 Id,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual*/
             sw.Stop();
             Console.WriteLine(sw.ElapsedMilliseconds);
         }
-    }
-
-    [TableName("Users")]
-    public class Name
-    {
-        [Column("Name")]
-        public virtual string _TheName { get; set; }
-    }
-
-    public class PerfTests
-    {
-        [Test]
-        public void Test11()
-        {
-            var fakeReader = new FakeReader();
-
-            var sw = Stopwatch.StartNew();
-
-            for (int j = 0; j < 1000; j++)
-            {
-                var newPropertyMapper = new PropertyMapper();
-                var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(NestedConvention));
-                newPropertyMapper.Init(fakeReader, pocoData);
-
-                for (int i = 0; i < 1000; i++)
-                {
-                    newPropertyMapper.Map(fakeReader, new RowMapperContext() { PocoData = pocoData });
-                }
-            }
-
-            sw.Stop();
-
-            Console.WriteLine(sw.ElapsedMilliseconds);
-        }
-
-        [Test]
-        public void Test1()
-        {
-            var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(RecursionUser));
-
-            Assert.AreEqual(4, pocoData.Members.Count);
-            Assert.AreEqual("Id", pocoData.Members[0].Name);
-            Assert.AreEqual("Name", pocoData.Members[1].Name);
-            Assert.AreEqual("Supervisor", pocoData.Members[2].Name);
-            Assert.AreEqual("CreatedBy", pocoData.Members[3].Name);
-        }
-    }
-
-    [TableName("Ones"), PrimaryKey("Id")]
-    public class One
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-
-        [Reference(ReferenceMappingType.Many, Name =  "Id", ReferenceName = "One")]
-        public List<Many> Items { get; set; }
-    }
-
-    [TableName("Manys"), PrimaryKey("Id")]
-    public class Many
-    {
-        public int Id { get; set; }
-        [Reference(ReferenceMappingType.Foreign, Name = "OneId", ReferenceName = "Id")]
-        public One One { get; set; }
-        public int Value { get; set; }
-        public string Currency { get; set; }
-    }
-
-    public class RecursionUser
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        [Reference(ReferenceName = "Id")]
-        public RecursionUser Supervisor { get; set; }
-        [Reference(ReferenceName = "Id")]
-        public RecursionUser CreatedBy { get; set; }
-    }
-
-    public class More : BaseDBFuentTest
-    {
-        [Test]
-        public void Test1()
-        {
-            var result = Database
-                .Query<User>()
-                .Include(x => x.House)
-                .Include(x => x.ExtraUserInfo)
-                .ToEnumerable()
-                .ToList();
-
-            for (int i = 0; i < result.Count; i++)
-            {
-                AssertUserValues(InMemoryUsers[i], result[i]);
-                AssertExtraUserInfo(InMemoryExtraUserInfos[i], result[i].ExtraUserInfo);
-                AssertUserHouseValues(InMemoryUsers[i], result[i]);
-            }
-        }
-
-        [Test]
-        public void Test2()
-        {
-            var result = Database
-                .Query<User>()
-                .Include(x => x.ExtraUserInfo)
-                .ToDynamicList();
-
-            Assert.AreEqual(1, result[0].extrauserinfo__extrauserinfoid);
-        }
-    }
-
-    [PrimaryKey("")]
-    public class NestedConvention
-    {
-        public string Name { get; set; }
-        [ResultColumn]
-        public Money Money { get; set; }
-
-        public int MoneyId { get; set; }
-    }
-
-    [PrimaryKey("MoneyId")]
-    public class Money
-    {
-        public int MoneyId { get; set; }
-
-        public Money2 Money2 { get; set; }
-
-        public decimal Value { get; set; }
-        public string Currency { get; set; }
-    }
-
-    public class Money2
-    {
-        public decimal Value { get; set; }
-        public string Currency { get; set; }
     }
 }

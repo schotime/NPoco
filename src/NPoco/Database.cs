@@ -24,6 +24,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using NPoco.Expressions;
+using NPoco.FastJSON;
 using NPoco.FluentMappings;
 using NPoco.Linq;
 
@@ -1803,9 +1804,21 @@ namespace NPoco
 
         internal object ProcessMapper(PocoColumn pc, object value)
         {
-            if (Mapper == null) return value;
+            if (Mapper == null)
+            {
+                if (pc.ComplexType)
+                    return new JSONSerializer(JsonParameters).ConvertToJSON(value);
+                return value;
+            }
+
             var converter = Mapper.GetToDbConverter(pc.ColumnType, pc.MemberInfo);
+
+            if (converter == null && pc.ComplexType)
+                converter = (x => new JSONSerializer(JsonParameters).ConvertToJSON(x));
+
             return converter != null ? converter(value) : value;
         }
+
+        public static JSONParameters JsonParameters = new JSONParameters() { UseUTCDateTime = false, UseExtensions = false };
     }
 }

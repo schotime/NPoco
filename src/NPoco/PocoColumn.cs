@@ -43,6 +43,7 @@ namespace NPoco
         public string ColumnAlias { get; set; }
 
         public ReferenceMappingType ReferenceMappingType { get; set; }
+        public bool ComplexType { get; set; }
 
         public virtual void SetValue(object target, object val)
         {

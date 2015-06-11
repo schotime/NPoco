@@ -128,6 +128,8 @@ namespace NPoco.FluentMappings
                     columnDefinition.VersionColumn = scannerSettings.VersionPropertiesWhere(member);
                     columnDefinition.VersionColumnType = scannerSettings.VersionColumnTypeAs(member);
                     columnDefinition.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(member);
+                    columnDefinition.ComplexType = member.GetMemberInfoType().IsAClass() ||
+                                                   member.GetMemberInfoType().IsArray;
                     yield return columnDefinition;
                 }
             }

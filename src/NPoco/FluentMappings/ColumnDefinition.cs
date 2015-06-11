@@ -20,5 +20,6 @@ namespace NPoco.FluentMappings
         public bool? IsReferenceMember { get; set; }
         public MemberInfo ReferenceMember { get; set; }
         public ReferenceMappingType? ReferenceMappingType { get; set; }
+        public bool ComplexType { get; set; }
     }
 }

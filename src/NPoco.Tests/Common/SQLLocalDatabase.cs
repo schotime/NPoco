@@ -99,8 +99,8 @@ namespace NPoco.Tests.Common
                     Version rowversion,
                     VersionInt int default(0) NOT NULL,
                     YorN char NULL,
-                    Address__Street varchar(50) NULL,
-                    Address__City varchar(50) NULL
+                    Address__Street nvarchar(50) NULL,
+                    Address__City nvarchar(50) NULL
                 );
             ";
             cmd.ExecuteNonQuery();
@@ -170,6 +170,15 @@ namespace NPoco.Tests.Common
                     OneId int NOT NULL, 
                     Value int NULL, 
                     Currency nvarchar(50) NULL
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+                CREATE TABLE UserWithAddress(
+                    Id int Identity(1,1) PRIMARY KEY NOT NULL, 
+                    Name nvarchar(100) NULL,
+                    Address nvarchar(max) NULL
                 );
             ";
             cmd.ExecuteNonQuery();

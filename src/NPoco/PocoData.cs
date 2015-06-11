@@ -145,6 +145,7 @@ namespace NPoco
                 pc.ColumnAlias = ci.ColumnAlias;
                 pc.VersionColumn = ci.VersionColumn;
                 pc.VersionColumnType = ci.VersionColumnType;
+                pc.ComplexType = ci.ComplexType;
 
                 if (mapper != null && !mapper.MapMemberToColumn(mi, ref pc.ColumnName, ref pc.ResultColumn))
                     continue;

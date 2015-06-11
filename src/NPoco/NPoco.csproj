@@ -94,6 +94,14 @@
     <Compile Include="Expressions\FirebirdSqlExpression.cs" />
     <Compile Include="Expressions\MemberChainHelper.cs" />
     <Compile Include="FastCreate.cs" />
+    <Compile Include="FastJSON\dynamic.cs" />
+    <Compile Include="FastJSON\Formatter.cs" />
+    <Compile Include="FastJSON\Getters.cs" />
+    <Compile Include="FastJSON\JSON.cs" />
+    <Compile Include="FastJSON\JsonParser.cs" />
+    <Compile Include="FastJSON\JsonSerializer.cs" />
+    <Compile Include="FastJSON\Reflection.cs" />
+    <Compile Include="FastJSON\SafeDictionary.cs" />
     <Compile Include="HashCodeCombiner.cs" />
     <Compile Include="InsertStatements.cs" />
     <Compile Include="IOnLoaded.cs" />

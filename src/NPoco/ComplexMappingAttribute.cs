@@ -6,6 +6,11 @@ namespace NPoco
     {
         public string CustomPrefix { get; set; }
 
+        public ComplexMappingAttribute()
+        {
+            
+        }
+
         public ComplexMappingAttribute(string customPrefix)
         {
             CustomPrefix = customPrefix;

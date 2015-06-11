@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Data;
 using NPoco.DatabaseTypes;
 using NPoco.Tests.NewMapper;
+using NPoco.Tests.NewMapper.Models;
 using NUnit.Framework;
 
 namespace NPoco.Tests.Common
@@ -127,6 +128,19 @@ namespace NPoco.Tests.Common
                     };
                     Database.Insert(many);
                 }
+
+                var userWithAddress = new UserWithAddress()
+                {
+                    Name = "Name" + (i + 1),
+                    Address = new UserWithAddress.MyAddress()
+                    {
+                        StreetNo = i + 1,
+                        StreetName = "Street" + (i + 1),
+                        MovedInOn = new DateTime(1970, 1, 1).AddYears(i + 1)
+                    }
+                };
+
+                Database.Insert(userWithAddress);
             }
             
             // Verify DB record counts

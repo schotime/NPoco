@@ -19,6 +19,7 @@ namespace NPoco
         public Type ColumnType { get; set; }
         public bool ComplexMapping { get; set; }
         public string ComplexPrefix { get; set; }
+        public bool ComplexType { get; set; }
         public ReferenceMappingType ReferenceMappingType { get; set; }
         public string ReferenceMemberName { get; set; }
 
@@ -61,10 +62,9 @@ namespace NPoco
                 return ci;
             }
 
-            if (mi.GetMemberInfoType().IsAClass())
+            if (mi.GetMemberInfoType().IsAClass() || mi.GetMemberInfoType().IsArray)
             {
-                ci.ComplexMapping = true;
-                return ci;
+                ci.ComplexType = true;
             }
 
             // Read attribute
