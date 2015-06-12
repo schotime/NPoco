@@ -166,7 +166,7 @@ namespace NPoco
         /// </summary>
         public SqlBuilder Where(string sql, params object[] parameters)
         {
-            AddClause("where", sql, parameters, " AND ", " ( ", " )\n");
+            AddClause("where", "( " + sql + " )", parameters, " AND ", "", "\n");
             return this;
         }
 
@@ -175,7 +175,7 @@ namespace NPoco
         /// </summary>
         public SqlBuilder WhereNamed(string name, string sql, params object[] parameters)
         {
-            AddClause("where(" + name + ")", sql, parameters, " AND ", " ( ", " )\n");
+            AddClause("where(" + name + ")", "( " + sql + " )", parameters, " AND ", "", "\n");
             return this;
         }
 
