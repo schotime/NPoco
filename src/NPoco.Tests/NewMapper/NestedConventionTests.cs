@@ -130,33 +130,33 @@ namespace NPoco.Tests.NewMapper
         public void Test13()
         {
             var user = Database.FetchOneToMany<One>(x => x.Items, new Sql(@"
-select 1 Id, 'Name1' Name, null Items__Value, null Items__Currency /*poco_dual*/
+select 1 OneId, 'Name1' Name, null Items__Value, null Items__Currency /*poco_dual*/
 union all
-select 1 Id,'Name1' Name, 12 Items__Value, 'USD' Items__Currency /*poco_dual*/
+select 1 OneId,'Name1' Name, 12 Items__Value, 'USD' Items__Currency /*poco_dual*/
 union all
-select 2 Id,'Name2' Name, 14 Items__Value, 'YEN' Items__Currency /*poco_dual*/
+select 2 OneId,'Name2' Name, 14 Items__Value, 'YEN' Items__Currency /*poco_dual*/
 union all
-select 2 Id,'Name2' Name, 15 Items__Value, 'GBP' Items__Currency /*poco_dual*/
+select 2 OneId,'Name2' Name, 15 Items__Value, 'GBP' Items__Currency /*poco_dual*/
 union all
-select 3 Id,'Name3' Name, 16 Items__Value, 'EUR' Items__Currency /*poco_dual*/
+select 3 OneId,'Name3' Name, 16 Items__Value, 'EUR' Items__Currency /*poco_dual*/
 union all 
-select 4 Id,'Name4' Name, null Items__Value, null Items__Currency /*poco_dual*/
+select 4 OneId,'Name4' Name, null Items__Value, null Items__Currency /*poco_dual*/
 union all 
-select 5 Id,'Name5' Name, 17 Items__Value, 'CHN' Items__Currency /*poco_dual*/
+select 5 OneId,'Name5' Name, 17 Items__Value, 'CHN' Items__Currency /*poco_dual*/
 union all 
-select 5 Id,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual*/
+select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual*/
 ")).ToList();
 
 
             Assert.AreEqual(5, user.Count);
             
-            Assert.AreEqual(1, user[0].Id);
+            Assert.AreEqual(1, user[0].OneId);
             Assert.AreEqual("Name1", user[0].Name);
             Assert.AreEqual(1, user[0].Items.Count);
             Assert.AreEqual(12, user[0].Items[0].Value);
             Assert.AreEqual("USD", user[0].Items[0].Currency);
 
-            Assert.AreEqual(2, user[1].Id);
+            Assert.AreEqual(2, user[1].OneId);
             Assert.AreEqual("Name2", user[1].Name);
             Assert.AreEqual(2, user[1].Items.Count);
             Assert.AreEqual(14, user[1].Items[0].Value);
@@ -164,17 +164,17 @@ select 5 Id,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual*/
             Assert.AreEqual(15, user[1].Items[1].Value);
             Assert.AreEqual("GBP", user[1].Items[1].Currency);
 
-            Assert.AreEqual(3, user[2].Id);
+            Assert.AreEqual(3, user[2].OneId);
             Assert.AreEqual("Name3", user[2].Name);
             Assert.AreEqual(1, user[2].Items.Count);
             Assert.AreEqual(16, user[2].Items[0].Value);
             Assert.AreEqual("EUR", user[2].Items[0].Currency);
 
-            Assert.AreEqual(4, user[3].Id);
+            Assert.AreEqual(4, user[3].OneId);
             Assert.AreEqual("Name4", user[3].Name);
             Assert.AreEqual(null, user[3].Items);
 
-            Assert.AreEqual(5, user[4].Id);
+            Assert.AreEqual(5, user[4].OneId);
             Assert.AreEqual("Name5", user[4].Name);
             Assert.AreEqual(1, user[4].Items.Count);
             Assert.AreEqual(17, user[4].Items[0].Value);
@@ -192,16 +192,22 @@ select 5 Id,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual*/
         }
 
         [Test]
-        public void Test144()
+        public void Test15()
         {
-            var sw = Stopwatch.StartNew();
-
             var ones = Database.Query<One>()
                 .IncludeMany(x => x.Items)
+                .OrderBy(x => x.OneId)
                 .ToList();
 
-            sw.Stop();
-            Console.WriteLine(sw.ElapsedMilliseconds);
+            Assert.AreEqual(15, ones.Count);
+
+            for (int i = 0; i < ones.Count; i++)
+            {
+                if (i % 3 == 0)
+                    Assert.AreEqual(null, ones[i].Items);
+                else 
+                    Assert.AreEqual(i%3, ones[i].Items.Count);
+            }
         }
     }
 }

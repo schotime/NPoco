@@ -158,7 +158,7 @@ namespace NPoco.Tests.Common
 
             cmd.CommandText = @"
                 CREATE TABLE Ones(
-                    Id int Identity(1,1) PRIMARY KEY NOT NULL, 
+                    OneId int Identity(1,1) PRIMARY KEY NOT NULL, 
                     Name nvarchar(50) NULL
                 );
             ";
@@ -166,7 +166,7 @@ namespace NPoco.Tests.Common
 
             cmd.CommandText = @"
                 CREATE TABLE Manys(
-                    Id int Identity(1,1) PRIMARY KEY NOT NULL, 
+                    ManyId int Identity(1,1) PRIMARY KEY NOT NULL, 
                     OneId int NOT NULL, 
                     Value int NULL, 
                     Currency nvarchar(50) NULL

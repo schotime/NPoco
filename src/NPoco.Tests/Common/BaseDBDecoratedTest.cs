@@ -122,7 +122,7 @@ namespace NPoco.Tests.Common
                 {
                     var many = new Many()
                     {
-                        One = one,
+                        OneId = one.OneId,
                         Currency = "Cur" + (i + j + 1),
                         Value = (i + j + 1)
                     };
