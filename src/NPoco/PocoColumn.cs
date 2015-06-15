@@ -12,7 +12,7 @@ namespace NPoco
             ForceToUtc = true;
             MemberInfoChain = new List<MemberInfo>();
         }
-
+        
         public static string GenerateKey(IEnumerable<MemberInfo> memberInfoChain)
         {
             return string.Join("__", memberInfoChain.Select(x => x.Name).ToArray());
@@ -98,6 +98,26 @@ namespace NPoco
             {
                 _memberAccessor = _memberAccessorChain.Last();
             }
+        }
+
+        public PocoColumn Clone()
+        {
+            return new PocoColumn()
+            {
+                TableInfo = TableInfo.Clone(),
+                ForceToUtc = ForceToUtc,
+                ComplexType = ComplexType,
+                MemberInfo = MemberInfo,
+                MemberInfoChain = MemberInfoChain,
+                ColumnAlias = ColumnAlias,
+                VersionColumn = VersionColumn,
+                VersionColumnType = VersionColumnType,
+                ColumnName = ColumnName,
+                ColumnType = ColumnType,
+                ComputedColumn = ComputedColumn,
+                ReferenceMappingType = ReferenceMappingType,
+                ResultColumn = ResultColumn,
+            };
         }
     }
 }

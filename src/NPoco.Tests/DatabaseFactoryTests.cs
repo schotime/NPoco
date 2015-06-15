@@ -57,7 +57,7 @@ namespace NPoco.Tests
         public void FluentConfigShouldBePlacedOnDatabaseWhenInsertedIntoFactoryConfig()
         {
             var db = new Database(new SqlConnection());
-            var pocoDataFactory = new PocoDataFactory((y,f) => new PocoData(y, new Mapper(), f));
+            var pocoDataFactory = new PocoDataFactory((y,f) => new PocoDataBuilder(y, new Mapper(), f).Init());
             var fluentConfig = new FluentConfig(x=>pocoDataFactory);
 
             var factory = DatabaseFactory.Config(x =>

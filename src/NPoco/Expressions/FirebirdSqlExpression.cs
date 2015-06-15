@@ -2,11 +2,11 @@ namespace NPoco.Expressions
 {
     public class FirebirdSqlExpression<T> : SqlExpression<T>
     {
-        public FirebirdSqlExpression(IDatabase database, bool prefixTableName) : base(database, prefixTableName)
+        public FirebirdSqlExpression(IDatabase database, PocoData pocoData, bool prefixTableName) : base(database, pocoData, prefixTableName)
         {
         }
 
-        public FirebirdSqlExpression(IDatabase database) : base(database, false)
+        public FirebirdSqlExpression(IDatabase database, PocoData pocoData) : base(database, pocoData, false)
         {
         }
 

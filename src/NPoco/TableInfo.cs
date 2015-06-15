@@ -11,6 +11,18 @@ namespace NPoco
         public string SequenceName { get; set; }
         public string AutoAlias { get; set; }
 
+        public TableInfo Clone()
+        {
+            return new TableInfo()
+            {
+                AutoAlias = AutoAlias,
+                AutoIncrement = AutoIncrement,
+                TableName = TableName,
+                PrimaryKey = PrimaryKey,
+                SequenceName = SequenceName
+            };
+        }
+
         public static TableInfo FromPoco(Type t)
         {
             var tableInfo = new TableInfo();

@@ -151,7 +151,7 @@
     <Compile Include="OneToManyHelper.cs" />
     <Compile Include="Page.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
-    <Compile Include="FluentMappings\FluentMappingsPocoData.cs" />
+    <Compile Include="FluentMappings\FluentMappingsPocoDataBuilder.cs" />
     <Compile Include="PagingHelper.cs" />
     <Compile Include="ParameterHelper.cs" />
     <Compile Include="PocoColumn.cs" />

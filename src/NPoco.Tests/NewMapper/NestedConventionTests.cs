@@ -220,5 +220,29 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
                     Assert.AreEqual(i%3, ones[i].Items.Count);
             }
         }
+
+        [Test]
+        public void Test16()
+        {
+            var users = Database.Query<RecursionUser>()
+                .UsingAlias("TEST")
+                .Include(x => x.CreatedBy, "CREATEDBY")
+                .Where(x => x.Id.In(new[] {2, 3}))
+                .Where("CREATEDBY.Id in (@list)", new { list = new[] { 1, 3 } })
+                .ToList();
+
+            var users2 = Database.Query<RecursionUser>()
+                .UsingAlias("TEST1")
+                .Include(x => x.CreatedBy)
+                .Where(x => x.Id.In(new[] { 2, 3 }))
+                .Where("RU4.Id in (@list)", new { list = new[] { 1, 3 } })
+                .ToList();
+
+            var poco = Database.PocoDataFactory.ForType(typeof (RecursionUser));
+
+
+            Assert.AreEqual(2, users.Count);
+            
+        }
     }
 }

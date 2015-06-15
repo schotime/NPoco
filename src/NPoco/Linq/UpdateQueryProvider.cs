@@ -28,7 +28,7 @@ namespace NPoco.Linq
         public UpdateQueryProvider(IDatabase database)
         {
             _database = database;
-            _sqlExpression = database.DatabaseType.ExpressionVisitor<T>(database, false);
+            _sqlExpression = database.DatabaseType.ExpressionVisitor<T>(database, database.PocoDataFactory.ForType(typeof(T)), false);
         }
 
         public IUpdateQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression)

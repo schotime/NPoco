@@ -48,6 +48,8 @@ namespace NPoco.Linq
     public interface IQueryProvider<T> : IQueryResultProvider<T>
     {
         IQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
+        IQueryProvider<T> Where(string sql, params object[] args);
+        IQueryProvider<T> Where(Sql sql);
         IQueryProvider<T> OrderBy(Expression<Func<T, object>> column);
         IQueryProvider<T> OrderByDescending(Expression<Func<T, object>> column);
         IQueryProvider<T> ThenBy(Expression<Func<T, object>> column);
@@ -61,6 +63,8 @@ namespace NPoco.Linq
     {
         IQueryProvider<T> IncludeMany(Expression<Func<T, IEnumerable>> expression);
         IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression) where T2 : class;
+        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias) where T2 : class;
+        IQueryProviderWithIncludes<T> UsingAlias(string empty);
     }
 
     public class QueryProvider<T> : IQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>
@@ -70,12 +74,14 @@ namespace NPoco.Linq
         private Dictionary<string, JoinData> _joinSqlExpressions = new Dictionary<string, JoinData>();
         private readonly ComplexSqlBuilder<T> _buildComplexSql;
         private Expression<Func<T, IEnumerable>> _listExpression = null;
+        private PocoData _pocoData;
 
         public QueryProvider(Database database, Expression<Func<T, bool>> whereExpression)
         {
             _database = database;
-            _sqlExpression = database.DatabaseType.ExpressionVisitor<T>(database, true);
-            _buildComplexSql = new ComplexSqlBuilder<T>(database, _sqlExpression, _joinSqlExpressions);
+            _pocoData = database.PocoDataFactory.ForType(typeof (T));
+            _sqlExpression = database.DatabaseType.ExpressionVisitor<T>(database, _pocoData, true);
+            _buildComplexSql = new ComplexSqlBuilder<T>(database, _pocoData, _sqlExpression, _joinSqlExpressions);
             _sqlExpression = _sqlExpression.Where(whereExpression);
         }
 
@@ -89,18 +95,29 @@ namespace NPoco.Linq
         public IQueryProvider<T> IncludeMany(Expression<Func<T, IEnumerable>> expression)
         {
             _listExpression = expression;
-            return QueryProviderWithIncludes(expression);
+            return QueryProviderWithIncludes(expression, null);
         }
 
         public IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression) where T2 : class
         {
-            return QueryProviderWithIncludes(expression);
+            return QueryProviderWithIncludes(expression, null);
         }
 
-        private IQueryProviderWithIncludes<T> QueryProviderWithIncludes(Expression expression)
+        public IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias) where T2 : class
+        {
+            return QueryProviderWithIncludes(expression, tableAlias);
+        }
+
+        public IQueryProviderWithIncludes<T> UsingAlias(string tableAlias)
+        {
+            _pocoData.TableInfo.AutoAlias = string.IsNullOrEmpty(tableAlias) ? null : tableAlias;
+            return this;
+        }
+
+        private IQueryProviderWithIncludes<T> QueryProviderWithIncludes(Expression expression, string tableAlias)
         {
             var memberInfos = MemberChainHelper.GetMembers(expression);
-            var members = _database.PocoDataFactory.ForType(typeof (T)).Members;
+            var members = _pocoData.Members;
 
             foreach (var memberInfo in memberInfos)
             {
@@ -111,6 +128,8 @@ namespace NPoco.Linq
                 var pocoColumn1 = pocoMember.PocoColumn;
                 var pocoMember2 = pocoMember.PocoMemberChildren.Single(x => x.Name == pocoMember.ReferenceMemberName);
                 var pocoColumn2 = pocoMember2.PocoColumn;
+
+                pocoColumn2.TableInfo.AutoAlias = tableAlias ?? pocoColumn2.TableInfo.AutoAlias;
 
                 var onSql = _database.DatabaseType.EscapeTableName(pocoColumn1.TableInfo.AutoAlias)
                             + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn1.ColumnName)
@@ -123,7 +142,7 @@ namespace NPoco.Linq
                     {
                         OnSql = onSql,
                         PocoMember = pocoMember2,
-                        PocoMembers = pocoMember.PocoMemberChildren
+                        PocoMembers = pocoMember.PocoMemberChildren,
                     });
                 }
 
@@ -416,6 +435,18 @@ namespace NPoco.Linq
         public IQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression)
         {
             _sqlExpression = _sqlExpression.Where(whereExpression);
+            return this;
+        }
+
+        public IQueryProvider<T> Where(string sql, params object[] args)
+        {
+            _sqlExpression = _sqlExpression.Where(sql, args);
+            return this;
+        }
+
+        public IQueryProvider<T> Where(Sql sql)
+        {
+            _sqlExpression = _sqlExpression.Where(sql.SQL, sql.Arguments);
             return this;
         }
 

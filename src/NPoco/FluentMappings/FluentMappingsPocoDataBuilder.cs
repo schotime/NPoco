@@ -5,11 +5,11 @@ using System.Reflection;
 
 namespace NPoco.FluentMappings
 {
-    public class FluentMappingsPocoData : PocoData
+    public class FluentMappingsPocoDataBuilder : PocoDataBuilder
     {
         private readonly Mappings _mappings;
 
-        public FluentMappingsPocoData(Type type, Mappings mappings, IMapper mapper, PocoDataFactory pocoDataFactory) : 
+        public FluentMappingsPocoDataBuilder(Type type, Mappings mappings, IMapper mapper, PocoDataFactory pocoDataFactory) : 
             base(type, mapper, pocoDataFactory)
         {
             _mappings = mappings;
@@ -20,31 +20,36 @@ namespace NPoco.FluentMappings
             return columnName;
         }
 
-        protected override TableInfo GetTableInfo(Type type)
+        protected override TableInfoPlan GetTableInfo(Type type)
         {
             var typeConfig = _mappings.Config[type];
-            var tableInfo = new TableInfo();
-
             // Get the table name
             var a = typeConfig.TableName ?? "";
-            tableInfo.TableName = a.Length == 0 ? type.Name : a;
+            var tableName = a.Length == 0 ? type.Name : a;
 
             // Get the primary key
             a = typeConfig.PrimaryKey ?? "";
-            tableInfo.PrimaryKey = a.Length == 0 ? "ID" : a;
+            var primaryKey = a.Length == 0 ? "ID" : a;
 
             a = typeConfig.SequenceName ?? "";
-            tableInfo.SequenceName = a.Length == 0 ? null : a;
+            var sequenceName = a.Length == 0 ? null : a;
 
-            tableInfo.AutoIncrement = typeConfig.AutoIncrement ?? true;
+            var autoIncrement = typeConfig.AutoIncrement ?? true;
 
             // Set autoincrement false if primary key has multiple columns
-            tableInfo.AutoIncrement = tableInfo.AutoIncrement ? !tableInfo.PrimaryKey.Contains(',') : tableInfo.AutoIncrement;
+            autoIncrement = autoIncrement ? !primaryKey.Contains(',') : autoIncrement;
             
             // Set auto alias
-            tableInfo.AutoAlias = CreateAlias(type.Name, type);
+            var autoAlias = CreateAlias(type.Name, type);
 
-            return tableInfo;
+            return () => new TableInfo
+            {
+                TableName = tableName,
+                PrimaryKey = primaryKey,
+                SequenceName = sequenceName,
+                AutoIncrement = autoIncrement,
+                AutoAlias = autoAlias
+            };
         }
 
         protected override ColumnInfo GetColumnInfo(MemberInfo mi, MemberInfo[] memberInfos)
@@ -110,17 +115,6 @@ namespace NPoco.FluentMappings
                 }
 
                 columnInfo.ColumnType = colattr.DbColumnType;
-
-                if (memberInfos.Length == 0)
-                {
-                    var originalPk = TableInfo.PrimaryKey.Split(',');
-                    for (int i = 0; i < originalPk.Length; i++)
-                    {
-                        if (originalPk[i].Equals(mi.Name, StringComparison.OrdinalIgnoreCase))
-                            originalPk[i] = (columnInfo.ColumnName ?? mi.Name);
-                    }
-                    TableInfo.PrimaryKey = String.Join(",", originalPk);
-                }
             }
             else
             {

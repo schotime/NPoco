@@ -9,19 +9,21 @@ namespace NPoco.Linq
     public class ComplexSqlBuilder<T>
     {
         private readonly IDatabase _database;
+        private readonly PocoData _pocoData;
         private readonly SqlExpression<T> _sqlExpression;
         private readonly Dictionary<string, JoinData> _joinSqlExpressions;
 
-        public ComplexSqlBuilder(IDatabase database, SqlExpression<T> sqlExpression, Dictionary<string, JoinData> joinSqlExpressions)
+        public ComplexSqlBuilder(IDatabase database, PocoData pocoData, SqlExpression<T> sqlExpression, Dictionary<string, JoinData> joinSqlExpressions)
         {
             _database = database;
+            _pocoData = pocoData;
             _sqlExpression = sqlExpression;
             _joinSqlExpressions = joinSqlExpressions;
         }
 
         public Sql GetSqlForProjection<T2>(Expression<Func<T, T2>> projectionExpression, bool distinct)
         {
-            var selectMembers = _database.DatabaseType.ExpressionVisitor<T>(_database).SelectProjection(projectionExpression);
+            var selectMembers = _database.DatabaseType.ExpressionVisitor<T>(_database, _pocoData).SelectProjection(projectionExpression);
 
             ((ISqlExpression)_sqlExpression).SelectMembers.Clear();
             ((ISqlExpression)_sqlExpression).SelectMembers.AddRange(selectMembers);
@@ -38,7 +40,7 @@ namespace NPoco.Linq
 
         public Sql BuildJoin(IDatabase database, SqlExpression<T> sqlExpression, List<JoinData> joinSqlExpressions, List<SelectMember> newMembers, bool count, bool distinct)
         {
-            var modelDef = database.PocoDataFactory.ForType(typeof (T));
+            var modelDef = _pocoData;
             var sqlTemplate = count
                 ? "SELECT COUNT(*) FROM {1} {2} {3} {4}"
                 : "SELECT {0} FROM {1} {2} {3} {4}";
@@ -61,7 +63,7 @@ namespace NPoco.Linq
             wheres.Append(string.IsNullOrEmpty(where) ? string.Empty : "\n" + where, sqlExpression.Context.Params);
 
             // build joins and add cols
-            var joins = BuildJoinSql(modelDef, database, joinSqlExpressions, ref cols);
+            var joins = BuildJoinSql(database, joinSqlExpressions, ref cols);
 
             // build orderbys
             ISqlExpression exp = sqlExpression;
@@ -111,7 +113,7 @@ namespace NPoco.Linq
             return new Sql(newsql, wheres.Arguments);
         }
 
-        private static string BuildJoinSql(PocoData pocoData, IDatabase database, List<JoinData> joinSqlExpressions, ref List<StringPocoCol> cols)
+        private static string BuildJoinSql(IDatabase database, List<JoinData> joinSqlExpressions, ref List<StringPocoCol> cols)
         {
             var joins = new List<string>();
 
@@ -120,16 +122,16 @@ namespace NPoco.Linq
                 var member = joinSqlExpression.PocoMember;
 
                 cols = cols.Concat(joinSqlExpression.PocoMembers
-                    .Where(x=> x.ReferenceMappingType == ReferenceMappingType.None)
+                    .Where(x => x.ReferenceMappingType == ReferenceMappingType.None)
                     .Where(x => x.PocoColumn != null)
                     .Select(x => new StringPocoCol
                 {
                     StringCol = database.DatabaseType.EscapeTableName(x.PocoColumn.TableInfo.AutoAlias)
                                 + "." + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.MemberInfoKey),
                     PocoColumn = new[] { x.PocoColumn }
-                })).ToList();
+                })).ToList(); 
 
-                joins.Add("  LEFT JOIN " + member.PocoColumn.TableInfo.TableName + " " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.AutoAlias) + " ON " + joinSqlExpression.OnSql);
+                joins.Add("  LEFT JOIN " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.TableName) + " " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.AutoAlias) + " ON " + joinSqlExpression.OnSql);
             }
 
             return joins.Any() ? " \n" + string.Join(" \n", joins.ToArray()) : string.Empty;

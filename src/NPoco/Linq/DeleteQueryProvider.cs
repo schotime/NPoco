@@ -24,7 +24,7 @@ namespace NPoco.Linq
         public DeleteQueryProvider(IDatabase database)
         {
             _database = database;
-            _sqlExpression = database.DatabaseType.ExpressionVisitor<T>(database, false);
+            _sqlExpression = database.DatabaseType.ExpressionVisitor<T>(database, database.PocoDataFactory.ForType(typeof(T)), false);
         }
 
         public IDeleteQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression)

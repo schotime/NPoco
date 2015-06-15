@@ -67,9 +67,9 @@ namespace NPoco.DatabaseTypes
             return -1;
         }
 
-        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, bool prefixTableName)
+        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
         {
-            return new FirebirdSqlExpression<T>(db, prefixTableName);
+            return new FirebirdSqlExpression<T>(db, pocoData, prefixTableName);
         }
 
         public override string GetProviderName()

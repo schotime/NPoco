@@ -93,7 +93,7 @@ namespace NPoco
 
         public Task<int> UpdateAsync<T>(T poco, Expression<Func<T, object>> fields)
         {
-            var expression = DatabaseType.ExpressionVisitor<T>(this);
+            var expression = DatabaseType.ExpressionVisitor<T>(this, PocoDataFactory.ForType(typeof(T)));
             expression = expression.Select(fields);
             var columnNames = ((ISqlExpression)expression).SelectMembers.Select(x => x.PocoColumn.ColumnName);
             var otherNames = ((ISqlExpression)expression).GeneralMembers.Select(x => x.PocoColumn.ColumnName);

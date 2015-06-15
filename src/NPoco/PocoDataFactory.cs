@@ -6,20 +6,19 @@ namespace NPoco
     public class PocoDataFactory
     {
         private readonly IMapper _mapper;
-        private readonly Cache<Type, PocoData> _pocoDatas = Cache<Type, PocoData>.CreateStaticCache();
-        private readonly Cache<string, Type> _aliasToType = Cache<string, Type>.CreateStaticCache();
+        private readonly Cache<Type, PocoDataBuilder> _pocoDatas = Cache<Type, PocoDataBuilder>.CreateStaticCache();
 
         public PocoDataFactory(IMapper mapper)
         {
             _mapper = mapper;
         }
 
-        public PocoDataFactory(Func<Type, PocoDataFactory, PocoData> resolver)
+        public PocoDataFactory(Func<Type, PocoDataFactory, PocoDataBuilder> resolver)
         {
             Resolver = resolver;
         }
 
-        public Func<Type, PocoDataFactory, PocoData> Resolver { get; set; }
+        public Func<Type, PocoDataFactory, PocoDataBuilder> Resolver { get; set; }
 
         public PocoData ForType(Type type)
         {
@@ -27,10 +26,10 @@ namespace NPoco
             if (type == typeof(System.Dynamic.ExpandoObject) || type == typeof(PocoExpando))
                 throw new InvalidOperationException("Can't use dynamic types with this method");
 #endif
-            var pocoData = _pocoDatas.Get(type, (Resolver == null 
-                ? new Func<PocoData>(() => new PocoData(type, _mapper, this).Init()) 
-                : new Func<PocoData>(() => Resolver(type, this))));
-            return pocoData;
+            var pocoDataBuilder = _pocoDatas.Get(type, (Resolver == null 
+                ? new Func<PocoDataBuilder>(() => new PocoDataBuilder(type, _mapper, this).Init())
+                : new Func<PocoDataBuilder>(() => Resolver(type, this))));
+            return pocoDataBuilder.Build();
         }
         public PocoData ForObject(object o, string primaryKeyName)
         {

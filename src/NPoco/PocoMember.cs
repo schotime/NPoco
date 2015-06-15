@@ -14,6 +14,19 @@ namespace NPoco
             ReferenceMappingType = ReferenceMappingType.None;
         }
 
+        public PocoMember Clone()
+        {
+            return new PocoMember()
+            {
+                MemberInfo = MemberInfo,
+                PocoMemberChildren = PocoMemberChildren.Select(x => x.Clone()).ToList(),
+                ReferenceMappingType = ReferenceMappingType,
+                ReferenceMemberName = ReferenceMemberName,
+                IsList = IsList,
+                PocoColumn = PocoColumn != null ? PocoColumn.Clone() : null,
+            };
+        }
+
         public string Name { get { return MemberInfo.Name; } }
         public Type MemberType { get { return MemberInfo.GetMemberInfoType(); } }
         public MemberInfo MemberInfo { get; set; }

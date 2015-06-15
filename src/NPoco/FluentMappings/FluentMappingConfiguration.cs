@@ -247,17 +247,17 @@ namespace NPoco.FluentMappings
                 {
                     if (maps.Config.ContainsKey(t))
                     {
-                        return new FluentMappingsPocoData(t, mappings, mapper, pocoDataFactory).Init();
+                        return new FluentMappingsPocoDataBuilder(t, mappings, mapper, pocoDataFactory).Init();
                     }
 
                     if (scana != null)
                     {
                         var settings = ProcessSettings(scana);
                         var typeMapping = CreateMappings(settings, new[] { t });
-                        return new FluentMappingsPocoData(t, typeMapping, mapper, pocoDataFactory).Init();
+                        return new FluentMappingsPocoDataBuilder(t, typeMapping, mapper, pocoDataFactory).Init();
                     }
                 }
-                return new PocoData(t, mapper, pocoDataFactory).Init();
+                return new PocoDataBuilder(t, mapper, pocoDataFactory).Init();
             }));
         }
 

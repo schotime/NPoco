@@ -319,14 +319,14 @@ namespace NPoco
             }
         }
 
-        public SqlExpression<T> ExpressionVisitor<T>(IDatabase db)
+        public SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData)
         {
-            return ExpressionVisitor<T>(db, false);
+            return ExpressionVisitor<T>(db, pocoData, false);
         }
 
-        public virtual SqlExpression<T> ExpressionVisitor<T>(IDatabase db, bool prefixTableName)
+        public virtual SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
         {
-            return new DefaultSqlExpression<T>(db, prefixTableName);
+            return new DefaultSqlExpression<T>(db, pocoData, prefixTableName);
         }
 
         public virtual string GetProviderName()
