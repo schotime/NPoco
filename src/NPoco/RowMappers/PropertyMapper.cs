@@ -100,6 +100,7 @@ namespace NPoco.RowMappers
                             }
 
                             pocoMember.SetValue(instance, newObject);
+                            return true;
                         }
                         return false;
                     };

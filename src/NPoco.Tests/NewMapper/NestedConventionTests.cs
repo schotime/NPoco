@@ -98,6 +98,17 @@ namespace NPoco.Tests.NewMapper
         }
 
         [Test]
+        public void Test10_1()
+        {
+            var data = Database.Fetch<NestedConvention>("select 'Name' Name, 24 money__money2__value, 'USD' money__money2__currency /*poco_dual*/").Single();
+            Assert.AreEqual("Name", data.Name);
+            Assert.AreEqual(0, data.Money.Value);
+            Assert.AreEqual(null, data.Money.Currency);
+            Assert.AreEqual(24, data.Money.Money2.Value);
+            Assert.AreEqual("USD", data.Money.Money2.Currency);
+        }
+
+        [Test]
         public void Test11()
         {
             var data = Database.Query<RecursionUser>()
