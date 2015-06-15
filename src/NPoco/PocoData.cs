@@ -175,7 +175,11 @@ namespace NPoco
                 if (_primaryKeyValues == null)
                 {
                     var multiplePrimaryKeysNames = TableInfo.PrimaryKey.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
-                    var members = multiplePrimaryKeysNames.Select(x => Members.FirstOrDefault(y => y.PocoColumn != null && string.Equals(x, y.PocoColumn.ColumnName, StringComparison.OrdinalIgnoreCase))).Where(x=>x != null);
+                    var members = multiplePrimaryKeysNames
+                        .Select(x => Members.FirstOrDefault(y => y.PocoColumn != null
+                                && y.ReferenceMappingType == ReferenceMappingType.None
+                                && string.Equals(x, y.PocoColumn.ColumnName, StringComparison.OrdinalIgnoreCase)))
+                        .Where(x => x != null);
                     _primaryKeyValues = obj => members.Select(x => x.PocoColumn.GetValue(obj)).ToArray();
                 }
                 return _primaryKeyValues;
