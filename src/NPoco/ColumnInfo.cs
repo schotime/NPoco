@@ -62,7 +62,7 @@ namespace NPoco
                 return ci;
             }
 
-            if (mi.GetMemberInfoType().IsAClass() || mi.GetMemberInfoType().IsArray)
+            if (mi.GetMemberInfoType().IsAClass() || (mi.GetMemberInfoType().IsArray) && mi.GetMemberInfoType() != typeof(byte[]))
             {
                 ci.ComplexType = true;
             }

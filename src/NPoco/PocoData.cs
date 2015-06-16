@@ -50,8 +50,6 @@ namespace NPoco
             }
         }
 
-        
-
         public object CreateObject()
         {
             if (CreateDelegate == null)
