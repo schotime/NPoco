@@ -55,7 +55,6 @@ namespace NPoco.FluentMappings
             
             // Set auto alias
             var autoAlias = CreateAlias(type.Name, type);
-
             
             return () => new TableInfo
             {

@@ -8,6 +8,7 @@ using NUnit.Framework;
 
 namespace NPoco.Tests.Async
 {
+    [TestFixture]
     public class QueryAsyncTests : BaseDBFuentTest
     {
         [Test]

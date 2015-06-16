@@ -7,16 +7,17 @@ namespace NPoco
 {
     public class PocoDataBuilder
     {
-        private readonly Cache<string, Type> aliasToType = Cache<string, Type>.CreateStaticCache();
-        protected internal IMapper Mapper { get; set; }
-        protected internal Type Type { get; protected set; }
-        public PocoDataFactory PocoDataFactory { get; protected set; }
+        private readonly Cache<string, Type> _aliasToType = Cache<string, Type>.CreateStaticCache();
+        
+        protected Type Type { get; set; }
+        private IMapper Mapper { get; set; }
+        private PocoDataFactory PocoDataFactory { get; set; }
 
         private List<PocoMemberPlan> _memberPlans { get; set; }
         private TableInfoPlan _tableInfoPlan { get; set; }
-        
-        public delegate PocoMember PocoMemberPlan(TableInfo tableInfo);
-        public delegate TableInfo TableInfoPlan();
+
+        private delegate PocoMember PocoMemberPlan(TableInfo tableInfo);
+        protected delegate TableInfo TableInfoPlan();
 
         public PocoDataBuilder(Type type, IMapper mapper, PocoDataFactory pocoDataFactory)
         {
@@ -30,10 +31,10 @@ namespace NPoco
             var memberInfos = new List<MemberInfo>();
             var columnInfos = GetColumnInfos(Type, memberInfos.ToArray());
 
-            // Get table info
+            // Get table info plan
             _tableInfoPlan = GetTableInfo(Type, columnInfos, memberInfos);
 
-            // Work out bound properties
+            // Get pocomember plan
             _memberPlans = GetPocoMembers(Mapper, columnInfos, memberInfos).ToList();
 
             return this;
@@ -48,7 +49,9 @@ namespace NPoco
         public PocoData Build()
         {
             var pocoData = new PocoData(Type, Mapper);
+
             pocoData.TableInfo = _tableInfoPlan();
+
             if (Mapper != null)
                 Mapper.GetTableInfo(Type, pocoData.TableInfo);
 
@@ -57,7 +60,7 @@ namespace NPoco
             pocoData.Columns = GetPocoColumns(pocoData.Members, false).Where(x => x != null).ToDictionary(x => x.ColumnName, x => x, StringComparer.OrdinalIgnoreCase);
             pocoData.AllColumns = GetPocoColumns(pocoData.Members, true).Where(x => x != null).ToList();
 
-            //// Build column list for automatic select
+            //Build column list for automatic select
             pocoData.QueryColumns = pocoData.Columns.Where(c => !c.Value.ResultColumn && c.Value.ReferenceMappingType == ReferenceMappingType.None).ToArray();
             return pocoData;
         }
@@ -102,23 +105,22 @@ namespace NPoco
         {
             var capturedMembers = memberInfos.ToArray();
             var capturedPrefix = prefix;
-            foreach (var ci in columnInfos)
+            foreach (var columnInfo in columnInfos)
             {
-                if (ci.IgnoreColumn)
+                if (columnInfo.IgnoreColumn)
                     continue;
 
-                var memberInfoType = ci.MemberInfo.GetMemberInfoType();
-                if (ci.ReferenceMappingType == ReferenceMappingType.Many)
+                var memberInfoType = columnInfo.MemberInfo.GetMemberInfoType();
+                if (columnInfo.ReferenceMappingType == ReferenceMappingType.Many)
                 {
                     memberInfoType = memberInfoType.GetGenericArguments().First();
                 }
 
                 var childrenPlans = new PocoMemberPlan[0];
                 TableInfoPlan childTableInfoPlan = null;
-                var members = new List<MemberInfo>(capturedMembers) {ci.MemberInfo};
+                var members = new List<MemberInfo>(capturedMembers) {columnInfo.MemberInfo};
 
-                var name = ci.MemberInfo.Name;
-                if (ci.ComplexMapping || ci.ReferenceMappingType != ReferenceMappingType.None)
+                if (columnInfo.ComplexMapping || columnInfo.ReferenceMappingType != ReferenceMappingType.None)
                 {
                     if (capturedMembers.GroupBy(x => x.GetMemberInfoType()).Any(x => x.Count() >= 2))
                     {
@@ -127,50 +129,51 @@ namespace NPoco
 
                     var childColumnInfos = GetColumnInfos(memberInfoType, members.ToArray());
                     
-                    if (ci.ReferenceMappingType != ReferenceMappingType.None)
+                    if (columnInfo.ReferenceMappingType != ReferenceMappingType.None)
                     {
                         childTableInfoPlan = GetTableInfo(memberInfoType, childColumnInfos, members);
                     }
 
-                    var newPrefix = GetNewPrefix(capturedPrefix, ci.ReferenceMappingType != ReferenceMappingType.None ? "" : (ci.ComplexPrefix ?? ci.MemberInfo.Name));
+                    var newPrefix = GetNewPrefix(capturedPrefix, columnInfo.ReferenceMappingType != ReferenceMappingType.None ? "" : (columnInfo.ComplexPrefix ?? columnInfo.MemberInfo.Name));
 
                     childrenPlans = GetPocoMembers(mapper, childColumnInfos, members, newPrefix).ToArray();
                 }
 
-                MemberInfo mi1 = ci.MemberInfo;
-                var capturedCi = ci;
+                MemberInfo capturedMemberInfo = columnInfo.MemberInfo;
+                ColumnInfo capturedColumnInfo = columnInfo;
+
                 yield return tableInfo =>
                 {
                     var pc = new PocoColumn
                     {
-                        ReferenceMappingType = capturedCi.ReferenceMappingType, 
+                        ReferenceMappingType = capturedColumnInfo.ReferenceMappingType, 
                         TableInfo = tableInfo, 
-                        MemberInfo = mi1,
+                        MemberInfo = capturedMemberInfo,
                         MemberInfoChain = members,
-                        ColumnName = GetColumnName(capturedPrefix, capturedCi.ColumnName),
-                        ResultColumn = capturedCi.ResultColumn,
-                        ForceToUtc = capturedCi.ForceToUtc,
-                        ComputedColumn = capturedCi.ComputedColumn,
-                        ColumnType = capturedCi.ColumnType,
-                        ColumnAlias = capturedCi.ColumnAlias,
-                        VersionColumn = capturedCi.VersionColumn,
-                        VersionColumnType = capturedCi.VersionColumnType,
-                        ComplexType = capturedCi.ComplexType
+                        ColumnName = GetColumnName(capturedPrefix, capturedColumnInfo.ColumnName),
+                        ResultColumn = capturedColumnInfo.ResultColumn,
+                        ForceToUtc = capturedColumnInfo.ForceToUtc,
+                        ComputedColumn = capturedColumnInfo.ComputedColumn,
+                        ColumnType = capturedColumnInfo.ColumnType,
+                        ColumnAlias = capturedColumnInfo.ColumnAlias,
+                        VersionColumn = capturedColumnInfo.VersionColumn,
+                        VersionColumnType = capturedColumnInfo.VersionColumnType,
+                        ComplexType = capturedColumnInfo.ComplexType
                     };
 
-                    if (mapper != null && !mapper.MapMemberToColumn(mi1, ref pc.ColumnName, ref pc.ResultColumn))
+                    if (mapper != null && !mapper.MapMemberToColumn(capturedMemberInfo, ref pc.ColumnName, ref pc.ResultColumn))
                         return null;
 
                     var childrenTableInfo = childTableInfoPlan == null ? tableInfo : childTableInfoPlan();
-                    var children = childrenPlans.Select(x => x(childrenTableInfo)).ToList();
+                    var children = childrenPlans.Select(plan => plan(childrenTableInfo)).ToList();
 
                     return new PocoMember()
                     {
-                        MemberInfo = mi1,
-                        IsList = IsList(mi1),
-                        PocoColumn = capturedCi.ComplexMapping ? null : pc,
-                        ReferenceMappingType = capturedCi.ReferenceMappingType,
-                        ReferenceMemberName = capturedCi.ReferenceMemberName,
+                        MemberInfo = capturedMemberInfo,
+                        IsList = IsList(capturedMemberInfo),
+                        PocoColumn = capturedColumnInfo.ComplexMapping ? null : pc,
+                        ReferenceMappingType = capturedColumnInfo.ReferenceMappingType,
+                        ReferenceMemberName = capturedColumnInfo.ReferenceMemberName,
                         PocoMemberChildren = children,
                     };
                 };
@@ -208,7 +211,7 @@ namespace NPoco
                 alias = name + (i == 0 ? string.Empty : i.ToString());
                 i++;
 
-                if (aliasToType.AddIfNotExists(alias, typeIn))
+                if (_aliasToType.AddIfNotExists(alias, typeIn))
                 {
                     continue;
                 }
