@@ -34,7 +34,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             var user = Database.Fetch<NestedUser1>("select '1' Name, null User2__Name, '3' User2__User3__Name /*poco_dual*/").Single();
 
             Assert.AreEqual("1", user.Name);
-            Assert.Null(user.User2);
+            Assert.NotNull(user.User2);
         }
 
         [Test]
@@ -50,12 +50,14 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         public class NestedUser1
         {
             public string Name { get; set; }
+            [ComplexMapping]
             public NestedUser2 User2 { get; set; }
         }
 
         public class NestedUser2
         {
             public string Name { get; set; }
+            [ComplexMapping]
             public NestedUser3 User3 { get; set; }
         }
 

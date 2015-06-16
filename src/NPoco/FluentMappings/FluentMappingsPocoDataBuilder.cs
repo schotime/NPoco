@@ -20,7 +20,7 @@ namespace NPoco.FluentMappings
             return columnName;
         }
 
-        protected override TableInfoPlan GetTableInfo(Type type)
+        protected override TableInfoPlan GetTableInfo(Type type, ColumnInfo[] columnInfos, List<MemberInfo> memberInfos)
         {
             var typeConfig = _mappings.Config[type];
             // Get the table name
@@ -31,6 +31,20 @@ namespace NPoco.FluentMappings
             a = typeConfig.PrimaryKey ?? "";
             var primaryKey = a.Length == 0 ? "ID" : a;
 
+            if (memberInfos.Any()) // if top level
+            {
+                foreach (var ci in columnInfos)
+                {
+                    var originalPk = primaryKey.Split(',');
+                    for (int i = 0; i < originalPk.Length; i++)
+                    {
+                        if (originalPk[i].Equals(ci.MemberInfo.Name, StringComparison.OrdinalIgnoreCase))
+                            originalPk[i] = (ci.ColumnName ?? ci.MemberInfo.Name);
+                    }
+                    primaryKey = string.Join(",", originalPk);
+                }
+            }
+            
             a = typeConfig.SequenceName ?? "";
             var sequenceName = a.Length == 0 ? null : a;
 
@@ -42,6 +56,7 @@ namespace NPoco.FluentMappings
             // Set auto alias
             var autoAlias = CreateAlias(type.Name, type);
 
+            
             return () => new TableInfo
             {
                 TableName = tableName,
@@ -55,7 +70,7 @@ namespace NPoco.FluentMappings
         protected override ColumnInfo GetColumnInfo(MemberInfo mi, MemberInfo[] memberInfos)
         {
             var typeConfig = _mappings.Config[Type];
-            var columnInfo = new ColumnInfo();
+            var columnInfo = new ColumnInfo() {MemberInfo = mi};
             var key = PocoColumn.GenerateKey(memberInfos.Concat(new[] { mi }));
 
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;

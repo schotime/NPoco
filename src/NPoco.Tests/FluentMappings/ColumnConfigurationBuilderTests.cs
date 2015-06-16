@@ -118,7 +118,7 @@ namespace NPoco.Tests.FluentMappings
             var map = FluentMappingConfiguration.Scan(scan =>
             {
                 scan.Assembly(this.GetType().Assembly);
-                scan.IncludeTypes(x => x == typeof(User));
+                scan.IncludeTypes(x => x == typeof(User) || ReflectionUtils.GetFieldsAndPropertiesForClasses(typeof(User)).Select(y=>y.GetMemberInfoType()).Contains(x));
                 scan.Columns.IgnoreWhere(x => x.Name == "Age");
             });
 
@@ -132,7 +132,7 @@ namespace NPoco.Tests.FluentMappings
             var map = FluentMappingConfiguration.Scan(scan =>
             {
                 scan.Assembly(this.GetType().Assembly);
-                scan.IncludeTypes(x => x == typeof(User));
+                scan.IncludeTypes(x => x == typeof(User) || ReflectionUtils.GetFieldsAndPropertiesForClasses(typeof(User)).Select(y => y.GetMemberInfoType()).Contains(x));
                 scan.Columns.ResultWhere(x => x.Name == "Age");
             });
 
@@ -147,8 +147,9 @@ namespace NPoco.Tests.FluentMappings
             var map = FluentMappingConfiguration.Scan(scan =>
             {
                 scan.Assembly(this.GetType().Assembly);
-                scan.IncludeTypes(x => x == typeof(User));
+                scan.IncludeTypes(x => x == typeof(User) || ReflectionUtils.GetFieldsAndPropertiesForClasses(typeof(User)).Select(y => y.GetMemberInfoType()).Contains(x));
                 scan.Columns.Named(x => x.Name + "000");
+                scan.Columns.ReferenceNamed(x => x.Name + "Id000");
             });
 
             var pd = map.Config(new Mapper()).Resolver(typeof(User), new PocoDataFactory(new Mapper())).Build();

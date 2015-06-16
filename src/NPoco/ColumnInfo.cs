@@ -25,7 +25,7 @@ namespace NPoco
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
-            var ci = new ColumnInfo();
+            var ci = new ColumnInfo{MemberInfo = mi};
 
             var attrs = Attribute.GetCustomAttributes(mi, true);
             var colAttrs = attrs.OfType<ColumnAttribute>();
@@ -94,5 +94,7 @@ namespace NPoco
 
             return ci;
         }
+
+        public MemberInfo MemberInfo { get; internal set; }
     }
 }

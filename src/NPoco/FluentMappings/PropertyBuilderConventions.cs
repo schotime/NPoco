@@ -59,5 +59,11 @@ namespace NPoco.FluentMappings
             _scannerSettings.DbColumnTypesAs = dbColumnTypeAsFunc;
             return this;
         }
+
+        public IColumnsBuilderConventions ReferenceNamed(Func<MemberInfo, string> refPropertiesNamedFunc)
+        {
+            _scannerSettings.ReferenceDbColumnsNamed = refPropertiesNamedFunc;
+            return this;
+        }
     }
 }

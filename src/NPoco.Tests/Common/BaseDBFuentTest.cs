@@ -24,7 +24,7 @@ namespace NPoco.Tests.Common
         [SetUp]
         public void SetUp()
         {
-            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(Usersss), typeof(House), typeof(Supervisor) };
+            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(UserWithExtraInfo), typeof(Usersss), typeof(House), typeof(Supervisor) };
             var dbFactory = new DatabaseFactory();
             dbFactory.Config().WithFluentConfig(
                 FluentMappingConfiguration.Scan(s =>

@@ -58,6 +58,7 @@ namespace NPoco.Tests.Common
     public class UserDecoratedWithExtraInfo : UserDecorated
     {
         [ResultColumn]
+        [Reference(ReferenceMappingType.OneToOne)]
         public ExtraUserInfoDecorated ExtraUserInfo { get; set; }
     }
 

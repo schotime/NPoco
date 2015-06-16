@@ -91,13 +91,16 @@ namespace NPoco.Tests.NewMapper
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        [ComplexMapping]
         public NestedComplexMap NestedComplexMap { get; set; }
+        [ComplexMapping]
         public NestedComplexMap2 NestedComplexMap2 { get; set; }
     }
 
     public class NestedComplexMap
     {
         public int Id { get; set; }
+        [ComplexMapping]
         public NestedComplexMap2 NestedComplexMap2 { get; set; }
     }
 

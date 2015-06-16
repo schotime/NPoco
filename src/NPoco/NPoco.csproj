@@ -156,6 +156,7 @@
     <Compile Include="ParameterHelper.cs" />
     <Compile Include="PocoColumn.cs" />
     <Compile Include="PocoData.cs" />
+    <Compile Include="PocoDataBuilder.cs" />
     <Compile Include="PocoDataFactory.cs" />
     <Compile Include="PocoExpando.cs" />
     <Compile Include="PocoMember.cs" />
