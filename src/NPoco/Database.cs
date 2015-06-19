@@ -1877,7 +1877,7 @@ namespace NPoco
         private PocoDataFactory _pocoDataFactory;
         public PocoDataFactory PocoDataFactory
         {
-            get { return _pocoDataFactory ?? new PocoDataFactory(Mapper); }
+            get { return _pocoDataFactory ?? (_pocoDataFactory = new PocoDataFactory(Mapper)); }
             set { _pocoDataFactory = value; }
         }
 
