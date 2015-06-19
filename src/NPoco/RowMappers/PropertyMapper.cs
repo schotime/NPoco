@@ -24,8 +24,11 @@ namespace NPoco.RowMappers
 
         public override void Init(IDataReader dataReader, PocoData pocoData)
         {
-            _groupedNames = Enumerable.Range(0, dataReader.FieldCount)
+            var fields = Enumerable.Range(0, dataReader.FieldCount)
                 .Select(x => new PosName {Pos = x, Name = dataReader.GetName(x)})
+                .ConvertFromConvention();
+            
+            _groupedNames = fields
                 .GroupByMany(x => x.Name, "__")
                 .ToList();
 
@@ -46,7 +49,7 @@ namespace NPoco.RowMappers
             {
                 result.OnLoaded();
             }
-           
+
             return context.Instance;
         }
 
@@ -83,7 +86,7 @@ namespace NPoco.RowMappers
                     yield return (reader, instance) =>
                     {
                         var newObject = pocoMember.Create();
-                        
+
                         var shouldSetNestedObject = false;
                         foreach (var subPlan in subPlans)
                         {

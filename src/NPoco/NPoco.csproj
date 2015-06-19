@@ -172,6 +172,7 @@
     <Compile Include="RowMappers\IRowMapper.cs" />
     <Compile Include="RowMappers\MyEnumerableExtensions.cs" />
     <Compile Include="RowMappers\PropertyMapper.cs" />
+    <Compile Include="RowMappers\PropertyMapperNameConvention.cs" />
     <Compile Include="RowMappers\RowMapperContext.cs" />
     <Compile Include="RowMappers\ValueTypeMapper.cs" />
     <Compile Include="Singleton.cs" />

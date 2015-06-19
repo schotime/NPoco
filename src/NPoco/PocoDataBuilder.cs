@@ -134,7 +134,7 @@ namespace NPoco
                         childTableInfoPlan = GetTableInfo(memberInfoType, childColumnInfos, members);
                     }
 
-                    var newPrefix = GetNewPrefix(capturedPrefix, columnInfo.ReferenceMappingType != ReferenceMappingType.None ? "" : (columnInfo.ComplexPrefix ?? columnInfo.MemberInfo.Name));
+                    var newPrefix = JoinStrings(capturedPrefix, columnInfo.ReferenceMappingType != ReferenceMappingType.None ? "" : (columnInfo.ComplexPrefix ?? columnInfo.MemberInfo.Name));
 
                     childrenPlans = GetPocoMembers(mapper, childColumnInfos, members, newPrefix).ToArray();
                 }
@@ -187,10 +187,10 @@ namespace NPoco
 
         protected virtual string GetColumnName(string prefix, string columnName)
         {
-            return GetNewPrefix(prefix, columnName);
+            return JoinStrings(prefix, columnName);
         }
 
-        private static string GetNewPrefix(string prefix, string end)
+        public static string JoinStrings(string prefix, string end)
         {
             var list = new List<string>();
             if (!string.IsNullOrEmpty(prefix))

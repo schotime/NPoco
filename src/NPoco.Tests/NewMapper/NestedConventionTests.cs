@@ -240,5 +240,48 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
 
             Assert.AreEqual(2, users.Count);
         }
+
+        [Test]
+        public void Test17()
+        {
+            var ones = Database.FetchOneToMany<One>(x=>x.Items, @"
+select o.*, null npoco_items, m.* 
+from ones o 
+left join manys m on o.oneid = m.oneid");
+
+            Assert.AreEqual(15, ones.Count);
+        }
+
+        [Test]
+        public void Test18()
+        {
+            var data = Database.Fetch<RecursionUser>(@"
+select r.*
+, null npoco_createdby, createdby1.*
+, null npoco_supervisor, supervisor1.*
+, null npoco_createdby__supervisor, supervisor2.*
+, null npoco_createdby__createdby, createdby3.*
+, null npoco_supervisor__createdby, createdby2.*
+, null npoco_supervisor__supervisor, supervisor3.*
+from RecursionUser r
+    inner join RecursionUser  createdby1 on r.createdbyid = createdby1.Id
+    inner join RecursionUser supervisor1 on r.supervisorid = supervisor1.Id
+    inner join RecursionUser supervisor2 on createdby1.supervisorid = supervisor2.Id
+    inner join RecursionUser  createdby2 on supervisor1.createdbyid = createdby2.Id
+    inner join RecursionUser supervisor3 on createdby2.supervisorid = supervisor3.Id
+    inner join RecursionUser  createdby3 on supervisor2.createdbyid = createdby3.Id
+");
+
+            for (int i = 0; i < data.Count; i++)
+            {
+                Assert.AreEqual("Name" + (i + 1), data[i].Name);
+                Assert.AreEqual("Name" + 1, data[i].CreatedBy.Name);
+                Assert.AreEqual("Name" + 2, data[i].CreatedBy.Supervisor.Name);
+                Assert.AreEqual("Name" + 1, data[i].CreatedBy.CreatedBy.Name);
+                Assert.AreEqual("Name" + 2, data[i].Supervisor.Name);
+                Assert.AreEqual("Name" + 1, data[i].Supervisor.CreatedBy.Name);
+                Assert.AreEqual("Name" + 2, data[i].Supervisor.Supervisor.Name);
+            }
+        }
     }
 }
