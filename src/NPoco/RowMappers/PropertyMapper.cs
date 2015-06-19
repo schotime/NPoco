@@ -92,7 +92,7 @@ namespace NPoco.RowMappers
 
                         if (shouldSetNestedObject)
                         {
-                            if (pocoMember.ReferenceMappingType == ReferenceMappingType.Many)
+                            if (pocoMember.IsList)
                             {
                                 var list = pocoMember.CreateList();
                                 list.Add(newObject);
