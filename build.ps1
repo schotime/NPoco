@@ -33,9 +33,9 @@ Task Build40 -Depends Build45 {
 }
 
 Task Build45 -Depends Clean { 
-    Write-Host "Building 4.0 $solution_file" -ForegroundColor Green
+    Write-Host "Building 4.5 $solution_file" -ForegroundColor Green
     Exec { msbuild "$solution_file" /t:Clean /p:Configuration=Release /v:quiet } 
-    Exec { msbuild "$solution_file" /t:Build /p:Configuration=Release /v:quiet /p:TargetFrameworkVersion=v4.5.1 /p:OutDir="$build_artifacts_dir\net45\" /p:DefineConstants="NET45" } 
+    Exec { msbuild "$solution_file" /t:Build /p:Configuration=Release /v:quiet /p:TargetFrameworkVersion=v4.5 /p:OutDir="$build_artifacts_dir\net45\" /p:DefineConstants="NET45" } 
 }
 
 Task Clean {
