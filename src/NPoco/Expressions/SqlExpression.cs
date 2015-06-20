@@ -238,6 +238,8 @@ namespace NPoco.Expressions
             if (string.IsNullOrEmpty(sqlFilter)) 
                 return this;
 
+            sqlFilter = ParameterHelper.ProcessParams(sqlFilter, filterParams, _params);
+
             if (string.IsNullOrEmpty(whereExpression))
             {
                 whereExpression = "WHERE " + sqlFilter;
@@ -245,11 +247,6 @@ namespace NPoco.Expressions
             else
             {
                 whereExpression += " AND " + sqlFilter;
-            }
-
-            foreach (var filterParam in filterParams)
-            {
-                CreateParam(filterParam);
             }
 
             return this;
@@ -1026,33 +1023,15 @@ namespace NPoco.Expressions
                 var propertyInfos = MemberChainHelper.GetMembers(m).ToArray();
                 var type = GetCorrectType(m);
    
-                var localModelDef = _pocoData;
-
-                var pocoColumns = localModelDef.AllColumns
+                var pocoColumns = ModelDef.AllColumns
                     .Where(x => x.MemberInfoChain.Select(y => y.Name).SequenceEqual(propertyInfos.Select(y => y.Name)))
                     .ToArray();
                         
-                //    propertyInfos.Select(z =>
-                //{
-                //    var pc = localModelDef.Members.SingleOrDefault(x => x.PocoMember.Name == z.Name);
-                //    localModelDef = _database.PocoDataFactory.ForType(z.PropertyType);
-                //    return pc;
-                //}).Where(x => x != null).ToArray();
-                
                 var pocoColumn = pocoColumns.LastOrDefault();
                 if (pocoColumn == null)
                 {
                     throw new Exception("Did you forget to include the property eg. Include(x => x.Address)");
                 }
-
-                //if (pocoColumn == null)
-                //{
-                //    var newDef = _database.PocoDataFactory.ForType(type);
-                //    pocoColumns = newDef.AllColumns
-                //        .Where(x => x.MemberInfoChain.Select(y => y.Name).SequenceEqual(propertyInfos.Select(y => y.Name)))
-                //        .ToArray();
-                //    pocoColumn = pocoColumns.LastOrDefault();
-                //}
 
                 var columnName = (PrefixFieldWithTableName
                                           ? _databaseType.EscapeTableName(pocoColumn.TableInfo.AutoAlias) + "."
