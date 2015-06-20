@@ -10,6 +10,7 @@ namespace NPoco.RowMappers
     {
         private List<GroupResult<PosName>> _groupedNames;
         private MapPlan _mapPlan;
+        private bool _mappingOntoExistingInstance;
 
         public class PosName
         {
@@ -40,6 +41,10 @@ namespace NPoco.RowMappers
             if (context.Instance == null)
             {
                 context.Instance = context.PocoData.CreateObject();
+            }
+            else
+            {
+                _mappingOntoExistingInstance = true;
             }
 
             _mapPlan(dataReader, context.Instance);
@@ -85,7 +90,7 @@ namespace NPoco.RowMappers
 
                     yield return (reader, instance) =>
                     {
-                        var newObject = pocoMember.Create();
+                        var newObject = instance ?? pocoMember.Create();
 
                         var shouldSetNestedObject = false;
                         foreach (var subPlan in subPlans)
@@ -112,8 +117,9 @@ namespace NPoco.RowMappers
             else
             {
                 var destType = pocoMember.MemberInfo.GetMemberInfoType();
+                var defaultValue = MappingFactory.GetDefault(destType);
                 var converter = GetConverter(pocoData, pocoMember.PocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
-                yield return (reader, instance) => MapValue(groupedName.Key.Pos, reader, converter, instance, pocoMember.PocoColumn);
+                yield return (reader, instance) => MapValue(groupedName.Key.Pos, reader, converter, instance, pocoMember.PocoColumn, defaultValue);
             }
         }
 
@@ -129,13 +135,18 @@ namespace NPoco.RowMappers
                 || string.Equals(value, groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase);
         }
 
-        public static bool MapValue(int index, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn)
+        private bool MapValue(int index, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn, object defaultValue)
         {
             if (!reader.IsDBNull(index))
             {
                 var value = converter != null ? converter(reader.GetValue(index)) : reader.GetValue(index);
                 pocoColumn.SetValueFast(instance, value);
                 return true;
+            }
+
+            if (_mappingOntoExistingInstance && defaultValue == null)
+            {
+                pocoColumn.SetValueFast(instance, null);
             }
 
             return false;

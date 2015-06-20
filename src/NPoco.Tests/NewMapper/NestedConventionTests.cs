@@ -283,5 +283,15 @@ from RecursionUser r
                 Assert.AreEqual("Name" + 2, data[i].Supervisor.Supervisor.Name);
             }
         }
+
+        [Test]
+        public void Test19()
+        {
+            var nestedConvention = new NestedConvention() {Name = "Name1"};
+            Database.SingleInto(nestedConvention,  @"
+select null name /*poco_dual*/");
+
+            Assert.AreEqual(null, nestedConvention.Name);
+        }
     }
 }
