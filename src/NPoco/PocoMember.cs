@@ -65,5 +65,12 @@ namespace NPoco
                 _memberAccessor= new MemberAccessor(MemberInfo.DeclaringType, Name);
             _memberAccessor.Set(target, value);
         }
+
+        public object GetValue(object target)
+        {
+            if (_memberAccessor == null)
+                _memberAccessor = new MemberAccessor(MemberInfo.DeclaringType, Name);
+            return _memberAccessor.Get(target);
+        }
     }
 }

@@ -293,5 +293,16 @@ select null name /*poco_dual*/");
 
             Assert.AreEqual(null, nestedConvention.Name);
         }
+
+        [Test]
+        public void Test20()
+        {
+            var nestedConvention = new NestedConvention() { Money = new Money() { Currency = "AUD" } };
+            Database.SingleInto(nestedConvention, @"
+select 22 Money__Value /*poco_dual*/");
+
+            Assert.AreEqual(22, nestedConvention.Money.Value);
+            Assert.AreEqual("AUD", nestedConvention.Money.Currency);
+        }
     }
 }
