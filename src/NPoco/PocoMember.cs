@@ -14,21 +14,7 @@ namespace NPoco
             ReferenceMappingType = ReferenceMappingType.None;
         }
 
-        public PocoMember Clone()
-        {
-            return new PocoMember()
-            {
-                MemberInfo = MemberInfo,
-                PocoMemberChildren = PocoMemberChildren.Select(x => x.Clone()).ToList(),
-                ReferenceMappingType = ReferenceMappingType,
-                ReferenceMemberName = ReferenceMemberName,
-                IsList = IsList,
-                PocoColumn = PocoColumn != null ? PocoColumn.Clone() : null,
-            };
-        }
-
         public string Name { get { return MemberInfo.Name; } }
-        public Type MemberType { get { return MemberInfo.GetMemberInfoType(); } }
         public MemberInfo MemberInfo { get; set; }
         public PocoColumn PocoColumn { get; set; }
         public List<PocoMember> PocoMemberChildren { get; set; }
@@ -39,37 +25,35 @@ namespace NPoco
         public bool IsList { get; set; }
 
         private FastCreate _creator;
+        private MemberAccessor _memberAccessor;
+        private Type _listType;
+
         public object Create()
         {
-            if (_creator == null)
-            {
-                _creator = new FastCreate(IsList
-                                              ? MemberType.GetGenericArguments().First()
-                                              : MemberType);
-            }
-
             return _creator.Create();
         }
 
         public IList CreateList()
         {
-            var listType = typeof(List<>).MakeGenericType(MemberType.GetGenericArguments().First());
-            var list = Activator.CreateInstance(listType);
+            //var listType = typeof(List<>).MakeGenericType(MemberType.GetGenericArguments().First());
+            var list = Activator.CreateInstance(_listType);
             return (IList) list;
         }
 
-        private MemberAccessor _memberAccessor;
+        public void SetMemberAccessor(MemberAccessor memberAccessor, FastCreate fastCreate, Type listType)
+        {
+            _listType = listType;
+            _memberAccessor = memberAccessor;
+            _creator = fastCreate;
+        }
+
         public void SetValue(object target, object value)
         {
-            if (_memberAccessor == null)
-                _memberAccessor= new MemberAccessor(MemberInfo.DeclaringType, Name);
             _memberAccessor.Set(target, value);
         }
 
         public object GetValue(object target)
         {
-            if (_memberAccessor == null)
-                _memberAccessor = new MemberAccessor(MemberInfo.DeclaringType, Name);
             return _memberAccessor.Get(target);
         }
     }

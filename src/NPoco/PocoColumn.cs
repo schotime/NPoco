@@ -45,17 +45,22 @@ namespace NPoco
         public ReferenceMappingType ReferenceMappingType { get; set; }
         public bool ComplexType { get; set; }
 
+        public void SetMemberAccessors(List<MemberAccessor> memberAccessors)
+        {
+            _memberAccessor = memberAccessors.Last();
+            _memberAccessorChain = memberAccessors;
+        }
+
         public virtual void SetValue(object target, object val)
         {
             SetValueFast(target, val);
-            //MemberInfo.SetMemberInfoValue(target, val);
         }
+
         public virtual object GetValue(object target)
         {
-            SetupMemberAccessorChain();
-            foreach (var memberInfo in _memberAccessorChain)
+            foreach (var memberAccessor in _memberAccessorChain)
             {
-                target = target == null ? null : memberInfo.Get(target);
+                target = target == null ? null : memberAccessor.Get(target);
             }
             //foreach (var memberInfo in MemberInfoChain)
             //{
@@ -66,58 +71,14 @@ namespace NPoco
 
         public virtual object ChangeType(object val) { return Convert.ChangeType(val, MemberInfo.GetMemberInfoType()); }
 
-        public virtual void SetValueFast(object target, object val)
+        private void SetValueFast(object target, object val)
         {
-            SetupMemberAccessor();
             _memberAccessor.Set(target, val);
         }
 
-        public virtual object GetValueFast(object target)
+        private object GetValueFast(object target)
         {
-            SetupMemberAccessor();
             return _memberAccessor.Get(target);
-        }
-
-        private void SetupMemberAccessor()
-        {
-            if (_memberAccessor == null)
-                _memberAccessor = new MemberAccessor(MemberInfo.DeclaringType, MemberInfo.Name);
-        }
-
-        private void SetupMemberAccessorChain()
-        {
-            if (_memberAccessorChain.Count == 0)
-            {
-                foreach (var memberInfo in MemberInfoChain)
-                {
-                    _memberAccessorChain.Add(new MemberAccessor(memberInfo.DeclaringType, memberInfo.Name));
-                }
-            }
-
-            if (_memberAccessor == null)
-            {
-                _memberAccessor = _memberAccessorChain.Last();
-            }
-        }
-
-        public PocoColumn Clone()
-        {
-            return new PocoColumn()
-            {
-                TableInfo = TableInfo.Clone(),
-                ForceToUtc = ForceToUtc,
-                ComplexType = ComplexType,
-                MemberInfo = MemberInfo,
-                MemberInfoChain = MemberInfoChain,
-                ColumnAlias = ColumnAlias,
-                VersionColumn = VersionColumn,
-                VersionColumnType = VersionColumnType,
-                ColumnName = ColumnName,
-                ColumnType = ColumnType,
-                ComputedColumn = ComputedColumn,
-                ReferenceMappingType = ReferenceMappingType,
-                ResultColumn = ResultColumn,
-            };
         }
     }
 }

@@ -26,7 +26,8 @@ namespace NPoco
         {
             var constructorInfo = _type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null);
             if (constructorInfo == null)
-                throw new Exception(string.Format("Poco '{0}' has no parameterless constructor", _type.FullName));
+                //    throw new Exception(string.Format("Poco '{0}' has no parameterless constructor", _type.FullName));
+                return () => null;
 
             // var poco=new T()
             var constructor = new DynamicMethod(Guid.NewGuid().ToString(), _type, new Type[0], true);

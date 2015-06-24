@@ -13,14 +13,15 @@ namespace NPoco.Tests.NewMapper
         {
             var fakeReader = new FakeReader();
 
-            var sw = Stopwatch.StartNew();
+            var pocoDataFactory = new PocoDataFactory((IMapper)null);
 
+            var sw = Stopwatch.StartNew();
+            
             for (int j = 0; j < 1000; j++)
             {
-                var newPropertyMapper = new PropertyMapper();
-                var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(NestedConvention));
+                var newPropertyMapper = new PropertyMapper();    
+                var pocoData = pocoDataFactory.ForType(typeof (NestedConvention));
                 newPropertyMapper.Init(fakeReader, pocoData);
-
                 for (int i = 0; i < 1000; i++)
                 {
                     newPropertyMapper.Map(fakeReader, new RowMapperContext() { PocoData = pocoData });

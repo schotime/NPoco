@@ -140,13 +140,13 @@ namespace NPoco.RowMappers
             if (!reader.IsDBNull(index))
             {
                 var value = converter != null ? converter(reader.GetValue(index)) : reader.GetValue(index);
-                pocoColumn.SetValueFast(instance, value);
+                pocoColumn.SetValue(instance, value);
                 return true;
             }
 
             if (_mappingOntoExistingInstance && defaultValue == null)
             {
-                pocoColumn.SetValueFast(instance, null);
+                pocoColumn.SetValue(instance, null);
             }
 
             return false;

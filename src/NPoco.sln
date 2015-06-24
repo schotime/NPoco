@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco", "NPoco\NPoco.csproj", "{BCCBF883-0C0D-40FF-95B6-A2777DFF63DC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco.Tests", "NPoco.Tests\NPoco.Tests.csproj", "{66821E67-2EBC-4497-AFF2-82022F95810C}"

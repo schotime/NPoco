@@ -8,6 +8,7 @@ namespace NPoco
     {
         protected internal Type Type { get; protected set; }
         public IMapper Mapper { get; set; }
+        public FastCreate FastCreate { get; set; }
 
         public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected internal set; }
         public TableInfo TableInfo { get; protected internal set; }
@@ -19,10 +20,11 @@ namespace NPoco
         {
         }
 
-        public PocoData(Type type, IMapper mapper) : this()
+        public PocoData(Type type, IMapper mapper, FastCreate fastCreate) : this()
         {
             Type = type;
             Mapper = mapper;
+            FastCreate = fastCreate;
         }
 
 
@@ -57,7 +59,7 @@ namespace NPoco
             return CreateDelegate.Create();
         }
 
-        private FastCreate CreateDelegate;
+        public FastCreate CreateDelegate { get; set; }
 
     }
 }

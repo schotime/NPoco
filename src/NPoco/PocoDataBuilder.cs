@@ -19,11 +19,19 @@ namespace NPoco
         private delegate PocoMember PocoMemberPlan(TableInfo tableInfo);
         protected delegate TableInfo TableInfoPlan();
 
+        private FastCreate _createPocoDelegate;
+
         public PocoDataBuilder(Type type, IMapper mapper, PocoDataFactory pocoDataFactory)
         {
             Type = type;
             Mapper = mapper;
             PocoDataFactory = pocoDataFactory;
+            _createPocoDelegate = GetFastCreatePocoDelegate(type);
+        }
+
+        private static FastCreate GetFastCreatePocoDelegate(Type type)
+        {
+            return type.IsAClass() ? new FastCreate(type) : null;
         }
 
         public PocoDataBuilder Init()
@@ -48,7 +56,7 @@ namespace NPoco
 
         public PocoData Build()
         {
-            var pocoData = new PocoData(Type, Mapper);
+            var pocoData = new PocoData(Type, Mapper, _createPocoDelegate);
 
             pocoData.TableInfo = _tableInfoPlan();
 
@@ -142,6 +150,12 @@ namespace NPoco
                 MemberInfo capturedMemberInfo = columnInfo.MemberInfo;
                 ColumnInfo capturedColumnInfo = columnInfo;
 
+                var accessors = GetMemberAccessors(members);
+                var memberType = capturedMemberInfo.GetMemberInfoType();
+                var isList = IsList(capturedMemberInfo);
+                var listType = GetListType(memberType, isList);
+                var fastCreate = GetFastCreate(memberType, isList);
+
                 yield return tableInfo =>
                 {
                     var pc = new PocoColumn
@@ -161,23 +175,54 @@ namespace NPoco
                         ComplexType = capturedColumnInfo.ComplexType
                     };
 
+                    pc.SetMemberAccessors(accessors);
+
                     if (mapper != null && !mapper.MapMemberToColumn(capturedMemberInfo, ref pc.ColumnName, ref pc.ResultColumn))
                         return null;
 
                     var childrenTableInfo = childTableInfoPlan == null ? tableInfo : childTableInfoPlan();
                     var children = childrenPlans.Select(plan => plan(childrenTableInfo)).ToList();
 
-                    return new PocoMember()
+                    var pocoMember = new PocoMember()
                     {
                         MemberInfo = capturedMemberInfo,
-                        IsList = IsList(capturedMemberInfo),
+                        IsList = isList,
                         PocoColumn = capturedColumnInfo.ComplexMapping ? null : pc,
                         ReferenceMappingType = capturedColumnInfo.ReferenceMappingType,
                         ReferenceMemberName = capturedColumnInfo.ReferenceMemberName,
                         PocoMemberChildren = children,
                     };
+
+                    pocoMember.SetMemberAccessor(accessors[accessors.Count-1], fastCreate, listType);
+
+                    return pocoMember;
                 };
             }
+        }
+
+        private static FastCreate GetFastCreate(Type memberType, bool isList)
+        {
+            return memberType.IsAClass() && !memberType.IsArray
+                       ? (new FastCreate(isList
+                                             ? memberType.GetGenericArguments().First()
+                                             : memberType))
+                       : null;
+        }
+
+        private static Type GetListType(Type memberType, bool isList)
+        {
+            return memberType.IsAClass() && !memberType.IsArray
+                       ? (isList 
+                              ? typeof(List<>).MakeGenericType(memberType.GetGenericArguments().First()) 
+                              : null)
+                       : null;
+        }
+
+        public List<MemberAccessor> GetMemberAccessors(IEnumerable<MemberInfo> memberInfos)
+        {
+            return memberInfos
+                .Select(memberInfo => new MemberAccessor(memberInfo.DeclaringType, memberInfo.Name))
+                .ToList();
         }
 
         public static bool IsList(MemberInfo mi)
