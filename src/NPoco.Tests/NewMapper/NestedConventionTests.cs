@@ -304,5 +304,14 @@ select 22 Money__Value /*poco_dual*/");
             Assert.AreEqual(22, nestedConvention.Money.Value);
             Assert.AreEqual("AUD", nestedConvention.Money.Currency);
         }
+
+        [Test]
+        public void Test21()
+        {
+            var data = Database.Fetch(typeof(NestedConvention), "select 'Name' Name, 23 money__value, 'AUD' money__currency /*poco_dual*/").Cast<NestedConvention>().Single();
+            Assert.AreEqual("Name", data.Name);
+            Assert.AreEqual(23, data.Money.Value);
+            Assert.AreEqual("AUD", data.Money.Currency);
+        }
     }
 }

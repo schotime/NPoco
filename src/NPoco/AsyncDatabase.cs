@@ -205,7 +205,7 @@ namespace NPoco
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
-            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
+            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
 
             try
             {
@@ -223,7 +223,7 @@ namespace NPoco
                         throw;
                     }
 
-                    return listExpression != null ? ReadOneToMany(instance, r, listExpression, idFunc) : Read(instance, r);
+                    return listExpression != null ? ReadOneToMany(instance, r, listExpression, idFunc) : Read<T>(typeof(T), instance, r);
                 }
             }
             catch

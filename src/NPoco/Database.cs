@@ -757,7 +757,7 @@ namespace NPoco
         {
             // Add auto select clause
             if (EnableAutoSelect)
-                sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
+                sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
 
             // Split the SQL
             PagingHelper.SQLParts parts;
@@ -848,13 +848,13 @@ namespace NPoco
             return Query(default(T), Sql);
         }
 
-        private IEnumerable<T> Read<T>(T instance, IDataReader r)
+        private IEnumerable<T> Read<T>(Type type, object instance, IDataReader r)
         {
             try
             {
                 using (r)
                 {
-                    var pd = PocoDataFactory.ForType(typeof(T));
+                    var pd = PocoDataFactory.ForType(type);
                     var factory = new NewMappingFactory(pd, r);
                     while (true)
                     {
@@ -862,7 +862,7 @@ namespace NPoco
                         try
                         {
                             if (!r.Read()) yield break;
-                            poco = (T) factory.Map(r, instance);
+                            poco = (T)factory.Map(r, instance);
                         }
                         catch (Exception x)
                         {
@@ -957,30 +957,35 @@ namespace NPoco
             return QueryImp(instance, null, null, Sql);
         }
 
-        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Func<T, object[]> idFunc, Sql Sql)
+        public List<object> Fetch(Type type, string sql, params object[] args)
+        {
+            return Fetch(type, new Sql(sql, args));
+        }
+
+        public List<object> Fetch(Type type, Sql Sql)
+        {
+            return Query(type, Sql).ToList();
+        }
+
+        public IEnumerable<object> Query(Type type, string sql, params object[] args)
+        {
+            return Query(type, new Sql(sql, args));
+        }
+
+        public IEnumerable<object> Query(Type type, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
-            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
+            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, type, sql);
 
             try
             {
                 OpenSharedConnectionInternal();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
-                    IDataReader r;
-                    try
-                    {
-                        r = ExecuteReaderHelper(cmd);
-                    }
-                    catch (Exception x)
-                    {
-                        OnException(x);
-                        throw;
-                    }
-
-                    var read = listExpression != null ? ReadOneToMany(instance, r, listExpression, idFunc) : Read(instance, r);
+                    var r = ExecuteDataReader(cmd);
+                    var read = Read<object>(type, null, r);
                     foreach (var item in read)
                     {
                         yield return item;
@@ -991,6 +996,47 @@ namespace NPoco
             {
                 CloseSharedConnectionInternal();
             }
+        }
+
+        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Func<T, object[]> idFunc, Sql Sql)
+        {
+            var sql = Sql.SQL;
+            var args = Sql.Arguments;
+
+            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, typeof (T), sql);
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                {
+                    var r = ExecuteDataReader(cmd);
+                    var read = listExpression != null ? ReadOneToMany(instance, r, listExpression, idFunc) : Read<T>(typeof(T), instance, r);
+                    foreach (var item in read)
+                    {
+                        yield return item;
+                    }
+                }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
+        private IDataReader ExecuteDataReader(IDbCommand cmd)
+        {
+            IDataReader r;
+            try
+            {
+                r = ExecuteReaderHelper(cmd);
+            }
+            catch (Exception x)
+            {
+                OnException(x);
+                throw;
+            }
+            return r;
         }
 
         public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Sql sql)
@@ -1076,17 +1122,7 @@ namespace NPoco
                 OpenSharedConnectionInternal();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
-                    IDataReader r;
-                    try
-                    {
-                        r = ExecuteReaderHelper(cmd);
-                    }
-                    catch (Exception x)
-                    {
-                        OnException(x);
-                        throw;
-                    }
-
+                    var r = ExecuteDataReader(cmd);
                     using (r)
                     {
                         var typeIndex = 1;

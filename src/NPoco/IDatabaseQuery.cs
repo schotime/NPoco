@@ -18,6 +18,12 @@ namespace NPoco
         int Execute(Sql sql);
         T ExecuteScalar<T>(string sql, params object[] args);
         T ExecuteScalar<T>(Sql sql);
+
+        List<object> Fetch(Type type, string sql, params object[] args);
+        List<object> Fetch(Type type, Sql Sql);
+        IEnumerable<object> Query(Type type, string sql, params object[] args);
+        IEnumerable<object> Query(Type type, Sql Sql);
+
         List<T> Fetch<T>();
         List<T> Fetch<T>(string sql, params object[] args);
         List<T> Fetch<T>(Sql sql);
