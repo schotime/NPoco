@@ -769,7 +769,7 @@ namespace NPoco
         {
             // Add auto select clause
             if (EnableAutoSelect)
-                sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
+                sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
 
             // Split the SQL
             PagingHelper.SQLParts parts;
@@ -857,7 +857,27 @@ namespace NPoco
 
         public IEnumerable<T> Query<T>(Sql Sql)
         {
-            return Query(default(T), Sql);
+            return Query(typeof(T), default(T), Sql).Cast<T>();
+        }
+
+        public IEnumerable<object> Query(Type type, string sql, params object[] args)
+        {
+            return Query(type, new Sql(sql, args));
+        }
+
+        public IEnumerable<object> Query(Type type, Sql sql)
+        {
+            return Query(type, (object) null, sql);
+        }
+
+        public IEnumerable<object> Fetch(Type type, string sql, params object[] args)
+        {
+            return Query(type, sql, args).ToList();
+        }
+
+        public IEnumerable<object> Fetch(Type type, Sql sql)
+        {
+            return Query(type, sql).ToList();
         }
 
         private IEnumerable<TRet> Read<TRet>(Type[] types, Delegate cb, IDataReader r)
@@ -912,21 +932,21 @@ namespace NPoco
             }
         }
 
-        private IEnumerable<T> Read<T>(T instance, IDataReader r)
+        private IEnumerable<T> Read<T>(Type type, object instance, IDataReader r)
         {
             try
             {
                 using (r)
                 {
-                    var pd = PocoDataFactory.ForType(typeof(T));
-                    var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
+                    var pd = PocoDataFactory.ForType(type);
+                    var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, object, object>;
                     while (true)
                     {
                         T poco;
                         try
                         {
                             if (!r.Read()) yield break;
-                            poco = factory(r, instance);
+                            poco = (T) factory(r, instance);
                         }
                         catch (Exception x)
                         {
@@ -949,12 +969,12 @@ namespace NPoco
             return new QueryProvider<T>(this);
         }
 
-        private IEnumerable<T> Query<T>(T instance, Sql Sql)
+        private IEnumerable<object> Query(Type type, object instance, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
-            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause<T>(this, sql);
+            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, type, sql);
 
             try
             {
@@ -962,7 +982,7 @@ namespace NPoco
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
                     IDataReader r;
-                    var pd = PocoDataFactory.ForType(typeof(T));
+                    var pd = PocoDataFactory.ForType(type);
                     try
                     {
                         r = ExecuteReaderHelper(cmd);
@@ -975,10 +995,10 @@ namespace NPoco
 
                     using (r)
                     {
-                        var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, T, T>;
+                        var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, instance) as Func<IDataReader, object, object>;
                         while (true)
                         {
-                            T poco;
+                            object poco;
                             try
                             {
                                 if (!r.Read()) yield break;
@@ -1319,7 +1339,7 @@ namespace NPoco
         }
         public T SingleInto<T>(T instance, string sql, params object[] args)
         {
-            return Query(instance, new Sql(sql, args)).Single();
+            return Query(typeof(T), instance, new Sql(sql, args)).Cast<T>().Single();
         }
         public T SingleOrDefault<T>(string sql, params object[] args)
         {
@@ -1327,7 +1347,7 @@ namespace NPoco
         }
         public T SingleOrDefaultInto<T>(T instance, string sql, params object[] args)
         {
-            return Query(instance, new Sql(sql, args)).SingleOrDefault();
+            return Query(typeof(T), instance, new Sql(sql, args)).Cast<T>().SingleOrDefault();
         }
         public T First<T>(string sql, params object[] args)
         {
@@ -1335,7 +1355,7 @@ namespace NPoco
         }
         public T FirstInto<T>(T instance, string sql, params object[] args)
         {
-            return Query(instance, new Sql(sql, args)).First();
+            return Query(typeof(T), instance, new Sql(sql, args)).Cast<T>().First();
         }
         public T FirstOrDefault<T>(string sql, params object[] args)
         {
@@ -1343,7 +1363,7 @@ namespace NPoco
         }
         public T FirstOrDefaultInto<T>(T instance, string sql, params object[] args)
         {
-            return Query(instance, new Sql(sql, args)).FirstOrDefault();
+            return Query(typeof(T), instance, new Sql(sql, args)).Cast<T>().FirstOrDefault();
         }
         public T Single<T>(Sql sql)
         {
@@ -1351,7 +1371,7 @@ namespace NPoco
         }
         public T SingleInto<T>(T instance, Sql sql)
         {
-            return Query(instance, sql).Single();
+            return Query(typeof(T), instance, sql).Cast<T>().Single();
         }
         public T SingleOrDefault<T>(Sql sql)
         {
@@ -1359,7 +1379,7 @@ namespace NPoco
         }
         public T SingleOrDefaultInto<T>(T instance, Sql sql)
         {
-            return Query(instance, sql).SingleOrDefault();
+            return Query(typeof(T), instance, sql).Cast<T>().SingleOrDefault();
         }
         public T First<T>(Sql sql)
         {
@@ -1367,7 +1387,7 @@ namespace NPoco
         }
         public T FirstInto<T>(T instance, Sql sql)
         {
-            return Query(instance, sql).First();
+            return Query(typeof(T), instance, sql).Cast<T>().First();
         }
         public T FirstOrDefault<T>(Sql sql)
         {
@@ -1375,7 +1395,7 @@ namespace NPoco
         }
         public T FirstOrDefaultInto<T>(T instance, Sql sql)
         {
-            return Query(instance, sql).FirstOrDefault();
+            return Query(typeof(T), instance, sql).Cast<T>().FirstOrDefault();
         }
 
         // Insert an annotated poco object

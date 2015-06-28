@@ -67,6 +67,10 @@ namespace NPoco
         Page<T1> Page<T1, T2, T3, T4>(long page, long itemsPerpage, Sql sql);
         IEnumerable<T> Query<T>(string sql, params object[] args);
         IEnumerable<T> Query<T>(Sql sql);
+        IEnumerable<object> Query(Type type, string sql, params object[] args);
+        IEnumerable<object> Query(Type type, Sql sql);
+        IEnumerable<object> Fetch(Type type, string sql, params object[] args);
+        IEnumerable<object> Fetch(Type type, Sql sql);
         IQueryProviderWithIncludes<T> Query<T>();
         T SingleById<T>(object primaryKey);
         T SingleOrDefaultById<T>(object primaryKey);
