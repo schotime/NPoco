@@ -7,7 +7,7 @@ namespace NPoco
     public class PagingHelper
     {
         public static Regex rxColumns = new Regex(@"\A\s*SELECT\s+((?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|.)*?)(?<!,\s+)\bFROM\b", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-        public static Regex rxOrderBy = new Regex(@"ORDER\s+BY\s+([\w\.\[\] ""`,]+)(?!.*\))", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
+        public static Regex rxOrderBy = new Regex(@"(?!.*(?:FROM))ORDER\s+BY\s+([\w\.\[\]\(\) ""`,]+)(?!.*\))", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
 
         public struct SQLParts
         {
@@ -46,7 +46,7 @@ namespace NPoco
                 parts.sqlUnordered = rxOrderBy.Replace(parts.sqlUnordered, "", 1, m.Index);
             }
 
-            parts.sqlCount = string.Format(@"SELECT COUNT(*) FROM ({0}) peta_tbl", parts.sqlUnordered);
+            parts.sqlCount = string.Format(@"SELECT COUNT(*) FROM ({0}) npoco_tbl", parts.sqlUnordered);
 
             return true;
         }
