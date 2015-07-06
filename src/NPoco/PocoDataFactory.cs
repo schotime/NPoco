@@ -7,7 +7,7 @@ namespace NPoco
     {
         private readonly IMapper _mapper;
         private readonly Cache<Type, PocoData> _pocoDatas = Cache<Type, PocoData>.CreateStaticCache();
-        private readonly Cache<string, Type> _aliasToType = Cache<string, Type>.CreateStaticCache();
+        private static readonly Cache<string, Type> _aliasToType = Cache<string, Type>.CreateStaticCache();
 
         public PocoDataFactory(IMapper mapper)
         {
