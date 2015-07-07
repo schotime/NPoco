@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -101,6 +102,22 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             var verify = Database.Single<UserDecoratedWithNullable>("select * from users where userid = @0", user.UserId);
             Assert.AreEqual(user.Name, verify.Name);
             Assert.AreEqual(user.Age, verify.Age);
+        }
+
+        [Test]
+        public void InsertBatch()
+        {
+            var users = Enumerable.Range(0, 50).Select(x => new UserDecoratedWithNullable
+            {
+                Name = "Name" + x,
+                Age = x + 1
+            });
+
+            Database.InsertBatch(users, new BatchOptions() { BatchSize = 22 });
+
+            var result = Database.Query<UserDecorated>().Count();
+
+            Assert.AreEqual(65, result);
         }
     }
 }
