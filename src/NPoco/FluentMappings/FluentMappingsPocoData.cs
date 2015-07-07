@@ -7,8 +7,9 @@ namespace NPoco.FluentMappings
 {
     public class FluentMappingsPocoData : PocoData
     {
-        public FluentMappingsPocoData(Type t, TypeDefinition typeConfig, IMapper mapper)
+        public FluentMappingsPocoData(Type t, TypeDefinition typeConfig, IMapper mapper, Cache<string, Type> aliasCache)
         {
+            AliasToType = aliasCache;
             Mapper = mapper;
             type = t;
             TableInfo = new TableInfo();
