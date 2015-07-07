@@ -30,6 +30,7 @@ namespace NPoco
         System.Threading.Tasks.Task<int> DeleteAsync(object poco);
 #endif
         void InsertBulk<T>(IEnumerable<T> pocos);
+        void InsertBatch<T>(IEnumerable<T> pocos, BatchOptions options = null);
         int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
         int Update(string tableName, string primaryKeyName, object poco);
         int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns);

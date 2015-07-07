@@ -70,6 +70,8 @@
     <Compile Include="AsyncDatabase.cs" />
     <Compile Include="AutoSelectHelper.cs" />
     <Compile Include="Base62.cs" />
+    <Compile Include="BatchingExtensions.cs" />
+    <Compile Include="BatchOptions.cs" />
     <Compile Include="Cache.cs" />
     <Compile Include="AliasAttribute.cs" />
     <Compile Include="ColumnAttribute.cs" />

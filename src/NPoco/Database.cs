@@ -1455,6 +1455,43 @@ namespace NPoco
             }
         }
 
+        public void InsertBatch<T>(IEnumerable<T> pocos, BatchOptions options = null)
+        {
+            options = options ?? new BatchOptions();
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                
+                var pd = PocoDataFactory.ForType(typeof(T));
+
+                foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
+                {
+                    var preparedInserts = batchedPocos.Select(x => InsertStatements.PrepareInsertSql(this, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey,pd.TableInfo.AutoIncrement, x)).ToArray();
+
+                    var sql = new Sql();
+                    foreach (var preparedInsertSql in preparedInserts)
+                    {
+                        sql.Append(options.StatementSeperator + "\n" + preparedInsertSql.Sql, preparedInsertSql.Rawvalues.ToArray());
+                    }
+                    
+                    using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
+                    {
+                        ExecuteNonQueryHelper(cmd);
+                    }
+                }
+            }
+            catch (Exception x)
+            {
+                OnException(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
         public void InsertBulk<T>(IEnumerable<T> pocos)
         {
             try
