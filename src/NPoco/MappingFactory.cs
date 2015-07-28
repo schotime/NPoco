@@ -140,7 +140,7 @@ namespace NPoco
                             il.Emit(OpCodes.Callvirt, fnInvoke);
 
                         il.MarkLabel(lblFin);
-                        il.Emit(OpCodes.Unbox_Any, _pocoData.type);								// value converted
+                        il.Emit(OpCodes.Castclass, _pocoData.type);								// value converted
                     }
                     else if (_pocoData.type == typeof(Dictionary<string, object>))
                     {
