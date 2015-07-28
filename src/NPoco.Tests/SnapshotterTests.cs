@@ -114,7 +114,7 @@ namespace NPoco.Tests
             {
                 Phone = new SnapshotOnClass.PhoneClass()
                 {
-                    Value = "2"
+                    Value = "2" + (char)22
                 }
             };
             var snap = _database.StartSnapshot(user);

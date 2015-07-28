@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Text;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace NPoco
@@ -122,9 +124,13 @@ namespace NPoco
         {
             using (var ms = new MemoryStream())
             {
-                XmlSerializer xs = new XmlSerializer(o.GetTheType());
-                xs.Serialize(ms, o);
-                return ms.ToArray();
+                var settings = new XmlWriterSettings { OmitXmlDeclaration = true, CheckCharacters = false };
+                var xs = new XmlSerializer(o.GetTheType());
+                using (var writer = XmlWriter.Create(ms, settings))
+                {
+                    xs.Serialize(writer, o);
+                    return ms.ToArray();
+                }
             }
         }
 
@@ -132,8 +138,12 @@ namespace NPoco
         {
             using (var ms = new MemoryStream(bytes))
             {
-                XmlSerializer xs = new XmlSerializer(typeof(U));
-                return (U)xs.Deserialize(ms);
+                var settings = new XmlReaderSettings { CheckCharacters = false };
+                var xs = new XmlSerializer(typeof(U));
+                using (var reader = XmlReader.Create(ms, settings))
+                {
+                    return (U) xs.Deserialize(reader);
+                }
             }
         }
 
