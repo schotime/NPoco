@@ -1328,7 +1328,7 @@ namespace NPoco
             var index = 0;
             var pd = PocoDataFactory.ForType(typeof (T));
             var primaryKeyValuePairs = ProcessMapper(pd, GetPrimaryKeyValues(pd.TableInfo.PrimaryKey, primaryKey));
-            var sql = string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
+            var sql = AutoSelectHelper.AddSelectClause(this, typeof(T), string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)));
             var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
             return new Sql(true, sql, args);
         }
