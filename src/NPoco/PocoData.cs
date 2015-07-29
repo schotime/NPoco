@@ -31,13 +31,14 @@ namespace NPoco
             _mappingFactory = new MappingFactory(this);
         }
 
-        public PocoData(Type t, IMapper mapper, Cache<string, Type> aliasToTypeCache) : this()
+        public PocoData(Type t, IMapper mapper, Cache<string, Type> aliasToTypeCache)
         {
+            _mappingFactory = new MappingFactory(this);
             AliasToType = aliasToTypeCache;
             type = t;
             Mapper = mapper;
             TableInfo = TableInfo.FromPoco(t);
-
+            
             // Call column mapper
             if (Mapper != null)
                 Mapper.GetTableInfo(t, TableInfo);
