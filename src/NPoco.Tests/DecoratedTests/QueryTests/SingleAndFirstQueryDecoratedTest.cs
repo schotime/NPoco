@@ -13,7 +13,10 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         [Test]
         public void SingleOrDefaultById()
         {
+            var old = ((Database) Database).EnableAutoSelect;
+            ((Database) Database).EnableAutoSelect = false;
             var user = Database.SingleOrDefaultById<UserDecorated>(1);
+            ((Database)Database).EnableAutoSelect = old;
 
             Assert.NotNull(user);
             AssertUserValues(InMemoryUsers[0], user);
