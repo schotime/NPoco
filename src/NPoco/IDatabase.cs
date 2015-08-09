@@ -49,8 +49,8 @@ namespace NPoco
         int Delete<T>(Sql sql);
         int Delete<T>(object pocoOrPrimaryKey);
         IDeleteQueryProvider<T> DeleteMany<T>();
-        void Save<T>(object poco);
-        bool IsNew<T>(object poco);
+        void Save<T>(T poco);
+        bool IsNew<T>(T poco);
     }
 
     public interface IDatabaseConfig

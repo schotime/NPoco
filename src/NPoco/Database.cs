@@ -770,7 +770,7 @@ namespace NPoco
         // Fetch a page	
         public Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
-            return Page<T>(typeof(T), null, page, itemsPerPage, sql, args);
+            return Page<T>(typeof(T), page, itemsPerPage, sql, args);
         }
 
         public Page<T> Page<T>(long page, long itemsPerPage, Sql sql)
@@ -1059,7 +1059,7 @@ namespace NPoco
             return FetchOneToMany(many, idFunc, new Sql(sql, args));
         }
 
-        public Page<T> Page<T>(Type type, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
+        public Page<T> Page<T>(Type type, long page, long itemsPerPage, string sql, params object[] args)
         {
             return PageImp<T, Page<T>>(type, page, itemsPerPage, sql, args, (paged, thetypes, thesql) =>
             {
@@ -1647,7 +1647,7 @@ namespace NPoco
         }
 
         /// <summary>Checks if a poco represents a new record.</summary>
-        public bool IsNew<T>(object poco)
+        public bool IsNew<T>(T poco)
         {
 #if !POCO_NO_DYNAMIC
             if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
@@ -1703,7 +1703,7 @@ namespace NPoco
         }
 
         // Insert new record or Update existing record
-        public void Save<T>(object poco)
+        public void Save<T>(T poco)
         {
             var pd = PocoDataFactory.ForType(poco.GetType());
             if (IsNew<T>(poco))

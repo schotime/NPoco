@@ -29,7 +29,7 @@ namespace NPoco
             return sourceMemberInfo != null ? GetToDbConverter(destType, type) : null;
         }
 
-        public virtual Func<object, object> GetToDbConverter(Type destType, Type SourceType)
+        public virtual Func<object, object> GetToDbConverter(Type destType, Type sourceType)
         {
             return null;
         }

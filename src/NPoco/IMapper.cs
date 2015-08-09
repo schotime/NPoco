@@ -10,7 +10,7 @@ namespace NPoco
         Func<object, object> GetFromDbConverter(MemberInfo mi, Type sourceType);
         Func<object, object> GetFromDbConverter(Type destType, Type sourceType);
         Func<object, object> GetParameterConverter(Type sourceType);
-        Func<object, object> GetToDbConverter(Type destType, Type SourceType);
+        Func<object, object> GetToDbConverter(Type destType, Type sourceType);
         Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo);
     }
 }

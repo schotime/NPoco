@@ -70,7 +70,7 @@ namespace NPoco.Tests.Common
 
     public class UserWithExtraInfo : User
     {
-        public ExtraUserInfo ExtraUserInfo { get; set; }
+        public new ExtraUserInfo ExtraUserInfo { get; set; }
     }
 
     public class UserWithNoParamConstructor : User

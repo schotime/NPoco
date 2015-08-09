@@ -22,6 +22,7 @@ namespace NPoco.Linq
         bool Any();
         bool Any(Expression<Func<T, bool>> whereExpression);
         List<T> ToList();
+        T[] ToArray();
         IEnumerable<T> ToEnumerable();
 #if !POCO_NO_DYNAMIC
         List<dynamic> ToDynamicList();
@@ -33,6 +34,7 @@ namespace NPoco.Linq
         List<T> Distinct();
 #if NET45
         System.Threading.Tasks.Task<List<T>> ToListAsync();
+        System.Threading.Tasks.Task<T[]> ToArrayAsync();
         System.Threading.Tasks.Task<IEnumerable<T>> ToEnumerableAsync();
         System.Threading.Tasks.Task<T> FirstOrDefaultAsync();
         System.Threading.Tasks.Task<T> FirstAsync();
@@ -326,6 +328,11 @@ namespace NPoco.Linq
             return ExecuteQuery(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params)).ToList();
         }
 
+        public T[] ToArray()
+        {
+            return ToEnumerable().ToArray();
+        }
+
         public List<T> ToList()
         {
             return ToEnumerable().ToList();
@@ -369,6 +376,11 @@ namespace NPoco.Linq
         public async System.Threading.Tasks.Task<List<T>> ToListAsync()
         {
             return (await ToEnumerableAsync().ConfigureAwait(false)).ToList();
+        }
+
+        public async System.Threading.Tasks.Task<T[]> ToArrayAsync()
+        {
+            return (await ToEnumerableAsync().ConfigureAwait(false)).ToArray();
         }
 
         public System.Threading.Tasks.Task<IEnumerable<T>> ToEnumerableAsync()
@@ -452,14 +464,24 @@ namespace NPoco.Linq
 
         public IQueryProvider<T> Limit(int rows)
         {
+            ThrowIfOneToMany();
             _sqlExpression = _sqlExpression.Limit(rows);
             return this;
         }
 
         public IQueryProvider<T> Limit(int skip, int rows)
         {
+            ThrowIfOneToMany();
             _sqlExpression = _sqlExpression.Limit(skip, rows);
             return this;
+        }
+
+        private void ThrowIfOneToMany()
+        {
+            if (_listExpression != null)
+            {
+                throw new NotImplementedException("One to many queries with paging is not implemented");
+            }
         }
 
         public IQueryProvider<T> OrderBy(Expression<Func<T, object>> column)

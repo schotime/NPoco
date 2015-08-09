@@ -92,7 +92,7 @@ namespace NPoco.FluentMappings
                 if (typeConfig.ColumnConfiguration[key].ReferenceMember != null)
                     columnInfo.ReferenceMemberName = typeConfig.ColumnConfiguration[key].ReferenceMember.Name;
             }
-            else if (typeConfig.ColumnConfiguration[key].ComplexType)
+            else if (isColumnDefined && typeConfig.ColumnConfiguration[key].ComplexType)
             {
                 columnInfo.ComplexType = true;
             }
