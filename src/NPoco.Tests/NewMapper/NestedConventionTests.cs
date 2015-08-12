@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using NPoco.Expressions;
+using NPoco.Linq;
 using NPoco.Tests.Common;
 using NPoco.Tests.NewMapper.Models;
 using NUnit.Framework;
@@ -238,6 +239,20 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
                 .Where("RU4.Id in (@list)", new { list = new[] { 1, 3 } })
                 .ToList();
 
+            Database.Query<RecursionUser>()
+                .Where(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z=>z)), new { list = new[] { 1, 3 } }))
+                .ToList();
+
+            Database.Query<RecursionUser>()
+                .Include(x => x.CreatedBy)
+                .Where(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z => z.CreatedBy)), new { list = new[] { 1, 3 } }))
+                .ToList();
+
+            Database.Query<RecursionUser>()
+                .Include(x => x.CreatedBy)
+                .IncludeSecurity()
+                .ToList();
+
             Assert.AreEqual(2, users.Count);
         }
 
@@ -313,5 +328,13 @@ select 22 Money__Value /*poco_dual*/");
             Assert.AreEqual(23, data.Money.Value);
             Assert.AreEqual("AUD", data.Money.Currency);
         }
+    }
+
+    public static class Ext
+    {
+        public static IQueryProvider<RecursionUser> IncludeSecurity(this IQueryProvider<RecursionUser> query)
+        {
+            return query.Where(x => new Sql(string.Format("exists (select 1 from {1} where Id = {0}.Id)", x.DatabaseType.EscapeTableName(x.GetAliasFor(z=>z.CreatedBy)), x.GetPocoDataFor<RecursionUser>().TableInfo.TableName)));
+        }    
     }
 }

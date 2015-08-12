@@ -8,6 +8,7 @@ namespace NPoco.Linq
     {
         public string OnSql { get; set; }
         public PocoMember PocoMember { get; set; }
+        public PocoMember PocoMemberJoin { get; set; }
         public List<PocoMember> PocoMembers { get; set; }
     }
 }

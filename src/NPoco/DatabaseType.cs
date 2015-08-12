@@ -30,7 +30,7 @@ namespace NPoco
         public DatabaseType()
         {
             typeMap = new Dictionary<Type, DbType>();
-            typeMap[typeof(byte)] = DbType.Byte;
+            typeMap[typeof(byte)] = DbType.Byte; 
             typeMap[typeof(sbyte)] = DbType.SByte;
             typeMap[typeof(short)] = DbType.Int16;
             typeMap[typeof(ushort)] = DbType.UInt16;

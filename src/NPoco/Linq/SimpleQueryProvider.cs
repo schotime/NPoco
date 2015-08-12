@@ -52,6 +52,7 @@ namespace NPoco.Linq
         IQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
         IQueryProvider<T> Where(string sql, params object[] args);
         IQueryProvider<T> Where(Sql sql);
+        IQueryProvider<T> Where(Func<QueryContext<T>, Sql> queryBuilder);
         IQueryProvider<T> OrderBy(Expression<Func<T, object>> column);
         IQueryProvider<T> OrderByDescending(Expression<Func<T, object>> column);
         IQueryProvider<T> ThenBy(Expression<Func<T, object>> column);
@@ -112,7 +113,8 @@ namespace NPoco.Linq
 
         public IQueryProviderWithIncludes<T> UsingAlias(string tableAlias)
         {
-            _pocoData.TableInfo.AutoAlias = string.IsNullOrEmpty(tableAlias) ? null : tableAlias;
+            if (!string.IsNullOrWhiteSpace(tableAlias))
+                _pocoData.TableInfo.AutoAlias = tableAlias;
             return this;
         }
 
@@ -143,7 +145,8 @@ namespace NPoco.Linq
                     _joinSqlExpressions.Add(onSql, new JoinData()
                     {
                         OnSql = onSql,
-                        PocoMember = pocoMember2,
+                        PocoMember = pocoMember,
+                        PocoMemberJoin = pocoMember2,
                         PocoMembers = pocoMember.PocoMemberChildren,
                     });
                 }
@@ -460,6 +463,12 @@ namespace NPoco.Linq
         {
             _sqlExpression = _sqlExpression.Where(sql.SQL, sql.Arguments);
             return this;
+        }
+
+        public IQueryProvider<T> Where(Func<QueryContext<T>, Sql> queryBuilder)
+        {
+            var sql = queryBuilder(new QueryContext<T>(_database, _pocoData, _joinSqlExpressions));
+            return Where(sql);
         }
 
         public IQueryProvider<T> Limit(int rows)

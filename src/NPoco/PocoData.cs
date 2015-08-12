@@ -6,9 +6,8 @@ namespace NPoco
 {
     public class PocoData
     {
-        protected internal Type Type { get; protected set; }
-        public IMapper Mapper { get; set; }
-        public FastCreate FastCreate { get; set; }
+        public Type Type { get; private set; }
+        public IMapper Mapper { get; private set; }
 
         public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected internal set; }
         public TableInfo TableInfo { get; protected internal set; }
@@ -20,14 +19,12 @@ namespace NPoco
         {
         }
 
-        public PocoData(Type type, IMapper mapper, FastCreate fastCreate) : this()
+        public PocoData(Type type, IMapper mapper) : this()
         {
             Type = type;
             Mapper = mapper;
-            FastCreate = fastCreate;
         }
-
-
+        
         public object[] GetPrimaryKeyValues(object obj)
         {
             return PrimaryKeyValues(obj);
@@ -59,7 +56,7 @@ namespace NPoco
             return CreateDelegate.Create();
         }
 
-        public FastCreate CreateDelegate { get; set; }
+        private FastCreate CreateDelegate { get; set; }
 
     }
 }

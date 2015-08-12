@@ -119,7 +119,7 @@ namespace NPoco.Linq
 
             foreach (var joinSqlExpression in joinSqlExpressions)
             {
-                var member = joinSqlExpression.PocoMember;
+                var member = joinSqlExpression.PocoMemberJoin;
 
                 cols = cols.Concat(joinSqlExpression.PocoMembers
                     .Where(x => x.ReferenceMappingType == ReferenceMappingType.None)

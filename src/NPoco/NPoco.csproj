@@ -111,6 +111,7 @@
     <Compile Include="Linq\JoinData.cs" />
     <Compile Include="Linq\QueryBuilder.cs" />
     <Compile Include="Linq\QueryBuilderData.cs" />
+    <Compile Include="Linq\QueryContext.cs" />
     <Compile Include="Linq\SimpleQueryProvider.cs" />
     <Compile Include="Linq\UpdateQueryProvider.cs" />
     <Compile Include="DefaultMapper.cs" />

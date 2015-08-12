@@ -56,7 +56,7 @@ namespace NPoco
 
         public PocoData Build()
         {
-            var pocoData = new PocoData(Type, Mapper, _createPocoDelegate);
+            var pocoData = new PocoData(Type, Mapper);
 
             pocoData.TableInfo = _tableInfoPlan();
 
