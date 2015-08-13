@@ -113,7 +113,7 @@ namespace NPoco.Linq
 
         public IQueryProviderWithIncludes<T> UsingAlias(string tableAlias)
         {
-            if (!string.IsNullOrWhiteSpace(tableAlias))
+            if (!string.IsNullOrEmpty(tableAlias))
                 _pocoData.TableInfo.AutoAlias = tableAlias;
             return this;
         }

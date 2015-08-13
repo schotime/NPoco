@@ -7,7 +7,7 @@ namespace NPoco
 {
     public class NewMappingFactory
     {
-        public static List<IRowMapper> RowMappers { get; } 
+        public static List<IRowMapper> RowMappers { get; private set; } 
         private readonly PocoData _pocoData;
         private readonly IRowMapper _rowMapper;
 
