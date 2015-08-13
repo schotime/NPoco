@@ -203,6 +203,15 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         }
 
         [Test]
+        public void SingleOrDefaultFromStringToMissingEnumThrowsException()
+        {
+            Assert.Throws<Exception>(() =>
+            {
+                Database.SingleOrDefault<UserWithNullableId>("select 'John' nameenum from users u where u.userid = 1");
+            });
+        }
+
+        [Test]
         public void SingleOrDefaultFromIntToByteEnum()
         {
             var user = Database.SingleOrDefault<UserWithNullableId>("select 2 days from users u where u.userid = 1");

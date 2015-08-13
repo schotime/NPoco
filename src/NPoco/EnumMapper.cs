@@ -11,10 +11,14 @@ namespace NPoco
         readonly Dictionary<Type, Dictionary<string, object>> _stringsToEnums = new Dictionary<Type, Dictionary<string, object>>();
         readonly Dictionary<Type, Dictionary<int, string>> _enumNumbersToStrings = new Dictionary<Type, Dictionary<int, string>>();
         readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
-
+        
         public object EnumFromString(Type type, string value)
         {
             PopulateIfNotPresent(type);
+            if (!_stringsToEnums[type].ContainsKey(value))
+            {
+                throw new Exception(string.Format("The value '{0}' could not be found for Enum '{1}'", value, type));
+            }
             return _stringsToEnums[type][value];
         }
 
