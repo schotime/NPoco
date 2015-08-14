@@ -93,7 +93,7 @@ namespace NPoco.Tests.Common
                     Is_Male tinyint,
                     UniqueId uniqueidentifier NULL,
                     TimeSpan time NULL,
-                    TestEnum varchar(10) NULL,
+                    TestEnum nvarchar(10) NULL,
                     HouseId int NULL,
                     SupervisorId int NULL,
                     Version rowversion,

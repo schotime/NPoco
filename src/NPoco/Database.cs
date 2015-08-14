@@ -1942,8 +1942,7 @@ namespace NPoco
 
         internal object ProcessMapper(PocoColumn pc, object value)
         {
-            if (Mapper == null) return value;
-            var converter = Mapper.GetToDbConverter(pc.ColumnType, pc.MemberInfo);
+            var converter = Mapper != null ? Mapper.GetToDbConverter(pc.ColumnType, pc.MemberInfo) : null;
             return converter != null ? converter(value) : ProcessDefaultMappings(pc, value);
         }
 
@@ -1955,7 +1954,7 @@ namespace NPoco
 
         private object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
         {
-            if (pocoColumn.ColumnType == typeof (string) && IsEnum(pocoColumn.MemberInfo) && value != null)
+            if (IsEnum(pocoColumn.MemberInfo) && pocoColumn.ColumnType == typeof(string) && value != null)
             {
                 return value.ToString();
             }

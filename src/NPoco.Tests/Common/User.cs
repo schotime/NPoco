@@ -20,6 +20,7 @@ namespace NPoco.Tests.Common
         public int? HouseId { get; set; }
         public int? SupervisorId { get; set; }
         public char? YorN { get; set; }
+        public TestEnum TestEnum { get; set; }
 
         [ResultColumn]
         public House House { get; set; }
