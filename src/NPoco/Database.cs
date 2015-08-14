@@ -20,6 +20,7 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using NPoco.Expressions;
 using NPoco.Linq;
@@ -1943,7 +1944,22 @@ namespace NPoco
         {
             if (Mapper == null) return value;
             var converter = Mapper.GetToDbConverter(pc.ColumnType, pc.MemberInfo);
-            return converter != null ? converter(value) : value;
+            return converter != null ? converter(value) : ProcessDefaultMappings(pc, value);
+        }
+
+        internal static bool IsEnum(MemberInfo memberInfo)
+        {
+            var underlyingType = Nullable.GetUnderlyingType(memberInfo.GetMemberInfoType());
+            return memberInfo.GetMemberInfoType().IsEnum || (underlyingType != null && underlyingType.IsEnum);
+        }
+
+        private object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
+        {
+            if (pocoColumn.ColumnType == typeof (string) && IsEnum(pocoColumn.MemberInfo) && value != null)
+            {
+                return value.ToString();
+            }
+            return value;
         }
     }
 }

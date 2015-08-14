@@ -1023,7 +1023,7 @@ namespace NPoco.Expressions
                 if (isNull)
                     return new NullableMemberAccess(pocoColumn, columnName, type);
 
-                if (IsEnum(propertyInfo))
+                if (Database.IsEnum(propertyInfo))
                     return new EnumMemberAccess(pocoColumn, columnName, type);
 
                 return new MemberAccessString(pocoColumn, columnName, type);
@@ -1033,12 +1033,6 @@ namespace NPoco.Expressions
             var lambda = Expression.Lambda<Func<object>>(memberExp);
             var getter = lambda.Compile();
             return getter();
-        }
-
-        private static bool IsEnum(PropertyInfo propertyInfo)
-        {
-            var underlyingType = Nullable.GetUnderlyingType(propertyInfo.PropertyType);
-            return propertyInfo.PropertyType.IsEnum || (underlyingType != null && underlyingType.IsEnum);
         }
 
         private Type GetCorrectType(MemberExpression m)
