@@ -33,6 +33,7 @@ namespace NPoco.FluentMappings
         IColumnBuilder<TModel> WithDbType(Type type);
         IColumnBuilder<TModel> WithDbType<T>();
         IColumnBuilder<TModel> Version();
+        IColumnBuilder<TModel> Version(VersionColumnType versionColumnType);
         IColumnBuilder<TModel> Ignore();
         IColumnBuilder<TModel> Result();
         IColumnBuilder<TModel> Computed();
