@@ -1840,21 +1840,30 @@ namespace NPoco
 
         internal object ProcessMapper(PocoColumn pc, object value)
         {
-            if (Mapper == null)
-            {
-                if (pc.ComplexType)
-                    return new JSONSerializer(JsonParameters).ConvertToJSON(value);
-                return value;
-            }
+            var converter = Mapper != null ? Mapper.GetToDbConverter(pc.ColumnType, pc.MemberInfo) : null;
+            return converter != null ? converter(value) : ProcessDefaultMappings(pc, value);
+        }
 
-            var converter = Mapper.GetToDbConverter(pc.ColumnType, pc.MemberInfo);
-
-            if (converter == null && pc.ComplexType)
-                converter = (x => new JSONSerializer(JsonParameters).ConvertToJSON(x));
-
-            return converter != null ? converter(value) : value;
+        internal static bool IsEnum(MemberInfo memberInfo)
+        {
+            var underlyingType = Nullable.GetUnderlyingType(memberInfo.GetMemberInfoType());
+            return memberInfo.GetMemberInfoType().IsEnum || (underlyingType != null && underlyingType.IsEnum);
         }
 
         public static JSONParameters JsonParameters = new JSONParameters() { UseUTCDateTime = false, UseExtensions = false };
+
+        private object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
+        {
+            if (pocoColumn.ComplexType)
+            {
+                return new JSONSerializer(JsonParameters).ConvertToJSON(value);
+            }
+            if (pocoColumn.ColumnType == typeof (string) && IsEnum(pocoColumn.MemberInfo) && value != null)
+            {
+                return value.ToString();
+            }
+
+            return value;
+        }
     }
 }
