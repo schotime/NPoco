@@ -41,6 +41,8 @@ namespace NPoco.RowMappers
             if (context.Instance == null)
             {
                 context.Instance = context.PocoData.CreateObject();
+                if (context.Instance == null)
+                    throw new Exception(string.Format("Poco '{0}' has no parameterless constructor", context.Type.FullName));
             }
             else
             {

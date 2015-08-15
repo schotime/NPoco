@@ -19,19 +19,11 @@ namespace NPoco
         private delegate PocoMember PocoMemberPlan(TableInfo tableInfo);
         protected delegate TableInfo TableInfoPlan();
 
-        private FastCreate _createPocoDelegate;
-
         public PocoDataBuilder(Type type, IMapper mapper, PocoDataFactory pocoDataFactory)
         {
             Type = type;
             Mapper = mapper;
             PocoDataFactory = pocoDataFactory;
-            _createPocoDelegate = GetFastCreatePocoDelegate(type);
-        }
-
-        private static FastCreate GetFastCreatePocoDelegate(Type type)
-        {
-            return type.IsAClass() ? new FastCreate(type) : null;
         }
 
         public PocoDataBuilder Init()
@@ -202,19 +194,19 @@ namespace NPoco
 
         private static FastCreate GetFastCreate(Type memberType, bool isList)
         {
-            return memberType.IsAClass() && !memberType.IsArray
+            return memberType.IsAClass()
                        ? (new FastCreate(isList
-                                             ? memberType.GetGenericArguments().First()
-                                             : memberType))
+                            ? memberType.GetGenericArguments().First()
+                            : memberType))
                        : null;
         }
 
         private static Type GetListType(Type memberType, bool isList)
         {
-            return memberType.IsAClass() && !memberType.IsArray
+            return memberType.IsAClass()
                        ? (isList 
-                              ? typeof(List<>).MakeGenericType(memberType.GetGenericArguments().First()) 
-                              : null)
+                            ? typeof(List<>).MakeGenericType(memberType.GetGenericArguments().First()) 
+                            : null)
                        : null;
         }
 
@@ -227,7 +219,7 @@ namespace NPoco
 
         public static bool IsList(MemberInfo mi)
         {
-            return mi.GetMemberInfoType().GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            return mi.GetMemberInfoType() != typeof(string) && mi.GetMemberInfoType().GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>));
         }
 
         protected virtual string GetColumnName(string prefix, string columnName)
