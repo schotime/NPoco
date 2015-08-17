@@ -25,25 +25,20 @@ namespace NPoco.DatabaseTypes
 
             return sqlPage;
         }
-
-        private static void AdjustSqlInsertCommandText(IDbCommand cmd)
+        
+        public override string GetInsertOutputClause(string primaryKeyName)
         {
-            cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
+            return string.Format(" OUTPUT INSERTED.[{0}]", primaryKeyName);
         }
-
+        
         public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
         {
-            //var pocodata = PocoData.ForType(typeof(T), db.PocoDataFactory);
-            //var sql = string.Format("SELECT * FROM {0} WHERE {1} = SCOPE_IDENTITY()", EscapeTableName(pocodata.TableInfo.TableName), EscapeSqlIdentifier(primaryKeyName));
-            //return db.SingleInto(poco, ";" + cmd.CommandText + ";" + sql, args);
-            AdjustSqlInsertCommandText(cmd);
             return db.ExecuteScalarHelper(cmd);
         }
 
 #if NET45
         public override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
         {
-            AdjustSqlInsertCommandText(cmd);
             return ExecuteScalarAsync(db, cmd);
         }
 
