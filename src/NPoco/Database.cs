@@ -416,7 +416,7 @@ namespace NPoco
             // Convert value to from poco type to db type
             if (Mapper != null && value != null)
             {
-                var fn = Mapper.GetParameterConverter(value.GetType());
+                var fn = Mapper.GetParameterConverter(cmd, value.GetType());
                 if (fn != null)
                     value = fn(value);
             }
@@ -429,6 +429,7 @@ namespace NPoco
                 cmd.Parameters.Add(idbParam);
                 return;
             }
+
             var p = cmd.CreateParameter();
             p.ParameterName = string.Format("{0}{1}", _paramPrefix, cmd.Parameters.Count);
 
