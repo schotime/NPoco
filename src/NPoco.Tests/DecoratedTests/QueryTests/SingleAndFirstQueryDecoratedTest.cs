@@ -259,5 +259,18 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
 
             Assert.False(userExists);
         }
+
+        [Test]
+        public void ExistsComposite()
+        {
+            var userExists = Database.Exists<CompositeObjectDecorated>(new
+            {
+                Key1ID = 1,
+                Key2ID = 2,
+                Key3ID = 4
+            });
+
+            Assert.True(userExists);
+        }
     }
 }

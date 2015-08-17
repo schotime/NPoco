@@ -1767,13 +1767,6 @@ namespace NPoco
             }
             else if (pd.TableInfo.PrimaryKey.Contains(","))
             {
-                foreach (var compositeKey in pd.TableInfo.PrimaryKey.Split(','))
-                {
-                    var keyName = compositeKey.Trim();
-                    var pi = poco.GetType().GetProperty(keyName);
-                    if (pi == null) throw new ArgumentException(string.Format("The object doesn't have a property matching the composite primary key column name '{0}'", compositeKey));
-                }
-
                 return !Exists<T>(poco);
             }
             else
