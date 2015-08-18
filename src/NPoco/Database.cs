@@ -1848,7 +1848,7 @@ namespace NPoco
 
         private object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
         {
-            if (pocoColumn.ComplexType)
+            if (pocoColumn.StoredAsJson)
             {
                 return new JSONSerializer(JsonParameters).ConvertToJSON(value);
             }

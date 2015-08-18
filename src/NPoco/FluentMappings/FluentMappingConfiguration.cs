@@ -128,8 +128,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.VersionColumn = scannerSettings.VersionPropertiesWhere(member);
                     columnDefinition.VersionColumnType = scannerSettings.VersionColumnTypeAs(member);
                     columnDefinition.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(member);
-                    columnDefinition.ComplexType = member.GetMemberInfoType().IsAClass() ||
-                                                  (member.GetMemberInfoType().IsArray && member.GetMemberInfoType() != typeof(byte[]));
+                    columnDefinition.StoredAsJson = scannerSettings.StoredAsJsonWhere(member);
                     yield return columnDefinition;
                 }
             }
@@ -154,6 +153,7 @@ namespace NPoco.FluentMappings
                 ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && !Attribute.GetCustomAttributes(x, typeof(ReferenceAttribute)).Any(),
                 ReferenceDbColumnsNamed = x => x.Name + "ID",
                 SequencesNamed = x => null,
+                StoredAsJsonWhere = x => Attribute.GetCustomAttributes(x, typeof(StoredAsJsonAttribute)).Any(),
                 Lazy = false
             };
             scanner.Invoke(new ConventionScanner(defaultScannerSettings));
@@ -194,6 +194,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.Value.VersionColumn = columnInfo.VersionColumn;
                     columnDefinition.Value.VersionColumnType = columnInfo.VersionColumnType;
                     columnDefinition.Value.ForceUtc = columnInfo.ForceToUtc;
+                    columnDefinition.Value.StoredAsJson = columnInfo.StoredAsJson;
                 }
             }
         }
@@ -233,6 +234,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.IsReferenceMember = overrideColumnDefinition.Value.IsReferenceMember ?? convColDefinition.IsReferenceMember;
                     convColDefinition.ReferenceMember = overrideColumnDefinition.Value.ReferenceMember ?? convColDefinition.ReferenceMember;
                     convColDefinition.ReferenceMappingType = overrideColumnDefinition.Value.ReferenceMappingType ?? convColDefinition.ReferenceMappingType;
+                    convColDefinition.StoredAsJson = overrideColumnDefinition.Value.StoredAsJson ?? convColDefinition.StoredAsJson;
                 }
             }
         }

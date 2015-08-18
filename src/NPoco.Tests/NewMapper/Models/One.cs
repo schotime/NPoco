@@ -8,7 +8,15 @@ namespace NPoco.Tests.NewMapper.Models
         public int OneId { get; set; }
         public string Name { get; set; }
 
+        [ResultColumn]
+        public NestedClass Nested { get; set; }
+
         [Reference(ReferenceMappingType.Many, Name = "OneId", ReferenceName = "OneId")]
         public List<Many> Items { get; set; }
+    }
+
+    public class NestedClass
+    {
+        public string Name { get; set; }
     }
 }

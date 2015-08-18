@@ -23,7 +23,7 @@ namespace NPoco
                     return converter;
             }
 
-            if (pc != null && pc.ComplexType)
+            if (pc != null && pc.StoredAsJson)
             {
                 converter = delegate(object src)
                 {

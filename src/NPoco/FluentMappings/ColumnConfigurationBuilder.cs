@@ -39,6 +39,8 @@ namespace NPoco.FluentMappings
         IColumnBuilder<TModel> Computed();
         IColumnBuilder<TModel> Reference(ReferenceMappingType referenceMappingType = ReferenceMappingType.Foreign);
         IColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> member, ReferenceMappingType referenceMappingType = ReferenceMappingType.Foreign);
+        IColumnBuilder<TModel> StoredAsJson();
+        IColumnBuilder<TModel> ComplexMapping(string prefix = null);
     }
 
     public class ColumnBuilder<TModel> : IColumnBuilder<TModel>
@@ -115,6 +117,19 @@ namespace NPoco.FluentMappings
         {
             Reference(referenceMappingType);
             _columnDefinition.ReferenceMember = MemberHelper<TModel>.GetMembers(joinColumn).Last();
+            return this;
+        }
+
+        public IColumnBuilder<TModel> StoredAsJson()
+        {
+            _columnDefinition.StoredAsJson = true;
+            return this;
+        }
+
+        public IColumnBuilder<TModel> ComplexMapping(string prefix = null)
+        {
+            _columnDefinition.IsComplexMapping = true;
+            _columnDefinition.ComplexPrefix = prefix;
             return this;
         }
     }

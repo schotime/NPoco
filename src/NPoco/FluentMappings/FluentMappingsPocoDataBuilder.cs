@@ -75,16 +75,14 @@ namespace NPoco.FluentMappings
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
             var isColumnDefined = typeConfig.ColumnConfiguration.ContainsKey(key);
 
-            if (isColumnDefined && typeConfig.ColumnConfiguration[key].IsComplexMapping)
+            if (isColumnDefined && typeConfig.ColumnConfiguration[key].IsComplexMapping.HasValue && typeConfig.ColumnConfiguration[key].IsComplexMapping.Value)
             {
-                if (typeConfig.ColumnConfiguration[key].IgnoreColumn.HasValue && typeConfig.ColumnConfiguration[key].IgnoreColumn.Value)
-                    columnInfo.IgnoreColumn = true;
-
                 columnInfo.ComplexMapping = true;
-                return columnInfo;
-            }
 
-            if (isColumnDefined && typeConfig.ColumnConfiguration[key].IsReferenceMember.HasValue && typeConfig.ColumnConfiguration[key].IsReferenceMember.Value)
+                if (typeConfig.ColumnConfiguration[key].ComplexPrefix != null)
+                    columnInfo.ComplexPrefix = typeConfig.ColumnConfiguration[key].ComplexPrefix;
+            }
+            else if (isColumnDefined && typeConfig.ColumnConfiguration[key].IsReferenceMember.HasValue && typeConfig.ColumnConfiguration[key].IsReferenceMember.Value)
             {
                 if (typeConfig.ColumnConfiguration[key].ReferenceMappingType != null)
                     columnInfo.ReferenceMappingType = typeConfig.ColumnConfiguration[key].ReferenceMappingType.Value;
@@ -92,9 +90,9 @@ namespace NPoco.FluentMappings
                 if (typeConfig.ColumnConfiguration[key].ReferenceMember != null)
                     columnInfo.ReferenceMemberName = typeConfig.ColumnConfiguration[key].ReferenceMember.Name;
             }
-            else if (isColumnDefined && typeConfig.ColumnConfiguration[key].ComplexType)
+            else if (isColumnDefined && typeConfig.ColumnConfiguration[key].StoredAsJson.HasValue && typeConfig.ColumnConfiguration[key].StoredAsJson.Value)
             {
-                columnInfo.ComplexType = true;
+                columnInfo.StoredAsJson = true;
             }
 
             if (explicitColumns && !isColumnDefined)

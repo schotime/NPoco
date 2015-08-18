@@ -268,6 +268,18 @@ left join manys m on o.oneid = m.oneid");
         }
 
         [Test]
+        public void Test17_1()
+        {
+            var ones = Database.FetchOneToMany<One>(x => x.Items, @"
+select o.*, 'MyName' nested__name, null npoco_items, m.* 
+from ones o 
+left join manys m on o.oneid = m.oneid");
+
+            Assert.AreEqual(15, ones.Count);
+            Assert.AreEqual("MyName", ones[0].Nested.Name);
+        }
+
+        [Test]
         public void Test18()
         {
             var data = Database.Fetch<RecursionUser>(@"

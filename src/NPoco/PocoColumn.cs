@@ -43,7 +43,7 @@ namespace NPoco
         public string ColumnAlias { get; set; }
 
         public ReferenceMappingType ReferenceMappingType { get; set; }
-        public bool ComplexType { get; set; }
+        public bool StoredAsJson { get; set; }
 
         public void SetMemberAccessors(List<MemberAccessor> memberAccessors)
         {

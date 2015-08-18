@@ -16,10 +16,11 @@ namespace NPoco.FluentMappings
         public bool? ComputedColumn { get; set; }
         public bool? ForceUtc { get; set; }
         public MemberInfo[] MemberInfoChain { get; set; }
-        public bool IsComplexMapping { get; set; }
+        public bool? IsComplexMapping { get; set; }
         public bool? IsReferenceMember { get; set; }
         public MemberInfo ReferenceMember { get; set; }
         public ReferenceMappingType? ReferenceMappingType { get; set; }
-        public bool ComplexType { get; set; }
+        public bool? StoredAsJson { get; set; }
+        public string ComplexPrefix { get; set; }
     }
 }

@@ -164,7 +164,7 @@ namespace NPoco
                         ColumnAlias = capturedColumnInfo.ColumnAlias,
                         VersionColumn = capturedColumnInfo.VersionColumn,
                         VersionColumnType = capturedColumnInfo.VersionColumnType,
-                        ComplexType = capturedColumnInfo.ComplexType
+                        StoredAsJson = capturedColumnInfo.StoredAsJson
                     };
 
                     pc.SetMemberAccessors(accessors);
@@ -174,6 +174,12 @@ namespace NPoco
 
                     var childrenTableInfo = childTableInfoPlan == null ? tableInfo : childTableInfoPlan();
                     var children = childrenPlans.Select(plan => plan(childrenTableInfo)).ToList();
+
+                    // Cascade ResultColumn down
+                    foreach (var child in children.Where(child => child.PocoColumn != null && pc.ResultColumn))
+                    {
+                        child.PocoColumn.ResultColumn = true;
+                    }
 
                     var pocoMember = new PocoMember()
                     {

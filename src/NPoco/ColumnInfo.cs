@@ -19,7 +19,7 @@ namespace NPoco
         public Type ColumnType { get; set; }
         public bool ComplexMapping { get; set; }
         public string ComplexPrefix { get; set; }
-        public bool ComplexType { get; set; }
+        public bool StoredAsJson { get; set; }
         public ReferenceMappingType ReferenceMappingType { get; set; }
         public string ReferenceMemberName { get; set; }
 
@@ -31,7 +31,8 @@ namespace NPoco
             var colAttrs = attrs.OfType<ColumnAttribute>();
             var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>();
             var ignoreAttrs = attrs.OfType<IgnoreAttribute>();
-            var complex = attrs.OfType<ComplexMappingAttribute>();
+            var complexMapping = attrs.OfType<ComplexMappingAttribute>();
+            var storedAsJson = attrs.OfType<StoredAsJsonAttribute>();
             var reference = attrs.OfType<ReferenceAttribute>();
 
           
@@ -55,16 +56,18 @@ namespace NPoco
                 return ci;
             }
 
-            if (complex.Any())
+            if (complexMapping.Any())
             {
                 ci.ComplexMapping = true;
-                ci.ComplexPrefix = complex.First().CustomPrefix;
-                return ci;
+                ci.ComplexPrefix = complexMapping.First().CustomPrefix;
             }
-
-            if (mi.GetMemberInfoType().IsAClass() || (mi.GetMemberInfoType().IsArray) && mi.GetMemberInfoType() != typeof(byte[]))
+            else if (storedAsJson.Any())
             {
-                ci.ComplexType = true;
+                ci.StoredAsJson = true;
+            }
+            else if (mi.GetMemberInfoType().IsAClass())
+            {
+                ci.ComplexMapping = true;
             }
 
             // Read attribute
@@ -96,5 +99,9 @@ namespace NPoco
         }
 
         public MemberInfo MemberInfo { get; internal set; }
+    }
+
+    public class StoredAsJsonAttribute : Attribute
+    {
     }
 }
