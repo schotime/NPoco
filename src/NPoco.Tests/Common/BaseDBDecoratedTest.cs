@@ -136,7 +136,11 @@ namespace NPoco.Tests.Common
                     {
                         StreetNo = i + 1,
                         StreetName = "Street" + (i + 1),
-                        MovedInOn = new DateTime(1970, 1, 1).AddYears(i + 1)
+                        MovedInOn = new DateTime(1970, 1, 1).AddYears(i + 1),
+                        AddressFurtherInfo = new UserWithAddress.MyAddress.AddressInfo()
+                        {
+                            PostCode = "99999"
+                        }
                     }
                 };
 

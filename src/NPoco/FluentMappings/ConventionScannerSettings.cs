@@ -36,9 +36,11 @@ namespace NPoco.FluentMappings
         public Func<MemberInfo, bool> ReferencePropertiesWhere { get; set; }
         public Func<MemberInfo, bool> ComplexPropertiesWhere { get; set; }
         public Func<MemberInfo, string> ReferenceDbColumnsNamed { get; set; }
+        public Func<MemberInfo, bool> DbColumnWhere { get; set; }
         public Func<MemberInfo, bool> StoredAsJsonWhere { get; set; }
 
         public bool Lazy { get; set; }
+
         //public bool OverrideWithAttributes { get; set; }
     }
 }

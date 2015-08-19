@@ -65,5 +65,23 @@ namespace NPoco.FluentMappings
             _scannerSettings.ReferenceDbColumnsNamed = refPropertiesNamedFunc;
             return this;
         }
+
+        public IColumnsBuilderConventions ReferencePropertiesWhere(Func<MemberInfo, bool> referencePropertiesWhereFunc)
+        {
+            _scannerSettings.ReferencePropertiesWhere = referencePropertiesWhereFunc;
+            return this;
+        }
+
+        public IColumnsBuilderConventions ComplexPropertiesWhere(Func<MemberInfo, bool> complexPropertiesWhereFunc)
+        {
+            _scannerSettings.ComplexPropertiesWhere = complexPropertiesWhereFunc;
+            return this;
+        }
+
+        public IColumnsBuilderConventions StoredAsJsonWhere(Func<MemberInfo, bool> storedAsJsonWhereFunc)
+        {
+            _scannerSettings.StoredAsJsonWhere = storedAsJsonWhereFunc;
+            return this;
+        }
     }
 }

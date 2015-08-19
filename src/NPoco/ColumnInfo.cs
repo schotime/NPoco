@@ -34,7 +34,6 @@ namespace NPoco
             var complexMapping = attrs.OfType<ComplexMappingAttribute>();
             var storedAsJson = attrs.OfType<StoredAsJsonAttribute>();
             var reference = attrs.OfType<ReferenceAttribute>();
-
           
             // Check if declaring poco has [ExplicitColumns] attribute
             var explicitColumns = mi.DeclaringType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Any();
@@ -48,14 +47,6 @@ namespace NPoco
                 ci.IgnoreColumn = true;
             }
 
-            if (reference.Any())
-            {
-                ci.ReferenceMappingType = reference.First().ReferenceMappingType;
-                ci.ReferenceMemberName = reference.First().ReferenceName ?? "Id";
-                ci.ColumnName = reference.First().Name ?? mi.Name + "Id";
-                return ci;
-            }
-
             if (complexMapping.Any())
             {
                 ci.ComplexMapping = true;
@@ -65,7 +56,19 @@ namespace NPoco
             {
                 ci.StoredAsJson = true;
             }
-            else if (mi.GetMemberInfoType().IsAClass())
+            else if (reference.Any())
+            {
+                ci.ReferenceMappingType = reference.First().ReferenceMappingType;
+                ci.ReferenceMemberName = reference.First().ReferenceName ?? "Id";
+                ci.ColumnName = reference.First().Name ?? mi.Name + "Id";
+                return ci;
+            }
+            else if (PocoDataBuilder.IsList(mi))
+            {
+                ci.ReferenceMappingType = ReferenceMappingType.Many;
+                return ci;
+            }
+            else if (mi.GetMemberInfoType().IsAClass() && !colAttrs.Any())
             {
                 ci.ComplexMapping = true;
             }
@@ -78,10 +81,7 @@ namespace NPoco
                 ci.ForceToUtc = colattr.ForceToUtc;
                 ci.ResultColumn = colattr is ResultColumnAttribute;
                 ci.VersionColumn = colattr is VersionColumnAttribute;
-                if (ci.VersionColumn)
-                {
-                    ci.VersionColumnType = ((VersionColumnAttribute) colattr).VersionColumnType;
-                }
+                ci.VersionColumnType = ci.VersionColumn ? ((VersionColumnAttribute) colattr).VersionColumnType : ci.VersionColumnType;
                 ci.ComputedColumn = colattr is ComputedColumnAttribute;
                 ci.ColumnAlias = aliasColumn != null ? aliasColumn.Alias : null;
             }

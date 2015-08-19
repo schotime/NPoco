@@ -31,7 +31,7 @@ namespace NPoco.FluentMappings
             a = typeConfig.PrimaryKey ?? "";
             var primaryKey = a.Length == 0 ? "ID" : a;
 
-            if (memberInfos.Any()) // if top level
+            if (memberInfos.Count == 0) // if top level
             {
                 foreach (var ci in columnInfos)
                 {

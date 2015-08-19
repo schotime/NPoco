@@ -15,6 +15,12 @@ namespace NPoco.Tests.NewMapper.Models
             public int StreetNo { get; set; }
             public string StreetName { get; set; }
             public DateTime MovedInOn { get; set; }
+            public AddressInfo AddressFurtherInfo { get; set; }
+
+            public class AddressInfo
+            {
+                public string PostCode { get; set; }
+            }
         }
     }
 }

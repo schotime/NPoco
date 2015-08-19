@@ -158,6 +158,29 @@ namespace NPoco.Tests.FluentMappings
         }
 
         [Test]
+        public void PrimaryKeyShouldGetRemapped()
+        {
+            var map = FluentMappingConfiguration.Scan(scan =>
+            {
+                scan.Assembly(this.GetType().Assembly);
+                scan.IncludeTypes(x => x == typeof(User) || ReflectionUtils.GetFieldsAndPropertiesForClasses(typeof(User)).Select(y => y.GetMemberInfoType()).Contains(x));
+                scan.OverrideMappingsWith(new MyPKMappings());
+            });
+
+            var pd = map.Config(new Mapper()).Resolver(typeof(User), new PocoDataFactory(new Mapper())).Build();
+            Assert.True(pd.Columns.ContainsKey("user_id"));
+            Assert.AreEqual("user_id", pd.TableInfo.PrimaryKey);
+        }
+
+        public class MyPKMappings : Mappings
+        {
+            public MyPKMappings()
+            {
+                For<User>().PrimaryKey(y => y.UserId, false).Columns(x=>x.Column(y=>y.UserId).WithName("user_id"));
+            }
+        }
+
+        [Test]
         public void NestedColumn()
         {
             var columnDefinitions = new Dictionary<string, ColumnDefinition>();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -85,12 +86,19 @@ namespace NPoco.FluentMappings
             {
                 var complexProperty = scannerSettings.ComplexPropertiesWhere(member);
                 var referenceProperty = scannerSettings.ReferencePropertiesWhere(member);
-                if (complexProperty || referenceProperty)
+                var dbColumn = scannerSettings.DbColumnWhere(member) || !(complexProperty || referenceProperty);
+
+                if (dbColumn == false)
                 {
+                    if (capturedMembers.GroupBy(x => x.GetMemberInfoType()).Any(x => x.Count() >= 2))
+                    {
+                        continue;
+                    }
+
                     var members = new List<MemberInfo>();
                     members.AddRange(capturedMembers);
                     members.Add(member);
-
+                    
                     var columnDefinitions = GetColumnDefinitions(scannerSettings, member.GetMemberInfoType(), members, referenceProperty).ToList();
 
                     foreach (var columnDefinition in columnDefinitions)
@@ -150,10 +158,11 @@ namespace NPoco.FluentMappings
                 ComputedPropertiesWhere = x => false,
                 ForceDateTimesToUtcWhere = x => true,
                 ReferencePropertiesWhere = x => x.GetMemberInfoType().IsAClass() && Attribute.GetCustomAttributes(x, typeof(ReferenceAttribute)).Any(),
-                ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && !Attribute.GetCustomAttributes(x, typeof(ReferenceAttribute)).Any(),
+                ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && Attribute.GetCustomAttributes(x, typeof(ComplexMappingAttribute)).Any(),
                 ReferenceDbColumnsNamed = x => x.Name + "ID",
                 SequencesNamed = x => null,
                 StoredAsJsonWhere = x => Attribute.GetCustomAttributes(x, typeof(StoredAsJsonAttribute)).Any(),
+                DbColumnWhere = x => Attribute.GetCustomAttributes(x, typeof(ColumnAttribute)).Any(),
                 Lazy = false
             };
             scanner.Invoke(new ConventionScanner(defaultScannerSettings));

@@ -35,7 +35,7 @@ namespace NPoco
         
         public static bool IsAClass(this Type type)
         {
-            return !type.IsValueType && (type.IsClass || type.IsInterface) && type != typeof (string) && !type.IsArray;
+            return type != typeof(Type) && !type.IsValueType && (type.IsClass || type.IsInterface) && type != typeof (string) && !type.IsArray;
         }
     }
 }
