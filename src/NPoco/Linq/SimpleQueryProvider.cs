@@ -64,10 +64,16 @@ namespace NPoco.Linq
 
     public interface IQueryProviderWithIncludes<T> : IQueryProvider<T>
     {
-        IQueryProvider<T> IncludeMany(Expression<Func<T, IEnumerable>> expression);
-        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression) where T2 : class;
-        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias) where T2 : class;
+        IQueryProvider<T> IncludeMany(Expression<Func<T, IEnumerable>> expression, JoinType joinType = JoinType.Left);
+        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class;
+        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left) where T2 : class;
         IQueryProviderWithIncludes<T> UsingAlias(string empty);
+    }
+
+    public enum JoinType
+    {
+        Left,
+        Inner
     }
 
     public class QueryProvider<T> : IQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>
@@ -95,20 +101,20 @@ namespace NPoco.Linq
 
         SqlExpression<T> ISimpleQueryProviderExpression<T>.AtlasSqlExpression { get { return _sqlExpression; } }
 
-        public IQueryProvider<T> IncludeMany(Expression<Func<T, IEnumerable>> expression)
+        public IQueryProvider<T> IncludeMany(Expression<Func<T, IEnumerable>> expression, JoinType joinType = JoinType.Left)
         {
             _listExpression = expression;
-            return QueryProviderWithIncludes(expression, null);
+            return QueryProviderWithIncludes(expression, null, joinType);
         }
 
-        public IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression) where T2 : class
+        public IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class
         {
-            return QueryProviderWithIncludes(expression, null);
+            return QueryProviderWithIncludes(expression, null, joinType);
         }
 
-        public IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias) where T2 : class
+        public IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left) where T2 : class
         {
-            return QueryProviderWithIncludes(expression, tableAlias);
+            return QueryProviderWithIncludes(expression, tableAlias, joinType);
         }
 
         public IQueryProviderWithIncludes<T> UsingAlias(string tableAlias)
@@ -118,7 +124,7 @@ namespace NPoco.Linq
             return this;
         }
 
-        private IQueryProviderWithIncludes<T> QueryProviderWithIncludes(Expression expression, string tableAlias)
+        private IQueryProviderWithIncludes<T> QueryProviderWithIncludes(Expression expression, string tableAlias, JoinType joinType)
         {
             var memberInfos = MemberChainHelper.GetMembers(expression);
             var members = _pocoData.Members;
@@ -148,6 +154,7 @@ namespace NPoco.Linq
                         PocoMember = pocoMember,
                         PocoMemberJoin = pocoMember2,
                         PocoMembers = pocoMember.PocoMemberChildren,
+                        JoinType = joinType
                     });
                 }
 

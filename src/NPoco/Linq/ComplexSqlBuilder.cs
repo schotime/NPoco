@@ -131,7 +131,7 @@ namespace NPoco.Linq
                     PocoColumn = new[] { x.PocoColumn }
                 })).ToList(); 
 
-                joins.Add("  LEFT JOIN " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.TableName) + " " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.AutoAlias) + " ON " + joinSqlExpression.OnSql);
+                joins.Add(string.Format("  {0} JOIN " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.TableName) + " " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.AutoAlias) + " ON " + joinSqlExpression.OnSql, joinSqlExpression.JoinType == JoinType.Inner ? "INNER" : "LEFT"));
             }
 
             return joins.Any() ? " \n" + string.Join(" \n", joins.ToArray()) : string.Empty;
