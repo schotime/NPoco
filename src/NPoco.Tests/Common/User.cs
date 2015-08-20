@@ -25,6 +25,7 @@ namespace NPoco.Tests.Common
         [Reference]
         public House House { get; set; }
 
+        [ComplexMapping]
         public Address Address { get; set; }
 
         [Reference]
@@ -71,6 +72,7 @@ namespace NPoco.Tests.Common
 
     public class UserWithExtraInfo : User
     {
+        [ComplexMapping]
         public new ExtraUserInfo ExtraUserInfo { get; set; }
     }
 

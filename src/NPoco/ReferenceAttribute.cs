@@ -3,7 +3,7 @@ using System;
 namespace NPoco
 {
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-    public class ReferenceAttribute : ColumnAttribute
+    public class ReferenceAttribute : Attribute
     {
         public readonly ReferenceMappingType ReferenceMappingType;
 
@@ -17,6 +17,7 @@ namespace NPoco
         }
 
         public string ReferenceName { get; set; }
+        public string Name { get; set; }
     }
 
     public enum ReferenceMappingType

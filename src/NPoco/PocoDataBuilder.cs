@@ -225,7 +225,7 @@ namespace NPoco
 
         public static bool IsList(MemberInfo mi)
         {
-            return mi.GetMemberInfoType() != typeof(string) && mi.GetMemberInfoType().GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            return mi.GetMemberInfoType() != typeof(string) && mi.GetMemberInfoType() != typeof(byte[]) && mi.GetMemberInfoType().GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>));
         }
 
         protected virtual string GetColumnName(string prefix, string columnName)

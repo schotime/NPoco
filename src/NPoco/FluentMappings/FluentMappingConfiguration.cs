@@ -86,9 +86,9 @@ namespace NPoco.FluentMappings
             {
                 var complexProperty = scannerSettings.ComplexPropertiesWhere(member);
                 var referenceProperty = scannerSettings.ReferencePropertiesWhere(member);
-                var dbColumn = scannerSettings.DbColumnWhere(member) || !(complexProperty || referenceProperty);
+                var dbColumn = scannerSettings.DbColumnWhere(member);
 
-                if (dbColumn == false)
+                if ((complexProperty || referenceProperty) && !dbColumn)
                 {
                     if (capturedMembers.GroupBy(x => x.GetMemberInfoType()).Any(x => x.Count() >= 2))
                     {
@@ -98,7 +98,7 @@ namespace NPoco.FluentMappings
                     var members = new List<MemberInfo>();
                     members.AddRange(capturedMembers);
                     members.Add(member);
-                    
+
                     var columnDefinitions = GetColumnDefinitions(scannerSettings, member.GetMemberInfoType(), members, referenceProperty).ToList();
 
                     foreach (var columnDefinition in columnDefinitions)
@@ -115,8 +115,8 @@ namespace NPoco.FluentMappings
                         IsComplexMapping = complexProperty,
                         IsReferenceMember = referenceProperty,
                         ReferenceMappingType = referenceProperty ? ReferenceMappingType.Foreign : ReferenceMappingType.None,
-                        ReferenceMember = referenceProperty ? columnDefinitions.Single(x=>x.DbColumnName.Equals(referenceDbColumnsNamed, StringComparison.InvariantCultureIgnoreCase)).MemberInfo : null,
-                        DbColumnName = referenceProperty ? referenceDbColumnsNamed : null
+                        ReferenceMember = referenceProperty ? columnDefinitions.Single(x => x.DbColumnName.Equals(referenceDbColumnsNamed, StringComparison.InvariantCultureIgnoreCase)).MemberInfo : null,
+                        DbColumnName = referenceProperty ? referenceDbColumnsNamed : null,
                     };
                 }
                 else
@@ -126,8 +126,8 @@ namespace NPoco.FluentMappings
                     columnDefinition.MemberInfo = member;
 
                     var prefixProperty = isReferenceProperty ? Enumerable.Empty<string>() : capturedMembers.Select(x => scannerSettings.DbColumnsNamed(x));
-                    columnDefinition.DbColumnName = string.Join("__", prefixProperty.Concat(new[] { scannerSettings.DbColumnsNamed(member) }).ToArray());
-                    
+                    columnDefinition.DbColumnName = string.Join("__", prefixProperty.Concat(new[] {scannerSettings.DbColumnsNamed(member)}).ToArray());
+
                     columnDefinition.DbColumnAlias = scannerSettings.AliasNamed(member);
                     columnDefinition.IgnoreColumn = scannerSettings.IgnorePropertiesWhere.Any(x => x.Invoke(member));
                     columnDefinition.DbColumnType = scannerSettings.DbColumnTypesAs(member);

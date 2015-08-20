@@ -19,7 +19,6 @@ namespace NPoco.FluentMappings
             scanner.PrimaryKeysNamed(y => ToLowerIf(y.Name + "Id", lowercase));
             scanner.TablesNamed(y => ToLowerIf(Inflector.MakePlural(y.Name), lowercase));
             scanner.Columns.Named(x => ToLowerIf(x.Name, lowercase));
-            scanner.Columns.IgnoreComplex();
             scanner.Columns.ForceDateTimesToUtcWhere(x => x.GetMemberInfoType() == typeof(DateTime) || x.GetMemberInfoType() == typeof(DateTime?));
         }
 
