@@ -70,12 +70,6 @@ namespace NPoco.Linq
         IQueryProviderWithIncludes<T> UsingAlias(string empty);
     }
 
-    public enum JoinType
-    {
-        Left,
-        Inner
-    }
-
     public class QueryProvider<T> : IQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>
     {
         private readonly Database _database;

@@ -109,6 +109,7 @@
     <Compile Include="Linq\DeleteQueryProvider.cs" />
     <Compile Include="Linq\ISimpleQueryProviderExpression.cs" />
     <Compile Include="Linq\JoinData.cs" />
+    <Compile Include="Linq\JoinType.cs" />
     <Compile Include="Linq\QueryBuilder.cs" />
     <Compile Include="Linq\QueryBuilderData.cs" />
     <Compile Include="Linq\QueryContext.cs" />
