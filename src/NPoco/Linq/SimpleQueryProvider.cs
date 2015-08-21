@@ -120,39 +120,10 @@ namespace NPoco.Linq
 
         private IQueryProviderWithIncludes<T> QueryProviderWithIncludes(Expression expression, string tableAlias, JoinType joinType)
         {
-            var memberInfos = MemberChainHelper.GetMembers(expression);
-            var members = _pocoData.Members;
-
-            foreach (var memberInfo in memberInfos)
+            var joinExpressions = _buildComplexSql.GetJoinExpressions(expression, tableAlias, joinType);
+            foreach (var joinExpression in joinExpressions)
             {
-                var pocoMember = members
-                    .Where(x => x.ReferenceMappingType != ReferenceMappingType.None)
-                    .Single(x => x.MemberInfo == memberInfo);
-
-                var pocoColumn1 = pocoMember.PocoColumn;
-                var pocoMember2 = pocoMember.PocoMemberChildren.Single(x => x.Name == pocoMember.ReferenceMemberName);
-                var pocoColumn2 = pocoMember2.PocoColumn;
-
-                pocoColumn2.TableInfo.AutoAlias = tableAlias ?? pocoColumn2.TableInfo.AutoAlias;
-
-                var onSql = _database.DatabaseType.EscapeTableName(pocoColumn1.TableInfo.AutoAlias)
-                            + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn1.ColumnName)
-                            + " = " + _database.DatabaseType.EscapeTableName(pocoColumn2.TableInfo.AutoAlias)
-                            + "." + _database.DatabaseType.EscapeSqlIdentifier(pocoColumn2.ColumnName);
-
-                if (!_joinSqlExpressions.ContainsKey(onSql))
-                {
-                    _joinSqlExpressions.Add(onSql, new JoinData()
-                    {
-                        OnSql = onSql,
-                        PocoMember = pocoMember,
-                        PocoMemberJoin = pocoMember2,
-                        PocoMembers = pocoMember.PocoMemberChildren,
-                        JoinType = joinType
-                    });
-                }
-
-                members = pocoMember.PocoMemberChildren;
+                _joinSqlExpressions[joinExpression.Key] = joinExpression.Value;
             }
 
             return this;

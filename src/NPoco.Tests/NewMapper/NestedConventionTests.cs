@@ -340,6 +340,29 @@ select 22 Money__Value /*poco_dual*/");
             Assert.AreEqual(23, data.Money.Value);
             Assert.AreEqual("AUD", data.Money.Currency);
         }
+
+        [Test]
+        public void Test22()
+        {
+            var data = Database.Query<MyUserDec>()
+                .Include(x => x.House)
+                .ToList();
+
+            Assert.AreEqual(15, data.Count);
+            Assert.AreEqual(2, data[1].HouseId);
+            Assert.AreEqual(2, data[1].House.HouseId);
+            Assert.NotNull(data[1].House.Address);
+        }
+
+        [TableName("Users"), PrimaryKey("UserId")]
+        public class MyUserDec
+        {
+            public int UserId { get; set; }
+            public int HouseId { get; set; }
+
+            [Reference(ReferenceMappingType.OneToOne, Name = "HouseId", ReferenceName = "HouseId")]
+            public HouseDecorated House { get; set; }
+        }
     }
 
     public static class Ext

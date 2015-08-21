@@ -14,6 +14,7 @@ namespace NPoco.Tests.Common
         public List<UserDecorated> InMemoryUsers { get; set; }
         public List<ExtraUserInfoDecorated> InMemoryExtraUserInfos { get; set; }
         public List<CompositeObjectDecorated> InMemoryCompositeObjects { get; set; }
+        public List<HouseDecorated> InMemoryHouses { get; set; }
 
 
         [SetUp]
@@ -68,6 +69,17 @@ namespace NPoco.Tests.Common
             InMemoryUsers = new List<UserDecorated>();
             InMemoryExtraUserInfos = new List<ExtraUserInfoDecorated>();
             InMemoryCompositeObjects = new List<CompositeObjectDecorated>();
+            InMemoryHouses = new List<HouseDecorated>();
+
+            for (var i = 0; i < 5; i++)
+            {
+                var house = new HouseDecorated()
+                {
+                    Address = i + " Road Street, Suburb"
+                };
+                Database.Insert(house);
+                InMemoryHouses.Add(house);
+            }
 
             for (var i = 0; i < 15; i++)
             {
@@ -79,7 +91,8 @@ namespace NPoco.Tests.Common
                     Age = 20 + (i + 1),
                     DateOfBirth = new DateTime(1970, 1, 1).AddYears(i + 1),
                     Savings = 50.00m + (1.01m * (i + 1)),
-                    IsMale = (i%2==0)
+                    IsMale = (i%2==0),
+                    HouseId = i % 2 == 0 ? (int?)null : InMemoryHouses[i % 5].HouseId
                 };
                 Database.Insert(user);
                 InMemoryUsers.Add(user);

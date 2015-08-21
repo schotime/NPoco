@@ -25,6 +25,16 @@ namespace NPoco.Tests.Common
 
         [Column("is_male")]
         public bool IsMale { get; set; }
+
+        [Column("HouseId")]
+        public int? HouseId { get; set; }
+    }
+
+    [TableName("Houses"), PrimaryKey("HouseId")]
+    public class HouseDecorated
+    {
+        public int HouseId { get; set; }
+        public string Address { get; set; }
     }
 
     [TableName("Users")]
