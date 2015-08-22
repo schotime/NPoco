@@ -73,7 +73,7 @@ namespace NPoco
                     }
                     else
                     {
-                        id = await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, poco, preparedInsert.Rawvalues.ToArray()).ConfigureAwait(false);
+                        id = await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray()).ConfigureAwait(false);
                         InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
                     }
 

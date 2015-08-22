@@ -18,5 +18,6 @@ namespace NPoco.FluentMappings
         public bool? AutoIncrement { get; set; }
         public bool? ExplicitColumns { get; set; }
         public Dictionary<string, ColumnDefinition> ColumnConfiguration { get; set; }
+        public bool? UseOutputClause { get; set; }
     }
 }

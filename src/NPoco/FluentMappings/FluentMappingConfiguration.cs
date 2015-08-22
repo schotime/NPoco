@@ -56,6 +56,7 @@ namespace NPoco.FluentMappings
                     PrimaryKey = scannerSettings.PrimaryKeysNamed(type),
                     TableName = scannerSettings.TablesNamed(type),
                     SequenceName = scannerSettings.SequencesNamed(type),
+                    UseOutputClause = scannerSettings.UseOutputClauseWhere(type),
                     ExplicitColumns = true
                 };
 
@@ -162,6 +163,7 @@ namespace NPoco.FluentMappings
                 ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && Attribute.GetCustomAttributes(x, typeof(ComplexMappingAttribute)).Any(),
                 ReferenceDbColumnsNamed = x => x.Name + "ID",
                 SequencesNamed = x => null,
+                UseOutputClauseWhere = x => false,
                 SerializedWhere = x => Attribute.GetCustomAttributes(x, typeof(SerializedColumnAttribute)).Any(),
                 DbColumnWhere = x => Attribute.GetCustomAttributes(x, typeof(ColumnAttribute)).Any(),
                 Lazy = false
@@ -191,6 +193,7 @@ namespace NPoco.FluentMappings
                 typeDefinition.Value.PrimaryKey = tableInfo.PrimaryKey;
                 typeDefinition.Value.SequenceName = tableInfo.SequenceName;
                 typeDefinition.Value.AutoIncrement = tableInfo.AutoIncrement;
+                typeDefinition.Value.UseOutputClause = tableInfo.UseOutputClause;
 
                 foreach (var columnDefinition in typeDefinition.Value.ColumnConfiguration)
                 {
@@ -226,6 +229,7 @@ namespace NPoco.FluentMappings
                 convTableDefinition.TableName = overrideTypeDefinition.Value.TableName ?? convTableDefinition.TableName;
                 convTableDefinition.AutoIncrement = overrideTypeDefinition.Value.AutoIncrement ?? convTableDefinition.AutoIncrement;
                 convTableDefinition.ExplicitColumns = overrideTypeDefinition.Value.ExplicitColumns ?? convTableDefinition.ExplicitColumns;
+                convTableDefinition.UseOutputClause = overrideTypeDefinition.Value.UseOutputClause ?? convTableDefinition.UseOutputClause;
 
                 foreach (var overrideColumnDefinition in overrideMappings.Config[overrideTypeDefinition.Key].ColumnConfiguration)
                 {

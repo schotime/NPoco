@@ -75,9 +75,9 @@ namespace NPoco
 
                 var sql = string.Empty;
                 var outputClause = String.Empty;
-                if (autoIncrement)
+                if (autoIncrement || !string.IsNullOrEmpty(pd.TableInfo.SequenceName))
                 {
-                    outputClause = database.DatabaseType.GetInsertOutputClause(primaryKeyName);
+                    outputClause = database.DatabaseType.GetInsertOutputClause(primaryKeyName, pd.TableInfo.UseOutputClause);
                 }
 
                 if (names.Count != 0)
@@ -90,8 +90,9 @@ namespace NPoco
                 }
                 else
                 {
-                    sql = database.DatabaseType.GetDefaultInsertSql(tableName, names.ToArray(), values.ToArray());
+                    sql = database.DatabaseType.GetDefaultInsertSql(tableName, primaryKeyName, pd.TableInfo.UseOutputClause, names.ToArray(), values.ToArray());
                 }
+
                 return new PreparedInsertSql()
                 {
                     PocoData = pd,

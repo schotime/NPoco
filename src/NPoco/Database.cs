@@ -1341,7 +1341,7 @@ namespace NPoco
             {
                 OpenSharedConnectionInternal();
 
-                var preparedInsert = InsertStatements.PrepareInsertSql(this, tableName, primaryKeyName, autoIncrement,poco);
+                var preparedInsert = InsertStatements.PrepareInsertSql(this, tableName, primaryKeyName, autoIncrement, poco);
 
                 using (var cmd = CreateCommand(_sharedConnection, preparedInsert.Sql, preparedInsert.Rawvalues.ToArray()))
                 {
@@ -1356,7 +1356,7 @@ namespace NPoco
                     }
                     else
                     {
-                        id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, poco, preparedInsert.Rawvalues.ToArray());
+                        id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray());
                         InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
                     }
 

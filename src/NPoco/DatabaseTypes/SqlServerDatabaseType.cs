@@ -9,6 +9,8 @@ namespace NPoco.DatabaseTypes
 {
     public class SqlServerDatabaseType : DatabaseType
     {
+        public bool UseOutputClause { get; set; }
+
         private static readonly Regex OrderByAlias = new Regex(@"[\""\[\]\w]+\.([\[\]\""\w]+)", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
         public override bool UseColumnAliases()
@@ -26,19 +28,38 @@ namespace NPoco.DatabaseTypes
             return sqlPage;
         }
         
-        public override string GetInsertOutputClause(string primaryKeyName)
+        private void AdjustSqlInsertCommandText(IDbCommand cmd, bool useOutputClause)
         {
-            return string.Format(" OUTPUT INSERTED.[{0}]", primaryKeyName);
+            if (!UseOutputClause && !useOutputClause)
+            {
+                cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
+            }
         }
         
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
+        public override string GetInsertOutputClause(string primaryKeyName, bool useOutputClause)
         {
+            if (UseOutputClause || useOutputClause)
+            {
+                return string.Format(" OUTPUT INSERTED.{0}", EscapeSqlIdentifier(primaryKeyName));
+            }
+            return base.GetInsertOutputClause(primaryKeyName, useOutputClause);
+        }
+
+        public override string GetDefaultInsertSql(string tableName, string primaryKeyName, bool useOutputClause, string[] names, string[] parameters)
+        {
+            return string.Format("INSERT INTO {0}{1} DEFAULT VALUES", EscapeTableName(tableName), GetInsertOutputClause(primaryKeyName, useOutputClause));
+        }
+
+        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        {
+            AdjustSqlInsertCommandText(cmd, useOutputClause);
             return db.ExecuteScalarHelper(cmd);
         }
 
 #if NET45
-        public override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
+        public override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
+            AdjustSqlInsertCommandText(cmd, useOutputClause);
             return ExecuteScalarAsync(db, cmd);
         }
 
@@ -56,7 +77,16 @@ namespace NPoco.DatabaseTypes
             
             if (dbCommand != null)
             {
+#if NET40ASYNC
+                using (var reader = await dbCommand.ExecuteReaderAsync())
+                {
+                    if (reader.FieldCount > 0 && reader.Read())
+                        return await TaskAsyncHelper.FromResult(reader.GetValue(0));
+                    return TaskAsyncHelper.FromResult((object)null);
+                }
+#else
                 return await dbCommand.ExecuteScalarAsync().ConfigureAwait(false);
+#endif
             }
             return await base.ExecuteScalarAsync(database, cmd).ConfigureAwait(false);
         }

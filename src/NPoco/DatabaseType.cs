@@ -201,7 +201,7 @@ namespace NPoco
         /// <param name="primaryKeyName">The primary key of the row being inserted.</param>
         /// <returns>An expression describing how to return the new primary key value</returns>
         /// <remarks>See the SQLServer database provider for an example of how this method is used.</remarks>
-        public virtual string GetInsertOutputClause(string primaryKeyName)
+        public virtual string GetInsertOutputClause(string primaryKeyName, bool useOutputClause)
         {
             return string.Empty;
         }
@@ -212,16 +212,17 @@ namespace NPoco
         /// <param name="db">The calling Database object</param>
         /// <param name="cmd">The insert command to be executed</param>
         /// <param name="primaryKeyName">The primary key of the table being inserted into</param>
+        /// <param name="useOutputClause"></param>
         /// <param name="poco"></param>
         /// <param name="args"></param>
         /// <returns>The ID of the newly inserted record</returns>
-        public virtual object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
+        public virtual object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return db.ExecuteScalarHelper(cmd);
         }
 #if NET45
-        public virtual async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
+        public virtual async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return await db.ExecuteScalarHelperAsync(cmd);
@@ -285,7 +286,7 @@ namespace NPoco
             return Singleton<SqlServerDatabaseType>.Instance;
         }
 
-        public virtual string GetDefaultInsertSql(string tableName, string[] names, string[] parameters)
+        public virtual string GetDefaultInsertSql(string tableName, string primaryKeyName, bool useOutputClause, string[] names, string[] parameters)
         {
             return string.Format("INSERT INTO {0} DEFAULT VALUES", EscapeTableName(tableName));
         }

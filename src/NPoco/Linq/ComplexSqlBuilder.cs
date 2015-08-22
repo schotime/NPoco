@@ -59,9 +59,8 @@ namespace NPoco.Linq
                 }).ToList();
 
             // build wheres
-            var wheres = new Sql();
             var where = sqlExpression.Context.ToWhereStatement();
-            wheres.Append(string.IsNullOrEmpty(where) ? string.Empty : "\n" + where, sqlExpression.Context.Params);
+            where = (string.IsNullOrEmpty(where) ? string.Empty : "\n" + where);
 
             // build joins and add cols
             var joins = BuildJoinSql(database, joinSqlExpressions, ref cols);
@@ -106,12 +105,12 @@ namespace NPoco.Linq
                 (distinct ? "DISTINCT " : "") + string.Join(", ", cols.Select(x=>x.StringCol).ToArray()),
                 database.DatabaseType.EscapeTableName(modelDef.TableInfo.TableName) + " " + database.DatabaseType.EscapeTableName(modelDef.TableInfo.AutoAlias),
                 joins,
-                wheres.SQL,
+                where,
                 orderbys);
 
             var newsql = ((ISqlExpression)_sqlExpression).ApplyPaging(resultantSql, cols.Select(x=>x.PocoColumn), _joinSqlExpressions);
 
-            return new Sql(newsql, wheres.Arguments);
+            return new Sql(newsql, _sqlExpression.Context.Params);
         }
 
         private static string BuildJoinSql(IDatabase database, List<JoinData> joinSqlExpressions, ref List<StringPocoCol> cols)

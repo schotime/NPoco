@@ -183,6 +183,21 @@ namespace NPoco.Tests.Common
             ";
             cmd.ExecuteNonQuery();
 
+            cmd.CommandText = @"
+                CREATE TABLE GuidFromDb(
+                    Id uniqueidentifier PRIMARY KEY DEFAULT newid(), 
+                    Name nvarchar(30)  
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+                CREATE TABLE JustPrimaryKey(
+                    Id int IDENTITY(1, 1) PRIMARY KEY NOT NULL
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
             Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
             var dt = conn.GetSchema("Tables");
             foreach (DataRow row in dt.Rows)

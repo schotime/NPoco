@@ -417,17 +417,18 @@ namespace NPoco.Tests.FluentTests.QueryTests
         {
             var users = Database.Query<User>()
                 .Include(x => x.House)
-                .Where(x => x.House != null)
+                .Where(x => x.House.HouseId > 2)
                 .OrderBy(x => x.House.HouseId)
                 .Limit(5)
-                .ProjectTo(x => new ProjectUser() { NameWithAge = x.Name + x.Age });
+                .ProjectTo(x => new ProjectUser() { UserId = x.UserId, NameWithAge = x.Name + x.Age });
 
             var inmemory = InMemoryUsers.Where(x => x.House != null).OrderBy(x => x.House.HouseId).ToList();
 
-            Assert.AreEqual(5, users.Count);
+            Assert.AreEqual(4, users.Count);
             for (int i = 0; i < users.Count; i++)
             {
-                Assert.AreEqual(inmemory[i].Name + inmemory[i].Age, users[i].NameWithAge);
+                var inMem = inmemory.First(x => x.UserId == users[i].UserId);
+                Assert.AreEqual(inMem.Name + inMem.Age, users[i].NameWithAge);
             }
         }
 
@@ -483,6 +484,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
     {
         public string NameWithAge { get; set; }
         public object[] Array { get; set; }
+        public int UserId { get; set; }
     }
 
     public class Usersss
