@@ -1,4 +1,5 @@
 ﻿using System;
+using NPoco.DatabaseTypes;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -101,6 +102,17 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             var verify = Database.Single<UserDecoratedWithNullable>("select * from users where userid = @0", user.UserId);
             Assert.AreEqual(user.Name, verify.Name);
             Assert.AreEqual(user.Age, verify.Age);
+        }
+
+        [Test]
+        public void VerifyGuidGeneratedByDbIsSet()
+        {
+            var user = new GuidFromDb();
+            user.Name = "TestName";
+            Database.Insert(user);
+            var verify = Database.Single<GuidFromDb>("select * from guidfromdb");
+            Assert.AreEqual(user.Id, verify.Id);
+            Assert.AreEqual(user.Name, verify.Name);
         }
     }
 }

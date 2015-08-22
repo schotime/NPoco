@@ -133,6 +133,14 @@ namespace NPoco.Tests.Common
             ";
             cmd.ExecuteNonQuery();
 
+            cmd.CommandText = @"
+                CREATE TABLE GuidFromDb(
+                    Id uniqueidentifier PRIMARY KEY DEFAULT newid(), 
+                    Name nvarchar(30)  
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
             Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
             var dt = conn.GetSchema("Tables");
             foreach (DataRow row in dt.Rows)

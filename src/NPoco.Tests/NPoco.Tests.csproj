@@ -83,6 +83,7 @@
     <Compile Include="Common\ExtraUserInfoDecorated.cs" />
     <Compile Include="Common\ExtraUserInfo.cs" />
     <Compile Include="Common\FirebirdDefaultMapper.cs" />
+    <Compile Include="Common\GuidFromDb.cs" />
     <Compile Include="Common\InMemoryDatabase.cs" />
     <Compile Include="Common\AdHocUser.cs" />
     <Compile Include="Common\SQLLocalDatabase.cs" />

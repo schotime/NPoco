@@ -45,7 +45,7 @@ namespace NPoco.Tests.Common
                 case 2: // SQL Local DB
                 case 3: // SQL Server
                     TestDatabase = new SQLLocalDatabase();
-                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2008DatabaseType()));
+                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2008DatabaseType() { UseOutputClause = true }));
                     break;
 
                 case 4: // SQL CE

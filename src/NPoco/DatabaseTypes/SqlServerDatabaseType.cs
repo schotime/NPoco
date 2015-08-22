@@ -9,6 +9,8 @@ namespace NPoco.DatabaseTypes
 {
     public class SqlServerDatabaseType : DatabaseType
     {
+        public bool UseOutputClause { get; set; }
+
         private static readonly Regex OrderByAlias = new Regex(@"[\""\[\]\w]+\.([\[\]\""\w]+)", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
         public override bool UseColumnAliases()
@@ -26,9 +28,21 @@ namespace NPoco.DatabaseTypes
             return sqlPage;
         }
 
-        private static void AdjustSqlInsertCommandText(IDbCommand cmd)
+        private void AdjustSqlInsertCommandText(IDbCommand cmd)
         {
-            cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
+            if (!UseOutputClause)
+            {
+                cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
+            }
+        }
+
+        public override string GetInsertOutputClause(string primaryKeyName)
+        {
+            if (UseOutputClause)
+            {
+                return string.Format(" OUTPUT INSERTED.[{0}]", primaryKeyName);
+            }
+            return base.GetInsertOutputClause(primaryKeyName);
         }
 
         public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, T poco, object[] args)
