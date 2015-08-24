@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using NPoco.RowMappers;
 
 namespace NPoco
 {
@@ -15,7 +16,7 @@ namespace NPoco
         
         public static string GenerateKey(IEnumerable<MemberInfo> memberInfoChain)
         {
-            return string.Join("__", memberInfoChain.Select(x => x.Name).ToArray());
+            return string.Join(PocoData.Separator, memberInfoChain.Select(x => x.Name).ToArray());
         }
 
         public TableInfo TableInfo;

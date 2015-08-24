@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using NPoco.RowMappers;
 
 namespace NPoco
 {
@@ -235,7 +236,7 @@ namespace NPoco
                 list.Add(prefix);
             if (!string.IsNullOrEmpty(end))
                 list.Add(end);
-            return string.Join("__", list.ToArray());
+            return string.Join(PocoData.Separator, list.ToArray());
         }
 
         protected string CreateAlias(string typeName, Type typeIn)

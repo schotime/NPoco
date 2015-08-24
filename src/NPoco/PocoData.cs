@@ -6,6 +6,8 @@ namespace NPoco
 {
     public class PocoData
     {
+        public static string Separator = "__";
+
         public Type Type { get; private set; }
         public MapperCollection Mapper { get; private set; }
 

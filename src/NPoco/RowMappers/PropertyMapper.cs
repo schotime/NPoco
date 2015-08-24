@@ -30,7 +30,7 @@ namespace NPoco.RowMappers
                 .ConvertFromConvention();
             
             _groupedNames = fields
-                .GroupByMany(x => x.Name, "__")
+                .GroupByMany(x => x.Name, PocoData.Separator)
                 .ToList();
 
             _mapPlan = BuildMapPlan(dataReader, pocoData);
