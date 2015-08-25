@@ -1261,16 +1261,16 @@ namespace NPoco
                                     switch (typeIndex)
                                     {
                                         case 1:
-                                            list1.Add(((Func<IDataReader, T1, T1>) factory)(r, default(T1)));
+                                            list1.Add((T1)((Func<IDataReader, object, object>)factory)(r, default(T1)));
                                             break;
                                         case 2:
-                                            list2.Add(((Func<IDataReader, T2, T2>) factory)(r, default(T2)));
+                                            list2.Add((T2)((Func<IDataReader, object, object>)factory)(r, default(T2)));
                                             break;
                                         case 3:
-                                            list3.Add(((Func<IDataReader, T3, T3>) factory)(r, default(T3)));
+                                            list3.Add((T3)((Func<IDataReader, object, object>)factory)(r, default(T3)));
                                             break;
                                         case 4:
-                                            list4.Add(((Func<IDataReader, T4, T4>) factory)(r, default(T4)));
+                                            list4.Add((T4)((Func<IDataReader, object, object>)factory)(r, default(T4)));
                                             break;
                                     }
                                 }

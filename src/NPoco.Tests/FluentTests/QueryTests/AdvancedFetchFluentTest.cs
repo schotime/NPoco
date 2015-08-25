@@ -46,5 +46,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
 
             Assert.NotNull(user);
         }
+        
+        [Test]
+        public void FetchMultipleReturnsAllObjects()
+        {
+            var items = Database.FetchMultiple<User, House>("select * from users;select * from houses;");
+
+            Assert.AreEqual(15, items.Item1.Count);
+            Assert.AreEqual(5, items.Item2.Count);
+        }
     }
 }
