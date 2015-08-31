@@ -147,6 +147,7 @@
     <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="IMapper.cs" />
     <Compile Include="InsertContext.cs" />
+    <Compile Include="MapperCollection.cs" />
     <Compile Include="MappingFactory.cs" />
     <Compile Include="MemberAccessor.cs" />
     <Compile Include="NewMappingFactory.cs" />

@@ -5,10 +5,10 @@ namespace NPoco
 {
     public class PocoDataFactory
     {
-        private readonly IMapper _mapper;
+        private readonly MapperCollection _mapper;
         private readonly Cache<Type, PocoDataBuilder> _pocoDatas = Cache<Type, PocoDataBuilder>.CreateStaticCache();
 
-        public PocoDataFactory(IMapper mapper)
+        public PocoDataFactory(MapperCollection mapper)
         {
             _mapper = mapper;
         }

@@ -13,7 +13,7 @@ namespace NPoco.Tests.NewMapper
         [Test]
         public void NestedClassShouldBeMappedAsAComplexObject()
         {
-            var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(ComplexMap));
+            var pocoData = new PocoDataFactory(new MapperCollection()).ForType(typeof(ComplexMap));
 
             Assert.AreEqual(5, pocoData.Columns.Count);
             Assert.AreEqual(true, pocoData.Columns.ContainsKey("Id"));
@@ -26,7 +26,7 @@ namespace NPoco.Tests.NewMapper
         [Test]
         public void NestedClassShouldBeAbleToGetValue()
         {
-            var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(ComplexMap));
+            var pocoData = new PocoDataFactory(new MapperCollection()).ForType(typeof(ComplexMap));
             var obj = new ComplexMap()
             {
                 Name = "Bill",
@@ -42,7 +42,7 @@ namespace NPoco.Tests.NewMapper
         [Test]
         public void NestedNestedClassShouldBeAbleToGetValue()
         {
-            var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(ComplexMap));
+            var pocoData = new PocoDataFactory(new MapperCollection()).ForType(typeof(ComplexMap));
             var obj = new ComplexMap()
             {
                 Name = "Bill",

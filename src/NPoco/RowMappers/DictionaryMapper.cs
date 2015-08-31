@@ -23,7 +23,7 @@ namespace NPoco.RowMappers
 
             for (int i = 0; i < dataReader.FieldCount; i++)
             {
-                var converter = context.PocoData.Mapper != null ? context.PocoData.Mapper.GetFromDbConverter(null, dataReader.GetFieldType(i)) : (x => x);
+                var converter = context.PocoData.Mapper.Find(x => x.GetFromDbConverter(null, dataReader.GetFieldType(i))) ?? (x => x);
                 target.Add(dataReader.GetName(i), dataReader.IsDBNull(i) ? null : converter(dataReader.GetValue(i)));
             }
 

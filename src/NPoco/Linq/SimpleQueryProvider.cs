@@ -64,7 +64,7 @@ namespace NPoco.Linq
 
     public interface IQueryProviderWithIncludes<T> : IQueryProvider<T>
     {
-        IQueryProvider<T> IncludeMany(Expression<Func<T, IEnumerable>> expression, JoinType joinType = JoinType.Left);
+        IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left);
         IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class;
         IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left) where T2 : class;
         IQueryProviderWithIncludes<T> UsingAlias(string empty);
@@ -76,7 +76,7 @@ namespace NPoco.Linq
         private SqlExpression<T> _sqlExpression;
         private Dictionary<string, JoinData> _joinSqlExpressions = new Dictionary<string, JoinData>();
         private readonly ComplexSqlBuilder<T> _buildComplexSql;
-        private Expression<Func<T, IEnumerable>> _listExpression = null;
+        private Expression<Func<T, IList>> _listExpression = null;
         private PocoData _pocoData;
 
         public QueryProvider(Database database, Expression<Func<T, bool>> whereExpression)
@@ -95,7 +95,7 @@ namespace NPoco.Linq
 
         SqlExpression<T> ISimpleQueryProviderExpression<T>.AtlasSqlExpression { get { return _sqlExpression; } }
 
-        public IQueryProvider<T> IncludeMany(Expression<Func<T, IEnumerable>> expression, JoinType joinType = JoinType.Left)
+        public IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left)
         {
             _listExpression = expression;
             return QueryProviderWithIncludes(expression, null, joinType);

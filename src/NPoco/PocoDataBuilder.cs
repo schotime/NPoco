@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -10,7 +11,7 @@ namespace NPoco
         private readonly Cache<string, Type> _aliasToType = Cache<string, Type>.CreateStaticCache();
         
         protected Type Type { get; set; }
-        private IMapper Mapper { get; set; }
+        private MapperCollection Mapper { get; set; }
         private PocoDataFactory PocoDataFactory { get; set; }
 
         private List<PocoMemberPlan> _memberPlans { get; set; }
@@ -19,7 +20,7 @@ namespace NPoco
         private delegate PocoMember PocoMemberPlan(TableInfo tableInfo);
         protected delegate TableInfo TableInfoPlan();
 
-        public PocoDataBuilder(Type type, IMapper mapper, PocoDataFactory pocoDataFactory)
+        public PocoDataBuilder(Type type, MapperCollection mapper, PocoDataFactory pocoDataFactory)
         {
             Type = type;
             Mapper = mapper;
@@ -51,9 +52,6 @@ namespace NPoco
             var pocoData = new PocoData(Type, Mapper);
 
             pocoData.TableInfo = _tableInfoPlan();
-
-            if (Mapper != null)
-                Mapper.GetTableInfo(Type, pocoData.TableInfo);
 
             pocoData.Members = _memberPlans.Select(plan => plan(pocoData.TableInfo)).ToList();
 
@@ -101,7 +99,7 @@ namespace NPoco
             }
         }
         
-        private IEnumerable<PocoMemberPlan> GetPocoMembers(IMapper mapper, ColumnInfo[] columnInfos, List<MemberInfo> memberInfos, string prefix = null)
+        private IEnumerable<PocoMemberPlan> GetPocoMembers(MapperCollection mapper, ColumnInfo[] columnInfos, List<MemberInfo> memberInfos, string prefix = null)
         {
             var capturedMembers = memberInfos.ToArray();
             var capturedPrefix = prefix;
@@ -169,9 +167,6 @@ namespace NPoco
 
                     pc.SetMemberAccessors(accessors);
 
-                    if (mapper != null && !mapper.MapMemberToColumn(capturedMemberInfo, ref pc.ColumnName, ref pc.ResultColumn))
-                        return null;
-
                     var childrenTableInfo = childTableInfoPlan == null ? tableInfo : childTableInfoPlan();
                     var children = childrenPlans.Select(plan => plan(childrenTableInfo)).ToList();
 
@@ -225,7 +220,7 @@ namespace NPoco
 
         public static bool IsList(MemberInfo mi)
         {
-            return mi.GetMemberInfoType() != typeof(string) && mi.GetMemberInfoType() != typeof(byte[]) && mi.GetMemberInfoType().GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            return mi.GetMemberInfoType().GetTypeWithGenericTypeDefinitionOf(typeof(IList<>).GetGenericTypeDefinition()) != null;
         }
 
         protected virtual string GetColumnName(string prefix, string columnName)

@@ -9,12 +9,12 @@ namespace NPoco.FluentMappings
 {
     public class FluentConfig
     {
-        public FluentConfig(Func<IMapper, PocoDataFactory> config)
+        public FluentConfig(Func<MapperCollection, PocoDataFactory> config)
         {
             Config = config;
         }
 
-        public Func<IMapper, PocoDataFactory> Config { get; private set; }
+        public Func<MapperCollection, PocoDataFactory> Config { get; private set; }
     }
 
     public class FluentMappingConfiguration

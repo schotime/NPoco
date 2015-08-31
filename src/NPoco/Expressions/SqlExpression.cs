@@ -601,11 +601,9 @@ namespace NPoco.Expressions
             {
                 if (Context.UpdateFields.Count > 0 && !Context.UpdateFields.Contains(fieldDef.Value.MemberInfo.Name)) continue; // added
                 object value = fieldDef.Value.GetValue(item);
-                if (_database.Mapper != null)
+                if (_database.Mappers != null)
                 {
-                    var converter = _database.Mapper.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfo);
-                    if (converter != null)
-                        value = converter(value);
+                    value = _database.Mappers.FindAndExecute(x => x.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfo), value);
                 }
 
                 if (excludeDefaults && (value == null || value.Equals(MappingFactory.GetDefault(value.GetType())))) continue; //GetDefaultValue?

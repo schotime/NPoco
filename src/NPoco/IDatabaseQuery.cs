@@ -34,10 +34,10 @@ namespace NPoco
         List<T> SkipTake<T>(long skip, long take, string sql, params object[] args);
         List<T> SkipTake<T>(long skip, long take, Sql sql);
 
-        List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, string sql, params object[] args);
-        List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Sql sql);
-        List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Func<T, object> idFunc, string sql, params object[] args);
-        List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Func<T, object> idFunc, Sql sql);
+        List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, string sql, params object[] args);
+        List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Sql sql);
+        List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Func<T, object> idFunc, string sql, params object[] args);
+        List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Func<T, object> idFunc, Sql sql);
         
         IEnumerable<T> Query<T>(string sql, params object[] args);
         IEnumerable<T> Query<T>(Sql sql);

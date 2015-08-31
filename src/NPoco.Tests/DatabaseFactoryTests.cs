@@ -35,7 +35,7 @@ namespace NPoco.Tests
                 x.WithMapper(mapper);
             });
 
-            Assert.AreEqual(mapper, factory.Build(db).Mapper);
+            Assert.True(factory.Build(db).Mappers.Contains(mapper));
         }
 
         [Test]
@@ -47,17 +47,17 @@ namespace NPoco.Tests
             var factory = DatabaseFactory.Config(x =>
             {
                 x.UsingDatabase(() => db);
-                x.WithMapper(mapper);
+                var databaseFactoryConfig = x.WithMapper(mapper);
             });
 
-            Assert.AreEqual(mapper, factory.GetDatabase().Mapper);
+            Assert.True(factory.Build(db).Mappers.Contains(mapper));
         }
 
         [Test]
         public void FluentConfigShouldBePlacedOnDatabaseWhenInsertedIntoFactoryConfig()
         {
             var db = new Database(new SqlConnection());
-            var pocoDataFactory = new PocoDataFactory((y,f) => new PocoDataBuilder(y, new Mapper(), f).Init());
+            var pocoDataFactory = new PocoDataFactory((y,f) => new PocoDataBuilder(y, new MapperCollection(), f).Init());
             var fluentConfig = new FluentConfig(x=>pocoDataFactory);
 
             var factory = DatabaseFactory.Config(x =>

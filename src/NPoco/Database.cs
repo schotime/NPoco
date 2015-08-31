@@ -414,11 +414,9 @@ namespace NPoco
         public virtual void AddParameter(IDbCommand cmd, object value)
         {
             // Convert value to from poco type to db type
-            if (Mapper != null && value != null)
+            if (Mappers != null && value != null)
             {
-                var fn = Mapper.GetParameterConverter(cmd, value.GetType());
-                if (fn != null)
-                    value = fn(value);
+                value = Mappers.FindAndExecute(x => x.GetParameterConverter(cmd, value.GetType()), value);
             }
 
             // Support passed in parameters
@@ -819,8 +817,8 @@ namespace NPoco
 
                 if (isConverterSet == false)
                 {
-                    converter1 = MappingFactory.GetConverter(Mapper, null, typeof(TKey), key.GetType()) ?? (x => x);
-                    converter2 = MappingFactory.GetConverter(Mapper, null, typeof(TValue), value.GetType()) ?? (x => x);
+                    converter1 = MappingFactory.GetConverter(Mappers, null, typeof(TKey), key.GetType()) ?? (x => x);
+                    converter2 = MappingFactory.GetConverter(Mappers, null, typeof(TValue), value.GetType()) ?? (x => x);
                     isConverterSet = true;
                 }
 
@@ -881,7 +879,7 @@ namespace NPoco
             }
         }
 
-        private IEnumerable<T> ReadOneToMany<T>(T instance, IDataReader r, Expression<Func<T, IEnumerable>> listExpression, Func<T, object[]> idFunc)
+        private IEnumerable<T> ReadOneToMany<T>(T instance, IDataReader r, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc)
         {
             Func<T, IEnumerable> listFunc = null;
             PocoMember pocoMember = null;
@@ -999,7 +997,7 @@ namespace NPoco
             }
         }
 
-        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Func<T, object[]> idFunc, Sql Sql)
+        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -1040,22 +1038,22 @@ namespace NPoco
             return r;
         }
 
-        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Sql sql)
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Sql sql)
         {
             return QueryImp(default(T), many, null, sql).ToList();
         }
 
-        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, string sql, params object[] args)
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, string sql, params object[] args)
         {
             return FetchOneToMany(many, new Sql(sql, args));
         }
 
-        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Func<T, object> idFunc, Sql sql)
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Func<T, object> idFunc, Sql sql)
         {
             return QueryImp(default(T), many, x => new[] { idFunc(x) }, sql).ToList();
         }
 
-        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Func<T, object> idFunc, string sql, params object[] args)
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Func<T, object> idFunc, string sql, params object[] args)
         {
             return FetchOneToMany(many, idFunc, new Sql(sql, args));
         }
@@ -1785,12 +1783,13 @@ namespace NPoco
             return sb.ToString();
         }
 
-        public IMapper Mapper { get; set; }
+        private MapperCollection _mappers = new MapperCollection();
+        public MapperCollection Mappers { get { return _mappers; } }
 
         private PocoDataFactory _pocoDataFactory;
         public PocoDataFactory PocoDataFactory
         {
-            get { return _pocoDataFactory ?? (_pocoDataFactory = new PocoDataFactory(Mapper)); }
+            get { return _pocoDataFactory ?? (_pocoDataFactory = new PocoDataFactory(Mappers)); }
             set { _pocoDataFactory = value; }
         }
 
@@ -1834,7 +1833,7 @@ namespace NPoco
 
         internal object ProcessMapper(PocoColumn pc, object value)
         {
-            var converter = Mapper != null ? Mapper.GetToDbConverter(pc.ColumnType, pc.MemberInfo) : null;
+            var converter = Mappers.Find(x => x.GetToDbConverter(pc.ColumnType, pc.MemberInfo));
             return converter != null ? converter(value) : ProcessDefaultMappings(pc, value);
         }
 

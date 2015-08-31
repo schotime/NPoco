@@ -11,14 +11,14 @@ namespace NPoco
         static readonly EnumMapper EnumMapper = new EnumMapper();
         static readonly Cache<Type, Type> UnderlyingTypes = Cache<Type, Type>.CreateStaticCache();
 
-        public static Func<object, object> GetConverter(IMapper mapper, PocoColumn pc, Type srcType, Type dstType)
+        public static Func<object, object> GetConverter(MapperCollection mapper, PocoColumn pc, Type srcType, Type dstType)
         {
             Func<object, object> converter = null;
 
             // Get converter from the mapper
             if (mapper != null)
             {
-                converter = pc != null ? mapper.GetFromDbConverter(pc.MemberInfo, srcType) : mapper.GetFromDbConverter(dstType, srcType);
+                converter = pc != null ? mapper.Find(x => x.GetFromDbConverter(pc.MemberInfo, srcType)) : mapper.Find(x => x.GetFromDbConverter(dstType, srcType));
                 if (converter != null)
                     return converter;
             }

@@ -55,7 +55,7 @@ namespace NPoco
 
     public interface IDatabaseConfig
     {
-        IMapper Mapper { get; set; }
+        MapperCollection Mappers { get; }
         PocoDataFactory PocoDataFactory { get; set; }
         DatabaseType DatabaseType { get; }
         string ConnectionString { get; }

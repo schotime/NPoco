@@ -13,7 +13,7 @@ namespace NPoco.Tests.NewMapper
         {
             var fakeReader = new FakeReader();
 
-            var pocoDataFactory = new PocoDataFactory((IMapper)null);
+            var pocoDataFactory = new PocoDataFactory(new MapperCollection());
 
             var sw = Stopwatch.StartNew();
             
@@ -36,7 +36,7 @@ namespace NPoco.Tests.NewMapper
         [Test]
         public void Test1()
         {
-            var pocoData = new PocoDataFactory((IMapper)null).ForType(typeof(RecursionUser));
+            var pocoData = new PocoDataFactory(new MapperCollection()).ForType(typeof(RecursionUser));
 
             Assert.AreEqual(4, pocoData.Members.Count);
             Assert.AreEqual("Id", pocoData.Members[0].Name);

@@ -7,7 +7,7 @@ namespace NPoco
     public class PocoData
     {
         public Type Type { get; private set; }
-        public IMapper Mapper { get; private set; }
+        public MapperCollection Mapper { get; private set; }
 
         public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected internal set; }
         public TableInfo TableInfo { get; protected internal set; }
@@ -19,7 +19,7 @@ namespace NPoco
         {
         }
 
-        public PocoData(Type type, IMapper mapper) : this()
+        public PocoData(Type type, MapperCollection mapper) : this()
         {
             Type = type;
             Mapper = mapper;

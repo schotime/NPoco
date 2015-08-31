@@ -200,7 +200,7 @@ namespace NPoco
             return QueryAsync(default(T), null, null, sql);
         }
 
-        internal async Task<IEnumerable<T>> QueryAsync<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Func<T, object[]> idFunc, Sql Sql)
+        internal async Task<IEnumerable<T>> QueryAsync<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;

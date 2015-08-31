@@ -60,13 +60,9 @@ namespace NPoco
                 for (var i = 0; i < values.Length; i++)
                 {
                     var value = cols[i].Value.GetValue(item);
-                    if (db.Mapper != null)
+                    if (db.Mappers != null)
                     {
-                        var converter = db.Mapper.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfo);
-                        if (converter != null)
-                        {
-                            value = converter(value);
-                        }
+                        value = db.Mappers.FindAndExecute(x => x.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfo), value);
                     }
 
                     value = db.DatabaseType.MapParameterValue(value);

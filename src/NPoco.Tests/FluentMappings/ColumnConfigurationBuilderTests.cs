@@ -122,7 +122,7 @@ namespace NPoco.Tests.FluentMappings
                 scan.Columns.IgnoreWhere(x => x.Name == "Age");
             });
 
-            var pd = map.Config(new Mapper()).Resolver(typeof(User), new PocoDataFactory(new Mapper())).Build();
+            var pd = map.Config(new MapperCollection()).Resolver(typeof(User), new PocoDataFactory(new MapperCollection())).Build();
             Assert.False(pd.Columns.ContainsKey("Age"));
         }
 
@@ -136,7 +136,7 @@ namespace NPoco.Tests.FluentMappings
                 scan.Columns.ResultWhere(x => x.Name == "Age");
             });
 
-            var pd = map.Config(new Mapper()).Resolver(typeof(User), new PocoDataFactory(new Mapper())).Build();
+            var pd = map.Config(new MapperCollection()).Resolver(typeof(User), new PocoDataFactory(new MapperCollection())).Build();
             Assert.True(pd.Columns.ContainsKey("Age"));
             Assert.True(pd.Columns["Age"].ResultColumn);
         }
@@ -152,7 +152,7 @@ namespace NPoco.Tests.FluentMappings
                 scan.Columns.ReferenceNamed(x => x.Name + "Id000");
             });
 
-            var pd = map.Config(new Mapper()).Resolver(typeof(User), new PocoDataFactory(new Mapper())).Build();
+            var pd = map.Config(new MapperCollection()).Resolver(typeof(User), new PocoDataFactory(new MapperCollection())).Build();
             Assert.True(pd.Columns.ContainsKey("Age000"));
             Assert.AreEqual("Age", pd.Columns["Age000"].MemberInfo.Name);
         }
@@ -167,7 +167,7 @@ namespace NPoco.Tests.FluentMappings
                 scan.OverrideMappingsWith(new MyPKMappings());
             });
 
-            var pd = map.Config(new Mapper()).Resolver(typeof(User), new PocoDataFactory(new Mapper())).Build();
+            var pd = map.Config(new MapperCollection()).Resolver(typeof(User), new PocoDataFactory(new MapperCollection())).Build();
             Assert.True(pd.Columns.ContainsKey("user_id"));
             Assert.AreEqual("user_id", pd.TableInfo.PrimaryKey);
         }
