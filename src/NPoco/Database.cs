@@ -881,7 +881,7 @@ namespace NPoco
 
         private IEnumerable<T> ReadOneToMany<T>(T instance, IDataReader r, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc)
         {
-            Func<T, IEnumerable> listFunc = null;
+            Func<T, IList> listFunc = null;
             PocoMember pocoMember = null;
             PocoMember foreignMember = null;
 

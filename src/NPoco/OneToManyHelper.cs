@@ -7,9 +7,9 @@ namespace NPoco
 {
     public class OneToManyHelper
     {
-        public static void SetListValue<T>(Func<T, IEnumerable> listFunc, PocoMember pocoMember, object prevPoco, T poco)
+        public static void SetListValue<T>(Func<T, IList> listFunc, PocoMember pocoMember, object prevPoco, T poco)
         {
-            var prevList = listFunc((T)prevPoco) as IList;
+            var prevList = listFunc((T)prevPoco);
             var currentList = listFunc(poco);
 
             if (prevList == null && currentList != null)
@@ -27,7 +27,7 @@ namespace NPoco
             }
         }
 
-        public static void SetForeignList<T>(Func<T, IEnumerable> listFunc, PocoMember foreignMember, object prevPoco)
+        public static void SetForeignList<T>(Func<T, IList> listFunc, PocoMember foreignMember, object prevPoco)
         {
             if (listFunc == null || foreignMember == null)
                 return;
