@@ -7,7 +7,7 @@ namespace NPoco.RowMappers
     {
         public static string SplitPrefix = "npoco_";
 
-        public static IEnumerable<PropertyMapper.PosName> ConvertFromConvention(this IEnumerable<PropertyMapper.PosName> posNames)
+        public static IEnumerable<PosName> ConvertFromConvention(this IEnumerable<PosName> posNames)
         {
             string prefix = null;
             foreach (var posName in posNames)

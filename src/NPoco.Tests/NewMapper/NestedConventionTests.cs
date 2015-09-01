@@ -47,6 +47,23 @@ namespace NPoco.Tests.NewMapper
         }
 
         [Test]
+        public void Test4_1()
+        {
+            var data = Database.Fetch<string[]>("select 'Name' Name, 1 poco_rn, 'AUD' money__currency /*poco_dual*/").Single();
+            Assert.AreEqual("Name", data[0]);
+            Assert.AreEqual("AUD", data[1]);
+        }
+
+        [Test]
+        public void Test4_2()
+        {
+            var data = Database.Fetch<string[]>("select 'Name' Name, null npoco_wow, '4' Day, 'AUD' money__currency /*poco_dual*/").Single();
+            Assert.AreEqual("Name", data[0]);
+            Assert.AreEqual("4", data[1]);
+            Assert.AreEqual("AUD", data[2]);
+        }
+
+        [Test]
         public void Test5()
         {
             var data = Database.Fetch<string>("select 'Name' /*poco_dual*/ union all select 'Name2' /*poco_dual*/");

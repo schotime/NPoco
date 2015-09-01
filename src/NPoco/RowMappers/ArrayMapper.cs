@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Linq;
 
 namespace NPoco.RowMappers
 {
@@ -13,14 +14,18 @@ namespace NPoco.RowMappers
         public override object Map(IDataReader dataReader, RowMapperContext context)
         {
             var arrayType = context.Type.GetElementType();
-            var array = Array.CreateInstance(arrayType, dataReader.FieldCount);
-            for (int i = 0; i < dataReader.FieldCount; i++)
+            var columnNames = GetColumnNames(dataReader);
+
+            var array = Array.CreateInstance(arrayType, columnNames.Length);
+
+            for (int i = 0; i < columnNames.Length; i++)
             {
-                if (!dataReader.IsDBNull(i))
+                if (!dataReader.IsDBNull(columnNames[i].Pos))
                 {
-                    array.SetValue(dataReader.GetValue(i), i);
+                    array.SetValue(dataReader.GetValue(columnNames[i].Pos), i);
                 }
             }
+
             return array;
         }
     }

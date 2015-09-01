@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Linq;
 
 namespace NPoco.RowMappers
 {
@@ -16,7 +17,16 @@ namespace NPoco.RowMappers
 
         public virtual void Init(IDataReader dataReader, PocoData pocoData)
         {
-            
+        }
+
+        private PosName[] _columnNames;
+        protected PosName[] GetColumnNames(IDataReader dataReader)
+        {
+            return _columnNames ?? (_columnNames = Enumerable.Range(0, dataReader.FieldCount)
+                .Select(x => new PosName {Pos = x, Name = dataReader.GetName(x)})
+                .Where(x => !string.Equals("poco_rn", x.Name))
+                .ConvertFromConvention()
+                .ToArray());
         }
 
         public abstract object Map(IDataReader dataReader, RowMapperContext context);

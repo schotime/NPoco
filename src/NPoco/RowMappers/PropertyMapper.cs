@@ -6,17 +6,17 @@ using System.Linq;
 
 namespace NPoco.RowMappers
 {
+    public class PosName
+    {
+        public int Pos { get; set; }
+        public string Name { get; set; }
+    }
+
     public class PropertyMapper : RowMapper
     {
         private List<GroupResult<PosName>> _groupedNames;
         private MapPlan _mapPlan;
         private bool _mappingOntoExistingInstance;
-
-        public class PosName
-        {
-            public int Pos { get; set; }
-            public string Name { get; set; }
-        }
 
         public override bool ShouldMap(PocoData pocoData)
         {
@@ -25,9 +25,7 @@ namespace NPoco.RowMappers
 
         public override void Init(IDataReader dataReader, PocoData pocoData)
         {
-            var fields = Enumerable.Range(0, dataReader.FieldCount)
-                .Select(x => new PosName {Pos = x, Name = dataReader.GetName(x)})
-                .ConvertFromConvention();
+            var fields = GetColumnNames(dataReader);
             
             _groupedNames = fields
                 .GroupByMany(x => x.Name, PocoData.Separator)
