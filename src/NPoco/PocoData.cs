@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 
 namespace NPoco
@@ -51,11 +52,12 @@ namespace NPoco
             }
         }
 
-        public object CreateObject()
+
+        public object CreateObject(IDataReader dataReader)
         {
             if (CreateDelegate == null)
-                CreateDelegate = new FastCreate(Type);
-            return CreateDelegate.Create();
+                CreateDelegate = new FastCreate(Type, Mapper);
+            return CreateDelegate.Create(dataReader);
         }
 
         private FastCreate CreateDelegate { get; set; }

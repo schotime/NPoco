@@ -145,7 +145,7 @@ namespace NPoco
                 var memberType = capturedMemberInfo.GetMemberInfoType();
                 var isList = IsList(capturedMemberInfo);
                 var listType = GetListType(memberType, isList);
-                var fastCreate = GetFastCreate(memberType, isList);
+                var fastCreate = GetFastCreate(memberType, mapper, isList);
 
                 yield return tableInfo =>
                 {
@@ -194,12 +194,12 @@ namespace NPoco
             }
         }
 
-        private static FastCreate GetFastCreate(Type memberType, bool isList)
+        private static FastCreate GetFastCreate(Type memberType, MapperCollection mapperCollection, bool isList)
         {
             return memberType.IsAClass()
                        ? (new FastCreate(isList
                             ? memberType.GetGenericArguments().First()
-                            : memberType))
+                            : memberType, mapperCollection))
                        : null;
         }
 

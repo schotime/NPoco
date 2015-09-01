@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Reflection;
 
@@ -28,9 +29,9 @@ namespace NPoco
         private MemberAccessor _memberAccessor;
         private Type _listType;
 
-        public object Create()
+        public object Create(IDataReader dataReader)
         {
-            return _creator.Create();
+            return _creator.Create(dataReader);
         }
 
         public IList CreateList()

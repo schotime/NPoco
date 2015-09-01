@@ -38,7 +38,7 @@ namespace NPoco.RowMappers
         {
             if (context.Instance == null)
             {
-                context.Instance = context.PocoData.CreateObject();
+                context.Instance = context.PocoData.CreateObject(dataReader);
                 if (context.Instance == null)
                     throw new Exception(string.Format("Poco '{0}' has no parameterless constructor", context.Type.FullName));
             }
@@ -90,7 +90,7 @@ namespace NPoco.RowMappers
 
                     yield return (reader, instance) =>
                     {
-                        var newObject = pocoMember.GetValue(instance) ?? pocoMember.Create();
+                        var newObject = pocoMember.GetValue(instance) ?? pocoMember.Create(dataReader);
 
                         var shouldSetNestedObject = false;
                         foreach (var subPlan in subPlans)

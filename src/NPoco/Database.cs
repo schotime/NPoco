@@ -178,9 +178,10 @@ namespace NPoco
         private bool ShouldCloseConnectionAutomatically { get; set; }
 
         // Open a connection (can be nested)
-        public void OpenSharedConnection()
+        public IDatabase OpenSharedConnection()
         {
             OpenSharedConnectionImp(false);
+            return this;
         }
 
         private void OpenSharedConnectionInternal()

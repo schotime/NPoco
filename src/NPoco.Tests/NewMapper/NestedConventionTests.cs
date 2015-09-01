@@ -380,6 +380,64 @@ select 22 Money__Value /*poco_dual*/");
             [Reference(ReferenceMappingType.OneToOne, Name = "HouseId", ReferenceName = "HouseId")]
             public HouseDecorated House { get; set; }
         }
+
+        [Test]
+        public void Test23()
+        {
+            Database.Mappers.Factory.Clear();
+            Database.Mappers.Factory.Add(typeof(ContentBase), reader => new Post());
+            var data = Database.Fetch<ContentBase>("select 'Name' Name /*poco_dual*/").Single();
+            Assert.AreEqual("Name", data.Name);
+        }
+
+        [Test]
+        public void Test24()
+        {
+            Database.Mappers.Factory.Clear();
+            Database.Mappers.Factory.Add(typeof(IContentBase), reader => new Post());
+            var data = Database.Fetch<IContentBase>("select 'Name' Name /*poco_dual*/").Single();
+            Assert.AreEqual("Name", data.Name);
+        }
+
+        [Test]
+        public void Test25()
+        {
+            Database.Mappers.Factory.Clear();
+            Database.Mappers.Factory.Add(typeof(ContentBase), reader =>
+            {
+                return (string) reader["type"] == "Post" ? (ContentBase) new Post() : (ContentBase) new Answer();
+            });
+            var data = Database.Fetch<ContentBase>(@"
+select 'NamePost' Name, 'Post' type /*poco_dual*/
+union
+select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
+").ToList();
+
+            Assert.AreEqual("NamePost", data[0].Name);
+            Assert.AreEqual("NameAnswer", data[1].Name);
+            Assert.True(data[0] is Post);
+            Assert.True(data[1] is Answer);
+        }
+    }
+
+    public class Post : ContentBase
+    {
+        
+    }
+
+    public class Answer : ContentBase
+    {
+        
+    }
+
+    public abstract class ContentBase : IContentBase
+    {
+        public string Name { get; set; }
+    }
+
+    public interface IContentBase
+    {
+        string Name { get; set; }
     }
 
     public static class Ext
