@@ -221,7 +221,7 @@ namespace NPoco
 
         public static bool IsList(MemberInfo mi)
         {
-            return mi.GetMemberInfoType().GetTypeWithGenericTypeDefinitionOf(typeof(IList<>).GetGenericTypeDefinition()) != null;
+            return mi.GetMemberInfoType().IsOfGenericType(typeof(IList<>)) && !mi.GetMemberInfoType().IsArray;
         }
 
         protected virtual string GetColumnName(string prefix, string columnName)

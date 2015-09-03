@@ -125,5 +125,28 @@ namespace NPoco
 
             return null;
         }
+
+        public static bool IsOfGenericType(this Type instanceType, Type genericType)
+        {
+            Type type = instanceType;
+            while (type != null)
+            {
+                if (type.IsGenericType &&
+                    type.GetGenericTypeDefinition() == genericType)
+                {
+                    return true;
+                }
+                type = type.BaseType;
+            }
+
+            foreach (var i in instanceType.GetInterfaces())
+            {
+                if (i.IsGenericType && i.GetGenericTypeDefinition() == genericType)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
