@@ -9,6 +9,11 @@ namespace NPoco.Tests.DecoratedTests
     //[NUnit.Framework.Ignore("Appearently the decorated syntax and fluent syntax are some how conflicting.")]
     public class TransactionDecoratedTests : BaseDBDecoratedTest
     {
+        public TransactionDecoratedTests()
+        {
+            NoTransaction = true;
+        }
+
         [Test]
         public void ExternalTransactionComplete()
         {

@@ -21,7 +21,7 @@ namespace NPoco.Tests.Common
             return clause ? s.ToLowerInvariant() : s;
         }
 
-        [SetUp]
+        [TestFixtureSetUp]
         public void SetUp()
         {
             var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(UserWithExtraInfo), typeof(Usersss), typeof(House), typeof(Supervisor) };
@@ -40,8 +40,6 @@ namespace NPoco.Tests.Common
                 })
             );
             
-
-
             var testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
             switch (testDBType)
             {
@@ -77,11 +75,30 @@ namespace NPoco.Tests.Common
             InsertData();
         }
 
+        [SetUp]
+        public void BeforeTest()
+        {
+            if (!NoTransaction)
+            {
+                Database.BeginTransaction();
+            }
+        }
+
+        public bool NoTransaction { get; set; }
+
         [TearDown]
         public void CleanUp()
         {
             if (TestDatabase == null) return;
 
+            if (!NoTransaction)
+            {
+                Database.AbortTransaction();
+            }
+            else
+            {
+                SetUp();
+            }
             TestDatabase.CleanupDataBase();
             TestDatabase.Dispose();
         }

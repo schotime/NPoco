@@ -17,7 +17,7 @@ namespace NPoco.Tests.Common
         public List<HouseDecorated> InMemoryHouses { get; set; }
 
 
-        [SetUp]
+        [TestFixtureSetUp]
         public void SetUp()
         {
             var testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
@@ -55,11 +55,31 @@ namespace NPoco.Tests.Common
             InsertData();
         }
 
+        [SetUp]
+        public void BeforeTest()
+        {
+            if (!NoTransaction)
+            {
+                Database.BeginTransaction();
+            }
+            else
+            {
+                SetUp();
+            }
+        }
+
+        public bool NoTransaction { get; set; }
+
         [TearDown]
         public void CleanUp()
         {
             if (TestDatabase == null) return;
 
+            if (!NoTransaction)
+            {
+                Database.AbortTransaction();
+            }
+            
             TestDatabase.CleanupDataBase();
             TestDatabase.Dispose();
         }
