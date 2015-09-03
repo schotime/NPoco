@@ -2,7 +2,7 @@ using System;
 
 namespace NPoco.RowMappers
 {
-    public class RowMapperContext
+    public struct RowMapperContext
     {
         public object Instance { get; set; }
         public object PrimaryKeyValue { get; set; }

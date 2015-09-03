@@ -12,16 +12,19 @@ namespace NPoco.Tests.NewMapper
         public void Test11()
         {
             var fakeReader = new FakeReader();
-
             var pocoDataFactory = new PocoDataFactory(new MapperCollection());
+            var newPropertyMapper = new PropertyMapper();
+            var pocoData = pocoDataFactory.ForType(typeof(NestedConvention));
+            newPropertyMapper.Init(fakeReader, pocoData);
+            newPropertyMapper.Map(fakeReader, new RowMapperContext() { PocoData = pocoData });
 
             var sw = Stopwatch.StartNew();
             
             for (int j = 0; j < 1000; j++)
             {
-                var newPropertyMapper = new PropertyMapper();    
-                var pocoData = pocoDataFactory.ForType(typeof (NestedConvention));
+                newPropertyMapper = new PropertyMapper();
                 newPropertyMapper.Init(fakeReader, pocoData);
+
                 for (int i = 0; i < 1000; i++)
                 {
                     newPropertyMapper.Map(fakeReader, new RowMapperContext() { PocoData = pocoData });
@@ -31,6 +34,7 @@ namespace NPoco.Tests.NewMapper
             sw.Stop();
 
             Console.WriteLine(sw.ElapsedMilliseconds);
+            //250
         }
 
         [Test]

@@ -4,7 +4,7 @@ namespace NPoco.Tests.Common
 {
     internal class FirebirdDefaultMapper: DefaultMapper
     {
-          private bool isNullable(Type type)
+        private bool isNullable(Type type)
         {
             return (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (Nullable<>));
         }

@@ -21,11 +21,11 @@ namespace NPoco.RowMappers
                 target = new PocoExpando();
 #endif
 
-            var columnNames = GetColumnNames(dataReader);
+            var columnNames = GetColumnNames(dataReader, context.PocoData);
 
             for (int i = 0; i < columnNames.Length; i++)
             {
-                var converter = context.PocoData.Mapper.Find(x => x.GetFromDbConverter(null, dataReader.GetFieldType(columnNames[i].Pos))) ?? (x => x);
+                var converter = context.PocoData.Mapper.Find(x => x.GetFromDbConverter(typeof(object), dataReader.GetFieldType(columnNames[i].Pos))) ?? (x => x);
                 target.Add(columnNames[i].Name, dataReader.IsDBNull(columnNames[i].Pos) ? null : converter(dataReader.GetValue(columnNames[i].Pos)));
             }
 

@@ -35,12 +35,25 @@ namespace NPoco
 
         public Database Build(Database database)
         {
-            database.Mappers.InsertRange(0, _options.Mapper);
+            ConfigureMappers(database);
+            ConfigurePocoDataFactory(database);
+            return database;
+        }
 
+        private void ConfigurePocoDataFactory(Database database)
+        {
             if (_options.PocoDataFactory != null)
                 database.PocoDataFactory = _options.PocoDataFactory.Config(database.Mappers);
+        }
 
-            return database;
+        private void ConfigureMappers(Database database)
+        {
+            database.Mappers.InsertRange(0, _options.Mapper);
+
+            foreach (var factory in database.Mappers.Factories)
+            {
+                database.Mappers.Factories[factory.Key] = factory.Value;
+            }
         }
 
         public Database GetDatabase()
@@ -90,6 +103,12 @@ namespace NPoco
         public DatabaseFactoryConfig WithFluentConfig(FluentConfig fluentConfig)
         {
             _options.PocoDataFactory = fluentConfig;
+            return this;
+        }
+
+        public DatabaseFactoryConfig WithMapperFactory<T>(Func<IDataReader, T> factory)
+        {
+            _options.Mapper.RegisterFactory(factory);
             return this;
         }
     }

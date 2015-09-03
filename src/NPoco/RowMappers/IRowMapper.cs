@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Security.Policy;
 
 namespace NPoco.RowMappers
 {
@@ -20,13 +22,20 @@ namespace NPoco.RowMappers
         }
 
         private PosName[] _columnNames;
-        protected PosName[] GetColumnNames(IDataReader dataReader)
+
+        protected PosName[] GetColumnNames(IDataReader dataReader, PocoData pocoData)
         {
-            return _columnNames ?? (_columnNames = Enumerable.Range(0, dataReader.FieldCount)
-                .Select(x => new PosName {Pos = x, Name = dataReader.GetName(x)})
+            var cols = Enumerable.Range(0, dataReader.FieldCount)
+                .Select(x => new PosName { Pos = x, Name = dataReader.GetName(x) })
                 .Where(x => !string.Equals("poco_rn", x.Name))
-                .ConvertFromConvention()
-                .ToArray());
+                .ToList();
+
+            if (cols.Any(x => x.Name.StartsWith(PropertyMapperNameConvention.SplitPrefix)))
+            {
+                return _columnNames ?? (_columnNames = cols.ConvertFromNewConvention().ToArray());
+            }
+
+            return _columnNames ?? (_columnNames = cols.ConvertFromOldConvention(pocoData.Members).ToArray());
         }
 
         public abstract object Map(IDataReader dataReader, RowMapperContext context);

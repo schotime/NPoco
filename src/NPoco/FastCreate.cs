@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -27,11 +28,8 @@ namespace NPoco
 
         private Func<IDataReader, object> GetCreateDelegate()
         {
-            if (_mapperCollection.Factory.ContainsKey(_type))
-                return dataReader => _mapperCollection.Factory[_type](dataReader);
-
-            if (_type.IsAbstract || _type.IsInterface)
-                throw new Exception("Custom mapper needs to be registered in the MapperCollection factory");
+            if (_mapperCollection.HasFactory(_type))
+                return dataReader => _mapperCollection.GetFactory(_type)(dataReader);
 
             var constructorInfo = _type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null);
             if (constructorInfo == null)

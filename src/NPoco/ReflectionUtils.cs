@@ -38,7 +38,7 @@ namespace NPoco
         public static Type GetMemberInfoType(this MemberInfo member)
         {
             Type type;
-            if (member is FieldInfo)
+            if (member.MemberType == MemberTypes.Field)
                 type = ((FieldInfo) member).FieldType;
             else
                 type = ((PropertyInfo) member).PropertyType;
@@ -47,13 +47,13 @@ namespace NPoco
 
         public static bool IsField(this MemberInfo member)
         {
-            return member is FieldInfo;
+            return member.MemberType == MemberTypes.Field;
         }
 
         public static object GetMemberInfoValue(this MemberInfo member, object obj)
         {
             object val;
-            if (member is FieldInfo)
+            if (member.MemberType == MemberTypes.Field)
                 val = ((FieldInfo)member).GetValue(obj);
             else
                 val = ((PropertyInfo)member).GetValue(obj, null);
@@ -62,7 +62,7 @@ namespace NPoco
 
         public static void SetMemberInfoValue(this MemberInfo member, object obj, object value)
         {
-            if (member is FieldInfo)
+            if (member.MemberType == MemberTypes.Field)
                 ((FieldInfo)member).SetValue(obj, value);
             else
                 ((PropertyInfo)member).SetValue(obj, value, null);

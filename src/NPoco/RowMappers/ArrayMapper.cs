@@ -14,7 +14,7 @@ namespace NPoco.RowMappers
         public override object Map(IDataReader dataReader, RowMapperContext context)
         {
             var arrayType = context.Type.GetElementType();
-            var columnNames = GetColumnNames(dataReader);
+            var columnNames = GetColumnNames(dataReader, context.PocoData);
 
             var array = Array.CreateInstance(arrayType, columnNames.Length);
 

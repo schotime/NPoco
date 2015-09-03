@@ -7,9 +7,32 @@ namespace NPoco
 {
     public class MapperCollection : List<IMapper>
     {
-        public Dictionary<Type, ObjectFactoryDelegate> Factory = new Dictionary<Type, ObjectFactoryDelegate>();
+        internal readonly Dictionary<Type, ObjectFactoryDelegate> Factories = new Dictionary<Type, ObjectFactoryDelegate>();
 
         public delegate object ObjectFactoryDelegate(IDataReader dataReader);
+
+        public void RegisterFactory<T>(Func<IDataReader, T> factory)
+        {
+            Factories[typeof(T)] = x => factory(x);
+        }
+
+        public ObjectFactoryDelegate GetFactory(Type type)
+        {
+            return Factories.ContainsKey(type) ? Factories[type] : null;
+        }
+
+        public bool HasFactory(Type type)
+        {
+            return Factories.ContainsKey(type);
+        }
+
+        public void ClearFactories(Type type = null)
+        {
+            if (type != null && HasFactory(type))
+                Factories.Remove(type);
+            else
+                Factories.Clear();
+        }
 
         public Func<object, object> Find(Func<IMapper, Func<object, object>> predicate)
         {

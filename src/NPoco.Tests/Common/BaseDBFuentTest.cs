@@ -48,7 +48,7 @@ namespace NPoco.Tests.Common
                 case 1: // SQLite In-Memory
                     TestDatabase = new InMemoryDatabase();
                     Database = dbFactory.Build(new Database(TestDatabase.Connection));
-                    break;
+                    break; 
 
                 case 2: // SQL Local DB
                 case 3: // SQL Server

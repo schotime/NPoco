@@ -25,7 +25,7 @@ namespace NPoco.RowMappers
 
         public override void Init(IDataReader dataReader, PocoData pocoData)
         {
-            var fields = GetColumnNames(dataReader);
+            var fields = GetColumnNames(dataReader, pocoData);
             
             _groupedNames = fields
                 .GroupByMany(x => x.Name, PocoData.Separator)
@@ -76,7 +76,7 @@ namespace NPoco.RowMappers
         public IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, IDataReader dataReader, PocoData pocoData, List<PocoMember> pocoMembers)
         {
             // find pocomember by property name
-            var pocoMember = FindMember(pocoMembers, groupedName);
+            var pocoMember = FindMember(pocoMembers, groupedName.Item);
 
             if (pocoMember == null)
                 yield break;
@@ -123,16 +123,16 @@ namespace NPoco.RowMappers
             }
         }
 
-        private static PocoMember FindMember(List<PocoMember> pocoMembers, GroupResult<PosName> groupedName)
+        public static PocoMember FindMember(List<PocoMember> pocoMembers, string name)
         {
-            return pocoMembers.FirstOrDefault(x => IsEqual(groupedName, x.Name)
-                                                   || (x.PocoColumn != null && IsEqual(groupedName, x.PocoColumn.ColumnAlias)));
+            return pocoMembers.FirstOrDefault(x => IsEqual(name, x.Name)
+                                                   || (x.PocoColumn != null && IsEqual(name, x.PocoColumn.ColumnAlias)));
         }
 
-        private static bool IsEqual(GroupResult<PosName> groupedName, string value)
+        private static bool IsEqual(string name, string value)
         {
-            return string.Equals(value, groupedName.Item, StringComparison.InvariantCultureIgnoreCase)
-                || string.Equals(value, groupedName.Item.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase);
+            return string.Equals(value, name, StringComparison.InvariantCultureIgnoreCase)
+                || string.Equals(value, name.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase);
         }
 
         private bool MapValue(int index, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn, object defaultValue)

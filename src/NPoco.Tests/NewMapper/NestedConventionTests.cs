@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using NPoco.Expressions;
@@ -384,8 +385,8 @@ select 22 Money__Value /*poco_dual*/");
         [Test]
         public void Test23()
         {
-            Database.Mappers.Factory.Clear();
-            Database.Mappers.Factory.Add(typeof(ContentBase), reader => new Post());
+            Database.Mappers.ClearFactories();
+            Database.Mappers.RegisterFactory<ContentBase>(reader => new Post());
             var data = Database.Fetch<ContentBase>("select 'Name' Name /*poco_dual*/").Single();
             Assert.AreEqual("Name", data.Name);
         }
@@ -393,8 +394,8 @@ select 22 Money__Value /*poco_dual*/");
         [Test]
         public void Test24()
         {
-            Database.Mappers.Factory.Clear();
-            Database.Mappers.Factory.Add(typeof(IContentBase), reader => new Post());
+            Database.Mappers.ClearFactories();
+            Database.Mappers.RegisterFactory<IContentBase>(reader => new Post());
             var data = Database.Fetch<IContentBase>("select 'Name' Name /*poco_dual*/").Single();
             Assert.AreEqual("Name", data.Name);
         }
@@ -402,10 +403,15 @@ select 22 Money__Value /*poco_dual*/");
         [Test]
         public void Test25()
         {
-            Database.Mappers.Factory.Clear();
-            Database.Mappers.Factory.Add(typeof(ContentBase), reader =>
+            Database.Mappers.ClearFactories();
+            Database.Mappers.RegisterFactory<ContentBase>(reader =>
             {
-                return (string) reader["type"] == "Post" ? (ContentBase) new Post() : (ContentBase) new Answer();
+                var type = (string)reader["type"];
+                if (type == "Post")
+                    return new Post();
+                if (type == "Answer")
+                    return new Answer();
+                return null;
             });
             var data = Database.Fetch<ContentBase>(@"
 select 'NamePost' Name, 'Post' type /*poco_dual*/
@@ -414,9 +420,42 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
 ").ToList();
 
             Assert.AreEqual("NamePost", data[0].Name);
+            Assert.AreEqual("Post", data[0].Type);
             Assert.AreEqual("NameAnswer", data[1].Name);
+            Assert.AreEqual("Answer", data[1].Type);
             Assert.True(data[0] is Post);
             Assert.True(data[1] is Answer);
+        }
+
+        [Test]
+        public void Test26()
+        {
+            var data = Database.Fetch<OldConv>("select 3 Id, 'Name1' Name, 'Name2' Name, 'Name4' Name, 'Name3' Name").Single();
+            Assert.AreEqual(3, data.Id);
+            Assert.AreEqual("Name1", data.Name);
+            Assert.AreEqual("Name2", data.Nest1.Name);
+            Assert.AreEqual("Name4", data.Nest1.Nest3.Name);
+            Assert.AreEqual("Name3", data.Nest2.Name);
+        }
+
+        public class OldConv
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+
+            public NestOldConv1 Nest1 { get; set; }
+            public NestOldConv2 Nest2 { get; set; }
+
+            public class NestOldConv1
+            {
+                public string Name { get; set; }
+                public NestOldConv2 Nest3 { get; set; }
+            }
+
+            public class NestOldConv2
+            {
+                public string Name { get; set; }
+            }
         }
     }
 
@@ -433,6 +472,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
     public abstract class ContentBase : IContentBase
     {
         public string Name { get; set; }
+        public string Type { get; set; }
     }
 
     public interface IContentBase
