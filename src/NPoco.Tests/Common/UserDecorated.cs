@@ -77,6 +77,12 @@ namespace NPoco.Tests.Common
     [ExplicitColumns]
     public class UserDecoratedWithExtraInfoAsList : UserDecorated
     {
+        public UserDecoratedWithExtraInfoAsList()
+        {
+            ExtraUserInfo = new List<ExtraUserInfoDecorated>();
+        }
+
+        [ResultColumn, Reference(ReferenceMappingType.Many)]
         public List<ExtraUserInfoDecorated> ExtraUserInfo { get; set; }
     }
 

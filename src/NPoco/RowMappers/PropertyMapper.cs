@@ -90,7 +90,7 @@ namespace NPoco.RowMappers
 
                     yield return (reader, instance) =>
                     {
-                        var newObject = pocoMember.GetValue(instance) ?? pocoMember.Create(dataReader);
+                        var newObject = pocoMember.IsList ? pocoMember.Create(dataReader) : (pocoMember.GetValue(instance) ?? pocoMember.Create(dataReader));
 
                         var shouldSetNestedObject = false;
                         foreach (var subPlan in subPlans)
