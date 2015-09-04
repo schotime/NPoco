@@ -438,6 +438,17 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             Assert.AreEqual("Name3", data.Nest2.Name);
         }
 
+        [Test]
+        public void Test26_1()
+        {
+            var data = Database.Fetch<OldConv>("select 3 Id, 4 Id, 'Name2' Name, 'Name4' Name, 'Name3' Name").Single();
+            Assert.AreEqual(3, data.Id);
+            Assert.AreEqual(4, data.Nest1.Id);
+            Assert.AreEqual("Name2", data.Nest1.Name);
+            Assert.AreEqual("Name4", data.Nest1.Nest3.Name);
+            Assert.AreEqual("Name3", data.Nest2.Name);
+        }
+
         public class OldConv
         {
             public int Id { get; set; }
@@ -448,6 +459,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
 
             public class NestOldConv1
             {
+                public int Id { get; set; }
                 public string Name { get; set; }
                 public NestOldConv2 Nest3 { get; set; }
             }

@@ -30,16 +30,21 @@ namespace NPoco.RowMappers
 
         public static IEnumerable<PosName> ConvertFromOldConvention(this IEnumerable<PosName> posNames, List<PocoMember> pocoMembers)
         {
-            var used = new Dictionary<PocoMember, bool>();
-            var members = FlattenPocoMembers(pocoMembers).ToList();
+            var used = new Dictionary<PocoMember, int>();
+            var members = FlattenPocoMembers(pocoMembers, new LevelMonitor()).ToList();
+            var level = 0;
 
             foreach (var posName in posNames)
             {
-                var unusedPocoMembers = members.Where(x => !used.ContainsKey(x)).ToList();
+                var unusedPocoMembers = members.Where(x => !used.ContainsKey(x.PocoMember) && x.Level >= level)
+                    .Select(x => x.PocoMember)
+                    .ToList();
+
                 var member = PropertyMapper.FindMember(unusedPocoMembers, posName.Name);
                 if (member != null && member.PocoColumn != null)
                 {
-                    used.Add(member, true);
+                    level = members.Single(x => x.PocoMember == member).Level;
+                    used.Add(member, level);
                     posName.Name = member.PocoColumn.MemberInfoKey;
                 }
 
@@ -47,20 +52,40 @@ namespace NPoco.RowMappers
             }
         }
 
-        private static IEnumerable<PocoMember> FlattenPocoMembers(List<PocoMember> pocoMembers)
+        private static IEnumerable<PocoMemberLevel> FlattenPocoMembers(List<PocoMember> pocoMembers, LevelMonitor levelMonitor)
         {
+
             foreach (var pocoMember in pocoMembers.OrderBy(x => x.PocoMemberChildren.Count != 0))
             {
                 if (pocoMember.PocoColumn != null)
                 {
-                    yield return pocoMember;
+                    yield return new PocoMemberLevel { PocoMember = pocoMember, Level = levelMonitor.Level };
                 }
 
-                foreach (var pocoMemberChild in FlattenPocoMembers(pocoMember.PocoMemberChildren))
+                if (pocoMember.PocoMemberChildren.Count == 0)
+                    continue;
+
+                levelMonitor.Level++;
+                foreach (var pocoMemberLevel in FlattenPocoMembers(pocoMember.PocoMemberChildren, levelMonitor))
                 {
-                    yield return pocoMemberChild;
+                    yield return pocoMemberLevel;
                 }
             }
+        }
+
+        private struct PocoMemberLevel
+        {
+            public PocoMember PocoMember { get; set; }
+            public int Level { get; set; }
+        }
+
+        private class LevelMonitor
+        {
+            public LevelMonitor()
+            {
+                Level = 1;
+            }
+            public int Level { get; set; }
         }
     }
 }
