@@ -12,7 +12,7 @@ namespace NPoco
         public PocoMember()
         {
             PocoMemberChildren = new List<PocoMember>();
-            ReferenceMappingType = ReferenceMappingType.None;
+            ReferenceType = ReferenceType.None;
         }
 
         public string Name { get { return MemberInfo.Name; } }
@@ -20,7 +20,7 @@ namespace NPoco
         public PocoColumn PocoColumn { get; set; }
         public List<PocoMember> PocoMemberChildren { get; set; }
 
-        public ReferenceMappingType ReferenceMappingType { get; set; }
+        public ReferenceType ReferenceType { get; set; }
         public string ReferenceMemberName { get; set; }
 
         public bool IsList { get; set; }

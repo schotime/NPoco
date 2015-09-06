@@ -37,8 +37,8 @@ namespace NPoco.FluentMappings
         IColumnBuilder<TModel> Ignore();
         IColumnBuilder<TModel> Result();
         IColumnBuilder<TModel> Computed();
-        IColumnBuilder<TModel> Reference(ReferenceMappingType referenceMappingType = ReferenceMappingType.Foreign);
-        IColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> member, ReferenceMappingType referenceMappingType = ReferenceMappingType.Foreign);
+        IColumnBuilder<TModel> Reference(ReferenceType referenceType = ReferenceType.Foreign);
+        IColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> member, ReferenceType referenceType = ReferenceType.Foreign);
         IColumnBuilder<TModel> StoredAsJson();
         IColumnBuilder<TModel> ComplexMapping(string prefix = null);
     }
@@ -106,16 +106,16 @@ namespace NPoco.FluentMappings
             return this;
         }
 
-        public IColumnBuilder<TModel> Reference(ReferenceMappingType referenceMappingType = ReferenceMappingType.Foreign)
+        public IColumnBuilder<TModel> Reference(ReferenceType referenceType = ReferenceType.Foreign)
         {
             _columnDefinition.IsReferenceMember = true;
-            _columnDefinition.ReferenceMappingType = referenceMappingType;
+            _columnDefinition.ReferenceType = referenceType;
             return this;
         }
 
-        public IColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> joinColumn, ReferenceMappingType referenceMappingType = ReferenceMappingType.Foreign)
+        public IColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> joinColumn, ReferenceType referenceType = ReferenceType.Foreign)
         {
-            Reference(referenceMappingType);
+            Reference(referenceType);
             _columnDefinition.ReferenceMember = MemberHelper<TModel>.GetMembers(joinColumn).Last();
             return this;
         }

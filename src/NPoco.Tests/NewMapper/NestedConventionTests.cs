@@ -283,6 +283,7 @@ from ones o
 left join manys m on o.oneid = m.oneid");
 
             Assert.AreEqual(15, ones.Count);
+            AssertOnes(ones);
         }
 
         [Test]
@@ -295,6 +296,28 @@ left join manys m on o.oneid = m.oneid");
 
             Assert.AreEqual(15, ones.Count);
             Assert.AreEqual("MyName", ones[0].Nested.Name);
+            AssertOnes(ones);
+        }
+
+        [Test]
+        public void Test17_2()
+        {
+            var ones = Database.FetchOneToMany<One>(x => x.Items, @"
+select o.*, 'MyName' nested__name, m.* 
+from ones o 
+left join manys m on o.oneid = m.oneid");
+
+            Assert.AreEqual(15, ones.Count);
+            Assert.AreEqual("MyName", ones[0].Nested.Name);
+            AssertOnes(ones);
+        }
+
+        private static void AssertOnes(List<One> ones)
+        {
+            Assert.AreEqual(null, ones[0].Items);
+            Assert.AreEqual(1, ones[1].Items.Count);
+            Assert.NotNull(ones[1].Items[0].Currency);
+            Assert.AreEqual(2, ones[2].Items.Count);
         }
 
         [Test]
@@ -378,7 +401,7 @@ select 22 Money__Value /*poco_dual*/");
             public int UserId { get; set; }
             public int HouseId { get; set; }
 
-            [Reference(ReferenceMappingType.OneToOne, Name = "HouseId", ReferenceName = "HouseId")]
+            [Reference(ReferenceType.OneToOne, ColumnName = "HouseId", ReferenceMemberName = "HouseId")]
             public HouseDecorated House { get; set; }
         }
 
@@ -413,7 +436,7 @@ select 22 Money__Value /*poco_dual*/");
                     return new Answer();
                 return null;
             });
-            var data = Database.Fetch<ContentBase>(@"
+var data = Database.Fetch<ContentBase>(@"
 select 'NamePost' Name, 'Post' type /*poco_dual*/
 union
 select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
@@ -471,26 +494,26 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         }
     }
 
-    public class Post : ContentBase
-    {
+public class Post : ContentBase
+{
         
-    }
+}
 
-    public class Answer : ContentBase
-    {
+public class Answer : ContentBase
+{
         
-    }
+}
 
-    public abstract class ContentBase : IContentBase
-    {
-        public string Name { get; set; }
-        public string Type { get; set; }
-    }
+public abstract class ContentBase : IContentBase
+{
+    public string Name { get; set; }
+    public string Type { get; set; }
+}
 
-    public interface IContentBase
-    {
-        string Name { get; set; }
-    }
+public interface IContentBase
+{
+    string Name { get; set; }
+}
 
     public static class Ext
     {

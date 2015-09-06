@@ -68,7 +68,7 @@ namespace NPoco.Tests.Common
     public class UserDecoratedWithExtraInfo : UserDecorated
     {
         [ResultColumn]
-        [Reference(ReferenceMappingType.OneToOne)]
+        [Reference(ReferenceType.OneToOne)]
         public ExtraUserInfoDecorated ExtraUserInfo { get; set; }
     }
 
@@ -82,7 +82,7 @@ namespace NPoco.Tests.Common
             ExtraUserInfo = new List<ExtraUserInfoDecorated>();
         }
 
-        [ResultColumn, Reference(ReferenceMappingType.Many)]
+        [ResultColumn, Reference(ReferenceType.Many)]
         public List<ExtraUserInfoDecorated> ExtraUserInfo { get; set; }
     }
 

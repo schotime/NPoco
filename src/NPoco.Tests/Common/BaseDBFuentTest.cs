@@ -197,7 +197,7 @@ namespace NPoco.Tests.Common
                 x.Column(y => y.TestEnum).WithDbType<string>();
                 x.Column(y => y.Address).ComplexMapping();
                 x.Column(y => y.House).WithName("HouseId").Reference(z => z.HouseId);
-                x.Column(y => y.ExtraUserInfo).WithName("UserId").Reference(z => z.UserId, ReferenceMappingType.OneToOne);
+                x.Column(y => y.ExtraUserInfo).WithName("UserId").Reference(z => z.UserId, ReferenceType.OneToOne);
             });
             For<Supervisor>().UseMap<SupervisorMap>();
             For<Supervisor>().TableName("users").Columns(x => x.Column(y => y.IsMale).WithName("is_male"));

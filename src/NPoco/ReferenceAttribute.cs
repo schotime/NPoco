@@ -5,22 +5,29 @@ namespace NPoco
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class ReferenceAttribute : Attribute
     {
-        public readonly ReferenceMappingType ReferenceMappingType;
+        public readonly ReferenceType ReferenceType;
 
-        public ReferenceAttribute() : this(ReferenceMappingType.Foreign)
+        public ReferenceAttribute() : this(ReferenceType.Foreign)
         {
         }
 
-        public ReferenceAttribute(ReferenceMappingType referenceMappingType)
+        public ReferenceAttribute(ReferenceType referenceType)
         {
-            ReferenceMappingType = referenceMappingType;
+            ReferenceType = referenceType;
         }
+        
+        /// <summary>
+        /// The property name (case sensitive) that links the relationship.
+        /// </summary>
+        public string ReferenceMemberName { get; set; }
 
-        public string ReferenceName { get; set; }
-        public string Name { get; set; }
+        /// <summary>
+        /// The database column name that maps to the property.
+        /// </summary>
+        public string ColumnName { get; set; }
     }
 
-    public enum ReferenceMappingType
+    public enum ReferenceType
     {
         None,
         OneToOne,

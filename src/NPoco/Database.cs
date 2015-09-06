@@ -897,7 +897,7 @@ namespace NPoco
                         listFunc = listExpression.Compile();
                         var key = PocoColumn.GenerateKey(MemberChainHelper.GetMembers(listExpression));
                         pocoMember = pocoData.Members.FirstOrDefault(x => x.Name == key);
-                        foreignMember = pocoMember != null ? pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName && x.ReferenceMappingType == ReferenceMappingType.Foreign) : null;
+                        foreignMember = pocoMember != null ? pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName && x.ReferenceType == ReferenceType.Foreign) : null;
                     }
 
                     var factory = new NewMappingFactory(pocoData, r);
@@ -1446,7 +1446,7 @@ namespace NPoco
                     continue;
 
                 object value;
-                if (pocoColumn.ReferenceMappingType == ReferenceMappingType.Foreign)
+                if (pocoColumn.ReferenceType == ReferenceType.Foreign)
                 {
                     var member = pd.Members.Single(x => x.MemberInfo == pocoColumn.MemberInfo);
                     var column = member.PocoMemberChildren.Single(x => x.Name == member.ReferenceMemberName);

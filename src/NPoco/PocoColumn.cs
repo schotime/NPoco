@@ -43,7 +43,7 @@ namespace NPoco
         public bool ForceToUtc { get; set; }
         public string ColumnAlias { get; set; }
 
-        public ReferenceMappingType ReferenceMappingType { get; set; }
+        public ReferenceType ReferenceType { get; set; }
         public bool StoredAsJson { get; set; }
 
         public void SetMemberAccessors(List<MemberAccessor> memberAccessors)

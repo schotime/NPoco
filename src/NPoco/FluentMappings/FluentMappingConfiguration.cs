@@ -115,7 +115,7 @@ namespace NPoco.FluentMappings
                         MemberInfo = member,
                         IsComplexMapping = complexProperty,
                         IsReferenceMember = referenceProperty,
-                        ReferenceMappingType = referenceProperty ? ReferenceMappingType.Foreign : ReferenceMappingType.None,
+                        ReferenceType = referenceProperty ? ReferenceType.Foreign : ReferenceType.None,
                         ReferenceMember = referenceProperty ? columnDefinitions.Single(x => x.DbColumnName.Equals(referenceDbColumnsNamed, StringComparison.InvariantCultureIgnoreCase)).MemberInfo : null,
                         DbColumnName = referenceProperty ? referenceDbColumnsNamed : null,
                     };
@@ -243,7 +243,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.ForceUtc = overrideColumnDefinition.Value.ForceUtc ?? convColDefinition.ForceUtc;
                     convColDefinition.IsReferenceMember = overrideColumnDefinition.Value.IsReferenceMember ?? convColDefinition.IsReferenceMember;
                     convColDefinition.ReferenceMember = overrideColumnDefinition.Value.ReferenceMember ?? convColDefinition.ReferenceMember;
-                    convColDefinition.ReferenceMappingType = overrideColumnDefinition.Value.ReferenceMappingType ?? convColDefinition.ReferenceMappingType;
+                    convColDefinition.ReferenceType = overrideColumnDefinition.Value.ReferenceType ?? convColDefinition.ReferenceType;
                     convColDefinition.StoredAsJson = overrideColumnDefinition.Value.StoredAsJson ?? convColDefinition.StoredAsJson;
                 }
             }

@@ -11,7 +11,7 @@ namespace NPoco.Tests.NewMapper.Models
         [ResultColumn, ComplexMapping]
         public NestedClass Nested { get; set; }
 
-        [Reference(ReferenceMappingType.Many, Name = "OneId", ReferenceName = "OneId")]
+        [Reference(ReferenceType.Many, ColumnName = "OneId", ReferenceMemberName = "OneId")]
         public List<Many> Items { get; set; }
     }
 

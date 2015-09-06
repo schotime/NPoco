@@ -4,7 +4,7 @@ namespace NPoco.Tests.NewMapper.Models
     public class Many
     {
         public int ManyId { get; set; }
-        //[Reference(ReferenceMappingType.Foreign, Name = "OneId", ReferenceName = "Id")]
+        //[Reference(ReferenceType.Foreign, Name = "OneId", ReferenceMemberName = "Id")]
         //public One One { get; set; }
         public int OneId { get; set; }
         public int Value { get; set; }

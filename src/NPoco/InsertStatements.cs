@@ -53,7 +53,7 @@ namespace NPoco
                     values.Add(string.Format("{0}{1}", database._paramPrefix, index++));
 
                     object val;
-                    if (pocoColumn.ReferenceMappingType == ReferenceMappingType.Foreign)
+                    if (pocoColumn.ReferenceType == ReferenceType.Foreign)
                     {
                         var member = pd.Members.Single(x => x.MemberInfo == pocoColumn.MemberInfo);
                         var column = member.PocoMemberChildren.Single(x => x.Name == member.ReferenceMemberName);

@@ -43,7 +43,7 @@ namespace NPoco
                     var multiplePrimaryKeysNames = TableInfo.PrimaryKey.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
                     var members = multiplePrimaryKeysNames
                         .Select(x => Members.FirstOrDefault(y => y.PocoColumn != null
-                                && y.ReferenceMappingType == ReferenceMappingType.None
+                                && y.ReferenceType == ReferenceType.None
                                 && string.Equals(x, y.PocoColumn.ColumnName, StringComparison.OrdinalIgnoreCase)))
                         .Where(x => x != null);
                     _primaryKeyValues = obj => members.Select(x => x.PocoColumn.GetValue(obj)).ToArray();

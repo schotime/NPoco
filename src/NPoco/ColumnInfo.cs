@@ -20,7 +20,7 @@ namespace NPoco
         public bool ComplexMapping { get; set; }
         public string ComplexPrefix { get; set; }
         public bool StoredAsJson { get; set; }
-        public ReferenceMappingType ReferenceMappingType { get; set; }
+        public ReferenceType ReferenceType { get; set; }
         public string ReferenceMemberName { get; set; }
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
@@ -58,14 +58,14 @@ namespace NPoco
             }
             else if (reference.Any())
             {
-                ci.ReferenceMappingType = reference.First().ReferenceMappingType;
-                ci.ReferenceMemberName = reference.First().ReferenceName ?? "Id";
-                ci.ColumnName = reference.First().Name ?? mi.Name + "Id";
+                ci.ReferenceType = reference.First().ReferenceType;
+                ci.ReferenceMemberName = reference.First().ReferenceMemberName ?? "Id";
+                ci.ColumnName = reference.First().ColumnName ?? mi.Name + "Id";
                 return ci;
             }
             else if (PocoDataBuilder.IsList(mi))
             {
-                ci.ReferenceMappingType = ReferenceMappingType.Many;
+                ci.ReferenceType = ReferenceType.Many;
                 return ci;
             }
             else if (mi.GetMemberInfoType().IsAClass() && !colAttrs.Any())

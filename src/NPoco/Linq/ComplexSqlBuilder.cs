@@ -123,7 +123,7 @@ namespace NPoco.Linq
                 var member = joinSqlExpression.PocoMemberJoin;
 
                 cols = cols.Concat(joinSqlExpression.PocoMembers
-                    .Where(x => x.ReferenceMappingType == ReferenceMappingType.None)
+                    .Where(x => x.ReferenceType == ReferenceType.None)
                     .Where(x => x.PocoColumn != null)
                     .Select(x => new StringPocoCol
                 {
@@ -147,7 +147,7 @@ namespace NPoco.Linq
             foreach (var memberInfo in memberInfos)
             {
                 var pocoMember = members
-                    .Where(x => x.ReferenceMappingType != ReferenceMappingType.None)
+                    .Where(x => x.ReferenceType != ReferenceType.None)
                     .Single(x => x.MemberInfo == memberInfo);
 
                 var pocoColumn1 = pocoMember.PocoColumn;

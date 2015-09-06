@@ -4,9 +4,9 @@ namespace NPoco.Tests.NewMapper.Models
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        [Reference(ReferenceName = "Id")]
+        [Reference(ReferenceMemberName = "Id")]
         public RecursionUser Supervisor { get; set; }
-        [Reference(ReferenceName = "Id")]
+        [Reference(ReferenceMemberName = "Id")]
         public RecursionUser CreatedBy { get; set; }
     }
 }
