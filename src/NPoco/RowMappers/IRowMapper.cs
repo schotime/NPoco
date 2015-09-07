@@ -42,7 +42,7 @@ namespace NPoco.RowMappers
 
         public static Func<object, object> GetConverter(PocoData pocoData, PocoColumn pocoColumn, Type sourceType, Type desType)
         {
-            var converter = MappingFactory.GetConverter(pocoData.Mapper, pocoColumn, sourceType, desType);
+            var converter = MappingHelper.GetConverter(pocoData.Mapper, pocoColumn, sourceType, desType);
             return converter;
         }
     }

@@ -150,9 +150,9 @@
     <Compile Include="IMapper.cs" />
     <Compile Include="InsertContext.cs" />
     <Compile Include="MapperCollection.cs" />
-    <Compile Include="MappingFactory.cs" />
+    <Compile Include="MappingHelper.cs" />
     <Compile Include="MemberAccessor.cs" />
-    <Compile Include="NewMappingFactory.cs" />
+    <Compile Include="MappingFactory.cs" />
     <Compile Include="OneToManyHelper.cs" />
     <Compile Include="Page.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />

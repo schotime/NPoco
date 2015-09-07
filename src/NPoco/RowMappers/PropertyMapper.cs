@@ -40,7 +40,7 @@ namespace NPoco.RowMappers
             {
                 context.Instance = context.PocoData.CreateObject(dataReader);
                 if (context.Instance == null)
-                    throw new Exception(string.Format("Poco '{0}' has no parameterless constructor", context.Type.FullName));
+                    throw new Exception(string.Format("Cannot create POCO '{0}'. It may have no parameterless constructor or be an interface or abstract class without a Mapper factory.", context.Type.FullName));
             }
             else
             {
@@ -60,7 +60,7 @@ namespace NPoco.RowMappers
 
         public delegate bool MapPlan(IDataReader reader, object instance);
 
-        public MapPlan BuildMapPlan(IDataReader dataReader, PocoData pocoData)
+        private MapPlan BuildMapPlan(IDataReader dataReader, PocoData pocoData)
         {
             var plans = _groupedNames.SelectMany(x => BuildMapPlans(x, dataReader, pocoData, pocoData.Members)).ToArray();
             return (reader, instance) =>
@@ -73,7 +73,7 @@ namespace NPoco.RowMappers
             };
         }
 
-        public IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, IDataReader dataReader, PocoData pocoData, List<PocoMember> pocoMembers)
+        private IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, IDataReader dataReader, PocoData pocoData, List<PocoMember> pocoMembers)
         {
             // find pocomember by property name
             var pocoMember = FindMember(pocoMembers, groupedName.Item);
@@ -117,7 +117,7 @@ namespace NPoco.RowMappers
             else
             {
                 var destType = pocoMember.MemberInfo.GetMemberInfoType();
-                var defaultValue = MappingFactory.GetDefault(destType);
+                var defaultValue = MappingHelper.GetDefault(destType);
                 var converter = GetConverter(pocoData, pocoMember.PocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
                 yield return (reader, instance) => MapValue(groupedName.Key.Pos, reader, converter, instance, pocoMember.PocoColumn, defaultValue);
             }

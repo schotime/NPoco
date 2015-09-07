@@ -606,7 +606,7 @@ namespace NPoco.Expressions
                     value = _database.Mappers.FindAndExecute(x => x.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfo), value);
                 }
 
-                if (excludeDefaults && (value == null || value.Equals(MappingFactory.GetDefault(value.GetType())))) continue; //GetDefaultValue?
+                if (excludeDefaults && (value == null || value.Equals(MappingHelper.GetDefault(value.GetType())))) continue; //GetDefaultValue?
 
                 if (setFields.Length > 0)
                     setFields.Append(", ");

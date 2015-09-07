@@ -2,79 +2,41 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using NPoco.FastJSON;
+using NPoco.RowMappers;
 
 namespace NPoco
 {
     public class MappingFactory
     {
-        static readonly EnumMapper EnumMapper = new EnumMapper();
-        static readonly Cache<Type, Type> UnderlyingTypes = Cache<Type, Type>.CreateStaticCache();
+        public static List<Func<IRowMapper>> RowMappers { get; private set; } 
+        private readonly PocoData _pocoData;
+        private readonly IRowMapper _rowMapper;
 
-        public static Func<object, object> GetConverter(MapperCollection mapper, PocoColumn pc, Type srcType, Type dstType)
+        static MappingFactory()
         {
-            Func<object, object> converter = null;
-
-            // Get converter from the mapper
-            if (mapper != null)
+            RowMappers = new List<Func<IRowMapper>>()
             {
-                converter = pc != null ? mapper.Find(x => x.GetFromDbConverter(pc.MemberInfo, srcType)) : mapper.Find(x => x.GetFromDbConverter(dstType, srcType));
-                if (converter != null)
-                    return converter;
-            }
-
-            if (pc != null && pc.StoredAsJson)
-            {
-                converter = delegate(object src)
-                {
-                    return new deserializer(Database.JsonParameters).ToObject((string)src, dstType);
-                };
-                return converter;
-            }
-
-            // Standard DateTime->Utc mapper
-            if (pc != null && pc.ForceToUtc && srcType == typeof(DateTime) && (dstType == typeof(DateTime) || dstType == typeof(DateTime?)))
-            {
-                converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
-                return converter;
-            }
-
-            // Forced type conversion including integral types -> enum
-            var underlyingType = UnderlyingTypes.Get(dstType, () => Nullable.GetUnderlyingType(dstType));
-            if (dstType.IsEnum || (underlyingType != null && underlyingType.IsEnum))
-            {
-                if (srcType == typeof(string))
-                {
-                    converter = src => EnumMapper.EnumFromString((underlyingType ?? dstType), (string)src);
-                    return converter;
-                }
-
-                if (IsIntegralType(srcType))
-                {
-                    converter = src => Enum.ToObject((underlyingType ?? dstType), src);
-                    return converter;
-                }
-            }
-            else if (!dstType.IsAssignableFrom(srcType))
-            {
-                converter = src => Convert.ChangeType(src, (underlyingType ?? dstType), null);
-            }
-            return converter;
+                () => new DictionaryMapper(),
+                () => new ValueTypeMapper(),
+                () => new ArrayMapper(),
+                () => new PropertyMapper()
+            };
         }
 
-        static bool IsIntegralType(Type t)
+        public MappingFactory(PocoData pocoData, IDataReader dataReader)
         {
-            var tc = Type.GetTypeCode(t);
-            return tc >= TypeCode.SByte && tc <= TypeCode.UInt64;
+            _pocoData = pocoData;
+            _rowMapper = RowMappers.Select(mapper => mapper()).First(x => x.ShouldMap(pocoData));
+            _rowMapper.Init(dataReader, pocoData);
         }
 
-        public static object GetDefault(Type type)
+        public object Map(IDataReader dataReader, object instance)
         {
-            if (type.IsValueType)
+            return _rowMapper.Map(dataReader, new RowMapperContext()
             {
-                return Activator.CreateInstance(type);
-            }
-            return null;
+                Instance = instance,
+                PocoData = _pocoData
+            });
         }
     }
 }

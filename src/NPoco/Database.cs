@@ -818,8 +818,8 @@ namespace NPoco
 
                 if (isConverterSet == false)
                 {
-                    converter1 = MappingFactory.GetConverter(Mappers, null, typeof(TKey), key.GetType()) ?? (x => x);
-                    converter2 = MappingFactory.GetConverter(Mappers, null, typeof(TValue), value.GetType()) ?? (x => x);
+                    converter1 = MappingHelper.GetConverter(Mappers, null, typeof(TKey), key.GetType()) ?? (x => x);
+                    converter2 = MappingHelper.GetConverter(Mappers, null, typeof(TValue), value.GetType()) ?? (x => x);
                     isConverterSet = true;
                 }
 
@@ -855,7 +855,7 @@ namespace NPoco
                 using (r)
                 {
                     var pd = PocoDataFactory.ForType(type);
-                    var factory = new NewMappingFactory(pd, r);
+                    var factory = new MappingFactory(pd, r);
                     while (true)
                     {
                         T poco;
@@ -900,7 +900,7 @@ namespace NPoco
                         foreignMember = pocoMember != null ? pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName && x.ReferenceType == ReferenceType.Foreign) : null;
                     }
 
-                    var factory = new NewMappingFactory(pocoData, r);
+                    var factory = new MappingFactory(pocoData, r);
                     object prevPoco = null;
 
                     while (true)
@@ -1136,8 +1136,7 @@ namespace NPoco
                                 break;
 
                             var pd = PocoDataFactory.ForType(types[typeIndex - 1]);
-                            //var factory = pd.MappingFactory.GetFactory(0, r.FieldCount, r, null);
-                            var factory = new NewMappingFactory(pd, r);
+                            var factory = new MappingFactory(pd, r);
 
                             while (true)
                             {
