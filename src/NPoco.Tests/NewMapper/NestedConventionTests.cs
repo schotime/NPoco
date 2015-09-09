@@ -492,6 +492,20 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
                 public string Name { get; set; }
             }
         }
+
+        [Test]
+        public void Test27()
+        {
+            var data = Database.Fetch<Test27Class>("select 3 Id, 'Name' Name").Single();
+            Assert.AreEqual(3, data.Id);
+            Assert.AreEqual("3", data.Name);
+        }
+
+        public class Test27Class
+        {
+            public int Id { get; set; }
+            public string Name { get { return Id.ToString(); } }
+        }
     }
 
 public class Post : ContentBase
