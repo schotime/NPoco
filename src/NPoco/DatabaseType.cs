@@ -24,6 +24,7 @@ namespace NPoco
         public static DatabaseType SQLite { get { return Singleton<SQLiteDatabaseType>.Instance; } }
         public static DatabaseType SQLCe { get { return Singleton<SqlServerCEDatabaseType>.Instance; } }
         public static DatabaseType Firebird { get { return Singleton<FirebirdDatabaseType>.Instance; } }
+        public static DatabaseType iDB2 { get { return Singleton<FirebirdDatabaseType>.Instance; } }
 
         readonly Dictionary<Type, DbType> typeMap;
 
@@ -261,6 +262,8 @@ namespace NPoco
                 return Singleton<SqlServerDatabaseType>.Instance;
             if (typeName.StartsWith("Fb") || typeName.StartsWith("Firebird"))
                 return Singleton<FirebirdDatabaseType>.Instance;
+            if (typeName.StartsWith("iDB2Factory"))
+                return Singleton<ISeriesDatabaseType>.Instance;
 
             if (!string.IsNullOrEmpty(providerName))
             {
@@ -279,6 +282,8 @@ namespace NPoco
                     return Singleton<SQLiteDatabaseType>.Instance;
                 if (providerName.IndexOf("Firebird", StringComparison.InvariantCultureIgnoreCase) >= 0)
                     return Singleton<FirebirdDatabaseType>.Instance;
+                if (providerName.IndexOf("IBM.Data.DB2.iSeries", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    return Singleton<ISeriesDatabaseType>.Instance;
             }
 
             // Assume SQL Server
