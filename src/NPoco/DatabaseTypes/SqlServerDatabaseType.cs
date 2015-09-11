@@ -56,16 +56,7 @@ namespace NPoco.DatabaseTypes
             
             if (dbCommand != null)
             {
-#if NET40ASYNC
-                using (var reader = await dbCommand.ExecuteReaderAsync())
-                {
-                    if (reader.FieldCount > 0 && reader.Read())
-                        return await TaskAsyncHelper.FromResult(reader.GetValue(0));
-                    return TaskAsyncHelper.FromResult((object)null);
-                }
-#else
                 return await dbCommand.ExecuteScalarAsync().ConfigureAwait(false);
-#endif
             }
             return await base.ExecuteScalarAsync(database, cmd).ConfigureAwait(false);
         }

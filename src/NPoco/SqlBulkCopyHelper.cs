@@ -25,7 +25,7 @@ namespace NPoco
             }
         }
 
-#if NET45 && !NET40ASYNC
+#if NET45
         public static async System.Threading.Tasks.Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
