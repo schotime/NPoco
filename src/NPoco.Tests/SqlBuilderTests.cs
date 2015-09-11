@@ -139,5 +139,51 @@ namespace NPoco.Tests
             Assert.AreEqual(1, temp.Parameters.Length);
             Assert.AreEqual("select * from test where ( id2 = 2 OR id2 = 3 ) AND ( id2 = 4 )\n and id = @0", temp.RawSql);
         }
+
+        [Test]
+        public void Test11()
+        {
+            var sqlBuilder = new SqlBuilder(new Dictionary<string, string>()
+                                            {
+                                                {"where(test)", null}
+                                            });
+            
+            var temp = sqlBuilder.AddTemplate("select * from test where /**where(test)**/ and id = @0", 1);
+
+            sqlBuilder.Where("id2 = 4");
+
+            Assert.AreEqual(1, temp.Parameters.Length);
+            Assert.AreEqual("select * from test where /**where(test)**/ and id = @0", temp.RawSql);
+        }
+
+        [Test]
+        public void Test12()
+        {
+            var sqlBuilder = new SqlBuilder(new Dictionary<string, string>()
+                                            {
+                                                {"where(test)", "1<>1"}
+                                            });
+
+            var temp = sqlBuilder.AddTemplate("select * from test where /**where(test)**/ and id = @0", 1);
+
+            sqlBuilder.Where("id2 = 4");
+
+            Assert.AreEqual(1, temp.Parameters.Length);
+            Assert.AreEqual("select * from test where  1<>1  and id = @0", temp.RawSql);
+        }
+
+        [Test]
+        public void Test13()
+        {
+            var sqlBuilder = new SqlBuilder(new Dictionary<string, string>()
+                                            {
+                                                {"where", "1<>2"}
+                                            });
+
+            var temp = sqlBuilder.AddTemplate("select * from test where /**where**/ and id = @0", 1);
+
+            Assert.AreEqual(1, temp.Parameters.Length);
+            Assert.AreEqual("select * from test where  1<>2  and id = @0", temp.RawSql);
+        }
     }
 }

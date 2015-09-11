@@ -43,7 +43,7 @@ namespace NPoco
         public class Template
         {
             public bool TokenReplacementRequired { get; set; }
-            
+
             readonly string sql;
             readonly SqlBuilder builder;
             private List<object> finalParams = new List<object>();
@@ -55,7 +55,7 @@ namespace NPoco
                 this.builder = builder;
             }
 
-            static Regex regex = new Regex(@"\/\*\*.+\*\*\/", RegexOptions.Compiled | RegexOptions.Multiline);
+            static Regex regex = new Regex(@"(\/\*\*.+\*\*\/)", RegexOptions.Compiled | RegexOptions.Multiline);
 
             void ResolveSql()
             {
@@ -81,22 +81,57 @@ namespace NPoco
 
             private void ReplaceDefaults()
             {
-                foreach (var pair in builder.defaultsIfEmpty)
+                if (TokenReplacementRequired)
                 {
-                    var fullToken = @"/\*\*" + pair.Key + @"\*\*/";
-                    if (TokenReplacementRequired)
+                    foreach (var pair in builder.defaultsIfEmpty)
                     {
+                        var fullToken = GetFullTokenRegexPattern(pair.Key);
                         if (Regex.IsMatch(rawSql, fullToken))
                         {
-                            throw new Exception(string.Format("Token '{0}' not used. All tokens must be replaced if TokenReplacementRequired switched on.", fullToken));
+                            throw new Exception(string.Format("Token '{0}' not used. All tokens must be replaced if TokenReplacementRequired switched on.",fullToken));
+                        }
+                    }
+                }
+
+                rawSql = regex.Replace(rawSql, x =>
+                {
+                    var token = x.Groups[1].Value;
+                    var found = false;
+
+                    foreach (var pair in builder.defaultsIfEmpty)
+                    {
+                        var fullToken = GetFullTokenRegexPattern(pair.Key);
+                        if (TokenReplacementRequired)
+                        {
+                            if (Regex.IsMatch(rawSql, fullToken))
+                            {
+                                throw new Exception(string.Format("Token '{0}' not used. All tokens must be replaced if TokenReplacementRequired switched on.", fullToken));
+                            }
+                        }
+
+                        if (Regex.IsMatch(token, fullToken))
+                        {
+                            if (pair.Value != null)
+                            {
+                                token = Regex.Replace(token, fullToken, " " + pair.Value + " ");
+                            }
+                            found = true;
+                            break;
                         }
                     }
 
-                    rawSql = Regex.Replace(rawSql, fullToken, " " + pair.Value + " ");
-                }
+                    if (!found)
+                    {
+                        token = string.Empty;
+                    }
 
-                // replace all that is left with empty
-                rawSql = regex.Replace(rawSql, "");
+                    return token;
+                });
+            }
+
+            private static string GetFullTokenRegexPattern(string key)
+            {
+                return @"/\*\*" + key + @"\*\*/";
             }
 
             string rawSql;
@@ -105,9 +140,24 @@ namespace NPoco
             public object[] Parameters { get { ResolveSql(); return finalParams.ToArray(); } }
         }
 
-
+        /// <summary>
+        /// Initialises the SqlBuilder
+        /// </summary>
         public SqlBuilder()
         {
+        }
+
+        /// <summary>
+        /// Initialises the SqlBuilder with default replacement overrides
+        /// </summary>
+        /// <param name="defaultOverrides">A dictionary of token overrides. A value null means the token will not be replaced.</param>
+        /// <example>
+        /// { "where", "1=1" }
+        /// { "where(name)", "1!=1" }
+        /// </example>
+        public SqlBuilder(Dictionary<string, string> defaultOverrides)
+        {
+            defaultsIfEmpty.InsertRange(0, defaultOverrides.Select(x => new KeyValuePair<string, string>(Regex.Escape(x.Key), x.Value)));
         }
 
         public Template AddTemplate(string sql, params object[] parameters)
@@ -127,13 +177,13 @@ namespace NPoco
             seq++;
         }
 
-        readonly Dictionary<string, string> defaultsIfEmpty = new Dictionary<string, string>
+        readonly List<KeyValuePair<string, string>> defaultsIfEmpty = new List<KeyValuePair<string, string>>()
         {
-            { @"where\([\w]+\)", "1=1" },
-            { "where", "1=1"},
-            { "select", "1" }
+            new KeyValuePair<string, string>(@"where\([\w]+\)", "1=1"),
+            new KeyValuePair<string, string>("where", "1=1"),
+            new KeyValuePair<string, string>("select", "1")
         };
-
+        
         /// <summary>
         /// Replaces the Select columns. Uses /**select**/
         /// </summary>
