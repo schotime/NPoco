@@ -15,6 +15,7 @@ namespace NPoco
         IDbCommand CreateCommand(IDbConnection connection, string sql, params object[] args);
         ITransaction GetTransaction();
         ITransaction GetTransaction(IsolationLevel isolationLevel);
+        IDictionary<string, object> Data { get; }
         void SetTransaction(IDbTransaction tran);
         void BeginTransaction();
         void BeginTransaction(IsolationLevel isolationLevel);

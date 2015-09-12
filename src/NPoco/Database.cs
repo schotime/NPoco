@@ -165,6 +165,9 @@ namespace NPoco
         public DatabaseType DatabaseType { get { return _dbType; } }
         public IsolationLevel IsolationLevel { get { return _isolationLevel; } }
 
+        private IDictionary<string, object> _data = new Dictionary<string, object>(); 
+        public IDictionary<string, object> Data { get { return _data; } }
+
         // Automatically close connection
         public void Dispose()
         {
