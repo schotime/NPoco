@@ -101,14 +101,6 @@ namespace NPoco
                     foreach (var pair in builder.defaultsIfEmpty)
                     {
                         var fullToken = GetFullTokenRegexPattern(pair.Key);
-                        if (TokenReplacementRequired)
-                        {
-                            if (Regex.IsMatch(rawSql, fullToken))
-                            {
-                                throw new Exception(string.Format("Token '{0}' not used. All tokens must be replaced if TokenReplacementRequired switched on.", fullToken));
-                            }
-                        }
-
                         if (Regex.IsMatch(token, fullToken))
                         {
                             if (pair.Value != null)
