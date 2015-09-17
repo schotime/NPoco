@@ -3,11 +3,11 @@
 namespace NPoco.Tests.Common
 {
     [TableName("CompositeObjects")]
-    [PrimaryKey("Key1ID", AutoIncrement = false)]
+    [PrimaryKey("Key1_ID", AutoIncrement = false)]
     [ExplicitColumns]
     public class AssignedPkObjectDecorated
     {
-        [Column("Key1ID")]
+        [Column("Key1_ID")]
         public int Key1ID { get; set; }
 
         [Column("Key2ID")]
