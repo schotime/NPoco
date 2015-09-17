@@ -123,7 +123,7 @@ namespace NPoco.Tests.Common
 
             cmd.CommandText = @"
                 CREATE TABLE CompositeObjects(
-                    Key1ID int PRIMARY KEY NOT NULL, 
+                    Key1_ID int PRIMARY KEY NOT NULL, 
                     Key2ID int NOT NULL, 
                     Key3ID int NOT NULL, 
                     TextData nvarchar(512) NULL, 

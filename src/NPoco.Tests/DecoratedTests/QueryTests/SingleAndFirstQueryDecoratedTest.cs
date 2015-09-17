@@ -146,7 +146,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         [Test]
         public void SingleByIdWithCompositePrimaryKey()
         {
-            var user = Database.SingleById<CompositeObjectDecorated>(new { Key1ID = 1, Key2ID = 2, Key3ID = 4 });
+            var user = Database.SingleById<CompositeObjectDecorated>(new { Key1_ID = 1, Key2ID = 2, Key3ID = 4 });
             Assert.NotNull(user);
         }
 
@@ -154,7 +154,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         public void SingleByIdWithCompositePrimaryKeyUsingDictionary()
         {
             var d = new Dictionary<string, object>();
-            d["Key1ID"] = 1;
+            d["Key1_ID"] = 1;
             d["Key2ID"] = 2;
             d["Key3ID"] = 4;
             var user = Database.SingleById<CompositeObjectDecorated>(d);
@@ -265,7 +265,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         {
             var userExists = Database.Exists<CompositeObjectDecorated>(new
             {
-                Key1ID = 1,
+                Key1_ID = 1,
                 Key2ID = 2,
                 Key3ID = 4
             });

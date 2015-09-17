@@ -82,7 +82,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             var verify = Database.SingleOrDefault<CompositeObjectDecorated>(@"
                 SELECT * 
                 FROM CompositeObjects
-                WHERE Key1ID = @0 AND Key2ID = @1 AND Key3ID = @2
+                WHERE Key1_ID = @0 AND Key2ID = @1 AND Key3ID = @2
             ", dataKey1ID, dataKey2ID, dataKey3ID);
             Assert.IsNotNull(verify);
 

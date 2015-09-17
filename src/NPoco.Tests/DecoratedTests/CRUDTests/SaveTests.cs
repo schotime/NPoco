@@ -121,7 +121,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             var verify = Database.SingleOrDefault<CompositeObjectDecorated>(@"
                 SELECT * 
                 FROM CompositeObjects
-                WHERE Key1ID = @0 AND Key2ID = @1 AND Key3ID = @2
+                WHERE Key1_ID = @0 AND Key2ID = @1 AND Key3ID = @2
             ", dataKey1ID, dataKey2ID, dataKey3ID);
             Assert.IsNotNull(verify);
 
@@ -139,7 +139,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             var poco = Database.SingleOrDefault<CompositeObjectDecorated>(@"
                 SELECT * 
                 FROM CompositeObjects
-                WHERE Key1ID = @0 AND Key2ID = @1 AND Key3ID = @2
+                WHERE Key1_ID = @0 AND Key2ID = @1 AND Key3ID = @2
             ", InMemoryCompositeObjects[1].Key1ID, InMemoryCompositeObjects[1].Key2ID, InMemoryCompositeObjects[1].Key3ID);
             Assert.IsNotNull(poco);
 
@@ -149,7 +149,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             var verify = Database.SingleOrDefault<CompositeObjectDecorated>(@"
                 SELECT * 
                 FROM CompositeObjects
-                WHERE Key1ID = @0 AND Key2ID = @1 AND Key3ID = @2
+                WHERE Key1_ID = @0 AND Key2ID = @1 AND Key3ID = @2
             ", InMemoryCompositeObjects[1].Key1ID, InMemoryCompositeObjects[1].Key2ID, InMemoryCompositeObjects[1].Key3ID);
             Assert.IsNotNull(verify);
 

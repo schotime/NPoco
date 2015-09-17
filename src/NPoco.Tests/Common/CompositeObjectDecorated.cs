@@ -3,11 +3,11 @@
 namespace NPoco.Tests.Common
 {
     [TableName("CompositeObjects")]
-    [PrimaryKey("Key1ID, Key2ID, Key3ID")]
+    [PrimaryKey("Key1_ID, Key2ID, Key3ID")]
     [ExplicitColumns]
     public class CompositeObjectDecorated
     {
-        [Column("Key1ID")]
+        [Column("Key1_ID")]
         public int Key1ID { get; set; }
 
         [Column("Key2ID")]
