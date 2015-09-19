@@ -23,6 +23,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using NPoco.Expressions;
 using NPoco.FastJSON;
 using NPoco.FluentMappings;
@@ -165,8 +166,13 @@ namespace NPoco
         public DatabaseType DatabaseType { get { return _dbType; } }
         public IsolationLevel IsolationLevel { get { return _isolationLevel; } }
 
+#if !POCO_NO_DYNAMIC
+        private ThreadLocal<IDictionary<string, object>> _data = new ThreadLocal<IDictionary<string, object>>(() => new Dictionary<string, object>()); 
+        public IDictionary<string, object> Data { get { return _data.Value; } }
+#else
         private IDictionary<string, object> _data = new Dictionary<string, object>(); 
         public IDictionary<string, object> Data { get { return _data; } }
+#endif
 
         // Automatically close connection
         public void Dispose()
