@@ -37,11 +37,11 @@
     <DefineConstants>NET45</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Condition="!$(DefineConstants.Contains('POCO_NO_DYNAMIC'))" Include="System.Net" />
+    <Reference Condition="!$(DefineConstants.Contains('NET35'))" Include="System.Net" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
-    <Reference Condition="!$(DefineConstants.Contains('POCO_NO_DYNAMIC'))" Include="System.Runtime.Caching" />
+    <Reference Condition="!$(DefineConstants.Contains('NET35'))" Include="System.Runtime.Caching" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />

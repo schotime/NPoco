@@ -24,7 +24,7 @@ namespace NPoco.Linq
         List<T> ToList();
         T[] ToArray();
         IEnumerable<T> ToEnumerable();
-#if !POCO_NO_DYNAMIC
+#if !NET35
         List<dynamic> ToDynamicList();
         IEnumerable<dynamic> ToDynamicEnumerable();
 #endif
@@ -319,7 +319,7 @@ namespace NPoco.Linq
             return ExecuteQuery(sql);
         }
 
-#if !POCO_NO_DYNAMIC
+#if !NET35
         public List<dynamic> ToDynamicList()
         {
             return ToDynamicEnumerable().ToList();

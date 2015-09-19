@@ -15,7 +15,7 @@ namespace NPoco
     /// </remarks>
     internal class ManagedCache
     {
-#if !POCO_NO_DYNAMIC
+#if !NET35
         public System.Runtime.Caching.ObjectCache GetCache()
         {
             return ObjectCache;
@@ -62,7 +62,7 @@ namespace NPoco
 
         public TValue Get(TKey key, Func<TValue> factory)
         {
-#if !POCO_NO_DYNAMIC
+#if !NET35
             if (_useManaged)
             {
                 var objectCache = _managedCache.GetCache();

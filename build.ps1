@@ -17,7 +17,7 @@ Task Default -Depends Build35
 Task Build35 -Depends Build40 { 
 	Write-Host "Building 3.5 $solution_file" -ForegroundColor Green
     Exec { msbuild "$solution_file" /t:Clean /p:Configuration=Release /v:quiet } 
-    Exec { msbuild "$solution_file" /t:Build /p:Configuration=Release /v:quiet /p:TargetFrameworkVersion=v3.5 /p:OutDir="$build_artifacts_dir\net35\" /p:DefineConstants="POCO_NO_DYNAMIC"}
+    Exec { msbuild "$solution_file" /t:Build /p:Configuration=Release /v:quiet /p:TargetFrameworkVersion=v3.5 /p:OutDir="$build_artifacts_dir\net35\" /p:DefineConstants="NET35"}
 }
 
 Task Build40 -Depends Build45 { 

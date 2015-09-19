@@ -1,4 +1,4 @@
-﻿#if !POCO_NO_DYNAMIC
+﻿#if !NET35
 using System;
 using System.Collections.Generic;
 using System.Dynamic;

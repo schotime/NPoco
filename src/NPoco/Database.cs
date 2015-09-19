@@ -9,7 +9,7 @@
  * use of Subsonic's T4 templates, Rob Sullivan (@DataChomp) for hard core DBA advice 
  * and Adam Schroder (@schotime) for lots of suggestions, improvements and Oracle support
  * 
- * #define POCO_NO_DYNAMIC in your project settings on .NET 3.5
+ * #define NET35 in your project settings on .NET 3.5
  * 
  */
 
@@ -166,7 +166,7 @@ namespace NPoco
         public DatabaseType DatabaseType { get { return _dbType; } }
         public IsolationLevel IsolationLevel { get { return _isolationLevel; } }
 
-#if !POCO_NO_DYNAMIC
+#if !NET35
         private ThreadLocal<IDictionary<string, object>> _data = new ThreadLocal<IDictionary<string, object>>(() => new Dictionary<string, object>()); 
         public IDictionary<string, object> Data { get { return _data.Value; } }
 #else
@@ -1691,7 +1691,7 @@ namespace NPoco
         /// <summary>Checks if a poco represents a new record.</summary>
         public bool IsNew<T>(T poco)
         {
-#if !POCO_NO_DYNAMIC
+#if !NET35
             if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
             {
                 return true;

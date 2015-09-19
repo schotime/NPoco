@@ -16,7 +16,7 @@ namespace NPoco.RowMappers
         {
             IDictionary<string, object> target = new Dictionary<string, object>();
 
-#if !POCO_NO_DYNAMIC
+#if !NET35
             if (context.Type == typeof(object))
                 target = new PocoExpando();
 #endif

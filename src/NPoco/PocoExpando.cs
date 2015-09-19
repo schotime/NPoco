@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace NPoco
 {
-    #if !POCO_NO_DYNAMIC
+    #if !NET35
     public class PocoExpando : System.Dynamic.DynamicObject, IDictionary<string, object>
     {
         private readonly IDictionary<string, object> Dictionary =
