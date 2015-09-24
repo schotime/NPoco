@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using NPoco.RowMappers;
 
 namespace NPoco
 {
@@ -54,7 +53,7 @@ namespace NPoco
 
         public virtual void SetValue(object target, object val)
         {
-            SetValueFast(target, val);
+            _memberAccessor.Set(target, val);
         }
 
         public virtual object GetValue(object target)
@@ -71,15 +70,5 @@ namespace NPoco
         }
 
         public virtual object ChangeType(object val) { return Convert.ChangeType(val, MemberInfo.GetMemberInfoType()); }
-
-        private void SetValueFast(object target, object val)
-        {
-            _memberAccessor.Set(target, val);
-        }
-
-        private object GetValueFast(object target)
-        {
-            return _memberAccessor.Get(target);
-        }
     }
 }

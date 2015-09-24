@@ -29,7 +29,7 @@ namespace NPoco
         private MemberAccessor _memberAccessor;
         private Type _listType;
 
-        public object Create(IDataReader dataReader)
+        public virtual object Create(IDataReader dataReader)
         {
             return _creator.Create(dataReader);
         }
@@ -48,12 +48,12 @@ namespace NPoco
             _creator = fastCreate;
         }
 
-        public void SetValue(object target, object value)
+        public virtual void SetValue(object target, object value)
         {
             _memberAccessor.Set(target, value);
         }
 
-        public object GetValue(object target)
+        public virtual object GetValue(object target)
         {
             return _memberAccessor.Get(target);
         }

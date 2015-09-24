@@ -45,7 +45,13 @@ namespace NPoco
         private ColumnInfo[] GetColumnInfos(Type type, MemberInfo[] memberInfos)
         {
             return ReflectionUtils.GetFieldsAndPropertiesForClasses(type)
+                .Where(x=> !IsDictionaryType(x.DeclaringType))
                 .Select(x => GetColumnInfo(x, memberInfos)).ToArray();
+        }
+
+        public static bool IsDictionaryType(Type type)
+        {
+            return new[] { typeof(object), typeof(IDictionary<string, object>), typeof(Dictionary<string, object>) }.Contains(type);
         }
 
         public PocoData Build()

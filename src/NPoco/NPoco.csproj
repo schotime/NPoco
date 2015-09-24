@@ -155,9 +155,12 @@
     <Compile Include="ResultColumnAttribute.cs" />
     <Compile Include="RowMappers\ArrayMapper.cs" />
     <Compile Include="RowMappers\DictionaryMapper.cs" />
+    <Compile Include="RowMappers\DynamicMember.cs" />
+    <Compile Include="RowMappers\DynamicPocoMember.cs" />
     <Compile Include="RowMappers\GroupResult.cs" />
     <Compile Include="RowMappers\IRowMapper.cs" />
     <Compile Include="RowMappers\MyEnumerableExtensions.cs" />
+    <Compile Include="RowMappers\PosName.cs" />
     <Compile Include="RowMappers\PropertyMapper.cs" />
     <Compile Include="RowMappers\PropertyMapperNameConvention.cs" />
     <Compile Include="RowMappers\RowMapperContext.cs" />

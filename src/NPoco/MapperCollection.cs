@@ -8,8 +8,16 @@ namespace NPoco
     public class MapperCollection : List<IMapper>
     {
         internal readonly Dictionary<Type, ObjectFactoryDelegate> Factories = new Dictionary<Type, ObjectFactoryDelegate>();
-
         public delegate object ObjectFactoryDelegate(IDataReader dataReader);
+
+        public MapperCollection()
+        {
+#if !NET35
+            Factories.Add(typeof(object), x => new PocoExpando());
+#endif
+            Factories.Add(typeof(IDictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
+            Factories.Add(typeof(Dictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
+        }
 
         public void RegisterFactory<T>(Func<IDataReader, T> factory)
         {
@@ -28,10 +36,14 @@ namespace NPoco
 
         public void ClearFactories(Type type = null)
         {
-            if (type != null && HasFactory(type))
+            if (type != null)
+            {
                 Factories.Remove(type);
+            }
             else
+            {
                 Factories.Clear();
+            }
         }
 
         public Func<object, object> Find(Func<IMapper, Func<object, object>> predicate)

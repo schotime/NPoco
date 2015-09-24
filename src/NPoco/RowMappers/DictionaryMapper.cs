@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Data;
 
@@ -5,6 +6,8 @@ namespace NPoco.RowMappers
 {
     public class DictionaryMapper : RowMapper
     {
+        private PosName[] _posNames;
+
         public override bool ShouldMap(PocoData pocoData)
         {
             return pocoData.Type == typeof (object)
@@ -12,21 +15,24 @@ namespace NPoco.RowMappers
                    || pocoData.Type == typeof (IDictionary<string, object>);
         }
 
+        public override void Init(IDataReader dataReader, PocoData pocoData)
+        {
+            _posNames = GetColumnNames(dataReader, pocoData);
+        }
+
         public override object Map(IDataReader dataReader, RowMapperContext context)
         {
-            IDictionary<string, object> target = new Dictionary<string, object>();
+            IDictionary<string, object> target = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
 #if !NET35
             if (context.Type == typeof(object))
                 target = new PocoExpando();
 #endif
 
-            var columnNames = GetColumnNames(dataReader, context.PocoData);
-
-            for (int i = 0; i < columnNames.Length; i++)
+            for (int i = 0; i < _posNames.Length; i++)
             {
-                var converter = context.PocoData.Mapper.Find(x => x.GetFromDbConverter(typeof(object), dataReader.GetFieldType(columnNames[i].Pos))) ?? (x => x);
-                target.Add(columnNames[i].Name, dataReader.IsDBNull(columnNames[i].Pos) ? null : converter(dataReader.GetValue(columnNames[i].Pos)));
+                var converter = context.PocoData.Mapper.Find(x => x.GetFromDbConverter(typeof(object), dataReader.GetFieldType(_posNames[i].Pos))) ?? (x => x);
+                target.Add(_posNames[i].Name, dataReader.IsDBNull(_posNames[i].Pos) ? null : converter(dataReader.GetValue(_posNames[i].Pos)));
             }
 
             return target;

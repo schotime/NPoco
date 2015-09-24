@@ -179,7 +179,7 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
 
 
             Assert.AreEqual(5, user.Count);
-            
+
             Assert.AreEqual(1, user[0].OneId);
             Assert.AreEqual("Name1", user[0].Name);
             Assert.AreEqual(1, user[0].Items.Count);
@@ -235,8 +235,8 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
             {
                 if (i % 3 == 0)
                     Assert.AreEqual(null, ones[i].Items);
-                else 
-                    Assert.AreEqual(i%3, ones[i].Items.Count);
+                else
+                    Assert.AreEqual(i % 3, ones[i].Items.Count);
             }
         }
 
@@ -246,7 +246,7 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
             var users = Database.Query<RecursionUser>()
                 .UsingAlias("TEST")
                 .Include(x => x.CreatedBy, "CREATEDBY")
-                .Where(x => x.Id.In(new[] {2, 3}))
+                .Where(x => x.Id.In(new[] { 2, 3 }))
                 .Where("CREATEDBY.Id in (@list)", new { list = new[] { 1, 3 } })
                 .ToList();
 
@@ -258,7 +258,7 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
                 .ToList();
 
             Database.Query<RecursionUser>()
-                .Where(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z=>z)), new { list = new[] { 1, 3 } }))
+                .Where(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z => z)), new { list = new[] { 1, 3 } }))
                 .ToList();
 
             Database.Query<RecursionUser>()
@@ -277,7 +277,7 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
         [Test]
         public void Test17()
         {
-            var ones = Database.FetchOneToMany<One>(x=>x.Items, @"
+            var ones = Database.FetchOneToMany<One>(x => x.Items, @"
 select o.*, null npoco_items, m.* 
 from ones o 
 left join manys m on o.oneid = m.oneid");
@@ -355,8 +355,8 @@ from RecursionUser r
         [Test]
         public void Test19()
         {
-            var nestedConvention = new NestedConvention() {Name = "Name1"};
-            Database.SingleInto(nestedConvention,  @"
+            var nestedConvention = new NestedConvention() { Name = "Name1" };
+            Database.SingleInto(nestedConvention, @"
 select null name /*poco_dual*/");
 
             Assert.AreEqual(null, nestedConvention.Name);
@@ -408,7 +408,7 @@ select 22 Money__Value /*poco_dual*/");
         [Test]
         public void Test23()
         {
-            Database.Mappers.ClearFactories();
+            Database.Mappers.ClearFactories(typeof(ContentBase));
             Database.Mappers.RegisterFactory<ContentBase>(reader => new Post());
             var data = Database.Fetch<ContentBase>("select 'Name' Name /*poco_dual*/").Single();
             Assert.AreEqual("Name", data.Name);
@@ -417,7 +417,7 @@ select 22 Money__Value /*poco_dual*/");
         [Test]
         public void Test24()
         {
-            Database.Mappers.ClearFactories();
+            Database.Mappers.ClearFactories(typeof(IContentBase));
             Database.Mappers.RegisterFactory<IContentBase>(reader => new Post());
             var data = Database.Fetch<IContentBase>("select 'Name' Name /*poco_dual*/").Single();
             Assert.AreEqual("Name", data.Name);
@@ -426,7 +426,7 @@ select 22 Money__Value /*poco_dual*/");
         [Test]
         public void Test25()
         {
-            Database.Mappers.ClearFactories();
+            Database.Mappers.ClearFactories(typeof(ContentBase));
             Database.Mappers.RegisterFactory<ContentBase>(reader =>
             {
                 var type = (string)reader["type"];
@@ -436,7 +436,7 @@ select 22 Money__Value /*poco_dual*/");
                     return new Answer();
                 return null;
             });
-var data = Database.Fetch<ContentBase>(@"
+            var data = Database.Fetch<ContentBase>(@"
 select 'NamePost' Name, 'Post' type /*poco_dual*/
 union
 select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
@@ -448,6 +448,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             Assert.AreEqual("Answer", data[1].Type);
             Assert.True(data[0] is Post);
             Assert.True(data[1] is Answer);
+            
         }
 
         [Test]
@@ -506,34 +507,52 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             public int Id { get; set; }
             public string Name { get { return Id.ToString(); } }
         }
+
+        [Test]
+        public void Test28()
+        {
+            var data = Database.Fetch<Test28Class>("select 3 Id, 'Name' Name, null, 'dyn' Dynamic__Value1, 'dict' Dict__Value2").Single();
+            Assert.AreEqual(3, data.Id);
+            Assert.AreEqual("Name", data.Name);
+            Assert.AreEqual("dyn", data.Dynamic.Value1);
+            Assert.AreEqual("dict", data.Dict["Value2"]);
+        }
+
+        public class Test28Class
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public dynamic Dynamic { get; set; }
+            public Dictionary<string, object> Dict { get; set; }
+        }
     }
 
-public class Post : ContentBase
-{
-        
-}
+    public class Post : ContentBase
+    {
 
-public class Answer : ContentBase
-{
-        
-}
+    }
 
-public abstract class ContentBase : IContentBase
-{
-    public string Name { get; set; }
-    public string Type { get; set; }
-}
+    public class Answer : ContentBase
+    {
 
-public interface IContentBase
-{
-    string Name { get; set; }
-}
+    }
+
+    public abstract class ContentBase : IContentBase
+    {
+        public string Name { get; set; }
+        public string Type { get; set; }
+    }
+
+    public interface IContentBase
+    {
+        string Name { get; set; }
+    }
 
     public static class Ext
     {
         public static IQueryProvider<RecursionUser> IncludeSecurity(this IQueryProvider<RecursionUser> query)
         {
-            return query.Where(x => new Sql(string.Format("exists (select 1 from {1} where Id = {0}.Id)", x.DatabaseType.EscapeTableName(x.GetAliasFor(z=>z.CreatedBy)), x.GetPocoDataFor<RecursionUser>().TableInfo.TableName)));
-        }    
+            return query.Where(x => new Sql(string.Format("exists (select 1 from {1} where Id = {0}.Id)", x.DatabaseType.EscapeTableName(x.GetAliasFor(z => z.CreatedBy)), x.GetPocoDataFor<RecursionUser>().TableInfo.TableName)));
+        }
     }
 }

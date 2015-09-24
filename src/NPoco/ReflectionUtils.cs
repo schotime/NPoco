@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using NPoco.RowMappers;
 
 namespace NPoco
 {
@@ -40,8 +41,13 @@ namespace NPoco
             Type type;
             if (member.MemberType == MemberTypes.Field)
                 type = ((FieldInfo) member).FieldType;
-            else
+            else if (member.MemberType == MemberTypes.Property)
                 type = ((PropertyInfo) member).PropertyType;
+            else if (member.MemberType == MemberTypes.Custom)
+                type = ((DynamicMember) member).ReflectedType;
+            else
+                throw new NotSupportedException();
+
             return type;
         }
 
@@ -55,8 +61,12 @@ namespace NPoco
             object val;
             if (member.MemberType == MemberTypes.Field)
                 val = ((FieldInfo)member).GetValue(obj);
-            else
+            else if(member.MemberType == MemberTypes.Property)
                 val = ((PropertyInfo)member).GetValue(obj, null);
+            else if (member.MemberType == MemberTypes.Custom)
+                val = ((DynamicMember)member).GetValue(obj);
+            else
+                throw new NotSupportedException();
             return val;
         }
 

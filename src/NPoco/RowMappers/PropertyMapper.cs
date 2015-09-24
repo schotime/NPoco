@@ -6,12 +6,6 @@ using System.Linq;
 
 namespace NPoco.RowMappers
 {
-    public class PosName
-    {
-        public int Pos { get; set; }
-        public string Name { get; set; }
-    }
-
     public class PropertyMapper : RowMapper
     {
         private List<GroupResult<PosName>> _groupedNames;
@@ -26,7 +20,7 @@ namespace NPoco.RowMappers
         public override void Init(IDataReader dataReader, PocoData pocoData)
         {
             var fields = GetColumnNames(dataReader, pocoData);
-            
+
             _groupedNames = fields
                 .GroupByMany(x => x.Name, PocoData.Separator)
                 .ToList();
@@ -79,14 +73,20 @@ namespace NPoco.RowMappers
             var pocoMember = FindMember(pocoMembers, groupedName.Item);
 
             if (pocoMember == null)
+            {
                 yield break;
+            }
 
             if (groupedName.SubItems.Any())
             {
                 var memberInfoType = pocoMember.MemberInfo.GetMemberInfoType();
                 if (memberInfoType.IsAClass())
                 {
-                    var subPlans = groupedName.SubItems.SelectMany(x => BuildMapPlans(x, dataReader, pocoData, pocoMember.PocoMemberChildren)).ToArray();
+                    var children = PocoDataBuilder.IsDictionaryType(memberInfoType)
+                        ? CreateDynamicDictionaryPocoMembers(groupedName.SubItems, pocoData)
+                        : pocoMember.PocoMemberChildren;
+
+                    var subPlans = groupedName.SubItems.SelectMany(x => BuildMapPlans(x, dataReader, pocoData, children)).ToArray();
 
                     yield return (reader, instance) =>
                     {
@@ -119,7 +119,7 @@ namespace NPoco.RowMappers
                 var destType = pocoMember.MemberInfo.GetMemberInfoType();
                 var defaultValue = MappingHelper.GetDefault(destType);
                 var converter = GetConverter(pocoData, pocoMember.PocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
-                yield return (reader, instance) => MapValue(groupedName.Key.Pos, reader, converter, instance, pocoMember.PocoColumn, defaultValue);
+                yield return (reader, instance) => MapValue(groupedName, reader, converter, instance, pocoMember.PocoColumn, defaultValue);
             }
         }
 
@@ -135,11 +135,11 @@ namespace NPoco.RowMappers
                 || string.Equals(value, name.Replace("_", ""), StringComparison.InvariantCultureIgnoreCase);
         }
 
-        private bool MapValue(int index, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn, object defaultValue)
+        private bool MapValue(GroupResult<PosName> posName, IDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn, object defaultValue)
         {
-            if (!reader.IsDBNull(index))
+            if (!reader.IsDBNull(posName.Key.Pos))
             {
-                var value = converter != null ? converter(reader.GetValue(index)) : reader.GetValue(index);
+                var value = converter != null ? converter(reader.GetValue(posName.Key.Pos)) : reader.GetValue(posName.Key.Pos);
                 pocoColumn.SetValue(instance, value);
                 return true;
             }
@@ -150,6 +150,18 @@ namespace NPoco.RowMappers
             }
 
             return false;
+        }
+
+        private static List<PocoMember> CreateDynamicDictionaryPocoMembers(IEnumerable<GroupResult<PosName>> subItems, PocoData pocoData)
+        {
+            return subItems.Select(x => new DynamicPocoMember(pocoData.Mapper)
+            {
+                MemberInfo = new DynamicMember(x.Item),
+                PocoColumn = new ExpandoColumn
+                {
+                    ColumnName = x.Item
+                }
+            }).Cast<PocoMember>().ToList();
         }
     }
 }
