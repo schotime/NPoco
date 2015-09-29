@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
 using System.Linq;
+using System.Threading;
 using NPoco.DatabaseTypes;
 using NPoco.FluentMappings;
 using NPoco.Tests.FluentMappings;
@@ -19,6 +21,8 @@ namespace NPoco.Tests.Common
         [SetUp]
         public void SetUp()
         {
+          Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+
             var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(Usersss), typeof(House), typeof(Supervisor) };
             var dbFactory = new DatabaseFactory();
             dbFactory.Config().WithFluentConfig(
