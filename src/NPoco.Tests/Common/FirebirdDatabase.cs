@@ -140,8 +140,11 @@ CREATE TABLE Users(
     TimeSpan time,
     TestEnum varchar(10),
     HouseId integer,
-    SupervisorId integer
-                );
+    SupervisorId integer,
+    Version timestamp,
+    VersionInt int default '0' NOT NULL,
+    YorN char(1)
+);
           
 CREATE TABLE ExtraUserInfos(
     ExtraUserInfoId integer PRIMARY KEY NOT NULL, 
