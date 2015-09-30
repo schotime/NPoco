@@ -2,7 +2,7 @@
 
 namespace NPoco.Tests.Common
 {
-    internal class FirebirdDefaultMapper: DefaultMapper
+    internal class CustomFirebirdMapper: DefaultMapper
     {
           private bool isNullable(Type type)
         {
