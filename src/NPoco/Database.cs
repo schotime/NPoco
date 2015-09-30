@@ -1886,7 +1886,16 @@ namespace NPoco
             return sb.ToString();
         }
 
-        public IMapper Mapper { get; set; }
+        private IMapper _mapper;
+        public IMapper Mapper
+        {
+            get { return _mapper; }
+            set
+            {
+                _mapper = value;
+                _pocoDataFactory = null;
+            }
+        }
 
         private PocoDataFactory _pocoDataFactory;
         public PocoDataFactory PocoDataFactory
