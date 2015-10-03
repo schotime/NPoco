@@ -123,12 +123,13 @@ namespace NPoco.Tests
             var snap = _database.StartSnapshot(user);
 
             user.Name = "Changed";
+            user.Phone.PhoneId = 21;
             user.Phone.Value = "324";
 
             Assert.AreEqual(2, snap.Changes().Count);
             Assert.AreEqual(2, snap.UpdatedColumns().Count);
             Assert.AreEqual("Name", snap.UpdatedColumns()[0]);
-            Assert.AreEqual("Phone", snap.UpdatedColumns()[1]);
+            Assert.AreEqual("phone", snap.UpdatedColumns()[1]);
         }
 
         [Test]
@@ -150,11 +151,13 @@ namespace NPoco.Tests
     public class SnapshotOnClass
     {
         public string Name { get; set; }
+        [Reference(ReferenceType.Foreign, ColumnName = "phone", ReferenceMemberName = "PhoneId")]
         public PhoneClass Phone { get; set; }
         public int[] Values { get; set; }
 
         public class PhoneClass
         {
+            public int PhoneId { get; set; }
             public string Value { get; set; }
         }
     }

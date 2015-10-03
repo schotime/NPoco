@@ -22,13 +22,13 @@ namespace NPoco.Tests.Common
         public char? YorN { get; set; }
         public TestEnum TestEnum { get; set; }
 
-        [Reference]
+        [Reference(ReferenceMemberName = "HouseId")]
         public House House { get; set; }
 
         [ComplexMapping]
         public Address Address { get; set; }
 
-        [Reference]
+        [Reference(ReferenceType.OneToOne, ReferenceMemberName = "UserId")]
         public ExtraUserInfo ExtraUserInfo { get; set; }
 
         //[ResultColumn]

@@ -50,7 +50,7 @@ namespace NPoco
         {
             database.Mappers.InsertRange(0, _options.Mapper);
 
-            foreach (var factory in database.Mappers.Factories)
+            foreach (var factory in _options.Mapper.Factories)
             {
                 database.Mappers.Factories[factory.Key] = factory.Value;
             }

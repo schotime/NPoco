@@ -22,7 +22,10 @@ namespace NPoco
         public string ColumnName;
 
         public List<MemberInfo> MemberInfoChain { get; set; }
-        public string MemberInfoKey { get { return GenerateKey(MemberInfoChain); } }
+
+        private string _memberInfoKey;
+        public string MemberInfoKey { get { return _memberInfoKey ?? (_memberInfoKey = GenerateKey(MemberInfoChain)); } }
+
         public MemberInfo MemberInfo { get; set; }
 
         public bool ResultColumn;
@@ -45,7 +48,7 @@ namespace NPoco
         public ReferenceType ReferenceType { get; set; }
         public bool StoredAsJson { get; set; }
 
-        public void SetMemberAccessors(List<MemberAccessor> memberAccessors)
+        internal void SetMemberAccessors(List<MemberAccessor> memberAccessors)
         {
             _memberAccessor = memberAccessors.Last();
             _memberAccessorChain = memberAccessors;
@@ -70,5 +73,24 @@ namespace NPoco
         }
 
         public virtual object ChangeType(object val) { return Convert.ChangeType(val, MemberInfo.GetMemberInfoType()); }
+
+        public object GetColumnValue(PocoData pd, object target, Func<PocoColumn, object, object> callback = null)
+        {
+            callback = callback ?? ((_, o) => o);
+            if (ReferenceType == ReferenceType.Foreign)
+            {
+                var member = pd.Members.Single(x => x.MemberInfo == MemberInfo);
+                var column = member.PocoMemberChildren.SingleOrDefault(x => x.Name == member.ReferenceMemberName);
+                if (column == null)
+                {
+                    throw new Exception(string.Format("Could not find member on '{0}' with name '{1}'", member.MemberInfo.GetMemberInfoType(), member.ReferenceMemberName));
+                }
+                return callback(column.PocoColumn, column.PocoColumn.GetValue(target));
+            }
+            else
+            {
+                return callback(this, GetValue(target));
+            }
+        }
     }
 }

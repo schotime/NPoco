@@ -1461,18 +1461,8 @@ namespace NPoco
                 if (!pocoColumn.VersionColumn && columns != null && !columns.Contains(pocoColumn.ColumnName, StringComparer.OrdinalIgnoreCase))
                     continue;
 
-                object value;
-                if (pocoColumn.ReferenceType == ReferenceType.Foreign)
-                {
-                    var member = pd.Members.Single(x => x.MemberInfo == pocoColumn.MemberInfo);
-                    var column = member.PocoMemberChildren.Single(x => x.Name == member.ReferenceMemberName);
-                    value = ProcessMapper(column.PocoColumn, column.PocoColumn.GetValue(poco));
-                }
-                else
-                {
-                    value = ProcessMapper(pocoColumn, pocoColumn.GetValue(poco));
-                }
-
+                object value = pocoColumn.GetColumnValue(pd, poco, ProcessMapper);
+                
                 if (pocoColumn.VersionColumn)
                 {
                     versionName = pocoColumn.ColumnName;
