@@ -60,6 +60,7 @@ namespace NPoco
         MapperCollection Mappers { get; }
         PocoDataFactory PocoDataFactory { get; set; }
         DatabaseType DatabaseType { get; }
+        List<IInterceptor> Interceptors { get; }
         string ConnectionString { get; }
     }
 }
