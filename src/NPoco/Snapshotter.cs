@@ -61,19 +61,18 @@ namespace NPoco
         public List<Change> Changes()
         {
             var list = new List<Change>();
-            foreach (var pocoColumn in _pocoData.Columns.Values)
+            foreach (var pocoColumn in _originalValues)
             {
-                var originalValue = _originalValues[pocoColumn];
-                var newValue = pocoColumn.GetColumnValue(_pocoData, _trackedObject);
-                if (!AreEqual(originalValue, newValue))
+                var newValue = pocoColumn.Key.GetColumnValue(_pocoData, _trackedObject);
+                if (!AreEqual(pocoColumn.Value, newValue))
                 {
                     list.Add(new Change()
-                             {
-                                 Name = pocoColumn.MemberInfo.Name,
-                                 ColumnName = pocoColumn.ColumnName,
-                                 NewValue = newValue,
-                                 OldValue = originalValue
-                             });
+                    {
+                        Name = pocoColumn.Key.MemberInfo.Name,
+                        ColumnName = pocoColumn.Key.ColumnName,
+                        NewValue = newValue,
+                        OldValue = pocoColumn.Value
+                    });
                 }
             }
             return list;
