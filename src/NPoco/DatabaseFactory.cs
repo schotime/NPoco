@@ -37,7 +37,13 @@ namespace NPoco
         {
             ConfigureMappers(database);
             ConfigurePocoDataFactory(database);
+            ConfigureInterceptors(database);
             return database;
+        }
+
+        private void ConfigureInterceptors(Database database)
+        {
+            database.Interceptors.AddRange(_options.Interceptors);
         }
 
         private void ConfigurePocoDataFactory(Database database)
@@ -72,11 +78,13 @@ namespace NPoco
         public DatabaseFactoryConfigOptions()
         {
             Mapper = new MapperCollection();
+            Interceptors = new List<IInterceptor>();
         }
 
         public Func<Database> Database { get; set; }
         public MapperCollection Mapper { get; private set; }
         public FluentConfig PocoDataFactory { get; set; }
+        public List<IInterceptor> Interceptors { get; private set; }
     }
 
     public class DatabaseFactoryConfig
@@ -109,6 +117,12 @@ namespace NPoco
         public DatabaseFactoryConfig WithMapperFactory<T>(Func<IDataReader, T> factory)
         {
             _options.Mapper.RegisterFactory(factory);
+            return this;
+        }
+
+        public DatabaseFactoryConfig WithInterceptor(IInterceptor interceptor)
+        {
+            _options.Interceptors.Add(interceptor);
             return this;
         }
     }

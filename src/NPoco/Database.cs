@@ -218,7 +218,7 @@ namespace NPoco
             if (_sharedConnection.State == ConnectionState.Closed)
             {
                 _sharedConnection.Open();
-                _sharedConnection = OnConnectionOpened(_sharedConnection);
+                _sharedConnection = OnConnectionOpenedInternal(_sharedConnection);
 
                 //using (var cmd = _sharedConnection.CreateCommand())
                 //{
@@ -241,7 +241,7 @@ namespace NPoco
             if (KeepConnectionAlive) return;
             if (_sharedConnection == null) return;
 
-            OnConnectionClosing(_sharedConnection);
+            OnConnectionClosingInternal(_sharedConnection);
 
             _sharedConnection.Close();
             _sharedConnection.Dispose();
@@ -557,25 +557,51 @@ namespace NPoco
             return cmd;
         }
 
+        protected virtual void OnException(Exception exception)
+        {
+        }
+
         // Override this to log/capture exceptions
-        protected virtual void OnException(Exception x)
+        private void OnExceptionInternal(Exception exception)
         {
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine("***** EXCEPTION *****" + Environment.NewLine + Environment.NewLine + x.Message + Environment.NewLine + x.StackTrace);
+            System.Diagnostics.Debug.WriteLine("***** EXCEPTION *****" + Environment.NewLine + Environment.NewLine + exception.Message + Environment.NewLine + exception.StackTrace);
             System.Diagnostics.Debug.WriteLine("***** LAST COMMAND *****" + Environment.NewLine + Environment.NewLine + LastCommand);
             System.Diagnostics.Debug.WriteLine("***** CONN INFO *****" + Environment.NewLine + Environment.NewLine + "Provider: " + _providerName + Environment.NewLine + "Connection String: " + _connectionString + Environment.NewLine + "DB Type: " + _dbType);
 #endif
+            OnException(exception);
+            foreach (var interceptor in Interceptors.OfType<IExceptionInterceptor>())
+            {
+                interceptor.OnException(this, exception);
+            }
         }
 
-        // Override this to log commands, or modify command before execution
         protected virtual IDbConnection OnConnectionOpened(IDbConnection conn)
         {
             return conn;
         }
 
+        private IDbConnection OnConnectionOpenedInternal(IDbConnection conn)
+        {
+            var newConnection = OnConnectionOpened(conn);
+            foreach (var interceptor in Interceptors.OfType<IConnectionInterceptor>())
+            {
+                newConnection = interceptor.OnConnectionOpened(this, newConnection);
+            }
+            return newConnection;
+        }
+
         protected virtual void OnConnectionClosing(IDbConnection conn)
         {
+        }
 
+        private void OnConnectionClosingInternal(IDbConnection conn)
+        {
+            OnConnectionClosing(conn);
+            foreach (var interceptor in Interceptors.OfType<IConnectionInterceptor>())
+            {
+                interceptor.OnConnectionClosing(this, conn);
+            }
         }
 
         protected virtual void OnExecutingCommand(IDbCommand cmd)
@@ -583,9 +609,44 @@ namespace NPoco
 
         }
 
+        private void OnExecutingCommandInternal(IDbCommand cmd)
+        {
+            OnExecutingCommand(cmd);
+            foreach (var interceptor in Interceptors.OfType<IExecutingInterceptor>())
+            {
+                interceptor.OnExecutingCommand(this, cmd);
+            }
+        }
+
+        protected virtual void OnExecutedCommand(IDbCommand cmd)
+        {
+
+        }
+
+        private void OnExecutedCommandInternal(IDbCommand cmd)
+        {
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine(LastCommand);
+#endif
+            OnExecutedCommand(cmd);
+            foreach (var interceptor in Interceptors.OfType<IExecutingInterceptor>())
+            {
+                interceptor.OnExecutedCommand(this, cmd);
+            }
+        }
+
+        private List<IInterceptor> _interceptors = new List<IInterceptor>();
+        public List<IInterceptor> Interceptors { get { return _interceptors; } } 
+
         protected virtual bool OnInserting(InsertContext insertContext)
         {
             return true;
+        }
+
+        private bool OnInsertingInternal(InsertContext insertContext)
+        {
+            var result = OnInserting(insertContext);
+            return result && Interceptors.OfType<IDataInterceptor>().All(x => x.OnInserting(this, insertContext));
         }
 
         protected virtual bool OnUpdating(UpdateContext updateContext)
@@ -593,16 +654,21 @@ namespace NPoco
             return true;
         }
 
+        private bool OnUpdatingInternal(UpdateContext updateContext)
+        {
+            var result = OnUpdating(updateContext);
+            return result && Interceptors.OfType<IDataInterceptor>().All(x => x.OnUpdating(this, updateContext));
+        }
+
         protected virtual bool OnDeleting(DeleteContext deleteContext)
         {
             return true;
         }
 
-        protected virtual void OnExecutedCommand(IDbCommand cmd)
+        private bool OnDeletingInternal(DeleteContext deleteContext)
         {
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine(LastCommand);
-#endif
+            var result = OnDeleting(deleteContext);
+            return result && Interceptors.OfType<IDataInterceptor>().All(x => x.OnDeleting(this, deleteContext));
         }
 
         // Execute a non-query command
@@ -627,7 +693,7 @@ namespace NPoco
             }
             catch (Exception x)
             {
-                OnException(x);
+                OnExceptionInternal(x);
                 throw;
             }
             finally
@@ -665,7 +731,7 @@ namespace NPoco
             }
             catch (Exception x)
             {
-                OnException(x);
+                OnExceptionInternal(x);
                 throw;
             }
             finally
@@ -673,76 +739,6 @@ namespace NPoco
                 CloseSharedConnectionInternal();
             }
         }
-
-#if NET45
-        // Execute a non-query command
-        public System.Threading.Tasks.Task<int> ExecuteAsync(string sql, params object[] args)
-        {
-            return ExecuteAsync(new Sql(sql, args));
-        }
-
-        public async System.Threading.Tasks.Task<int> ExecuteAsync(Sql Sql)
-        {
-            var sql = Sql.SQL;
-            var args = Sql.Arguments;
-
-            try
-            {
-                OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql, args))
-                {
-                    var result = await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
-                    return result;
-                }
-            }
-            catch (Exception x)
-            {
-                OnException(x);
-                throw;
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
-            }
-        }
-
-        public System.Threading.Tasks.Task<T> ExecuteScalarAsync<T>(string sql, object[] args)
-        {
-            return ExecuteScalarAsync<T>(new Sql(sql, args));
-        }
-
-        public async System.Threading.Tasks.Task<T> ExecuteScalarAsync<T>(Sql Sql)
-        {
-            var sql = Sql.SQL;
-            var args = Sql.Arguments;
-
-            try
-            {
-                OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql, args))
-                {
-                    object val = await ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
-
-                    if (val == null || val == DBNull.Value)
-                        return await TaskAsyncHelper.FromResult(default(T)).ConfigureAwait(false);
-
-                    Type t = typeof(T);
-                    Type u = Nullable.GetUnderlyingType(t);
-
-                    return (T)Convert.ChangeType(val, u ?? t);
-                }
-            }
-            catch (Exception x)
-            {
-                OnException(x);
-                throw;
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
-            }
-        }
-#endif
 
         public bool EnableAutoSelect { get; set; }
 
@@ -875,7 +871,7 @@ namespace NPoco
                         }
                         catch (Exception x)
                         {
-                            OnException(x);
+                            OnExceptionInternal(x);
                             throw;
                         }
 
@@ -922,7 +918,7 @@ namespace NPoco
                         }
                         catch (Exception x)
                         {
-                            OnException(x);
+                            OnExceptionInternal(x);
                             throw;
                         }
 
@@ -1042,7 +1038,7 @@ namespace NPoco
             }
             catch (Exception x)
             {
-                OnException(x);
+                OnExceptionInternal(x);
                 throw;
             }
             return r;
@@ -1172,7 +1168,7 @@ namespace NPoco
                                 }
                                 catch (Exception x)
                                 {
-                                    OnException(x);
+                                    OnExceptionInternal(x);
                                     throw;
                                 }
                             }
@@ -1320,7 +1316,7 @@ namespace NPoco
         // the new id is returned.
         public virtual object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            if (!OnInserting(new InsertContext(poco, tableName, autoIncrement, primaryKeyName))) 
+            if (!OnInsertingInternal(new InsertContext(poco, tableName, autoIncrement, primaryKeyName))) 
                 return 0;
 
             try
@@ -1351,7 +1347,7 @@ namespace NPoco
             }
             catch (Exception x)
             {
-                OnException(x);
+                OnExceptionInternal(x);
                 throw;
             }
             finally
@@ -1388,7 +1384,7 @@ namespace NPoco
             }
             catch (Exception x)
             {
-                OnException(x);
+                OnExceptionInternal(x);
                 throw;
             }
             finally
@@ -1406,7 +1402,7 @@ namespace NPoco
             }
             catch (Exception x)
             {
-                OnException(x);
+                OnExceptionInternal(x);
                 throw;
             }
             finally
@@ -1429,7 +1425,7 @@ namespace NPoco
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
         protected virtual TRet UpdateImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
         {
-            if (!OnUpdating(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns))) 
+            if (!OnUpdatingInternal(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns))) 
                 return defaultId;
 
             if (columns != null && !columns.Any())
@@ -1640,7 +1636,7 @@ namespace NPoco
 
         protected virtual TRet DeleteImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, Func<string, object[], TRet> executeFunc, TRet defaultRet)
         {
-            if (!OnDeleting(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) 
+            if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) 
                 return defaultRet;
 
             var pd = poco != null ? PocoDataFactory.ForObject(poco, primaryKeyName) : null;
@@ -1761,7 +1757,7 @@ namespace NPoco
             }
 
             // Call hook
-            OnExecutingCommand(cmd);
+            OnExecutingCommandInternal(cmd);
 
             // Save it
             _lastSql = cmd.CommandText;
@@ -1847,7 +1843,7 @@ namespace NPoco
         {
             DoPreExecute(cmd);
             var result = cmd.ExecuteNonQuery();
-            OnExecutedCommand(cmd);
+            OnExecutedCommandInternal(cmd);
             return result;
         }
 
@@ -1855,7 +1851,7 @@ namespace NPoco
         {
             DoPreExecute(cmd);
             object r = cmd.ExecuteScalar();
-            OnExecutedCommand(cmd);
+            OnExecutedCommandInternal(cmd);
             return r;
         }
 
@@ -1863,7 +1859,7 @@ namespace NPoco
         {
             DoPreExecute(cmd);
             IDataReader r = cmd.ExecuteReader();
-            OnExecutedCommand(cmd);
+            OnExecutedCommandInternal(cmd);
             return r;
         }
 

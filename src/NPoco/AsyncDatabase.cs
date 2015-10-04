@@ -51,7 +51,7 @@ namespace NPoco
         /// the new id is returned.</remarks>
         public virtual async Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            if (!OnInserting(new InsertContext(poco, tableName, autoIncrement, primaryKeyName)))
+            if (!OnInsertingInternal(new InsertContext(poco, tableName, autoIncrement, primaryKeyName)))
                 return 0;
 
             try
@@ -82,7 +82,7 @@ namespace NPoco
             }
             catch (Exception x)
             {
-                OnException(x);
+                OnExceptionInternal(x);
                 throw;
             }
             finally
@@ -219,7 +219,7 @@ namespace NPoco
                     }
                     catch (Exception x)
                     {
-                        OnException(x);
+                        OnExceptionInternal(x);
                         throw;
                     }
 
@@ -245,11 +245,78 @@ namespace NPoco
             return (await QueryAsync<T>(sql).ConfigureAwait(false)).SingleOrDefault();
         }
 
+        public System.Threading.Tasks.Task<int> ExecuteAsync(string sql, params object[] args)
+        {
+            return ExecuteAsync(new Sql(sql, args));
+        }
+
+        public async Task<int> ExecuteAsync(Sql Sql)
+        {
+            var sql = Sql.SQL;
+            var args = Sql.Arguments;
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                {
+                    var result = await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+                    return result;
+                }
+            }
+            catch (Exception x)
+            {
+                OnExceptionInternal(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
+        public Task<T> ExecuteScalarAsync<T>(string sql, object[] args)
+        {
+            return ExecuteScalarAsync<T>(new Sql(sql, args));
+        }
+
+        public async Task<T> ExecuteScalarAsync<T>(Sql Sql)
+        {
+            var sql = Sql.SQL;
+            var args = Sql.Arguments;
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                {
+                    object val = await ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
+
+                    if (val == null || val == DBNull.Value)
+                        return await TaskAsyncHelper.FromResult(default(T)).ConfigureAwait(false);
+
+                    Type t = typeof(T);
+                    Type u = Nullable.GetUnderlyingType(t);
+
+                    return (T)Convert.ChangeType(val, u ?? t);
+                }
+            }
+            catch (Exception x)
+            {
+                OnExceptionInternal(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
         internal async Task<int> ExecuteNonQueryHelperAsync(IDbCommand cmd)
         {
             DoPreExecute(cmd);
             var result = await _dbType.ExecuteNonQueryAsync(this, cmd).ConfigureAwait(false);
-            OnExecutedCommand(cmd);
+            OnExecutedCommandInternal(cmd);
             return result;
         }
 
@@ -257,7 +324,7 @@ namespace NPoco
         {
             DoPreExecute(cmd);
             var result = await _dbType.ExecuteScalarAsync(this, cmd).ConfigureAwait(false);
-            OnExecutedCommand(cmd);
+            OnExecutedCommandInternal(cmd);
             return result;
         }
 
@@ -265,7 +332,7 @@ namespace NPoco
         {
             DoPreExecute(cmd);
             var reader = await _dbType.ExecuteReaderAsync(this, cmd).ConfigureAwait(false);
-            OnExecutedCommand(cmd);
+            OnExecutedCommandInternal(cmd);
             return reader;
         }
     }

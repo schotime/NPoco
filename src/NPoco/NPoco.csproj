@@ -88,6 +88,7 @@
     <Compile Include="FastJSON\Reflection.cs" />
     <Compile Include="FastJSON\SafeDictionary.cs" />
     <Compile Include="HashCodeCombiner.cs" />
+    <Compile Include="IInterceptor.cs" />
     <Compile Include="InsertStatements.cs" />
     <Compile Include="IOnLoaded.cs" />
     <Compile Include="Linq\ComplexSqlBuilder.cs" />
