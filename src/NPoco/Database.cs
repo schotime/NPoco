@@ -1,5 +1,5 @@
-/* NPoco 2.0 - PetaPoco v4.0.3.12 - A Tiny ORMish thing for your POCO's.
- * Copyright 2011-2012.  All Rights Reserved.
+/* NPoco 3.0 - A Tiny ORMish thing for your POCO's.
+ * Copyright 2011-2015. All Rights Reserved.
  * 
  * Apache License 2.0 - http://www.apache.org/licenses/LICENSE-2.0
  * 
@@ -8,9 +8,6 @@
  * Special thanks to Rob Conery (@robconery) for original inspiration (ie:Massive) and for 
  * use of Subsonic's T4 templates, Rob Sullivan (@DataChomp) for hard core DBA advice 
  * and Adam Schroder (@schotime) for lots of suggestions, improvements and Oracle support
- * 
- * #define NET35 in your project settings on .NET 3.5
- * 
  */
 
 using System;
@@ -166,13 +163,8 @@ namespace NPoco
         public DatabaseType DatabaseType { get { return _dbType; } }
         public IsolationLevel IsolationLevel { get { return _isolationLevel; } }
 
-#if !NET35
-        private ThreadLocal<IDictionary<string, object>> _data = new ThreadLocal<IDictionary<string, object>>(() => new Dictionary<string, object>()); 
-        public IDictionary<string, object> Data { get { return _data.Value; } }
-#else
         private IDictionary<string, object> _data = new Dictionary<string, object>(); 
         public IDictionary<string, object> Data { get { return _data; } }
-#endif
 
         // Automatically close connection
         public void Dispose()
