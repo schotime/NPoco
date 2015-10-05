@@ -1899,7 +1899,7 @@ namespace NPoco
         {
             if (pocoColumn.StoredAsJson)
             {
-                return new JSONSerializer(JsonParameters).ConvertToJSON(value);
+                return JSON.ToJSON(value, JsonParameters);
             }
             if (pocoColumn.ColumnType == typeof (string) && IsEnum(pocoColumn.MemberInfo) && value != null)
             {

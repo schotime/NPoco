@@ -87,8 +87,7 @@ namespace NPoco
             var type = first.GetType();
             if (type.IsAClass() || type.IsArray)
             {
-                var jsonSerializer = new JSONSerializer(new JSONParameters());
-                return jsonSerializer.ConvertToJSON(first) == jsonSerializer.ConvertToJSON(second);
+                return JSON.ToJSON(first) == JSON.ToJSON(second);
             }
 
             return first.Equals(second);

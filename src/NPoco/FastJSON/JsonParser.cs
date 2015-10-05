@@ -1,429 +1,452 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
 namespace NPoco.FastJSON
 {
+	/// <summary>
+	/// This class encodes and decodes JSON strings.
+	/// Spec. details, see http://www.json.org/
+	/// </summary>
+	sealed class JsonParser
+	{
+		enum Token
+		{
+			None,           // Used to denote no Lookahead available
+			Curly_Open,
+			Curly_Close,
+			Squared_Open,
+			Squared_Close,
+			Colon,
+			Comma,
+			String,
+			Number,
+			True,
+			False,
+			Null
+		}
+		readonly static Token[] _CharTokenMap = InitCharTokenMap ();
+		readonly string _json;
+		readonly StringBuilder _sb = new StringBuilder ();
+		Token _lookAheadToken = Token.None;
+		int _index;
+
+		static Token[] InitCharTokenMap () {
+			var t = new Token[0x7F];
+			t['{'] = Token.Curly_Open;
+			t['}'] = Token.Curly_Close;
+			t[':'] = Token.Colon;
+			t[','] = Token.Comma;
+			t['.'] = Token.Number;
+			t['['] = Token.Squared_Open;
+			t[']'] = Token.Squared_Close;
+			t['\"'] = Token.String;
+			for (int i = '0'; i <= '9'; i++) {
+				t[(char)i] = Token.Number;
+			}
+			t['-'] = t['+'] = t['.'] = Token.Number;
+			return t;
+		}
+		internal JsonParser (string json) {
+			_json = json;
+		}
+
+		public object Decode () {
+			return ParseValue ();
+		}
+
+		JsonDict ParseObject () {
+			var table = new JsonDict ();
+
+			ConsumeToken (); // {
+
+			while (true) {
+				switch (LookAhead ()) {
+
+					case Token.Comma:
+						ConsumeToken ();
+						break;
+
+					case Token.Curly_Close:
+						ConsumeToken ();
+						return table;
+
+					default:
+						{
+							// name
+							string name = ParseString ();
+
+							// :
+							if (NextToken () != Token.Colon) {
+								throw new JsonParserException ("Expected colon at index ", _index, GetContextText ());
+							}
+
+							// value
+							object value = ParseValue ();
+
+							if (name.Length == 0) {
+								// ignores unnamed item
+								continue;
+							}
+							if (name[0] == '$') {
+								switch (name) {
+									case JsonDict.ExtTypes: table.Types = (JsonDict)value; continue;
+									case JsonDict.ExtType: table.Type = (string)value; continue;
+									case JsonDict.ExtRefIndex: table.RefIndex = (int)(long)value; continue;
+									case JsonDict.ExtSchema: table.Schema = value; continue;
+									default:
+										break;
+								}
+							}
+							table.Add (new KeyValuePair<string, object> (name, value));
+						}
+						break;
+				}
+			}
+		}
+
+		string GetContextText () {
+			const int ContextLength = 20;
+			var s = _index < ContextLength ? _index : ContextLength;
+			var e = _index + ContextLength > _json.Length ? _json.Length - _index : ContextLength;
+			return string.Concat (_json.Substring (_index - s, s), "^ERROR^", _json.Substring (_index, e));
+		}
 
-    /// <summary>
-    /// This class encodes and decodes JSON strings.
-    /// Spec. details, see http://www.json.org/
-    /// </summary>
-    internal sealed class JsonParser
-    {
-        enum Token
-        {
-            None = -1,           // Used to denote no Lookahead available
-            Curly_Open,
-            Curly_Close,
-            Squared_Open,
-            Squared_Close,
-            Colon,
-            Comma,
-            String,
-            Number,
-            True,
-            False,
-            Null
-        }
-
-        readonly string json;
-        readonly StringBuilder s = new StringBuilder();
-        Token lookAheadToken = Token.None;
-        int index;
-
-        internal JsonParser(string json)
-        {
-            this.json = json;
-        }
-
-        public object Decode()
-        {
-            return ParseValue();
-        }
-
-        private Dictionary<string, object> ParseObject()
-        {
-            Dictionary<string, object> table = new Dictionary<string, object>();
-
-            ConsumeToken(); // {
-
-            while (true)
-            {
-                switch (LookAhead())
-                {
-
-                    case Token.Comma:
-                        ConsumeToken();
-                        break;
-
-                    case Token.Curly_Close:
-                        ConsumeToken();
-                        return table;
-
-                    default:
-                        {
-                            // name
-                            string name = ParseString();
-
-                            // :
-                            if (NextToken() != Token.Colon)
-                            {
-                                throw new Exception("Expected colon at index " + index);
-                            }
-
-                            // value
-                            object value = ParseValue();
-
-                            table[name] = value;
-                        }
-                        break;
-                }
-            }
-        }
-
-        private List<object> ParseArray()
-        {
-            List<object> array = new List<object>();
-            ConsumeToken(); // [
-
-            while (true)
-            {
-                switch (LookAhead())
-                {
-                    case Token.Comma:
-                        ConsumeToken();
-                        break;
-
-                    case Token.Squared_Close:
-                        ConsumeToken();
-                        return array;
-
-                    default:
-                        array.Add(ParseValue());
-                        break;
-                }
-            }
-        }
-
-        private object ParseValue()
-        {
-            switch (LookAhead())
-            {
-                case Token.Number:
-                    return ParseNumber();
+		JsonArray ParseArray () {
+			var array = new JsonArray ();
+			ConsumeToken (); // [
 
-                case Token.String:
-                    return ParseString();
-
-                case Token.Curly_Open:
-                    return ParseObject();
-
-                case Token.Squared_Open:
-                    return ParseArray();
-
-                case Token.True:
-                    ConsumeToken();
-                    return true;
-
-                case Token.False:
-                    ConsumeToken();
-                    return false;
-
-                case Token.Null:
-                    ConsumeToken();
-                    return null;
-            }
-
-            throw new Exception("Unrecognized token at index" + index);
-        }
-
-        private string ParseString()
-        {
-            ConsumeToken(); // "
-
-            s.Length = 0;
-
-            int runIndex = -1;
-
-            while (index < json.Length)
-            {
-                var c = json[index++];
-
-                if (c == '"')
-                {
-                    if (runIndex != -1)
-                    {
-                        if (s.Length == 0)
-                            return json.Substring(runIndex, index - runIndex - 1);
-
-                        s.Append(json, runIndex, index - runIndex - 1);
-                    }
-                    return s.ToString();
-                }
-
-                if (c != '\\')
-                {
-                    if (runIndex == -1)
-                        runIndex = index - 1;
-
-                    continue;
-                }
-
-                if (index == json.Length) break;
-
-                if (runIndex != -1)
-                {
-                    s.Append(json, runIndex, index - runIndex - 1);
-                    runIndex = -1;
-                }
-
-                switch (json[index++])
-                {
-                    case '"':
-                        s.Append('"');
-                        break;
-
-                    case '\\':
-                        s.Append('\\');
-                        break;
-
-                    case '/':
-                        s.Append('/');
-                        break;
-
-                    case 'b':
-                        s.Append('\b');
-                        break;
-
-                    case 'f':
-                        s.Append('\f');
-                        break;
-
-                    case 'n':
-                        s.Append('\n');
-                        break;
-
-                    case 'r':
-                        s.Append('\r');
-                        break;
-
-                    case 't':
-                        s.Append('\t');
-                        break;
-
-                    case 'u':
-                        {
-                            int remainingLength = json.Length - index;
-                            if (remainingLength < 4) break;
-
-                            // parse the 32 bit hex into an integer codepoint
-                            uint codePoint = ParseUnicode(json[index], json[index + 1], json[index + 2], json[index + 3]);
-                            s.Append((char)codePoint);
-
-                            // skip 4 chars
-                            index += 4;
-                        }
-                        break;
-                }
-            }
-
-            throw new Exception("Unexpectedly reached end of string");
-        }
-
-        private uint ParseSingleChar(char c1, uint multipliyer)
-        {
-            uint p1 = 0;
-            if (c1 >= '0' && c1 <= '9')
-                p1 = (uint)(c1 - '0') * multipliyer;
-            else if (c1 >= 'A' && c1 <= 'F')
-                p1 = (uint)((c1 - 'A') + 10) * multipliyer;
-            else if (c1 >= 'a' && c1 <= 'f')
-                p1 = (uint)((c1 - 'a') + 10) * multipliyer;
-            return p1;
-        }
-
-        private uint ParseUnicode(char c1, char c2, char c3, char c4)
-        {
-            uint p1 = ParseSingleChar(c1, 0x1000);
-            uint p2 = ParseSingleChar(c2, 0x100);
-            uint p3 = ParseSingleChar(c3, 0x10);
-            uint p4 = ParseSingleChar(c4, 1);
-
-            return p1 + p2 + p3 + p4;
-        }
-
-        private long CreateLong(string s)
-        {
-            long num = 0;
-            bool neg = false;
-            foreach (char cc in s)
-            {
-                if (cc == '-')
-                    neg = true;
-                else if (cc == '+')
-                    neg = false;
-                else
-                {
-                    num *= 10;
-                    num += (int)(cc - '0');
-                }
-            }
-
-            return neg ? -num : num;
-        }
-
-        private object ParseNumber()
-        {
-            ConsumeToken();
-
-            // Need to start back one place because the first digit is also a token and would have been consumed
-            var startIndex = index - 1;
-            bool dec = false;
-            do
-            {
-                if (index == json.Length)
-                    break;
-                var c = json[index];
-
-                if ((c >= '0' && c <= '9') || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
-                {
-                    if (c == '.' || c == 'e' || c == 'E')
-                        dec = true;
-                    if (++index == json.Length)
-                        break;//throw new Exception("Unexpected end of string whilst parsing number");
-                    continue;
-                }
-                break;
-            } while (true);
-
-            if (dec)
-            {
-                string s = json.Substring(startIndex, index - startIndex);
-                return double.Parse(s, NumberFormatInfo.InvariantInfo);
-            }
-            long num;
-            return JSON.CreateLong(out num, json, startIndex, index - startIndex);
-        }
-
-        private Token LookAhead()
-        {
-            if (lookAheadToken != Token.None) return lookAheadToken;
-
-            return lookAheadToken = NextTokenCore();
-        }
-
-        private void ConsumeToken()
-        {
-            lookAheadToken = Token.None;
-        }
-
-        private Token NextToken()
-        {
-            var result = lookAheadToken != Token.None ? lookAheadToken : NextTokenCore();
-
-            lookAheadToken = Token.None;
-
-            return result;
-        }
-
-        private Token NextTokenCore()
-        {
-            char c;
-
-            // Skip past whitespace
-            do
-            {
-                c = json[index];
-
-                if (c > ' ') break;
-                if (c != ' ' && c != '\t' && c != '\n' && c != '\r') break;
-
-            } while (++index < json.Length);
-
-            if (index == json.Length)
-            {
-                throw new Exception("Reached end of string unexpectedly");
-            }
-
-            c = json[index];
-
-            index++;
-
-            switch (c)
-            {
-                case '{':
-                    return Token.Curly_Open;
-
-                case '}':
-                    return Token.Curly_Close;
-
-                case '[':
-                    return Token.Squared_Open;
-
-                case ']':
-                    return Token.Squared_Close;
-
-                case ',':
-                    return Token.Comma;
-
-                case '"':
-                    return Token.String;
-
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                case '-':
-                case '+':
-                case '.':
-                    return Token.Number;
-
-                case ':':
-                    return Token.Colon;
-
-                case 'f':
-                    if (json.Length - index >= 4 &&
-                        json[index + 0] == 'a' &&
-                        json[index + 1] == 'l' &&
-                        json[index + 2] == 's' &&
-                        json[index + 3] == 'e')
-                    {
-                        index += 4;
-                        return Token.False;
-                    }
-                    break;
-
-                case 't':
-                    if (json.Length - index >= 3 &&
-                        json[index + 0] == 'r' &&
-                        json[index + 1] == 'u' &&
-                        json[index + 2] == 'e')
-                    {
-                        index += 3;
-                        return Token.True;
-                    }
-                    break;
-
-                case 'n':
-                    if (json.Length - index >= 3 &&
-                        json[index + 0] == 'u' &&
-                        json[index + 1] == 'l' &&
-                        json[index + 2] == 'l')
-                    {
-                        index += 3;
-                        return Token.Null;
-                    }
-                    break;
-            }
-            throw new Exception("Could not find token at index " + --index);
-        }
-    }
+			while (true) {
+				switch (LookAhead ()) {
+					case Token.Comma:
+						ConsumeToken ();
+						break;
+
+					case Token.Squared_Close:
+						ConsumeToken ();
+						return array;
+
+					default:
+						array.Add (ParseValue ());
+						break;
+				}
+			}
+		}
+
+		object ParseValue () {
+			switch (LookAhead ()) {
+				case Token.Number:
+					return ParseNumber ();
+
+				case Token.String:
+					return ParseString ();
+
+				case Token.Curly_Open:
+					return ParseObject ();
+
+				case Token.Squared_Open:
+					return ParseArray ();
+
+				case Token.True:
+					ConsumeToken ();
+					return true;
+
+				case Token.False:
+					ConsumeToken ();
+					return false;
+
+				case Token.Null:
+					ConsumeToken ();
+					return null;
+			}
+
+			throw new JsonParserException ("Unrecognized token at index ", _index, GetContextText ());
+		}
+
+		string ParseString () {
+			ConsumeToken (); // "
+
+			_sb.Length = 0;
+
+			int runIndex = -1;
+
+			while (_index < _json.Length) {
+				var c = _json[_index++];
+
+				if (c == '"') {
+					if (runIndex != -1) {
+						if (_sb.Length == 0)
+							return _json.Substring (runIndex, _index - runIndex - 1);
+
+						_sb.Append (_json, runIndex, _index - runIndex - 1);
+					}
+					return _sb.ToString ();
+				}
+
+				if (c != '\\') {
+					if (runIndex == -1)
+						runIndex = _index - 1;
+
+					continue;
+				}
+
+				if (_index == _json.Length) break;
+
+				if (runIndex != -1) {
+					_sb.Append (_json, runIndex, _index - runIndex - 1);
+					runIndex = -1;
+				}
+
+				switch (_json[_index++]) {
+					case '"':
+						_sb.Append ('"');
+						break;
+
+					case '\\':
+						_sb.Append ('\\');
+						break;
+
+					case '/':
+						_sb.Append ('/');
+						break;
+
+					case 'b':
+						_sb.Append ('\b');
+						break;
+
+					case 'f':
+						_sb.Append ('\f');
+						break;
+
+					case 'n':
+						_sb.Append ('\n');
+						break;
+
+					case 'r':
+						_sb.Append ('\r');
+						break;
+
+					case 't':
+						_sb.Append ('\t');
+						break;
+
+					case 'u':
+						{
+							int remainingLength = _json.Length - _index;
+							if (remainingLength < 4) break;
+
+							// parse the 32 bit hex into an integer code point
+							// skip 4 chars
+							_sb.Append (ValueConverter.ParseUnicode (_json[_index], _json[++_index], _json[++_index], _json[++_index]));
+							++_index;
+						}
+						break;
+				}
+			}
+
+			throw new JsonParserException ("Unexpectedly reached end of string: ", _json.Length, GetContextText ());
+		}
+
+		object ParseNumber () {
+			ConsumeToken ();
+
+			// Need to start back one place because the first digit is also a token and would have been consumed
+			var startIndex = _index - 1;
+			bool dec = false;
+			do {
+				if (_index == _json.Length)
+					break;
+				var c = _json[_index];
+
+				if ((c >= '0' && c <= '9') || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E') {
+					if (c == '.' || c == 'e' || c == 'E')
+						dec = true;
+					if (++_index == _json.Length)
+						break;//throw new Exception("Unexpected end of string whilst parsing number");
+					continue;
+				}
+				break;
+			} while (true);
+
+			if (dec) {
+				string s = _json.Substring (startIndex, _index - startIndex);
+				return double.Parse (s, NumberFormatInfo.InvariantInfo);
+			}
+			return ValueConverter.CreateLong (_json, startIndex, _index - startIndex);
+		}
+
+		Token LookAhead () {
+			if (_lookAheadToken != Token.None) return _lookAheadToken;
+
+			return _lookAheadToken = NextTokenCore ();
+		}
+
+		void ConsumeToken () {
+			_lookAheadToken = Token.None;
+		}
+
+		Token NextToken () {
+			var result = _lookAheadToken != Token.None ? _lookAheadToken : NextTokenCore ();
+
+			_lookAheadToken = Token.None;
+
+			return result;
+		}
+
+		Token NextTokenCore () {
+			char c;
+
+			// Skip past whitespace
+			while (_index < _json.Length) {
+				c = _json[_index];
+
+				if (c > ' ') break;
+				if (c != ' ' && c != '\t' && c != '\n' && c != '\r') break;
+
+				++_index;
+			}
+
+			if (_index == _json.Length) {
+				throw new JsonParserException ("Reached end of string unexpectedly: ", _json.Length, GetContextText ());
+			}
+
+			c = _json[_index];
+
+			_index++;
+
+			var t = _CharTokenMap[c];
+			if (t != Token.None) {
+				return t;
+			}
+
+			switch (c) {
+				case 'f':
+					if (_json.Length - _index >= 4 &&
+						_json[_index + 0] == 'a' &&
+						_json[_index + 1] == 'l' &&
+						_json[_index + 2] == 's' &&
+						_json[_index + 3] == 'e') {
+						_index += 4;
+						return Token.False;
+					}
+					break;
+				case 't':
+					if (_json.Length - _index >= 3 &&
+						_json[_index + 0] == 'r' &&
+						_json[_index + 1] == 'u' &&
+						_json[_index + 2] == 'e') {
+						_index += 3;
+						return Token.True;
+					}
+					break;
+				case 'n':
+					if (_json.Length - _index >= 3 &&
+						_json[_index + 0] == 'u' &&
+						_json[_index + 1] == 'l' &&
+						_json[_index + 2] == 'l') {
+						_index += 3;
+						return Token.Null;
+					}
+					break;
+			}
+			throw new JsonParserException ("Could not find token at index ", --_index, GetContextText ());
+		}
+	}
+
+	sealed class JsonArray : List<object> { }
+	sealed class JsonDict : List<KeyValuePair<string, object>>, IDictionary<string, object>
+	{
+		internal const string ExtRefIndex = "$i";
+		internal const string ExtTypes = "$types";
+		internal const string ExtType = "$type";
+		internal const string ExtSchema = "$schema";
+
+		internal int RefIndex;
+		internal JsonDict Types;
+		internal string Type;
+		internal object Schema;
+
+		public object this[string key] {
+			get {
+				foreach (var item in this) {
+					if (item.Key == key) {
+						return item.Value;
+					}
+				}
+				return null;
+			}
+			set {
+				for (int i = Count - 1; i >= 0; i--) {
+					if (this[i].Key == key) {
+						this[i] = new KeyValuePair<string, object> (key, value);
+						return;
+					}
+				}
+			}
+		}
+
+		public void Add (string key, object value) {
+			Add (new KeyValuePair<string, object> (key, value));
+		}
+
+		ICollection<string> IDictionary<string, object>.Keys {
+			get {
+				var k = new string[Count];
+				for (int i = Count - 1; i >= 0; i--) {
+					k[i] = this[i].Key;
+				}
+				return k;
+			}
+		}
+
+		ICollection<object> IDictionary<string, object>.Values {
+			get {
+				var v = new object[Count];
+				for (int i = Count - 1; i >= 0; i--) {
+					v[i] = this[i].Value;
+				}
+				return v;
+			}
+		}
+
+		public bool ContainsKey (string key) {
+			foreach (var item in this) {
+				if (item.Key == key) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		public bool Remove (string key) {
+			for (int i = Count - 1; i >= 0; i--) {
+				if (this[i].Key == key) {
+					RemoveAt (i);
+					return true;
+				}
+			}
+			return false;
+		}
+
+		bool IDictionary<string, object>.TryGetValue (string key, out object value) {
+			foreach (var item in this) {
+				if (item.Key == key) {
+					value = item.Value;
+					return true;
+				}
+			}
+			value = null;
+			return false;
+		}
+
+		public static explicit operator Dictionary<string, object>(JsonDict dict) {
+			return new Dictionary<string, object> (dict);
+		}
+	}
+
+	sealed class DatasetSchema
+	{
+		public List<string> Info;//{ get; set; }
+		public string Name;//{ get; set; }
+	}
 }
