@@ -23,7 +23,7 @@ namespace NPoco
                     return converter;
             }
 
-            if (pc != null && pc.StoredAsJson)
+            if (pc != null && pc.SerializedColumn)
             {
                 converter = delegate(object src)
                 {

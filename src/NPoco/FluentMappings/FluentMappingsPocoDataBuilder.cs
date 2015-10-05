@@ -92,7 +92,7 @@ namespace NPoco.FluentMappings
             }
             else if (isColumnDefined && typeConfig.ColumnConfiguration[key].Serialized.HasValue && typeConfig.ColumnConfiguration[key].Serialized.Value)
             {
-                columnInfo.Serialized = true;
+                columnInfo.SerializedColumn = true;
             }
 
             if (explicitColumns && !isColumnDefined)

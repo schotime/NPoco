@@ -19,7 +19,7 @@ namespace NPoco
         public Type ColumnType { get; set; }
         public bool ComplexMapping { get; set; }
         public string ComplexPrefix { get; set; }
-        public bool Serialized { get; set; }
+        public bool SerializedColumn { get; set; }
         public ReferenceType ReferenceType { get; set; }
         public string ReferenceMemberName { get; set; }
 
@@ -54,7 +54,7 @@ namespace NPoco
             }
             else if (serializedColumnAttributes.Any())
             {
-                ci.Serialized = true;
+                ci.SerializedColumn = true;
             }
             else if (reference.Any())
             {
@@ -101,7 +101,7 @@ namespace NPoco
         public MemberInfo MemberInfo { get; internal set; }
     }
 
-    public class SerializedColumnAttribute : Attribute
+    public class SerializedColumnAttribute : ColumnAttribute
     {
     }
 }

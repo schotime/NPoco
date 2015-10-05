@@ -1896,7 +1896,7 @@ namespace NPoco
         
         private object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
         {
-            if (pocoColumn.StoredAsJson)
+            if (pocoColumn.SerializedColumn)
             {
                 return DatabaseFactory.ColumnSerializer.Serialize(value);
             }

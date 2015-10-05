@@ -46,7 +46,7 @@ namespace NPoco
         public string ColumnAlias { get; set; }
 
         public ReferenceType ReferenceType { get; set; }
-        public bool StoredAsJson { get; set; }
+        public bool SerializedColumn { get; set; }
 
         internal void SetMemberAccessors(List<MemberAccessor> memberAccessors)
         {

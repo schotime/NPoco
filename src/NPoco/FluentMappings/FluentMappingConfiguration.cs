@@ -204,7 +204,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.Value.VersionColumn = columnInfo.VersionColumn;
                     columnDefinition.Value.VersionColumnType = columnInfo.VersionColumnType;
                     columnDefinition.Value.ForceUtc = columnInfo.ForceToUtc;
-                    columnDefinition.Value.Serialized = columnInfo.Serialized;
+                    columnDefinition.Value.Serialized = columnInfo.SerializedColumn;
                 }
             }
         }
