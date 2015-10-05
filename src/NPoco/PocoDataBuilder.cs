@@ -211,11 +211,7 @@ namespace NPoco
 
         private static Type GetListType(Type memberType, bool isList)
         {
-            return memberType.IsAClass()
-                       ? (isList 
-                            ? typeof(List<>).MakeGenericType(memberType.GetGenericArguments().First()) 
-                            : null)
-                       : null;
+            return isList ? typeof(List<>).MakeGenericType(memberType.GetGenericArguments().First()) : null;
         }
 
         public List<MemberAccessor> GetMemberAccessors(IEnumerable<MemberInfo> memberInfos)

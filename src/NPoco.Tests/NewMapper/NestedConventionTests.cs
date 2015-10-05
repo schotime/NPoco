@@ -525,6 +525,20 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             public dynamic Dynamic { get; set; }
             public Dictionary<string, object> Dict { get; set; }
         }
+
+        [Test]
+        public void Test29()
+        {
+            var data = Database.Fetch<Test29Class>("select 3 Id, 4 Dyn").Single();
+            Assert.AreEqual(3, data.Id);
+            Assert.AreEqual(4, data.Dyn);
+        }
+
+        public class Test29Class
+        {
+            public object Id { get; set; }
+            public dynamic Dyn { get; set; }
+        }
     }
 
     public class Post : ContentBase
