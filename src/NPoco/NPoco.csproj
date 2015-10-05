@@ -79,6 +79,7 @@
     <Compile Include="Expressions\FirebirdSqlExpression.cs" />
     <Compile Include="Expressions\MemberChainHelper.cs" />
     <Compile Include="FastCreate.cs" />
+    <Compile Include="FastJsonSerializer.cs" />
     <Compile Include="FastJSON\BonusPack\Converters.cs" />
     <Compile Include="FastJSON\BonusPack\EnumerableDataReader.cs" />
     <Compile Include="FastJSON\BonusPack\IPAddressConverter.cs" />
@@ -107,6 +108,7 @@
     <Compile Include="FastJSON\ValueConverter.cs" />
     <Compile Include="HashCodeCombiner.cs" />
     <Compile Include="IInterceptor.cs" />
+    <Compile Include="IColumnSerializer.cs" />
     <Compile Include="InsertStatements.cs" />
     <Compile Include="IOnLoaded.cs" />
     <Compile Include="Linq\ComplexSqlBuilder.cs" />

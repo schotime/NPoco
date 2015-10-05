@@ -7,7 +7,7 @@ namespace NPoco.Tests.NewMapper.Models
         public int Id { get; set; }
         public string Name { get; set; }
 
-        [StoredAsJson]
+        [SerializedColumn]
         public MyAddress Address { get; set; }
 
         public class MyAddress

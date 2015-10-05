@@ -137,7 +137,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.VersionColumn = scannerSettings.VersionPropertiesWhere(member);
                     columnDefinition.VersionColumnType = scannerSettings.VersionColumnTypeAs(member);
                     columnDefinition.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(member);
-                    columnDefinition.StoredAsJson = scannerSettings.StoredAsJsonWhere(member);
+                    columnDefinition.Serialized = scannerSettings.SerializedWhere(member);
                     yield return columnDefinition;
                 }
             }
@@ -162,7 +162,7 @@ namespace NPoco.FluentMappings
                 ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && Attribute.GetCustomAttributes(x, typeof(ComplexMappingAttribute)).Any(),
                 ReferenceDbColumnsNamed = x => x.Name + "ID",
                 SequencesNamed = x => null,
-                StoredAsJsonWhere = x => Attribute.GetCustomAttributes(x, typeof(StoredAsJsonAttribute)).Any(),
+                SerializedWhere = x => Attribute.GetCustomAttributes(x, typeof(SerializedColumnAttribute)).Any(),
                 DbColumnWhere = x => Attribute.GetCustomAttributes(x, typeof(ColumnAttribute)).Any(),
                 Lazy = false
             };
@@ -204,7 +204,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.Value.VersionColumn = columnInfo.VersionColumn;
                     columnDefinition.Value.VersionColumnType = columnInfo.VersionColumnType;
                     columnDefinition.Value.ForceUtc = columnInfo.ForceToUtc;
-                    columnDefinition.Value.StoredAsJson = columnInfo.StoredAsJson;
+                    columnDefinition.Value.Serialized = columnInfo.Serialized;
                 }
             }
         }
@@ -244,7 +244,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.IsReferenceMember = overrideColumnDefinition.Value.IsReferenceMember ?? convColDefinition.IsReferenceMember;
                     convColDefinition.ReferenceMember = overrideColumnDefinition.Value.ReferenceMember ?? convColDefinition.ReferenceMember;
                     convColDefinition.ReferenceType = overrideColumnDefinition.Value.ReferenceType ?? convColDefinition.ReferenceType;
-                    convColDefinition.StoredAsJson = overrideColumnDefinition.Value.StoredAsJson ?? convColDefinition.StoredAsJson;
+                    convColDefinition.Serialized = overrideColumnDefinition.Value.Serialized ?? convColDefinition.Serialized;
                 }
             }
         }

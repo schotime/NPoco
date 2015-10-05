@@ -19,7 +19,7 @@ namespace NPoco
         public Type ColumnType { get; set; }
         public bool ComplexMapping { get; set; }
         public string ComplexPrefix { get; set; }
-        public bool StoredAsJson { get; set; }
+        public bool Serialized { get; set; }
         public ReferenceType ReferenceType { get; set; }
         public string ReferenceMemberName { get; set; }
 
@@ -32,7 +32,7 @@ namespace NPoco
             var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>();
             var ignoreAttrs = attrs.OfType<IgnoreAttribute>();
             var complexMapping = attrs.OfType<ComplexMappingAttribute>();
-            var storedAsJson = attrs.OfType<StoredAsJsonAttribute>();
+            var serializedColumnAttributes = attrs.OfType<SerializedColumnAttribute>();
             var reference = attrs.OfType<ReferenceAttribute>();
           
             // Check if declaring poco has [ExplicitColumns] attribute
@@ -52,9 +52,9 @@ namespace NPoco
                 ci.ComplexMapping = true;
                 ci.ComplexPrefix = complexMapping.First().CustomPrefix;
             }
-            else if (storedAsJson.Any())
+            else if (serializedColumnAttributes.Any())
             {
-                ci.StoredAsJson = true;
+                ci.Serialized = true;
             }
             else if (reference.Any())
             {
@@ -101,7 +101,7 @@ namespace NPoco
         public MemberInfo MemberInfo { get; internal set; }
     }
 
-    public class StoredAsJsonAttribute : Attribute
+    public class SerializedColumnAttribute : Attribute
     {
     }
 }

@@ -1893,13 +1893,12 @@ namespace NPoco
             return memberInfo.GetMemberInfoType().IsEnum || (underlyingType != null && underlyingType.IsEnum);
         }
 
-        public static JSONParameters JsonParameters = new JSONParameters() { UseUTCDateTime = false, UseExtensions = false };
-
+        
         private object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
         {
             if (pocoColumn.StoredAsJson)
             {
-                return JSON.ToJSON(value, JsonParameters);
+                return DatabaseFactory.ColumnSerializer.Serialize(value);
             }
             if (pocoColumn.ColumnType == typeof (string) && IsEnum(pocoColumn.MemberInfo) && value != null)
             {

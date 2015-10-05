@@ -27,7 +27,7 @@ namespace NPoco
             {
                 converter = delegate(object src)
                 {
-                    return new JsonDeserializer(Database.JsonParameters, JSON.Manager).ToObject((string)src, dstType);
+                    return DatabaseFactory.ColumnSerializer.Deserialize((string) src, dstType);
                 };
                 return converter;
             }

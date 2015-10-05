@@ -78,9 +78,9 @@ namespace NPoco.FluentMappings
             return this;
         }
 
-        public IColumnsBuilderConventions StoredAsJsonWhere(Func<MemberInfo, bool> storedAsJsonWhereFunc)
+        public IColumnsBuilderConventions SerializedWhere(Func<MemberInfo, bool> serializedWhereFunc)
         {
-            _scannerSettings.StoredAsJsonWhere = storedAsJsonWhereFunc;
+            _scannerSettings.SerializedWhere = serializedWhereFunc;
             return this;
         }
     }

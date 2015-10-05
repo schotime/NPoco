@@ -20,7 +20,7 @@ namespace NPoco.FluentMappings
         public bool? IsReferenceMember { get; set; }
         public MemberInfo ReferenceMember { get; set; }
         public ReferenceType? ReferenceType { get; set; }
-        public bool? StoredAsJson { get; set; }
+        public bool? Serialized { get; set; }
         public string ComplexPrefix { get; set; }
     }
 }

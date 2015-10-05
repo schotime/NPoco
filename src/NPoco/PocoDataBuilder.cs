@@ -169,7 +169,7 @@ namespace NPoco
                         ColumnAlias = capturedColumnInfo.ColumnAlias,
                         VersionColumn = capturedColumnInfo.VersionColumn,
                         VersionColumnType = capturedColumnInfo.VersionColumnType,
-                        StoredAsJson = capturedColumnInfo.StoredAsJson
+                        StoredAsJson = capturedColumnInfo.Serialized
                     };
 
                     pc.SetMemberAccessors(accessors);

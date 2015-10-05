@@ -90,9 +90,9 @@ namespace NPoco.FluentMappings
                 if (typeConfig.ColumnConfiguration[key].ReferenceMember != null)
                     columnInfo.ReferenceMemberName = typeConfig.ColumnConfiguration[key].ReferenceMember.Name;
             }
-            else if (isColumnDefined && typeConfig.ColumnConfiguration[key].StoredAsJson.HasValue && typeConfig.ColumnConfiguration[key].StoredAsJson.Value)
+            else if (isColumnDefined && typeConfig.ColumnConfiguration[key].Serialized.HasValue && typeConfig.ColumnConfiguration[key].Serialized.Value)
             {
-                columnInfo.StoredAsJson = true;
+                columnInfo.Serialized = true;
             }
 
             if (explicitColumns && !isColumnDefined)

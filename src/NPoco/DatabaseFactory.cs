@@ -9,6 +9,8 @@ namespace NPoco
 {
     public class DatabaseFactory
     {
+        public static IColumnSerializer ColumnSerializer = new FastJsonColumnSerializer();
+
         private DatabaseFactoryConfigOptions _options;
 
         public DatabaseFactory() { }
