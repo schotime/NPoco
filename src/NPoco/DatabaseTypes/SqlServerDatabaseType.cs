@@ -19,8 +19,8 @@ namespace NPoco.DatabaseTypes
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
             parts.sqlOrderBy = string.IsNullOrEmpty(parts.sqlOrderBy) ? null : OrderByAlias.Replace(parts.sqlOrderBy, "$1");
-            var sqlPage = string.Format("SELECT {4} FROM (SELECT poco_base.*, ROW_NUMBER() OVER ({0}) poco_rn \nFROM ( \n{1}) poco_base ) poco_paged \nWHERE poco_rn > {2} AND poco_rn <= {3} \nORDER BY poco_rn",
-                                                                    parts.sqlOrderBy ?? "ORDER BY (SELECT NULL /*poco_dual*/)", parts.sqlUnordered, skip, skip + take, parts.sqlColumns);
+            var sqlPage = string.Format("SELECT {4} FROM (SELECT poco_base.*, ROW_NUMBER() OVER ({0}) poco_rn \nFROM ( \n{1}) poco_base ) poco_paged \nWHERE poco_rn > @{2} AND poco_rn <= @{3} \nORDER BY poco_rn",
+                parts.sqlOrderBy ?? "ORDER BY (SELECT NULL /*poco_dual*/)", parts.sqlUnordered, args.Length, args.Length + 1, parts.sqlColumns);
             args = args.Concat(new object[] { skip, skip + take }).ToArray();
 
             return sqlPage;

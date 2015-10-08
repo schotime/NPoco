@@ -12,7 +12,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public void Page()
         {
             var page = Database.Page<User>(2, 5, @"
-                SELECT Name, UserID, is_male FROM Users WHERE ( UserID <= 15 ) order by UserID desc, is_male");
+                SELECT Name, UserID, is_male FROM Users WHERE ( UserID <= @0 ) order by UserID desc, is_male", 15);
 
             foreach (var user in page.Items)
             {
