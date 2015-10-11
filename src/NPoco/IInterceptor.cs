@@ -24,7 +24,7 @@ namespace NPoco
 
     public interface IExceptionInterceptor : IInterceptor
     {
-        void OnException(IDatabase database, Exception x);
+        void OnException(IDatabase database, Exception exception);
     }
 
     public interface IDataInterceptor : IInterceptor
