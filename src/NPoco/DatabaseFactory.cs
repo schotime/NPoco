@@ -64,6 +64,15 @@ namespace NPoco
             }
         }
 
+        public PocoDataFactory GetPocoDataFactory()
+        {
+            if (_options.PocoDataFactory != null)
+            {
+                return _options.PocoDataFactory.Config(_options.Mapper);
+            }
+            throw new Exception("No PocoDataFactory configured");
+        }
+
         public Database GetDatabase()
         {
             if (_options.Database == null)
@@ -71,7 +80,7 @@ namespace NPoco
 
             var db = _options.Database();
             Build(db);
-            return db; 
+            return db;
         }
     }
 
@@ -92,12 +101,12 @@ namespace NPoco
     public class DatabaseFactoryConfig
     {
         private readonly DatabaseFactoryConfigOptions _options;
-        
+
         public DatabaseFactoryConfig(DatabaseFactoryConfigOptions options)
         {
             _options = options;
         }
-        
+
         public DatabaseFactoryConfig UsingDatabase(Func<Database> database)
         {
             _options.Database = database;
