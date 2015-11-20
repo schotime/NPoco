@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics;
 using System.Linq;
+using NPoco;
 using NPoco.Expressions;
 using NPoco.Linq;
 using NPoco.Tests.Common;
@@ -99,15 +98,6 @@ namespace NPoco.Tests.NewMapper
         [Test]
         public void Test9()
         {
-            var sqlExpression = new DefaultSqlExpression<NestedConvention>(Database, true);
-            sqlExpression.Select(x => new { x.Money.Currency });
-            var selectStatement = sqlExpression.Context.ToSelectStatement();
-            Console.WriteLine(selectStatement);
-        }
-
-        [Test]
-        public void Test10()
-        {
             var data = Database.Fetch<NestedConvention>("select 'Name' Name, 23 money__value, 'AUD' money__currency, 24 money__money2__value, 'USD' money__money2__currency /*poco_dual*/").Single();
             Assert.AreEqual("Name", data.Name);
             Assert.AreEqual(23, data.Money.Value);
@@ -117,7 +107,7 @@ namespace NPoco.Tests.NewMapper
         }
 
         [Test]
-        public void Test10_1()
+        public void Test10()
         {
             var data = Database.Fetch<NestedConvention>("select 'Name' Name, 24 money__money2__value, 'USD' money__money2__currency /*poco_dual*/").Single();
             Assert.AreEqual("Name", data.Name);
@@ -365,7 +355,7 @@ select null name /*poco_dual*/");
         [Test]
         public void Test20()
         {
-            var nestedConvention = new NestedConvention() { Money = new Money() { Currency = "AUD" } };
+            var nestedConvention = new NestedConvention() { Money = new Models.Money() { Currency = "AUD" } };
             Database.SingleInto(nestedConvention, @"
 select 22 Money__Value /*poco_dual*/");
 

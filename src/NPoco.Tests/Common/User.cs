@@ -1,4 +1,5 @@
 using System;
+using NPoco;
 
 namespace NPoco.Tests.Common
 {

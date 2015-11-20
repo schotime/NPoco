@@ -34,7 +34,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(1, users.Count);
         }
 
-        [Test, NUnit.Framework.Ignore]
+        [Test, NUnit.Framework.Ignore("Not Supported For Now")]
         public void FetchOnWithSecondGenericType()
         {
             var s = new DefaultSqlExpression<CustomerUserJoin>(Database, true);

@@ -1,10 +1,12 @@
-﻿using System;
+﻿#if !DNXCORE50
+using System;
 using System.Data;
 using System.IO;
 using System.Threading;
 using FirebirdSql.Data.FirebirdClient;
 using FirebirdSql.Data.Isql;
 using FirebirdSql.Data.Services;
+using NPoco;
 
 namespace NPoco.Tests.Common
 {
@@ -255,3 +257,4 @@ GRANT %role% TO %user%;
         }
     }
 }
+#endif

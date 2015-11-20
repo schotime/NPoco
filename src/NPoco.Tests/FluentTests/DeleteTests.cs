@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using NPoco.Tests.Common;
+﻿using NPoco.Tests.Common;
 using NUnit.Framework;
 
 namespace NPoco.Tests.FluentTests

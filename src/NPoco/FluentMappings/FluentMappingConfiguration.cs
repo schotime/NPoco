@@ -117,7 +117,7 @@ namespace NPoco.FluentMappings
                         IsComplexMapping = complexProperty,
                         IsReferenceMember = referenceProperty,
                         ReferenceType = referenceProperty ? ReferenceType.Foreign : ReferenceType.None,
-                        ReferenceMember = referenceProperty ? columnDefinitions.Single(x => x.DbColumnName.Equals(referenceDbColumnsNamed, StringComparison.InvariantCultureIgnoreCase)).MemberInfo : null,
+                        ReferenceMember = referenceProperty ? columnDefinitions.Single(x => x.DbColumnName.Equals(referenceDbColumnsNamed, StringComparison.OrdinalIgnoreCase)).MemberInfo : null,
                         DbColumnName = referenceProperty ? referenceDbColumnsNamed : null,
                     };
                 }
@@ -159,13 +159,13 @@ namespace NPoco.FluentMappings
                 VersionColumnTypeAs = x => VersionColumnType.Number,
                 ComputedPropertiesWhere = x => false,
                 ForceDateTimesToUtcWhere = x => true,
-                ReferencePropertiesWhere = x => x.GetMemberInfoType().IsAClass() && Attribute.GetCustomAttributes(x, typeof(ReferenceAttribute)).Any(),
-                ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && Attribute.GetCustomAttributes(x, typeof(ComplexMappingAttribute)).Any(),
+                ReferencePropertiesWhere = x => x.GetMemberInfoType().IsAClass() && x.GetCustomAttributes(typeof(ReferenceAttribute), true).Any(),
+                ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && x.GetCustomAttributes(typeof(ComplexMappingAttribute), true).Any(),
                 ReferenceDbColumnsNamed = x => x.Name + "ID",
                 SequencesNamed = x => null,
                 UseOutputClauseWhere = x => false,
-                SerializedWhere = x => Attribute.GetCustomAttributes(x, typeof(SerializedColumnAttribute)).Any(),
-                DbColumnWhere = x => Attribute.GetCustomAttributes(x, typeof(ColumnAttribute)).Any(),
+                SerializedWhere = x => x.GetCustomAttributes(typeof(SerializedColumnAttribute), true).Any(),
+                DbColumnWhere = x => x.GetCustomAttributes(typeof(ColumnAttribute), true).Any(),
                 Lazy = false
             };
             scanner.Invoke(new ConventionScanner(defaultScannerSettings));
@@ -280,17 +280,16 @@ namespace NPoco.FluentMappings
         // Helper method if code is in seperate assembly
         private static Assembly FindTheCallingAssembly()
         {
-            if (!typeof(FluentMappingConfiguration).Assembly.FullName.StartsWith("NPoco,"))
-                return Assembly.GetCallingAssembly();
+            var trace = new StackTrace(new Exception(), false);
 
-            var trace = new StackTrace(false);
-
-            Assembly thisAssembly = Assembly.GetExecutingAssembly();
+            Assembly thisAssembly = typeof(FluentMappingConfiguration).GetTypeInfo().Assembly;
             Assembly callingAssembly = null;
-            for (int i = 0; i < trace.FrameCount; i++)
+            var stackFrames = trace.GetFrames();
+
+            for (int i = 0; i < stackFrames.Length; i++)
             {
-                StackFrame frame = trace.GetFrame(i);
-                Assembly assembly = frame.GetMethod().DeclaringType.Assembly;
+                StackFrame frame = stackFrames[i];
+                Assembly assembly = frame.GetMethod().DeclaringType.GetTypeInfo().Assembly;
                 if (assembly != thisAssembly)
                 {
                     callingAssembly = assembly;

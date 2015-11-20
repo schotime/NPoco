@@ -1,6 +1,7 @@
 
 using System;
 using System.Data;
+using System.Data.Common;
 using System.Text;
 using NPoco.Expressions;
 
@@ -13,7 +14,7 @@ namespace NPoco.DatabaseTypes
             return "@";
         }
 
-        public override void PreExecute(IDbCommand cmd)
+        public override void PreExecute(DbCommand cmd)
         {
             cmd.CommandText = cmd.CommandText.Replace("/*poco_dual*/", "from RDB$DATABASE");
         }
@@ -48,7 +49,7 @@ namespace NPoco.DatabaseTypes
             return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", EscapeTableName(tableName), string.Join(",", names), string.Join(",", parameters));
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {

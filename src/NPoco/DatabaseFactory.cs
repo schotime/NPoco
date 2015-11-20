@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using NPoco.FluentMappings;
@@ -9,7 +10,7 @@ namespace NPoco
 {
     public class DatabaseFactory
     {
-        public static IColumnSerializer ColumnSerializer = new FastJsonColumnSerializer();
+        public static IColumnSerializer ColumnSerializer = new JsonNetColumnSerializer();
 
         private DatabaseFactoryConfigOptions _options;
 
@@ -125,7 +126,7 @@ namespace NPoco
             return this;
         }
 
-        public DatabaseFactoryConfig WithMapperFactory<T>(Func<IDataReader, T> factory)
+        public DatabaseFactoryConfig WithMapperFactory<T>(Func<DbDataReader, T> factory)
         {
             _options.Mapper.RegisterFactory(factory);
             return this;

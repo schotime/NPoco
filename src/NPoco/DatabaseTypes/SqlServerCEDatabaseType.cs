@@ -1,4 +1,5 @@
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 
 namespace NPoco.DatabaseTypes
@@ -12,7 +13,7 @@ namespace NPoco.DatabaseTypes
             return sqlPage;
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             db.ExecuteNonQueryHelper(cmd);
             return db.ExecuteScalar<object>("SELECT @@@IDENTITY AS NewID;");

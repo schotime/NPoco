@@ -2,9 +2,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using NPoco.DatabaseTypes;
 using NPoco.Expressions;
+using System.Reflection;
 
 namespace NPoco
 {
@@ -83,7 +85,7 @@ namespace NPoco
             DbType dbType;
             var nullUnderlyingType = Nullable.GetUnderlyingType(type);
             if (nullUnderlyingType != null) type = nullUnderlyingType;
-            if (type.IsEnum && !typeMap.ContainsKey(type))
+            if (type.GetTypeInfo().IsEnum && !typeMap.ContainsKey(type))
             {
                 type = Enum.GetUnderlyingType(type);
             }
@@ -127,10 +129,10 @@ namespace NPoco
         }
 
         /// <summary>
-        /// Called immediately before a command is executed, allowing for modification of the IDbCommand before it's passed to the database provider
+        /// Called immediately before a command is executed, allowing for modification of the DbCommand before it's passed to the database provider
         /// </summary>
         /// <param name="cmd"></param>
-        public virtual void PreExecute(IDbCommand cmd)
+        public virtual void PreExecute(DbCommand cmd)
         {
         }
 
@@ -216,13 +218,13 @@ namespace NPoco
         /// <param name="poco"></param>
         /// <param name="args"></param>
         /// <returns>The ID of the newly inserted record</returns>
-        public virtual object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public virtual object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return db.ExecuteScalarHelper(cmd);
         }
-#if NET45
-        public virtual async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+#if !NET35 && !NET40
+        public virtual async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return await db.ExecuteScalarHelperAsync(cmd);
@@ -266,19 +268,19 @@ namespace NPoco
             if (!string.IsNullOrEmpty(providerName))
             {
                 // Try again with provider name
-                if (providerName.IndexOf("MySql", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                if (providerName.IndexOf("MySql", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<MySqlDatabaseType>.Instance;
-                if (providerName.IndexOf("SqlServerCe", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                if (providerName.IndexOf("SqlServerCe", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<SqlServerCEDatabaseType>.Instance;
-                if (providerName.IndexOf("pgsql", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                if (providerName.IndexOf("pgsql", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<PostgreSQLDatabaseType>.Instance;
-                if (providerName.IndexOf("Oracle.DataAccess", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                if (providerName.IndexOf("Oracle.DataAccess", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<OracleDatabaseType>.Instance;
-                if (providerName.IndexOf("Oracle.ManagedDataAccess", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                if (providerName.IndexOf("Oracle.ManagedDataAccess", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<OracleManagedDatabaseType>.Instance;
-                if (providerName.IndexOf("SQLite", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                if (providerName.IndexOf("SQLite", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<SQLiteDatabaseType>.Instance;
-                if (providerName.IndexOf("Firebird", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                if (providerName.IndexOf("Firebird", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<FirebirdDatabaseType>.Instance;
             }
 
@@ -335,18 +337,18 @@ namespace NPoco
             return "System.Data.SqlClient";
         }
 
-#if NET45
-        public virtual System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, IDbCommand cmd)
+#if !NET35 && !NET40
+        public virtual System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, DbCommand cmd)
         {
             throw new NotSupportedException("Async is not supported by the provider you are using");
         }
 
-        public virtual System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, IDbCommand cmd)
+        public virtual System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, DbCommand cmd)
         {
             throw new NotSupportedException("Async is not supported by the provider you are using");
         }
 
-        public virtual System.Threading.Tasks.Task<IDataReader> ExecuteReaderAsync(Database database, IDbCommand cmd)
+        public virtual System.Threading.Tasks.Task<DbDataReader> ExecuteReaderAsync(Database database, DbCommand cmd)
         {
             throw new NotSupportedException("Async is not supported by the provider you are using");
         }

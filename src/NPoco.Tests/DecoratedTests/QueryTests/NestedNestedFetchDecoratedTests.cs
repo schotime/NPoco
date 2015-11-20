@@ -1,4 +1,5 @@
 using System.Linq;
+using NPoco;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 

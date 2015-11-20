@@ -8,7 +8,7 @@ namespace NPoco
     public class PocoExpando : System.Dynamic.DynamicObject, IDictionary<string, object>
     {
         private readonly IDictionary<string, object> Dictionary =
-            new Dictionary<string, object>(StringComparer.InvariantCultureIgnoreCase);
+            new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
         public void Add(KeyValuePair<string, object> item)
         {

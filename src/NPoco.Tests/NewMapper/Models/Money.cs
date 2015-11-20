@@ -1,3 +1,5 @@
+using NPoco;
+
 namespace NPoco.Tests.NewMapper.Models
 {
     [PrimaryKey("MoneyId")]

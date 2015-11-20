@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -19,30 +20,30 @@ namespace NPoco
             CreateDelegate = GetCreateDelegate();
         }
 
-        public Func<IDataReader, object> CreateDelegate { get; set; }
+        public Func<DbDataReader, object> CreateDelegate { get; set; }
 
-        public object Create(IDataReader dataReader)
+        public object Create(DbDataReader dataReader)
         {
             return CreateDelegate(dataReader);
         }
 
-        private Func<IDataReader, object> GetCreateDelegate()
+        private Func<DbDataReader, object> GetCreateDelegate()
         {
             if (_mapperCollection.HasFactory(_type))
                 return dataReader => _mapperCollection.GetFactory(_type)(dataReader);
 
-            var constructorInfo = _type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], null);
+            var constructorInfo = _type.GetConstructor(new Type[0]);
             if (constructorInfo == null)
                 return _ => null;
 
             // var poco=new T()
-            var constructor = new DynamicMethod(Guid.NewGuid().ToString(), _type, new[] { typeof(IDataReader) }, true);
+            var constructor = new DynamicMethod(Guid.NewGuid().ToString(), _type, new[] { typeof(DbDataReader) }, true);
             var il = constructor.GetILGenerator();
             il.Emit(OpCodes.Newobj, constructorInfo);
             il.Emit(OpCodes.Ret);
 
-            var del = constructor.CreateDelegate(Expression.GetFuncType(typeof (IDataReader), typeof (object)));
-            return del as Func<IDataReader, object>;
+            var del = constructor.CreateDelegate(Expression.GetFuncType(typeof (DbDataReader), typeof (object)));
+            return del as Func<DbDataReader, object>;
         }
     }
 }

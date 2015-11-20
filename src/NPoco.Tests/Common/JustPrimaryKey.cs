@@ -1,4 +1,6 @@
-﻿namespace NPoco.Tests.Common
+﻿using NPoco;
+
+namespace NPoco.Tests.Common
 {
     [TableName("JustPrimaryKey"), PrimaryKey("Id", AutoIncrement = true)]
     public class JustPrimaryKey

@@ -1,16 +1,89 @@
 using System;
+using System.Collections;
 using System.Data;
+using System.Data.Common;
 
 namespace NPoco.Tests.NewMapper
 {
-    public class FakeReader : IDataReader
+    public class FakeReader : DbDataReader
     {
+#if !DNXCORE50
+        public override void Close()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override DataTable GetSchemaTable()
+        {
+            throw new NotImplementedException();
+        }
+#endif
+
+        public override bool NextResult()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool Read()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int Depth { get; }
+        public override bool IsClosed { get; }
+        public override int RecordsAffected { get; }
+
+        public override bool GetBoolean(int ordinal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override byte GetByte(int ordinal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override long GetBytes(int ordinal, long dataOffset, byte[] buffer, int bufferOffset, int length)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override char GetChar(int ordinal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override long GetChars(int ordinal, long dataOffset, char[] buffer, int bufferOffset, int length)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Guid GetGuid(int ordinal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override short GetInt16(int ordinal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetInt32(int ordinal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override long GetInt64(int ordinal)
+        {
+            throw new NotImplementedException();
+        }
+
         public void Dispose()
         {
             throw new NotImplementedException();
         }
 
-        public virtual string GetName(int i)
+        public override string GetName(int i)
         {
             switch (i)
             {
@@ -24,12 +97,27 @@ namespace NPoco.Tests.NewMapper
             return null;
         }
 
-        public string GetDataTypeName(int i)
+        public override int GetValues(object[] values)
         {
             throw new NotImplementedException();
         }
 
-        public Type GetFieldType(int i)
+        public override int GetOrdinal(string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string GetDataTypeName(int ordinal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override IEnumerator GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Type GetFieldType(int i)
         {
             switch (i)
             {
@@ -43,7 +131,7 @@ namespace NPoco.Tests.NewMapper
             return null;
         }
 
-        public object GetValue(int i)
+        public override object GetValue(int i)
         {
             switch (i)
             {
@@ -57,130 +145,48 @@ namespace NPoco.Tests.NewMapper
             return null;
         }
 
-        public int GetValues(object[] values)
+        public override double GetDouble(int ordinal)
         {
             throw new NotImplementedException();
         }
 
-        public int GetOrdinal(string name)
+        public override float GetFloat(int ordinal)
         {
             throw new NotImplementedException();
         }
 
-        public bool GetBoolean(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public byte GetByte(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
-        {
-            throw new NotImplementedException();
-        }
-
-        public char GetChar(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Guid GetGuid(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public short GetInt16(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public int GetInt32(int i)
-        {
-            return (int)GetValue(i);
-        }
-
-        public long GetInt64(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public float GetFloat(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public double GetDouble(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public string GetString(int i)
+        public override string GetString(int i)
         {
             return (string)GetValue(i);
         }
 
-        public decimal GetDecimal(int i)
+        public override decimal GetDecimal(int i)
         {
             return (decimal)GetValue(i);
         }
 
-        public DateTime GetDateTime(int i)
+        public override DateTime GetDateTime(int i)
         {
             throw new NotImplementedException();
         }
 
-        public IDataReader GetData(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool IsDBNull(int i)
+        public override bool IsDBNull(int i)
         {
             return false;
         }
 
-        public int FieldCount { get { return 4; } }
+        public override int FieldCount { get { return 4; } }
 
-        object IDataRecord.this[int i]
+        public override object this[int ordinal]
         {
             get { throw new NotImplementedException(); }
         }
 
-        object IDataRecord.this[string name]
+        public override object this[string name]
         {
             get { throw new NotImplementedException(); }
         }
 
-        public void Close()
-        {
-            throw new NotImplementedException();
-        }
-
-        public DataTable GetSchemaTable()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool NextResult()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Read()
-        {
-            throw new NotImplementedException();
-        }
-
-        public int Depth { get; private set; }
-        public bool IsClosed { get; private set; }
-        public int RecordsAffected { get; private set; }
+        public override bool HasRows { get; }
     }
 }

@@ -14,7 +14,7 @@ namespace NPoco
         public static bool IsPrimitive(this Type type)
         {
             if (type == typeof(String)) return true;
-            return (type.IsValueType & type.IsPrimitive);
+            return (type.GetTypeInfo().IsValueType & type.GetTypeInfo().IsPrimitive);
         }
 
         public static Object Copy(this Object originalObject)
@@ -46,10 +46,10 @@ namespace NPoco
 
         private static void RecursiveCopyBaseTypePrivateFields(object originalObject, IDictionary<object, object> visited, object cloneObject, Type typeToReflect)
         {
-            if (typeToReflect.BaseType != null)
+            if (typeToReflect.GetTypeInfo().BaseType != null)
             {
-                RecursiveCopyBaseTypePrivateFields(originalObject, visited, cloneObject, typeToReflect.BaseType);
-                CopyFields(originalObject, visited, cloneObject, typeToReflect.BaseType, BindingFlags.Instance | BindingFlags.NonPublic, info => info.IsPrivate);
+                RecursiveCopyBaseTypePrivateFields(originalObject, visited, cloneObject, typeToReflect.GetTypeInfo().BaseType);
+                CopyFields(originalObject, visited, cloneObject, typeToReflect.GetTypeInfo().BaseType, BindingFlags.Instance | BindingFlags.NonPublic, info => info.IsPrivate);
             }
         }
 
@@ -89,7 +89,7 @@ namespace NPoco
         {
             public static void ForEach(this Array array, Action<Array, int[]> action)
             {
-                if (array.LongLength == 0) return;
+                if (array.Length == 0) return;
                 ArrayTraverse walker = new ArrayTraverse(array);
                 do action(array, walker.Position);
                 while (walker.Step());

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using NPoco;
 using NPoco.Expressions;
 using NPoco.Tests.Common;
 using NUnit.Framework;

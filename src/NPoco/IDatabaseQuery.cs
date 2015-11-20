@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using NPoco.Linq;
-#if NET45
+#if !NET35 && !NET40
 using System.Threading.Tasks;
 #endif
 
@@ -79,7 +79,7 @@ namespace NPoco
         Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql);
         Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql);
 
-#if NET45
+#if !NET35 && !NET40
         Task<T> SingleByIdAsync<T>(object primaryKey);
         Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey);
 

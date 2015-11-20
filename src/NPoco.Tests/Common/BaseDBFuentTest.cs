@@ -1,7 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Configuration;
+using System.Data.SqlClient;
 using System.Linq;
+using System.Reflection;
+using Microsoft.Framework.Configuration.Json;
+using NPoco;
+#if !DNXCORE50
+using FirebirdSql.Data.FirebirdClient;
+#endif
 using NPoco.DatabaseTypes;
 using NPoco.FluentMappings;
 using NPoco.Tests.FluentMappings;
@@ -29,7 +35,7 @@ namespace NPoco.Tests.Common
             dbFactory.Config().WithFluentConfig(
                 FluentMappingConfiguration.Scan(s =>
                 {
-                    s.Assembly(typeof (User).Assembly);
+                    s.Assembly(typeof (User).GetTypeInfo().Assembly);
                     s.IncludeTypes(types.Contains);
                     s.PrimaryKeysNamed(y => ToLowerIf(y.Name + "Id", false));
                     s.TablesNamed(y => ToLowerIf(Inflector.MakePlural(y.Name), false));
@@ -39,8 +45,12 @@ namespace NPoco.Tests.Common
                     s.OverrideMappingsWith(new FluentMappingOverrides());
                 })
             );
-            
-            var testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
+
+            var configuration = new Microsoft.Framework.Configuration.ConfigurationBuilder()
+                .Add(new JsonConfigurationProvider("config.json"))
+                .Build();
+
+            var testDBType = Convert.ToInt32(configuration.GetSection("TestDBType").Value);
             switch (testDBType)
             {
                 case 1: // SQLite In-Memory
@@ -51,7 +61,7 @@ namespace NPoco.Tests.Common
                 case 2: // SQL Local DB
                 case 3: // SQL Server
                     TestDatabase = new SQLLocalDatabase();
-                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2008DatabaseType() { UseOutputClause = true }));
+                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2008DatabaseType(), SqlClientFactory.Instance));
                     break;
 
                 case 4: // SQL CE
@@ -60,12 +70,14 @@ namespace NPoco.Tests.Common
                 case 7: // Postgres
                     Assert.Fail("Database platform not supported for unit testing");
                     return;
+#if !DNXCORE50
                 case 8: // Firebird
                     TestDatabase = new FirebirdDatabase();
-                    var db = new Database(TestDatabase.Connection, new FirebirdDatabaseType());
+                    var db = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), FirebirdClientFactory.Instance);
                     db.Mappers.Insert(0, new FirebirdDefaultMapper());
                     Database = dbFactory.Build(db);
                     break;
+#endif
 
                 default:
                     Assert.Fail("Unknown database platform specified");

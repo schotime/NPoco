@@ -7,3 +7,7 @@ obj
 _ReSharper*
 src/TestResults
 packages
+artifacts
+TestResult.xml
+UnitTests*
+.vs*

@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0-*",
+  "frameworks": {
+    "dnx451": {
+      "bin": {
+        "assembly": "../../lib/System.Data.SQLite.dll"
+      }
+    },
+    "net45": {
+      "bin": {
+        "assembly": "../../lib/System.Data.SQLite.dll"
+      }
+    }
+  }
+}

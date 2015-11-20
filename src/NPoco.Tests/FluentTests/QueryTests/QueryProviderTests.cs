@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using NPoco.DatabaseTypes;
-using NPoco.Expressions;
+﻿using System.Linq;
 using NPoco.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;

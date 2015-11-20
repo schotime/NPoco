@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 
 namespace NPoco.RowMappers
@@ -8,21 +9,21 @@ namespace NPoco.RowMappers
     public interface IRowMapper
     {
         bool ShouldMap(PocoData pocoData);
-        object Map(IDataReader dataReader, RowMapperContext context);
-        void Init(IDataReader dataReader, PocoData pocoData);
+        object Map(DbDataReader dataReader, RowMapperContext context);
+        void Init(DbDataReader dataReader, PocoData pocoData);
     }
 
     public abstract class RowMapper : IRowMapper
     {
         public abstract bool ShouldMap(PocoData pocoData);
 
-        public virtual void Init(IDataReader dataReader, PocoData pocoData)
+        public virtual void Init(DbDataReader dataReader, PocoData pocoData)
         {
         }
 
         private PosName[] _columnNames;
 
-        protected PosName[] GetColumnNames(IDataReader dataReader, PocoData pocoData)
+        protected PosName[] GetColumnNames(DbDataReader dataReader, PocoData pocoData)
         {
             if (_columnNames != null)
                 return _columnNames;
@@ -40,7 +41,7 @@ namespace NPoco.RowMappers
             return (_columnNames = cols.ConvertFromOldConvention(pocoData.Members).ToArray());
         }
 
-        public abstract object Map(IDataReader dataReader, RowMapperContext context);
+        public abstract object Map(DbDataReader dataReader, RowMapperContext context);
 
         public static Func<object, object> GetConverter(PocoData pocoData, PocoColumn pocoColumn, Type sourceType, Type desType)
         {

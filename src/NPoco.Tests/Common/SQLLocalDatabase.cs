@@ -18,7 +18,7 @@ namespace NPoco.Tests.Common
         public SQLLocalDatabase()
         {
             DbType = new SqlServer2012DatabaseType();
-            DBPath = Environment.CurrentDirectory;
+            DBPath = Directory.GetCurrentDirectory();
 
             FQDBFile = DBPath + "\\" + DBFileName;
             FQLogFile = DBPath + "\\" + LogFileName;
@@ -29,12 +29,14 @@ namespace NPoco.Tests.Common
             RecreateDataBase();
             EnsureSharedConnectionConfigured();
 
-            Console.WriteLine("Tables (Constructor): " + Environment.NewLine);
-            var dt = ((SqlConnection)Connection).GetSchema("Tables");
-            foreach (DataRow row in dt.Rows)
-            {
-                Console.WriteLine((string)row[2]);
-            }
+//            Console.WriteLine("Tables (Constructor): " + Environment.NewLine);
+//#if !DNXCORE50
+//            var dt = ((SqlConnection)Connection).GetSchema("Tables");
+//            foreach (DataRow row in dt.Rows)
+//            {
+//                Console.WriteLine((string)row[2]);
+//            }
+//#endif
         }
 
         public override void EnsureSharedConnectionConfigured()
@@ -50,9 +52,9 @@ namespace NPoco.Tests.Common
 
         public override void RecreateDataBase()
         {
-            Console.WriteLine("----------------------------");
-            Console.WriteLine("Using SQL Server Local DB   ");
-            Console.WriteLine("----------------------------");
+            //Console.WriteLine("----------------------------");
+            //Console.WriteLine("Using SQL Server Local DB   ");
+            //Console.WriteLine("----------------------------");
 
             base.RecreateDataBase();
 
@@ -198,12 +200,14 @@ namespace NPoco.Tests.Common
             ";
             cmd.ExecuteNonQuery();
 
-            Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
-            var dt = conn.GetSchema("Tables");
-            foreach (DataRow row in dt.Rows)
-            {
-                Console.WriteLine(row[2]);
-            }
+//            Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
+//#if !DNXCORE50
+//            var dt = conn.GetSchema("Tables");
+//            foreach (DataRow row in dt.Rows)
+//            {
+//                Console.WriteLine(row[2]);
+//            }
+//#endif
 
             cmd.Dispose();
             conn.Close();

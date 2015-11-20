@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 
 namespace NPoco
 {
+#if !DNXCORE50
     public class SqlBulkCopyHelper
     {
-        public static Func<IDbConnection, SqlConnection> SqlConnectionResolver = dbConn => (SqlConnection)dbConn;
-        public static Func<IDbTransaction, SqlTransaction> SqlTransactionResolver = dbTran => (SqlTransaction)dbTran;
+        public static Func<DbConnection, SqlConnection> SqlConnectionResolver = dbConn => (SqlConnection)dbConn;
+        public static Func<DbTransaction, SqlTransaction> SqlTransactionResolver = dbTran => (SqlTransaction)dbTran;
 
         public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list)
         {
@@ -24,8 +26,7 @@ namespace NPoco
                 bulkCopy.WriteToServer(table);
             }
         }
-
-#if NET45
+#if NET45 || DNX451
         public static async System.Threading.Tasks.Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
@@ -51,7 +52,7 @@ namespace NPoco
             foreach (var col in cols)
             {
                 bulkCopy.ColumnMappings.Add(col.Value.MemberInfo.Name, col.Value.ColumnName);
-                table.Columns.Add(col.Value.MemberInfo.Name, Nullable.GetUnderlyingType(col.Value.MemberInfo.GetMemberInfoType()) ?? col.Value.MemberInfo.GetMemberInfoType());
+                table.Columns.Add(col.Value.MemberInfo.Name, Nullable.GetUnderlyingType(col.Value.MemberInfo.MemberType) ?? col.Value.MemberInfo.MemberType);
             }
 
             foreach (var item in list)
@@ -62,7 +63,7 @@ namespace NPoco
                     var value = cols[i].Value.GetValue(item);
                     if (db.Mappers != null)
                     {
-                        value = db.Mappers.FindAndExecute(x => x.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfo), value);
+                        value = db.Mappers.FindAndExecute(x => x.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfo.MemberInfo), value);
                     }
 
                     value = db.DatabaseType.MapParameterValue(value);
@@ -86,4 +87,5 @@ namespace NPoco
             return table;
         }
     }
-}
+#endif
+    }

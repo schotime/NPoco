@@ -1,20 +1,20 @@
 ﻿using System;
-using NPoco.FastJSON;
+using Newtonsoft.Json;
 
 namespace NPoco
 {
-    public class FastJsonColumnSerializer : IColumnSerializer
+    public class JsonNetColumnSerializer : IColumnSerializer
     {
-        public static JSONParameters JsonParameters = new JSONParameters() { UseUTCDateTime = false, UseExtensions = false };
+        public static JsonSerializerSettings SerializerSettings = new JsonSerializerSettings() { DateFormatHandling = DateFormatHandling.IsoDateFormat };
         
         public string Serialize(object value)
         {
-            return JSON.ToJSON(value, JsonParameters);
+            return JsonConvert.SerializeObject(value, SerializerSettings);
         }
 
         public object Deserialize(string value, Type targeType)
         {
-            return new JsonDeserializer(JsonParameters, JSON.Manager).ToObject(value, targeType);
+            return JsonConvert.DeserializeObject(value, targeType, SerializerSettings);
         }
     }
 }

@@ -132,7 +132,7 @@ namespace NPoco
             setIL.Emit(OpCodes.Castclass, this._targetType);
             setIL.Emit(OpCodes.Ldarg_1); //Load the second argument 
             //(value object)
-            if (paramType.IsValueType)
+            if (paramType.GetTypeInfo().IsValueType)
             {
                 setIL.Emit(OpCodes.Unbox, paramType); //Unbox it 
                 if (_mTypeHash[paramType] != null) //and load
@@ -198,7 +198,7 @@ namespace NPoco
             {
                 var targetGetMethod = ((PropertyInfo) _member).GetGetMethod();
                 getIL.Emit(OpCodes.Callvirt, targetGetMethod);
-                if (targetGetMethod.ReturnType.IsValueType)
+                if (targetGetMethod.ReturnType.GetTypeInfo().IsValueType)
                 {
                     getIL.Emit(OpCodes.Box, targetGetMethod.ReturnType);
                     //Box if necessary

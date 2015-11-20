@@ -32,7 +32,7 @@ namespace NPoco.Linq
         List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T> Distinct();
-#if NET45
+#if !NET35 && !NET40
         System.Threading.Tasks.Task<List<T>> ToListAsync();
         System.Threading.Tasks.Task<T[]> ToArrayAsync();
         System.Threading.Tasks.Task<IEnumerable<T>> ToEnumerableAsync();
@@ -347,7 +347,7 @@ namespace NPoco.Linq
             return sql;
         }
 
-#if NET45
+#if !NET35 && !NET40
         public async System.Threading.Tasks.Task<List<T>> ToListAsync()
         {
             return (await ToEnumerableAsync().ConfigureAwait(false)).ToList();

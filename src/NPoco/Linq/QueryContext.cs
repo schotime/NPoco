@@ -30,7 +30,7 @@ namespace NPoco.Linq
             if (member == null)
                 return _pocoData.TableInfo.AutoAlias;
 
-            var pocoMember = _joinExpressions.Values.SingleOrDefault(x => x.PocoMember.MemberInfo == member);
+            var pocoMember = _joinExpressions.Values.SingleOrDefault(x => x.PocoMember.MemberInfo.MemberInfo == member);
             if (pocoMember == null)
                 throw new Exception("Tried to get alias for table that has not been included");
 

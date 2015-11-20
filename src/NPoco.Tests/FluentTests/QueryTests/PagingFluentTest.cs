@@ -1,4 +1,3 @@
-using System.Data;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 

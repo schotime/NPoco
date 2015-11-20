@@ -1,10 +1,11 @@
-﻿#if NET45
+﻿#if !NET35 && !NET40
 using System.Collections;
 using System.Linq.Expressions;
 using NPoco.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -212,7 +213,7 @@ namespace NPoco
                 OpenSharedConnectionInternal();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
-                    IDataReader r;
+                    DbDataReader r;
                     try
                     {
                         r = await ExecuteReaderHelperAsync(cmd).ConfigureAwait(false);
@@ -312,7 +313,7 @@ namespace NPoco
             }
         }
 
-        internal async Task<int> ExecuteNonQueryHelperAsync(IDbCommand cmd)
+        internal async Task<int> ExecuteNonQueryHelperAsync(DbCommand cmd)
         {
             DoPreExecute(cmd);
             var result = await _dbType.ExecuteNonQueryAsync(this, cmd).ConfigureAwait(false);
@@ -320,7 +321,7 @@ namespace NPoco
             return result;
         }
 
-        internal async Task<object> ExecuteScalarHelperAsync(IDbCommand cmd)
+        internal async Task<object> ExecuteScalarHelperAsync(DbCommand cmd)
         {
             DoPreExecute(cmd);
             var result = await _dbType.ExecuteScalarAsync(this, cmd).ConfigureAwait(false);
@@ -328,7 +329,7 @@ namespace NPoco
             return result;
         }
 
-        internal async Task<IDataReader> ExecuteReaderHelperAsync(IDbCommand cmd)
+        internal async Task<DbDataReader> ExecuteReaderHelperAsync(DbCommand cmd)
         {
             DoPreExecute(cmd);
             var reader = await _dbType.ExecuteReaderAsync(this, cmd).ConfigureAwait(false);

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 
 namespace NPoco.RowMappers
 {
@@ -10,12 +11,11 @@ namespace NPoco.RowMappers
         public DynamicPocoMember(MapperCollection mapperCollection)
         {
             _mapperCollection = mapperCollection;
-            IsDynamic = true;
         }
 
-        public override object Create(IDataReader dataReader)
+        public override object Create(DbDataReader dataReader)
         {
-            return _mapperCollection.GetFactory(MemberInfo.ReflectedType)(dataReader);
+            return _mapperCollection.GetFactory(MemberInfo.MemberType)(dataReader);
         }
 
         public override void SetValue(object target, object value)

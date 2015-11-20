@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using NPoco;
 using NPoco.RowMappers;
 using NPoco.Tests.NewMapper.Models;
 using NUnit.Framework;

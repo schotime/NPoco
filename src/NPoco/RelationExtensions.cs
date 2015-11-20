@@ -41,7 +41,7 @@ namespace NPoco
 
         private static object GetDefault(Type type)
         {
-            if (type.IsValueType)
+            if (type.GetTypeInfo().IsValueType)
             {
                 return Activator.CreateInstance(type);
             }

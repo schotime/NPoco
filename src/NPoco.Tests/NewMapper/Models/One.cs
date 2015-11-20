@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NPoco;
 
 namespace NPoco.Tests.NewMapper.Models
 {

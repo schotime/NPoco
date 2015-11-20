@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -28,7 +29,7 @@ namespace NPoco.DatabaseTypes
             return sqlPage;
         }
         
-        private void AdjustSqlInsertCommandText(IDbCommand cmd, bool useOutputClause)
+        private void AdjustSqlInsertCommandText(DbCommand cmd, bool useOutputClause)
         {
             if (!UseOutputClause && !useOutputClause)
             {
@@ -50,20 +51,20 @@ namespace NPoco.DatabaseTypes
             return string.Format("INSERT INTO {0}{1} DEFAULT VALUES", EscapeTableName(tableName), GetInsertOutputClause(primaryKeyName, useOutputClause));
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             AdjustSqlInsertCommandText(cmd, useOutputClause);
             return db.ExecuteScalarHelper(cmd);
         }
 
-#if NET45
-        public override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+#if !NET35 && !NET40
+        public override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             AdjustSqlInsertCommandText(cmd, useOutputClause);
             return ExecuteScalarAsync(db, cmd);
         }
 
-        public override System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, IDbCommand cmd)
+        public override System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, DbCommand cmd)
         {
             var sqlCommand = cmd as SqlCommand;
             if (sqlCommand != null)
@@ -71,7 +72,7 @@ namespace NPoco.DatabaseTypes
             return base.ExecuteNonQueryAsync(database, cmd);
         }
 
-        public override async System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, IDbCommand cmd)
+        public override async System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, DbCommand cmd)
         {
             var dbCommand = cmd as SqlCommand;
             
@@ -91,7 +92,7 @@ namespace NPoco.DatabaseTypes
             return await base.ExecuteScalarAsync(database, cmd).ConfigureAwait(false);
         }
 
-        public override async System.Threading.Tasks.Task<IDataReader> ExecuteReaderAsync(Database database, IDbCommand cmd)
+        public override async System.Threading.Tasks.Task<DbDataReader> ExecuteReaderAsync(Database database, DbCommand cmd)
         {
             var dbCommand = cmd as SqlCommand;
             if (dbCommand != null)
@@ -107,11 +108,12 @@ namespace NPoco.DatabaseTypes
         {
             return "IF EXISTS (SELECT 1 FROM {0} WHERE {1}) SELECT 1 ELSE SELECT 0";
         }
-
+#if NET45
         public override void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
         {
             SqlBulkCopyHelper.BulkInsert(db, pocos);
         }
+#endif
 
         public override IsolationLevel GetDefaultTransactionIsolationLevel()
         {

@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Data.Common;
 using System.Reflection;
 
 namespace NPoco
@@ -22,7 +23,7 @@ namespace NPoco
             return null;
         }
 
-        public virtual Func<object, object> GetParameterConverter(IDbCommand dbCommand, Type sourceType)
+        public virtual Func<object, object> GetParameterConverter(DbCommand dbCommand, Type sourceType)
         {
             return null;
         }

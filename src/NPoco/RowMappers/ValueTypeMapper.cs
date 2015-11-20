@@ -1,5 +1,7 @@
 using System;
 using System.Data;
+using System.Data.Common;
+using System.Reflection;
 
 namespace NPoco.RowMappers
 {
@@ -9,16 +11,16 @@ namespace NPoco.RowMappers
 
         public override bool ShouldMap(PocoData pocoData)
         {
-            return pocoData.Type.IsValueType || pocoData.Type == typeof (string) || pocoData.Type == typeof (byte[]);
+            return pocoData.Type.GetTypeInfo().IsValueType || pocoData.Type == typeof (string) || pocoData.Type == typeof (byte[]);
         }
 
-        public override void Init(IDataReader dataReader, PocoData pocoData)
+        public override void Init(DbDataReader dataReader, PocoData pocoData)
         {
             _converter = GetConverter(pocoData, null, dataReader.GetFieldType(0), pocoData.Type) ?? (x => x);
             base.Init(dataReader, pocoData);
         }
 
-        public override object Map(IDataReader dataReader, RowMapperContext context)
+        public override object Map(DbDataReader dataReader, RowMapperContext context)
         {
             if (dataReader.IsDBNull(0))
                 return null;

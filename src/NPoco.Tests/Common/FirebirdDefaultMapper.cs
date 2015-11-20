@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Reflection;
+using NPoco;
 
 namespace NPoco.Tests.Common
 {
@@ -6,7 +8,7 @@ namespace NPoco.Tests.Common
     {
         private bool isNullable(Type type)
         {
-            return (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (Nullable<>));
+            return (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof (Nullable<>));
         }
 
         public override Func<object, object> GetFromDbConverter(Type DestType, Type SourceType)

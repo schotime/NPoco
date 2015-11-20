@@ -26,7 +26,7 @@ namespace NPoco
         private string _memberInfoKey;
         public string MemberInfoKey { get { return _memberInfoKey ?? (_memberInfoKey = GenerateKey(MemberInfoChain)); } }
 
-        public MemberInfo MemberInfo { get; set; }
+        public BaseMemberInfo MemberInfo { get; set; }
 
         public bool ResultColumn;
         public bool VersionColumn;
@@ -38,7 +38,7 @@ namespace NPoco
 
         public Type ColumnType
         {
-            get { return _columnType ?? MemberInfo.GetMemberInfoType(); }
+            get { return _columnType ?? MemberInfo.MemberType; }
             set { _columnType = value; }
         }
 
@@ -72,7 +72,7 @@ namespace NPoco
             return target;
         }
 
-        public virtual object ChangeType(object val) { return Convert.ChangeType(val, MemberInfo.GetMemberInfoType()); }
+        public virtual object ChangeType(object val) { return Convert.ChangeType(val, MemberInfo.MemberType); }
 
         public object GetColumnValue(PocoData pd, object target, Func<PocoColumn, object, object> callback = null)
         {
@@ -83,7 +83,7 @@ namespace NPoco
                 var column = member.PocoMemberChildren.SingleOrDefault(x => x.Name == member.ReferenceMemberName);
                 if (column == null)
                 {
-                    throw new Exception(string.Format("Could not find member on '{0}' with name '{1}'", member.MemberInfo.GetMemberInfoType(), member.ReferenceMemberName));
+                    throw new Exception(string.Format("Could not find member on '{0}' with name '{1}'", member.MemberInfo.MemberType, member.ReferenceMemberName));
                 }
                 return callback(column.PocoColumn, column.PocoColumn.GetValue(target));
             }

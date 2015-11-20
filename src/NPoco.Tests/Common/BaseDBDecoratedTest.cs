@@ -1,9 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Data;
+using System.Data.SqlClient;
+using Microsoft.Framework.Configuration.Json;
+#if !DNXCORE50
+using FirebirdSql.Data.FirebirdClient;
+#endif
+using NPoco;
 using NPoco.DatabaseTypes;
-using NPoco.Tests.NewMapper;
 using NPoco.Tests.NewMapper.Models;
 using NUnit.Framework;
 
@@ -20,7 +24,11 @@ namespace NPoco.Tests.Common
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var testDBType = Convert.ToInt32(ConfigurationManager.AppSettings["TestDBType"]);
+            var configuration = new Microsoft.Framework.Configuration.ConfigurationBuilder()
+                .Add(new JsonConfigurationProvider("config.json"))
+                .Build();
+            
+            var testDBType = Convert.ToInt32(configuration.GetSection("TestDBType").Value);
             switch (testDBType)
             {
                 case 1: // SQLite In-Memory
@@ -30,7 +38,7 @@ namespace NPoco.Tests.Common
 
                 case 2: // SQL Local DB
                     TestDatabase = new SQLLocalDatabase();
-                    Database = new Database(TestDatabase.Connection, new SqlServer2008DatabaseType() { UseOutputClause = false }, IsolationLevel.ReadUncommitted); // Need read uncommitted for the transaction tests
+                    Database = new Database(TestDatabase.Connection, new SqlServer2008DatabaseType() { UseOutputClause = false }, SqlClientFactory.Instance, IsolationLevel.ReadUncommitted); // Need read uncommitted for the transaction tests
                     break;
 
                 case 3: // SQL Server
@@ -40,11 +48,12 @@ namespace NPoco.Tests.Common
                 case 7: // Postgres
                     Assert.Fail("Database platform not supported for unit testing");
                     return;
-
+#if !DNXCORE50
                 case 8: // Firebird
                     TestDatabase = new FirebirdDatabase();
-                    Database = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), IsolationLevel.ReadUncommitted);
+                    Database = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), FirebirdClientFactory.Instance, IsolationLevel.ReadUncommitted);
                     break;
+#endif
 
                 default:
                     Assert.Fail("Unknown database platform specified");

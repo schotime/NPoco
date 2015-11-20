@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Data.Common;
 
 namespace NPoco
 {
     public class MapperCollection : List<IMapper>
     {
         internal readonly Dictionary<Type, ObjectFactoryDelegate> Factories = new Dictionary<Type, ObjectFactoryDelegate>();
-        public delegate object ObjectFactoryDelegate(IDataReader dataReader);
+        public delegate object ObjectFactoryDelegate(DbDataReader dataReader);
 
         public MapperCollection()
         {
@@ -19,7 +20,7 @@ namespace NPoco
             Factories.Add(typeof(Dictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
         }
 
-        public void RegisterFactory<T>(Func<IDataReader, T> factory)
+        public void RegisterFactory<T>(Func<DbDataReader, T> factory)
         {
             Factories[typeof(T)] = x => factory(x);
         }

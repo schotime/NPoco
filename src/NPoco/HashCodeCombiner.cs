@@ -48,7 +48,7 @@ namespace NPoco
         internal HashCodeCombiner AddCaseInsensitiveString(string s)
         {
             if (s != null)
-                AddInt((StringComparer.InvariantCultureIgnoreCase).GetHashCode(s));
+                AddInt((StringComparer.OrdinalIgnoreCase).GetHashCode(s));
             return this;
         }
 

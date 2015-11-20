@@ -4,40 +4,52 @@ using System.Reflection;
 
 namespace NPoco.RowMappers
 {
-    public class DynamicMember : MemberInfo
-    {
-        private readonly string _name;
+//    public class DynamicMember : MemberInfo
+//    {
+//        public static DynamicMember Create(string name)
+//        {
+//            var member = new DynamicMember();
+//            member.SetName(name);
+//            return member;
+//        }
 
-        public DynamicMember(string name)
-        {
-            _name = name;
-        }
+//        private string _name;
 
-        public override object[] GetCustomAttributes(bool inherit)
-        {
-            throw new NotImplementedException();
-        }
+//        public void SetName(string name)
+//        {
+//            _name = name;
+//        }
 
-        public override bool IsDefined(Type attributeType, bool inherit)
-        {
-            throw new NotImplementedException();
-        }
+//        public override string Name { get { return _name; } }
+//        public override Type DeclaringType { get { return typeof(IDictionary<string, object>); } }
+//        public Type DynamicType { get { return typeof(object); } }
 
-        public override MemberTypes MemberType { get { return MemberTypes.Custom; } }
-        public override string Name { get { return _name; } }
-        public override Type DeclaringType { get { return typeof(IDictionary<string, object>); } }
-        public override Type ReflectedType { get { return typeof(object); } }
+//        public object GetValue(object target)
+//        {
+//            object val;
+//            ((IDictionary<string, object>)target).TryGetValue(Name, out val);
+//            return val;
+//        }
 
-        public object GetValue(object target)
-        {
-            object val;
-            ((IDictionary<string, object>)target).TryGetValue(Name, out val);
-            return val;
-        }
+//#if !DNXCORE50
+//        public override Type ReflectedType { get { return DynamicType; } }
 
-        public override object[] GetCustomAttributes(Type attributeType, bool inherit)
-        {
-            throw new NotImplementedException();
-        }
-    }
+//        public override bool IsDefined(Type attributeType, bool inherit)
+//        {
+//            throw new NotImplementedException();
+//        }
+
+//        public override MemberTypes MemberType { get { return MemberTypes.Custom; } }
+
+//        public override object[] GetCustomAttributes(bool inherit)
+//        {
+//            throw new NotImplementedException();
+//        }
+
+//        public override object[] GetCustomAttributes(Type attributeType, bool inherit)
+//        {
+//            throw new NotImplementedException();
+//        }
+//#endif
+//    }
 }

@@ -13,7 +13,7 @@ namespace NPoco.RowMappers
             string prefix = null;
             foreach (var posName in posNames)
             {
-                if (posName.Name.StartsWith(SplitPrefix, StringComparison.InvariantCultureIgnoreCase))
+                if (posName.Name.StartsWith(SplitPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     prefix = posName.Name.Substring(SplitPrefix.Length);
                     continue;

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "test": {
+      "commandName": "test",
+      "commandLineArgs": "--where=\"test =~ Constructor\""
+    }
+  }
+}

@@ -1,5 +1,6 @@
 ﻿using System;
-using NPoco.DatabaseTypes;
+using System.Data.SqlClient;
+using NPoco;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -314,7 +315,7 @@ namespace NPoco.Tests.DecoratedTests
             Assert.AreEqual(userAfterCreate.Name, nameInsert);
 
 
-            var dbTrans = new Database(TestDatabase.ConnectionString, TestDatabase.DbType);
+            var dbTrans = new Database(TestDatabase.ConnectionString, TestDatabase.DbType, SqlClientFactory.Instance);
             dbTrans.BeginTransaction();
 
             user.Name = nameUpdate;
@@ -359,7 +360,7 @@ namespace NPoco.Tests.DecoratedTests
             Assert.AreEqual(userAfterCreate.Name, nameInsert);
 
 
-            var dbTrans = new Database(TestDatabase.ConnectionString, TestDatabase.DbType);
+            var dbTrans = new Database(TestDatabase.ConnectionString, TestDatabase.DbType, SqlClientFactory.Instance);
             dbTrans.BeginTransaction();
 
             user.Name = nameUpdate;

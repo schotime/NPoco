@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
+using NPoco;
 
 namespace NPoco.Tests.Common
 {
@@ -8,25 +10,25 @@ namespace NPoco.Tests.Common
         public DatabaseType DbType { get; set; }
         public string ConnectionString { get; set; }
         public string ProviderName { get; set; }
-        public IDbConnection Connection { get; set; }
+        public DbConnection Connection { get; set; }
 
         protected static readonly object _syncRoot = new object();
 
         public virtual void RecreateDataBase()
         {
-            Console.WriteLine("Creating database schema... ");
+            //Console.WriteLine("Creating database schema... ");
         }
 
         public abstract void EnsureSharedConnectionConfigured();
 
         public virtual void CleanupDataBase()
         {
-            Console.WriteLine("Deleting database schema... ");
+            //Console.WriteLine("Deleting database schema... ");
         }
 
         public virtual void Dispose()
         {
-            Console.WriteLine("Disposing connection...     ");
+            //Console.WriteLine("Disposing connection...     ");
 
             if (Connection == null) return;
 

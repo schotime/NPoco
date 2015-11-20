@@ -6,30 +6,20 @@
 #
 Properties {
     $build_dir = Split-Path $psake.build_script_file    
-    $build_artifacts_dir = "$build_dir\build\"
-    $solution_file = "$build_dir\src\NPoco\NPoco.csproj"
+    $build_artifacts_dir = "$build_dir\build"
+    $solution_dir = "$build_dir\src\NPoco"
 }
 
 FormatTaskName (("-"*25) + "[{0}]" + ("-"*25))
 
-Task Default -Depends Build35
+Task Default -depends Build 
 
-Task Build35 -Depends Build40 { 
-	Write-Host "Building 3.5 $solution_file" -ForegroundColor Green
-    Exec { msbuild "$solution_file" /t:Clean /p:Configuration=Release /v:quiet } 
-    Exec { msbuild "$solution_file" /t:Build /p:Configuration=Release /v:quiet /p:TargetFrameworkVersion=v3.5 /p:OutDir="$build_artifacts_dir\net35\" /p:DefineConstants="NET35"}
-}
-
-Task Build40 -Depends Build45 { 
-    Write-Host "Building 4.0 $solution_file" -ForegroundColor Green
-    Exec { msbuild "$solution_file" /t:Clean /p:Configuration=Release /v:quiet } 
-    Exec { msbuild "$solution_file" /t:Build /p:Configuration=Release /v:quiet /p:TargetFrameworkVersion=v4.0 /p:OutDir="$build_artifacts_dir\net40\" /p:DefineConstants="NET40" } 
-}
-
-Task Build45 -Depends Clean { 
-    Write-Host "Building 4.5 $solution_file" -ForegroundColor Green
-    Exec { msbuild "$solution_file" /t:Clean /p:Configuration=Release /v:quiet } 
-    Exec { msbuild "$solution_file" /t:Build /p:Configuration=Release /v:quiet /p:TargetFrameworkVersion=v4.5 /p:OutDir="$build_artifacts_dir\net45\" /p:DefineConstants="NET45" } 
+Task Build -depends Clean {
+    Write-Host "Creating BuildArtifacts" -ForegroundColor Green
+	Set-Location "$solution_dir"
+	Exec { 
+		dnu pack --configuration release --out $build_artifacts_dir --quiet
+	} 
 }
 
 Task Clean {
@@ -40,6 +30,4 @@ Task Clean {
     }
     
     mkdir $build_artifacts_dir | out-null
-    
-    Write-Host "Cleaning $solution_file" -ForegroundColor Green
 }

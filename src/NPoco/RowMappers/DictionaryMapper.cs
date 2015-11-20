@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 
 namespace NPoco.RowMappers
 {
@@ -15,12 +16,12 @@ namespace NPoco.RowMappers
                    || pocoData.Type == typeof (IDictionary<string, object>);
         }
 
-        public override void Init(IDataReader dataReader, PocoData pocoData)
+        public override void Init(DbDataReader dataReader, PocoData pocoData)
         {
             _posNames = GetColumnNames(dataReader, pocoData);
         }
 
-        public override object Map(IDataReader dataReader, RowMapperContext context)
+        public override object Map(DbDataReader dataReader, RowMapperContext context)
         {
             IDictionary<string, object> target = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 

@@ -1,5 +1,4 @@
-﻿using System;
-using NPoco.Tests.Common;
+﻿using NPoco.Tests.Common;
 using NUnit.Framework;
 
 namespace NPoco.Tests.DecoratedTests.QueryTests

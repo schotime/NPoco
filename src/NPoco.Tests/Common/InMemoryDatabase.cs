@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Data.SQLite;
-using NPoco.DatabaseTypes;
+using NPoco;
 
 namespace NPoco.Tests.Common
 {
@@ -19,10 +18,16 @@ namespace NPoco.Tests.Common
         public override void EnsureSharedConnectionConfigured()
         {
             if (Connection != null) return;
+            
 
             lock (_syncRoot)
             {
-                Connection = new SQLiteConnection(ConnectionString);
+
+#if DNXCORE50
+                Connection = new Microsoft.Data.Sqlite.SqliteConnection(ConnectionString);
+#else
+                Connection = new System.Data.SQLite.SQLiteConnection(ConnectionString);
+#endif
                 Connection.Open();
             }
         }

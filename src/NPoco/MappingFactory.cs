@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using NPoco.RowMappers;
 
@@ -23,14 +24,14 @@ namespace NPoco
             };
         }
 
-        public MappingFactory(PocoData pocoData, IDataReader dataReader)
+        public MappingFactory(PocoData pocoData, DbDataReader dataReader)
         {
             _pocoData = pocoData;
             _rowMapper = RowMappers.Select(mapper => mapper()).First(x => x.ShouldMap(pocoData));
             _rowMapper.Init(dataReader, pocoData);
         }
 
-        public object Map(IDataReader dataReader, object instance)
+        public object Map(DbDataReader dataReader, object instance)
         {
             return _rowMapper.Map(dataReader, new RowMapperContext()
             {

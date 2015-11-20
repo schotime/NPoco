@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 
 namespace NPoco.Expressions
@@ -74,7 +75,7 @@ namespace NPoco.Expressions
                     return e;
                 }
                 Type type = e.Type;
-                if (type.IsValueType)
+                if (type.GetTypeInfo().IsValueType)
                 {
                     e = Expression.Convert(e, typeof(object));
                 }

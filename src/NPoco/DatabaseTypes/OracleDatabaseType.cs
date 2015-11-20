@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
+using System.Reflection;
 
 namespace NPoco.DatabaseTypes
 {
@@ -10,7 +12,7 @@ namespace NPoco.DatabaseTypes
             return ":";
         }
 
-        public override void PreExecute(IDbCommand cmd)
+        public override void PreExecute(DbCommand cmd)
         {
             cmd.GetType().GetProperty("BindByName").SetValue(cmd, true, null);
             cmd.CommandText = cmd.CommandText.Replace("/*poco_dual*/", "from dual");
@@ -38,7 +40,7 @@ namespace NPoco.DatabaseTypes
             return null;
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {

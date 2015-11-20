@@ -1,4 +1,6 @@
-﻿namespace NPoco.Tests.Common
+﻿using NPoco;
+
+namespace NPoco.Tests.Common
 {
     [TableName("ExtraUserInfos")]
     [PrimaryKey("ExtraUserInfoId")]

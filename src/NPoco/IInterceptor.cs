@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 
@@ -12,14 +13,14 @@ namespace NPoco
 
     public interface IExecutingInterceptor : IInterceptor
     {
-        void OnExecutingCommand(IDatabase database, IDbCommand cmd);
-        void OnExecutedCommand(IDatabase database, IDbCommand cmd);
+        void OnExecutingCommand(IDatabase database, DbCommand cmd);
+        void OnExecutedCommand(IDatabase database, DbCommand cmd);
     }
 
     public interface IConnectionInterceptor : IInterceptor
     {
-        IDbConnection OnConnectionOpened(IDatabase database, IDbConnection conn);
-        void OnConnectionClosing(IDatabase database, IDbConnection conn);
+        DbConnection OnConnectionOpened(IDatabase database, DbConnection conn);
+        void OnConnectionClosing(IDatabase database, DbConnection conn);
     }
 
     public interface IExceptionInterceptor : IInterceptor

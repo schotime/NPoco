@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace NPoco
@@ -124,7 +125,7 @@ namespace NPoco
 
             public static void AssignPrimaryKey<T>(string primaryKeyName, T poco, object id, PreparedInsertSql preparedSql)
             {
-                if (primaryKeyName != null && id != null && id.GetType().IsValueType)
+                if (primaryKeyName != null && id != null && id.GetType().GetTypeInfo().IsValueType)
                 {
                     PocoColumn pc;
                     if (preparedSql.PocoData.Columns.TryGetValue(primaryKeyName, out pc))

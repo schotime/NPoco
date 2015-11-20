@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace NPoco
@@ -35,7 +36,14 @@ namespace NPoco
         
         public static bool IsAClass(this Type type)
         {
-            return type != typeof(Type) && !type.IsValueType && (type.IsClass || type.IsInterface) && type != typeof (string) && type != typeof(object) && !type.IsArray;
+            return type != typeof(Type) && !type.GetTypeInfo().IsValueType && (type.GetTypeInfo().IsClass || type.GetTypeInfo().IsInterface) && type != typeof (string) && type != typeof(object) && !type.IsArray;
         }
+
+#if NET40 || NET35
+        public static Type GetTypeInfo(this Type type)
+        {
+            return type;
+        }
+#endif
     }
 }

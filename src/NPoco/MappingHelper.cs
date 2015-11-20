@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using NPoco.FastJSON;
+using System.Reflection;
 
 namespace NPoco
 {
@@ -18,7 +18,7 @@ namespace NPoco
             // Get converter from the mapper
             if (mapper != null)
             {
-                converter = pc != null ? mapper.Find(x => x.GetFromDbConverter(pc.MemberInfo, srcType)) : mapper.Find(x => x.GetFromDbConverter(dstType, srcType));
+                converter = pc != null ? mapper.Find(x => x.GetFromDbConverter(pc.MemberInfo.MemberInfo, srcType)) : mapper.Find(x => x.GetFromDbConverter(dstType, srcType));
                 if (converter != null)
                     return converter;
             }
@@ -41,7 +41,7 @@ namespace NPoco
 
             // Forced type conversion including integral types -> enum
             var underlyingType = UnderlyingTypes.Get(dstType, () => Nullable.GetUnderlyingType(dstType));
-            if (dstType.IsEnum || (underlyingType != null && underlyingType.IsEnum))
+            if (dstType.GetTypeInfo().IsEnum || (underlyingType != null && underlyingType.GetTypeInfo().IsEnum))
             {
                 if (srcType == typeof(string))
                 {
@@ -64,13 +64,22 @@ namespace NPoco
 
         static bool IsIntegralType(Type t)
         {
-            var tc = Type.GetTypeCode(t);
-            return tc >= TypeCode.SByte && tc <= TypeCode.UInt64;
+            //var tc = Type.GetTypeCode(t);
+            //return tc >= TypeCode.SByte && tc <= TypeCode.UInt64;
+            //Not available for now
+
+            return new[]
+                   {
+                       typeof (SByte), typeof (Byte),
+                       typeof (Int16), typeof (UInt16),
+                       typeof (Int32), typeof (UInt32),
+                       typeof (Int64), typeof (UInt64)
+                   }.Contains(t);
         }
 
         public static object GetDefault(Type type)
         {
-            if (type.IsValueType)
+            if (type.GetTypeInfo().IsValueType)
             {
                 return Activator.CreateInstance(type);
             }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NPoco.FastJSON;
 
 namespace NPoco
 {
@@ -87,7 +86,7 @@ namespace NPoco
             var type = first.GetType();
             if (type.IsAClass() || type.IsArray)
             {
-                return JSON.ToJSON(first) == JSON.ToJSON(second);
+                return DatabaseFactory.ColumnSerializer.Serialize(first) == DatabaseFactory.ColumnSerializer.Serialize(second);
             }
 
             return first.Equals(second);

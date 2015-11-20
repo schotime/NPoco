@@ -1,4 +1,5 @@
 using System.Data;
+using System.Data.Common;
 
 namespace NPoco.DatabaseTypes
 {
@@ -17,7 +18,7 @@ namespace NPoco.DatabaseTypes
             return string.Format("\"{0}\"", str);
         }
 
-        public override object ExecuteInsert<T>(Database db, IDbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {

@@ -603,7 +603,7 @@ namespace NPoco.Expressions
                 object value = fieldDef.Value.GetValue(item);
                 if (_database.Mappers != null)
                 {
-                    value = _database.Mappers.FindAndExecute(x => x.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfo), value);
+                    value = _database.Mappers.FindAndExecute(x => x.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfo.MemberInfo), value);
                 }
 
                 if (excludeDefaults && (value == null || value.Equals(MappingHelper.GetDefault(value.GetType())))) continue; //GetDefaultValue?
@@ -889,7 +889,7 @@ namespace NPoco.Expressions
             var member = m.Expression as MemberExpression;
             return member != null
                 && (m.Member.Name == "HasValue")
-                && member.Type.IsGenericType && member.Type.GetGenericTypeDefinition() == typeof(Nullable<>);
+                && member.Type.GetTypeInfo().IsGenericType && member.Type.GetGenericTypeDefinition() == typeof(Nullable<>);
         }
 
         protected virtual object VisitBinary(BinaryExpression b)
@@ -960,7 +960,7 @@ namespace NPoco.Expressions
                 }
                 else if (left as MemberAccessString != null
                     && right is int
-                    && new [] { typeof(char), typeof(char?) }.Contains(((MemberAccessString)left).PocoColumn.MemberInfo.GetMemberInfoType()))
+                    && new [] { typeof(char), typeof(char?) }.Contains(((MemberAccessString)left).PocoColumn.MemberInfo.MemberType))
                 {
                     right = CreateParam(Convert.ToChar(right));
                 }
@@ -982,8 +982,8 @@ namespace NPoco.Expressions
 
             }
 
-            if (operand == "=" && right.ToString().Equals("null", StringComparison.InvariantCultureIgnoreCase)) operand = "is";
-            else if (operand == "<>" && right.ToString().Equals("null", StringComparison.InvariantCultureIgnoreCase)) operand = "is not";
+            if (operand == "=" && right.ToString().Equals("null", StringComparison.OrdinalIgnoreCase)) operand = "is";
+            else if (operand == "<>" && right.ToString().Equals("null", StringComparison.OrdinalIgnoreCase)) operand = "is not";
 
             switch (operand)
             {
@@ -997,10 +997,10 @@ namespace NPoco.Expressions
 
         private static Type GetMemberInfoTypeForEnum(PocoColumn pc)
         {
-            if (pc.MemberInfo.GetMemberInfoType().IsEnum)
-                return pc.MemberInfo.GetMemberInfoType();
+            if (pc.MemberInfo.MemberType.GetTypeInfo().IsEnum)
+                return pc.MemberInfo.MemberType;
 
-            return Nullable.GetUnderlyingType(pc.MemberInfo.GetMemberInfoType());
+            return Nullable.GetUnderlyingType(pc.MemberInfo.MemberType);
         }
 
         protected virtual object VisitMemberAccess(MemberExpression m)

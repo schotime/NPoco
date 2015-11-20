@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+#if DNX451 || NET45 || NET40
+using System.Runtime.Caching;
+#elif DNXCORE50
+using Microsoft.Framework.Caching.Memory;
+#endif
 
 namespace NPoco
 {
@@ -13,15 +18,19 @@ namespace NPoco
     /// Better to have one memory cache instance than many so it's memory management can be handled more effectively
     /// http://stackoverflow.com/questions/8463962/using-multiple-instances-of-memorycache
     /// </remarks>
+
     internal class ManagedCache
     {
-#if !NET35
-        public System.Runtime.Caching.ObjectCache GetCache()
+#if !NET35 
+        public MemoryCache GetCache()
         {
             return ObjectCache;
         }
-
-        static readonly System.Runtime.Caching.ObjectCache ObjectCache = new System.Runtime.Caching.MemoryCache("NPoco");
+    #if DNXCORE50
+        static readonly MemoryCache ObjectCache = new MemoryCache(new MemoryCacheOptions());
+    #else
+        static readonly MemoryCache ObjectCache = new MemoryCache("NPoco");
+    #endif
 #endif
     }
 
@@ -62,13 +71,14 @@ namespace NPoco
 
         public TValue Get(TKey key, Func<TValue> factory)
         {
-#if !NET35
+#if !NET35 && !DNXCORE50 
             if (_useManaged)
             {
                 var objectCache = _managedCache.GetCache();
                 //lazy usage of AddOrGetExisting ref: http://stackoverflow.com/questions/10559279/how-to-deal-with-costly-building-operations-using-memorycache/15894928#15894928
                 var newValue = new Lazy<TValue>(factory);
                 // the line belows returns existing item or adds the new value if it doesn't exist
+                
                 var value = (Lazy<TValue>)objectCache.AddOrGetExisting(key.ToString(), newValue, new System.Runtime.Caching.CacheItemPolicy
                 {
                     //sliding expiration of 1 hr, if the same key isn't used in this 

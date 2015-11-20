@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
+﻿using System.Data;
 using System.Data.SqlClient;
-using System.Linq;
-using System.Text;
-using NPoco.Tests.Common;
+using NPoco;
 using NUnit.Framework;
 
 namespace NPoco.Tests
@@ -38,7 +33,7 @@ namespace NPoco.Tests
         public class MyDb : Database
         {
             public MyDb()
-                : base("test", DatabaseType.SqlServer2008)
+                : base("test", DatabaseType.SqlServer2008, SqlClientFactory.Instance)
             {
             }
         }

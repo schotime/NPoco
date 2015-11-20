@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 
 namespace NPoco.RowMappers
@@ -13,12 +14,12 @@ namespace NPoco.RowMappers
             return pocoData.Type.IsArray;
         }
 
-        public override void Init(IDataReader dataReader, PocoData pocoData)
+        public override void Init(DbDataReader dataReader, PocoData pocoData)
         {
             _posNames = GetColumnNames(dataReader, pocoData);
         }
 
-        public override object Map(IDataReader dataReader, RowMapperContext context)
+        public override object Map(DbDataReader dataReader, RowMapperContext context)
         {
             var arrayType = context.Type.GetElementType();
             var array = Array.CreateInstance(arrayType, _posNames.Length);

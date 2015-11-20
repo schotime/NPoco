@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using NPoco.DatabaseTypes;
+using NPoco;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 

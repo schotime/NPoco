@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq.Expressions;
 using NPoco.Linq;
 
@@ -8,15 +9,15 @@ namespace NPoco
 {
     public interface IDatabase : IDisposable, IDatabaseQuery, IDatabaseConfig
     {
-        IDbConnection Connection { get; }
-        IDbTransaction Transaction { get; }
-        IDataParameter CreateParameter();
-        void AddParameter(IDbCommand cmd, object value);
-        IDbCommand CreateCommand(IDbConnection connection, string sql, params object[] args);
+        DbConnection Connection { get; }
+        DbTransaction Transaction { get; }
+        DbParameter CreateParameter();
+        void AddParameter(DbCommand cmd, object value);
+        DbCommand CreateCommand(DbConnection connection, string sql, params object[] args);
         ITransaction GetTransaction();
         ITransaction GetTransaction(IsolationLevel isolationLevel);
         IDictionary<string, object> Data { get; }
-        void SetTransaction(IDbTransaction tran);
+        void SetTransaction(DbTransaction tran);
         void BeginTransaction();
         void BeginTransaction(IsolationLevel isolationLevel);
         void AbortTransaction();
@@ -24,7 +25,7 @@ namespace NPoco
         object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco);
         object Insert<T>(string tableName, string primaryKeyName, T poco);
         object Insert<T>(T poco);
-#if NET45
+#if !NET35 && !NET40
         System.Threading.Tasks.Task<object> InsertAsync<T>(T poco);
         System.Threading.Tasks.Task<int> UpdateAsync(object poco);
         System.Threading.Tasks.Task<int> UpdateAsync(object poco, IEnumerable<string> columns);

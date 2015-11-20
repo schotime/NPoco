@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
+using NPoco;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
 namespace NPoco.Tests
 {
-    public class NewMapper : BaseDBDecoratedTest
+    public class NewMapperTests : BaseDBDecoratedTest
     {
         [Test]
         public void Test1()

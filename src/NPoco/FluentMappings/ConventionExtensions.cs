@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 
 namespace NPoco.FluentMappings
 {
@@ -6,7 +7,7 @@ namespace NPoco.FluentMappings
     {
         public static IColumnsBuilderConventions IgnoreComplex(this IColumnsBuilderConventions conventions)
         {
-            return conventions.IgnoreWhere(y => !(y.GetMemberInfoType().IsValueType || y.GetMemberInfoType() == typeof(string) || y.GetMemberInfoType() == typeof(byte[])));
+            return conventions.IgnoreWhere(y => !(y.GetMemberInfoType().GetTypeInfo().IsValueType || y.GetMemberInfoType() == typeof(string) || y.GetMemberInfoType() == typeof(byte[])));
         }
 
         public static void WithSmartConventions(this IConventionScanner scanner)

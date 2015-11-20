@@ -1,4 +1,5 @@
 using System.Data;
+using System.Data.Common;
 
 namespace NPoco.DatabaseTypes
 {
@@ -12,7 +13,7 @@ namespace NPoco.DatabaseTypes
             return "@";
         }
 
-        public override void PreExecute(IDbCommand cmd)
+        public override void PreExecute(DbCommand cmd)
         {
             cmd.CommandText = cmd.CommandText.Replace("/*poco_dual*/", "from dual");
         }

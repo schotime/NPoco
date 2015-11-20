@@ -1,5 +1,8 @@
+using NPoco;
+
 namespace NPoco.Tests.Common
 {
+    [TestDescriptor]
     public class BaseDBTest
     {
         public IDatabase Database { get; set; }

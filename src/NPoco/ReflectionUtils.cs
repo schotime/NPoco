@@ -16,7 +16,7 @@ namespace NPoco
 
         public static List<MemberInfo> GetFieldsAndPropertiesForClasses(Type type)
         {
-            if (type.IsValueType || type == typeof(string) || type == typeof(byte[]) || type == typeof(Dictionary<string, object>) || type.IsArray)
+            if (type.GetTypeInfo().IsValueType || type == typeof(string) || type == typeof(byte[]) || type == typeof(Dictionary<string, object>) || type.IsArray)
                 return new List<MemberInfo>();
 
             return GetFieldsAndProperties(type);
@@ -40,17 +40,18 @@ namespace NPoco
         public static Type GetMemberInfoType(this MemberInfo member)
         {
             Type type;
-            if (member.MemberType == MemberTypes.Field)
+            if (member is FieldInfo)
                 type = ((FieldInfo) member).FieldType;
-            else if (member.MemberType == MemberTypes.Property)
+            else if (member is PropertyInfo)
                 type = ((PropertyInfo) member).PropertyType;
-            else if (member.MemberType == MemberTypes.Custom)
-                type = ((DynamicMember) member).ReflectedType;
+            //else if (member is DynamicMember)
+            //    type = ((DynamicMember) member).DynamicType;
             else
                 throw new NotSupportedException();
 
             return type;
         }
+
 
         public static bool IsDynamic(this MemberInfo member)
         {
@@ -61,20 +62,21 @@ namespace NPoco
 #endif
         }
 
+
         public static bool IsField(this MemberInfo member)
         {
-            return member.MemberType == MemberTypes.Field;
+            return member is FieldInfo;
         }
 
         public static object GetMemberInfoValue(this MemberInfo member, object obj)
         {
             object val;
-            if (member.MemberType == MemberTypes.Field)
+            if (member is FieldInfo)
                 val = ((FieldInfo)member).GetValue(obj);
-            else if(member.MemberType == MemberTypes.Property)
+            else if(member is PropertyInfo)
                 val = ((PropertyInfo)member).GetValue(obj, null);
-            else if (member.MemberType == MemberTypes.Custom)
-                val = ((DynamicMember)member).GetValue(obj);
+            //else if (member is DynamicMember)
+            //    val = ((DynamicMember)member).GetValue(obj);
             else
                 throw new NotSupportedException();
             return val;
@@ -82,7 +84,7 @@ namespace NPoco
 
         public static void SetMemberInfoValue(this MemberInfo member, object obj, object value)
         {
-            if (member.MemberType == MemberTypes.Field)
+            if (member is FieldInfo)
                 ((FieldInfo)member).SetValue(obj, value);
             else
                 ((PropertyInfo)member).SetValue(obj, value, null);
@@ -106,7 +108,7 @@ namespace NPoco
         {
             foreach (var t in type.GetInterfaces())
             {
-                if (t.IsGenericType && t.GetGenericTypeDefinition() == genericTypeDefinition)
+                if (t.GetTypeInfo().IsGenericType && t.GetGenericTypeDefinition() == genericTypeDefinition)
                 {
                     return t;
                 }
@@ -125,10 +127,10 @@ namespace NPoco
         {
             while (type != null)
             {
-                if (type.IsGenericType)
+                if (type.GetTypeInfo().IsGenericType)
                     return type;
 
-                type = type.BaseType;
+                type = type.GetTypeInfo().BaseType;
             }
             return null;
         }
@@ -151,17 +153,17 @@ namespace NPoco
             Type type = instanceType;
             while (type != null)
             {
-                if (type.IsGenericType &&
+                if (type.GetTypeInfo().IsGenericType &&
                     type.GetGenericTypeDefinition() == genericType)
                 {
                     return true;
                 }
-                type = type.BaseType;
+                type = type.GetTypeInfo().BaseType;
             }
 
             foreach (var i in instanceType.GetInterfaces())
             {
-                if (i.IsGenericType && i.GetGenericTypeDefinition() == genericType)
+                if (i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == genericType)
                 {
                     return true;
                 }
