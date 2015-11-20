@@ -24,6 +24,7 @@ namespace NPoco
         public string ReferenceMemberName { get; set; }
 
         public bool IsList { get; set; }
+        public bool IsDynamic { get; set; }
 
         private FastCreate _creator;
         private MemberAccessor _memberAccessor;

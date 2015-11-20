@@ -151,7 +151,8 @@ namespace NPoco
                 var memberType = capturedMemberInfo.GetMemberInfoType();
                 var isList = IsList(capturedMemberInfo);
                 var listType = GetListType(memberType, isList);
-                var fastCreate = GetFastCreate(memberType, mapper, isList);
+                var isDynamic = capturedMemberInfo.IsDynamic();
+                var fastCreate = GetFastCreate(memberType, mapper, isList, isDynamic);
 
                 yield return tableInfo =>
                 {
@@ -187,6 +188,7 @@ namespace NPoco
                     {
                         MemberInfo = capturedMemberInfo,
                         IsList = isList,
+                        IsDynamic = isDynamic,
                         PocoColumn = capturedColumnInfo.ComplexMapping ? null : pc,
                         ReferenceType = capturedColumnInfo.ReferenceType,
                         ReferenceMemberName = capturedColumnInfo.ReferenceMemberName,
@@ -200,9 +202,9 @@ namespace NPoco
             }
         }
 
-        private static FastCreate GetFastCreate(Type memberType, MapperCollection mapperCollection, bool isList)
+        private static FastCreate GetFastCreate(Type memberType, MapperCollection mapperCollection, bool isList, bool isDynamic)
         {
-            return memberType.IsAClass()
+            return memberType.IsAClass() || isDynamic
                        ? (new FastCreate(isList
                             ? memberType.GetGenericArguments().First()
                             : memberType, mapperCollection))

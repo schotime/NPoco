@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using NPoco.RowMappers;
 
 namespace NPoco
@@ -49,6 +50,15 @@ namespace NPoco
                 throw new NotSupportedException();
 
             return type;
+        }
+
+        public static bool IsDynamic(this MemberInfo member)
+        {
+#if !NET35
+            return member.GetCustomAttributes(typeof(DynamicAttribute), true).Any();
+#else
+            return false;
+#endif
         }
 
         public static bool IsField(this MemberInfo member)

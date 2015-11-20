@@ -10,6 +10,7 @@ namespace NPoco.RowMappers
         public DynamicPocoMember(MapperCollection mapperCollection)
         {
             _mapperCollection = mapperCollection;
+            IsDynamic = true;
         }
 
         public override object Create(IDataReader dataReader)

@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace NPoco.RowMappers
 {
@@ -80,7 +82,7 @@ namespace NPoco.RowMappers
             if (groupedName.SubItems.Any())
             {
                 var memberInfoType = pocoMember.MemberInfo.GetMemberInfoType();
-                if (memberInfoType.IsAClass())
+                if (memberInfoType.IsAClass() || pocoMember.IsDynamic)
                 {
                     var children = PocoDataBuilder.IsDictionaryType(memberInfoType)
                         ? CreateDynamicDictionaryPocoMembers(groupedName.SubItems, pocoData)
