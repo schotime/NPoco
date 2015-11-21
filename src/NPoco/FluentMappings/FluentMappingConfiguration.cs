@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Reflection;
-using NPoco.RowMappers;
 
 namespace NPoco.FluentMappings
 {
@@ -159,13 +157,13 @@ namespace NPoco.FluentMappings
                 VersionColumnTypeAs = x => VersionColumnType.Number,
                 ComputedPropertiesWhere = x => false,
                 ForceDateTimesToUtcWhere = x => true,
-                ReferencePropertiesWhere = x => x.GetMemberInfoType().IsAClass() && x.GetCustomAttributes(typeof(ReferenceAttribute), true).Any(),
-                ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && x.GetCustomAttributes(typeof(ComplexMappingAttribute), true).Any(),
+                ReferencePropertiesWhere = x => x.GetMemberInfoType().IsAClass() && ReflectionUtils.GetCustomAttributes(x, typeof(ReferenceAttribute)).Any(),
+                ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && ReflectionUtils.GetCustomAttributes(x, typeof(ComplexMappingAttribute)).Any(),
                 ReferenceDbColumnsNamed = x => x.Name + "ID",
                 SequencesNamed = x => null,
                 UseOutputClauseWhere = x => false,
-                SerializedWhere = x => x.GetCustomAttributes(typeof(SerializedColumnAttribute), true).Any(),
-                DbColumnWhere = x => x.GetCustomAttributes(typeof(ColumnAttribute), true).Any(),
+                SerializedWhere = x => ReflectionUtils.GetCustomAttributes(x, typeof(SerializedColumnAttribute)).Any(),
+                DbColumnWhere = x => ReflectionUtils.GetCustomAttributes(x, typeof(ColumnAttribute)).Any(),
                 Lazy = false
             };
             scanner.Invoke(new ConventionScanner(defaultScannerSettings));
