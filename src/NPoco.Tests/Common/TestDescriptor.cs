@@ -8,7 +8,11 @@ namespace NPoco.Tests.Common
     {
         public void BeforeTest(ITest test)
         {
-            Console.WriteLine("Executing...");
+#if DNXCORE50
+            Console.WriteLine("Executing {0}.{1}...", test.Method.MethodInfo.DeclaringType.Name, test.Name);
+#else
+            Console.Write("Executing...");
+#endif
         }
 
         public void AfterTest(ITest test)

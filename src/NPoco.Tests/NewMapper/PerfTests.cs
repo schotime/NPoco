@@ -34,7 +34,7 @@ namespace NPoco.Tests.NewMapper
 
             sw.Stop();
 
-            Console.WriteLine(sw.ElapsedMilliseconds);
+            Console.WriteLine("Elapsed Time (ms): {0}", sw.ElapsedMilliseconds);
             //250
         }
 

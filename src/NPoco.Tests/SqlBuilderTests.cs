@@ -41,8 +41,6 @@ namespace NPoco.Tests
 
             Assert.AreEqual("select * from test where ( id2 in (@0,@1) )\n and id = @0", temp.RawSql);
             Assert.AreEqual(2, temp.Parameters.Length);
-
-            Console.WriteLine(temp.RawSql);
         }
         
         [Test]

@@ -16,16 +16,14 @@ Task Default -depends Build
 
 Task Build -depends Clean {
     Write-Host "Creating BuildArtifacts" -ForegroundColor Green
-	Set-Location "$solution_dir"
-	Exec { 
-		dnu pack --configuration release --out $build_artifacts_dir --quiet
-	} 
+    Exec { dnu restore }
+    Set-Location "$solution_dir"
+    Exec { dnu pack --configuration release --out $build_artifacts_dir --quiet } 
 }
 
 Task Clean {
     Write-Host "Creating BuildArtifacts directory" -ForegroundColor Green
-    if (Test-Path $build_artifacts_dir) 
-    {   
+    if (Test-Path $build_artifacts_dir) {
         rd $build_artifacts_dir -rec -force | out-null
     }
     
