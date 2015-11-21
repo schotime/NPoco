@@ -78,11 +78,6 @@ namespace NPoco.Tests.NewMapper
             throw new NotImplementedException();
         }
 
-        public void Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
         public override string GetName(int i)
         {
             switch (i)

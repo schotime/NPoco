@@ -4,7 +4,6 @@ using NUnit.Framework;
 namespace NPoco.Tests.FluentTests.QueryTests
 {
     [TestFixture]
-    //[NUnit.Framework.Ignore("Appearently the decorated syntax and fluent syntax are some how conflicting.")]
     public class PagingFluentTest : BaseDBFuentTest
     {
         [Test]

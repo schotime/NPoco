@@ -13,7 +13,7 @@ namespace NPoco.Tests
     {
         private IDatabase _database;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
             var dbfactory = new DatabaseFactory();

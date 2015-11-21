@@ -160,7 +160,7 @@ namespace NPoco
                     {
                         ReferenceType = capturedColumnInfo.ReferenceType, 
                         TableInfo = tableInfo, 
-                        MemberInfo = new BaseMemberInfo(capturedMemberInfo),
+                        MemberInfo = new MemberInfoData(capturedMemberInfo),
                         MemberInfoChain = members,
                         ColumnName = GetColumnName(capturedPrefix, capturedColumnInfo.ColumnName),
                         ResultColumn = capturedColumnInfo.ResultColumn,
@@ -186,7 +186,7 @@ namespace NPoco
 
                     var pocoMember = new PocoMember()
                     {
-                        MemberInfo = new BaseMemberInfo(capturedMemberInfo),
+                        MemberInfoData = new MemberInfoData(capturedMemberInfo),
                         IsList = isList,
                         IsDynamic = isDynamic,
                         PocoColumn = capturedColumnInfo.ComplexMapping ? null : pc,

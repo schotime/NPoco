@@ -27,7 +27,7 @@ namespace NPoco.Tests.Common
             return clause ? s.ToLowerInvariant() : s;
         }
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(UserWithExtraInfo), typeof(Usersss), typeof(House), typeof(Supervisor) };

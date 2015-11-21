@@ -221,7 +221,9 @@ GRANT %role% TO %user%;
             {
                 FbScript fbScript = new FbScript(script);
                 fbScript.Parse();
-                FbBatchExecution fbBatch = new FbBatchExecution(conn, fbScript);
+
+                FbBatchExecution fbBatch = new FbBatchExecution(conn);
+                fbBatch.AppendSqlStatements(fbScript);
                 fbBatch.Execute(true);
 
                 conn.Open();

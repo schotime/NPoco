@@ -80,7 +80,7 @@ namespace NPoco.RowMappers
 
             if (groupedName.SubItems.Any())
             {
-                var memberInfoType = pocoMember.MemberInfo.MemberType;
+                var memberInfoType = pocoMember.MemberInfoData.MemberType;
                 if (memberInfoType.IsAClass() || pocoMember.IsDynamic)
                 {
                     var children = PocoDataBuilder.IsDictionaryType(memberInfoType)
@@ -117,7 +117,7 @@ namespace NPoco.RowMappers
             }
             else
             {
-                var destType = pocoMember.MemberInfo.MemberType;
+                var destType = pocoMember.MemberInfoData.MemberType;
                 var defaultValue = MappingHelper.GetDefault(destType);
                 var converter = GetConverter(pocoData, pocoMember.PocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
                 yield return (reader, instance) => MapValue(groupedName, reader, converter, instance, pocoMember.PocoColumn, defaultValue);
@@ -157,7 +157,7 @@ namespace NPoco.RowMappers
         {
             return subItems.Select(x => new DynamicPocoMember(pocoData.Mapper)
             {
-                MemberInfo = new BaseMemberInfo(x.Item, typeof(object), typeof(IDictionary<string, object>)),
+                MemberInfoData = new MemberInfoData(x.Item, typeof(object), typeof(IDictionary<string, object>)),
                 PocoColumn = new ExpandoColumn
                 {
                     ColumnName = x.Item

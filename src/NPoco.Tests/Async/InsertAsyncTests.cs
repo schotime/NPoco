@@ -48,9 +48,8 @@ namespace NPoco.Tests.Async
             Assert.AreEqual(user2.Age, userDb2.Age);
             Assert.AreEqual(pk2, userDb2.UserId);
         }
-
-
-        [Test, NUnit.Framework.Ignore("LocalDB cannot insert more than one at a time")]
+        
+        //[Test, NUnit.Framework.Ignore("LocalDB cannot insert more than one at a time")]
         public void InsertTwoPocoIntoDatabaseUsingInsertAsyncWaitingForAll1()
         {
             var user1 = new User() { Age = 10, DateOfBirth = DateTime.Now };

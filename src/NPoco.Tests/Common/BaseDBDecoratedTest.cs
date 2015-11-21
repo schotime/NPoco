@@ -21,7 +21,7 @@ namespace NPoco.Tests.Common
         public List<HouseDecorated> InMemoryHouses { get; set; }
 
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             var configuration = new Microsoft.Framework.Configuration.ConfigurationBuilder()

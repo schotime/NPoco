@@ -147,7 +147,7 @@ namespace NPoco.Linq
             {
                 var pocoMember = members
                     .Where(x => x.ReferenceType != ReferenceType.None)
-                    .Single(x => x.MemberInfo.MemberInfo == memberInfo);
+                    .Single(x => x.MemberInfoData.MemberInfo == memberInfo);
 
                 var pocoColumn1 = pocoMember.PocoColumn;
                 var pocoMember2 = pocoMember.PocoMemberChildren.Single(x => x.Name == pocoMember.ReferenceMemberName);

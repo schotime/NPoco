@@ -101,7 +101,9 @@ namespace NPoco.Tests.Common
     [PrimaryKey("UserId")]
     public class UserFieldDecorated
     {
+#pragma warning disable 169
         [Column("UserId")] private int UserId;
+#pragma warning restore 169
 
         [Column("Name")] public string Name;
 

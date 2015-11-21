@@ -44,8 +44,6 @@ namespace NPoco
                 type = ((FieldInfo) member).FieldType;
             else if (member is PropertyInfo)
                 type = ((PropertyInfo) member).PropertyType;
-            //else if (member is DynamicMember)
-            //    type = ((DynamicMember) member).DynamicType;
             else
                 throw new NotSupportedException();
 
@@ -75,8 +73,6 @@ namespace NPoco
                 val = ((FieldInfo)member).GetValue(obj);
             else if(member is PropertyInfo)
                 val = ((PropertyInfo)member).GetValue(obj, null);
-            //else if (member is DynamicMember)
-            //    val = ((DynamicMember)member).GetValue(obj);
             else
                 throw new NotSupportedException();
             return val;

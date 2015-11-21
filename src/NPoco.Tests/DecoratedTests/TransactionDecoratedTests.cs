@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace NPoco.Tests.DecoratedTests
 {
     [TestFixture]
-    //[NUnit.Framework.Ignore("Appearently the decorated syntax and fluent syntax are some how conflicting.")]
     public class TransactionDecoratedTests : BaseDBDecoratedTest
     {
         public TransactionDecoratedTests()

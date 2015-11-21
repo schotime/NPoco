@@ -108,7 +108,7 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionAndDBType()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.Connection,dbType, SqlClientFactory.Instance);
+            var db = new Database(TestDatabase.Connection, dbType);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);

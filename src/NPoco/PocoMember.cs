@@ -16,9 +16,9 @@ namespace NPoco
             ReferenceType = ReferenceType.None;
         }
 
-        public string Name { get { return MemberInfo.Name; } }
-        //public MemberInfo MemberInfo { get; set; }
-        public BaseMemberInfo MemberInfo { get; set; }
+        public string Name { get { return MemberInfoData.Name; } }
+        
+        public MemberInfoData MemberInfoData { get; set; }
         public PocoColumn PocoColumn { get; set; }
         public List<PocoMember> PocoMemberChildren { get; set; }
 
@@ -62,21 +62,21 @@ namespace NPoco
         }
     }
 
-    public class BaseMemberInfo : IEquatable<BaseMemberInfo>
+    public class MemberInfoData : IEquatable<MemberInfoData>
     {
         public MemberInfo MemberInfo { get; private set; }
-        public Type DeclaringType { get; set; }
-        public Type MemberType { get; set; }
-        public string Name { get; set; }
+        public Type DeclaringType { get; private set; }
+        public Type MemberType { get; private set; }
+        public string Name { get; private set; }
 
-        public BaseMemberInfo(string name, Type memberType, Type declaringType)
+        public MemberInfoData(string name, Type memberType, Type declaringType)
         {
             Name = name;
             MemberType = memberType;
             DeclaringType = declaringType;
         }
 
-        public BaseMemberInfo(MemberInfo memberInfo)
+        public MemberInfoData(MemberInfo memberInfo)
         {
             MemberInfo = memberInfo;
             Name = memberInfo.Name;
@@ -84,19 +84,19 @@ namespace NPoco
             DeclaringType = memberInfo.DeclaringType;
         }
 
-        public bool Equals(BaseMemberInfo other)
+        public bool Equals(MemberInfoData other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
             return string.Equals(Name, other.Name) && Equals(MemberType, other.MemberType) && Equals(DeclaringType, other.DeclaringType);
         }
 
-        public static bool operator ==(BaseMemberInfo left, BaseMemberInfo right)
+        public static bool operator ==(MemberInfoData left, MemberInfoData right)
         {
             return Equals(left, right);
         }
 
-        public static bool operator !=(BaseMemberInfo left, BaseMemberInfo right)
+        public static bool operator !=(MemberInfoData left, MemberInfoData right)
         {
             return !Equals(left, right);
         }
@@ -106,7 +106,7 @@ namespace NPoco
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((BaseMemberInfo) obj);
+            return Equals((MemberInfoData) obj);
         }
 
         public override int GetHashCode()

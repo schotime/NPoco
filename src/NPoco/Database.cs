@@ -23,7 +23,7 @@ using System.Threading;
 using NPoco.Expressions;
 using NPoco.FluentMappings;
 using NPoco.Linq;
-#if NET45 
+#if !DNXCORE50 
 using System.Configuration;
 #endif
 
@@ -34,7 +34,15 @@ namespace NPoco
         public const bool DefaultEnableAutoSelect = true;
 
         public Database(DbConnection connection)
-            : this(connection, null, null, null)
+            : this(connection, null, null, null, DefaultEnableAutoSelect)
+        { }
+
+        public Database(DbConnection connection, DatabaseType dbType)
+            : this(connection, dbType, null, null, DefaultEnableAutoSelect)
+        { }
+
+        public Database(DbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel)
+            : this(connection, dbType, null, isolationLevel, DefaultEnableAutoSelect)
         { }
 
         public Database(DbConnection connection, DatabaseType dbType, DbProviderFactory dbProviderFactory)
@@ -67,7 +75,7 @@ namespace NPoco
             //    cmd.ExecuteNonQuery();
             //}
         }
-#if NET45
+#if !DNXCORE50
         public Database(string connectionString, string providerName)
             : this(connectionString, providerName, DefaultEnableAutoSelect)
         { }
@@ -109,7 +117,7 @@ namespace NPoco
 
 #endif
         public Database(string connectionString, DatabaseType databaseType, DbProviderFactory provider)
-            : this(connectionString, databaseType, provider,  null, DefaultEnableAutoSelect)
+            : this(connectionString, databaseType, provider, null, DefaultEnableAutoSelect)
         { }
 
         public Database(string connectionString, DatabaseType databaseType, DbProviderFactory provider, IsolationLevel? isolationLevel = null, bool enableAutoSelect = DefaultEnableAutoSelect)
@@ -126,7 +134,7 @@ namespace NPoco
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 
-#if NET45
+#if !DNXCORE50
         public Database(string connectionStringName)
             : this(connectionStringName, DefaultEnableAutoSelect)
         { }
@@ -1897,7 +1905,7 @@ namespace NPoco
             return converter != null ? converter(value) : ProcessDefaultMappings(pc, value);
         }
 
-        internal static bool IsEnum(BaseMemberInfo memberInfo)
+        internal static bool IsEnum(MemberInfoData memberInfo)
         {
             var underlyingType = Nullable.GetUnderlyingType(memberInfo.MemberType);
             return memberInfo.MemberType.GetTypeInfo().IsEnum || (underlyingType != null && underlyingType.GetTypeInfo().IsEnum);

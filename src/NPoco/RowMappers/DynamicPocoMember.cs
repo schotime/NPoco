@@ -15,7 +15,7 @@ namespace NPoco.RowMappers
 
         public override object Create(DbDataReader dataReader)
         {
-            return _mapperCollection.GetFactory(MemberInfo.MemberType)(dataReader);
+            return _mapperCollection.GetFactory(MemberInfoData.MemberType)(dataReader);
         }
 
         public override void SetValue(object target, object value)
