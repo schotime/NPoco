@@ -13,7 +13,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "NPoco", "src\NPoco\NPoco.xproj", "{56481BBA-35A1-4061-9FE8-0ED9E1B6A0A3}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "NPoco.Tests", "src\NPoco.Tests\NPoco.Tests.xproj", "{B39C2641-0655-47CC-A1A3-5E1F84714FB5}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{8EDBB46A-95F8-442E-A432-19A50ED0683B}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "NPoco.Tests", "test\NPoco.Tests\NPoco.Tests.xproj", "{B39C2641-0655-47CC-A1A3-5E1F84714FB5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +37,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{56481BBA-35A1-4061-9FE8-0ED9E1B6A0A3} = {C7A94BA4-5689-4651-872D-7D7711D2DEDF}
-		{B39C2641-0655-47CC-A1A3-5E1F84714FB5} = {C7A94BA4-5689-4651-872D-7D7711D2DEDF}
+		{B39C2641-0655-47CC-A1A3-5E1F84714FB5} = {8EDBB46A-95F8-442E-A432-19A50ED0683B}
 	EndGlobalSection
 EndGlobal

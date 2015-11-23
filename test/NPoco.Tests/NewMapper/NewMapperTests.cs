@@ -159,11 +159,11 @@ union all
 select 2 OneId,'Name2' Name, 15 Items__Value, 'GBP' Items__Currency /*poco_dual*/
 union all
 select 3 OneId,'Name3' Name, 16 Items__Value, 'EUR' Items__Currency /*poco_dual*/
-union all 
+union all
 select 4 OneId,'Name4' Name, null Items__Value, null Items__Currency /*poco_dual*/
-union all 
+union all
 select 5 OneId,'Name5' Name, 17 Items__Value, 'CHN' Items__Currency /*poco_dual*/
-union all 
+union all
 select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual*/
 ")).ToList();
 
@@ -268,8 +268,8 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
         public void Test17()
         {
             var ones = Database.FetchOneToMany<One>(x => x.Items, @"
-select o.*, null npoco_items, m.* 
-from ones o 
+select o.*, null npoco_items, m.*
+from ones o
 left join manys m on o.oneid = m.oneid");
 
             Assert.AreEqual(15, ones.Count);
@@ -280,8 +280,8 @@ left join manys m on o.oneid = m.oneid");
         public void Test17_1()
         {
             var ones = Database.FetchOneToMany<One>(x => x.Items, @"
-select o.*, 'MyName' nested__name, null npoco_items, m.* 
-from ones o 
+select o.*, 'MyName' nested__name, null npoco_items, m.*
+from ones o
 left join manys m on o.oneid = m.oneid");
 
             Assert.AreEqual(15, ones.Count);
@@ -293,8 +293,8 @@ left join manys m on o.oneid = m.oneid");
         public void Test17_2()
         {
             var ones = Database.FetchOneToMany<One>(x => x.Items, @"
-select o.*, 'MyName' nested__name, m.* 
-from ones o 
+select o.*, 'MyName' nested__name, m.*
+from ones o
 left join manys m on o.oneid = m.oneid");
 
             Assert.AreEqual(15, ones.Count);
@@ -438,7 +438,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             Assert.AreEqual("Answer", data[1].Type);
             Assert.True(data[0] is Post);
             Assert.True(data[1] is Answer);
-            
+
         }
 
         [Test]
