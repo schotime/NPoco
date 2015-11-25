@@ -1545,7 +1545,7 @@ namespace NPoco
                     PocoColumn pc;
                     if (pd.Columns.TryGetValue(versionName, out pc))
                     {
-                        pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(versionValue) + 1, pc.MemberInfo.MemberType));
+                        pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(versionValue) + 1, pc.MemberInfoData.MemberType));
                     }
                 }
 
@@ -1901,7 +1901,7 @@ namespace NPoco
 
         internal object ProcessMapper(PocoColumn pc, object value)
         {
-            var converter = Mappers.Find(x => x.GetToDbConverter(pc.ColumnType, pc.MemberInfo.MemberInfo));
+            var converter = Mappers.Find(x => x.GetToDbConverter(pc.ColumnType, pc.MemberInfoData.MemberInfo));
             return converter != null ? converter(value) : ProcessDefaultMappings(pc, value);
         }
 
@@ -1918,7 +1918,7 @@ namespace NPoco
             {
                 return DatabaseFactory.ColumnSerializer.Serialize(value);
             }
-            if (pocoColumn.ColumnType == typeof (string) && IsEnum(pocoColumn.MemberInfo) && value != null)
+            if (pocoColumn.ColumnType == typeof (string) && IsEnum(pocoColumn.MemberInfoData) && value != null)
             {
                 return value.ToString();
             }

@@ -155,7 +155,7 @@ namespace NPoco.Tests.FluentMappings
 
             var pd = map.Config(new MapperCollection()).Resolver(typeof(User), new PocoDataFactory(new MapperCollection())).Build();
             Assert.True(pd.Columns.ContainsKey("Age000"));
-            Assert.AreEqual("Age", pd.Columns["Age000"].MemberInfo.Name);
+            Assert.AreEqual("Age", pd.Columns["Age000"].MemberInfoData.Name);
         }
 
         [Test]

@@ -529,7 +529,7 @@ namespace NPoco.Expressions
             sep = string.Empty;
             generalMembers.Clear();
             Visit(fields);
-            Context.UpdateFields = new List<string>(generalMembers.Select(x => x.PocoColumn.MemberInfo.Name));
+            Context.UpdateFields = new List<string>(generalMembers.Select(x => x.PocoColumn.MemberInfoData.Name));
             generalMembers.Clear();
             return this;
         }
@@ -599,11 +599,11 @@ namespace NPoco.Expressions
 
             foreach (var fieldDef in _pocoData.Columns)
             {
-                if (Context.UpdateFields.Count > 0 && !Context.UpdateFields.Contains(fieldDef.Value.MemberInfo.Name)) continue; // added
+                if (Context.UpdateFields.Count > 0 && !Context.UpdateFields.Contains(fieldDef.Value.MemberInfoData.Name)) continue; // added
                 object value = fieldDef.Value.GetValue(item);
                 if (_database.Mappers != null)
                 {
-                    value = _database.Mappers.FindAndExecute(x => x.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfo.MemberInfo), value);
+                    value = _database.Mappers.FindAndExecute(x => x.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfoData.MemberInfo), value);
                 }
 
                 if (excludeDefaults && (value == null || value.Equals(MappingHelper.GetDefault(value.GetType())))) continue; //GetDefaultValue?
@@ -655,7 +655,7 @@ namespace NPoco.Expressions
         {
             var selectMembersFromOrderBys = orderByMembers
                 .Select(x => new SelectMember() { PocoColumn = x.PocoColumn, EntityType = x.EntityType, PocoColumns = new[] { x.PocoColumn }})
-                .Where(x => !selectMembers.Any(y => y.EntityType == x.EntityType && y.PocoColumn.MemberInfo.Name == x.PocoColumn.MemberInfo.Name));
+                .Where(x => !selectMembers.Any(y => y.EntityType == x.EntityType && y.PocoColumn.MemberInfoData.Name == x.PocoColumn.MemberInfoData.Name));
 
             var morecols = selectMembers.Concat(selectMembersFromOrderBys);
             var cols = selectMembers.Count == 0 ? null : morecols.ToList();
@@ -960,7 +960,7 @@ namespace NPoco.Expressions
                 }
                 else if (left as MemberAccessString != null
                     && right is int
-                    && new [] { typeof(char), typeof(char?) }.Contains(((MemberAccessString)left).PocoColumn.MemberInfo.MemberType))
+                    && new [] { typeof(char), typeof(char?) }.Contains(((MemberAccessString)left).PocoColumn.MemberInfoData.MemberType))
                 {
                     right = CreateParam(Convert.ToChar(right));
                 }
@@ -997,10 +997,10 @@ namespace NPoco.Expressions
 
         private static Type GetMemberInfoTypeForEnum(PocoColumn pc)
         {
-            if (pc.MemberInfo.MemberType.GetTypeInfo().IsEnum)
-                return pc.MemberInfo.MemberType;
+            if (pc.MemberInfoData.MemberType.GetTypeInfo().IsEnum)
+                return pc.MemberInfoData.MemberType;
 
-            return Nullable.GetUnderlyingType(pc.MemberInfo.MemberType);
+            return Nullable.GetUnderlyingType(pc.MemberInfoData.MemberType);
         }
 
         protected virtual object VisitMemberAccess(MemberExpression m)
@@ -1046,7 +1046,7 @@ namespace NPoco.Expressions
                 if (isNull)
                     return new NullableMemberAccess(pocoColumn, pocoColumns, columnName, type);
 
-                if (Database.IsEnum(pocoColumn.MemberInfo))
+                if (Database.IsEnum(pocoColumn.MemberInfoData))
                     return new EnumMemberAccess(pocoColumn, pocoColumns, columnName, type);
 
                 return new MemberAccessString(pocoColumn, pocoColumns, columnName, type);
@@ -1412,7 +1412,7 @@ namespace NPoco.Expressions
 
         protected virtual string GetQuotedColumnName(string memberName)
         {
-            var fd = _pocoData.Columns.Values.FirstOrDefault(x => x.MemberInfo.Name == memberName);
+            var fd = _pocoData.Columns.Values.FirstOrDefault(x => x.MemberInfoData.Name == memberName);
             string fn = fd != null ? fd.ColumnName : memberName;
             return _databaseType.EscapeSqlIdentifier(fn);
         }

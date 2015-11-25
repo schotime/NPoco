@@ -56,7 +56,7 @@ namespace NPoco
                     object val;
                     if (pocoColumn.ReferenceType == ReferenceType.Foreign)
                     {
-                        var member = pd.Members.Single(x => x.MemberInfoData == pocoColumn.MemberInfo);
+                        var member = pd.Members.Single(x => x.MemberInfoData == pocoColumn.MemberInfoData);
                         var column = member.PocoMemberChildren.Single(x => x.Name == member.ReferenceMemberName);
                         val = database.ProcessMapper(column.PocoColumn, column.PocoColumn.GetValue(poco));
                     }

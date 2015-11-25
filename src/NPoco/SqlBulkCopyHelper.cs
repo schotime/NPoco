@@ -51,8 +51,8 @@ namespace NPoco
 
             foreach (var col in cols)
             {
-                bulkCopy.ColumnMappings.Add(col.Value.MemberInfo.Name, col.Value.ColumnName);
-                table.Columns.Add(col.Value.MemberInfo.Name, Nullable.GetUnderlyingType(col.Value.MemberInfo.MemberType) ?? col.Value.MemberInfo.MemberType);
+                bulkCopy.ColumnMappings.Add(col.Value.MemberInfoData.Name, col.Value.ColumnName);
+                table.Columns.Add(col.Value.MemberInfoData.Name, Nullable.GetUnderlyingType(col.Value.MemberInfoData.MemberType) ?? col.Value.MemberInfoData.MemberType);
             }
 
             foreach (var item in list)
@@ -63,7 +63,7 @@ namespace NPoco
                     var value = cols[i].Value.GetValue(item);
                     if (db.Mappers != null)
                     {
-                        value = db.Mappers.FindAndExecute(x => x.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfo.MemberInfo), value);
+                        value = db.Mappers.FindAndExecute(x => x.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfoData.MemberInfo), value);
                     }
 
                     value = db.DatabaseType.MapParameterValue(value);

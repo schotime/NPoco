@@ -67,7 +67,7 @@ namespace NPoco
                 {
                     list.Add(new Change()
                     {
-                        Name = pocoColumn.Key.MemberInfo.Name,
+                        Name = pocoColumn.Key.MemberInfoData.Name,
                         ColumnName = pocoColumn.Key.ColumnName,
                         NewValue = newValue,
                         OldValue = pocoColumn.Value

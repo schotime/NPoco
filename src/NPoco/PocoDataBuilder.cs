@@ -160,7 +160,7 @@ namespace NPoco
                     {
                         ReferenceType = capturedColumnInfo.ReferenceType, 
                         TableInfo = tableInfo, 
-                        MemberInfo = new MemberInfoData(capturedMemberInfo),
+                        MemberInfoData = new MemberInfoData(capturedMemberInfo),
                         MemberInfoChain = members,
                         ColumnName = GetColumnName(capturedPrefix, capturedColumnInfo.ColumnName),
                         ResultColumn = capturedColumnInfo.ResultColumn,
