@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Data;
-using System.Data.Common;
 using System.Data.SqlClient;
-using Microsoft.Framework.Configuration.Json;
-using NPoco;
 using NPoco.DatabaseTypes;
 using NPoco.Tests.Common;
 using NUnit.Framework;
+using Microsoft.Extensions.Configuration;
 
 namespace NPoco.Tests
 {
@@ -17,8 +15,8 @@ namespace NPoco.Tests
         [SetUp]
         public void SetUp()
         {
-            var configuration = new Microsoft.Framework.Configuration.ConfigurationBuilder()
-                .Add(new JsonConfigurationProvider("config.json"))
+            var configuration = new ConfigurationBuilder()
+                .AddJsonFile("config.json")
                 .Build();
 
             testDBType = Convert.ToInt32(configuration.GetSection("TestDBType").Value);

@@ -11,7 +11,7 @@ namespace NPoco.Tests
     {
         public int Main(string[] args)
         {
-#if DNX451 || NET45
+#if DNX451 || NET451
             return new AutoRun().Execute(args);
 #else
             return new AutoRun().Execute(typeof(Program).GetTypeInfo().Assembly, Console.Out, Console.In, args);

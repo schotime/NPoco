@@ -1,83 +1,83 @@
 {
-  "version": "3.1.0-*",
-  "description": "NPoco Tests",
-  "authors": [ "Adam Schroder" ],
-  "tags": [ "" ],
-  "projectUrl": "",
-  "licenseUrl": "",
-  "dependencies": {
-    "NPoco": {
-      "target": "project"
-    }
-  },
-  "commands": {
-    "test": "NPoco.Tests"
-  },
-  "frameworks": {
-    "dnx451": {
-      "frameworkAssemblies": {
-        "System.configuration": "4.0.0.0",
-        "System.Data": "4.0.0.0",
-        "System.Runtime.Caching": "4.0.0.0",
-        "System.XML": "4.0.0.0"
-      },
-      "dependencies": {
-        "Newtonsoft.Json": "7.0.1",
-        "NUnitLite": "3.0.0",
-        "FirebirdSql.Data.FirebirdClient": "4.8.1.1",
-        "System.Data.SQLite": "1.0.0-*",
-        "Microsoft.Framework.Configuration": "1.0.0-beta8",
-        "Microsoft.Framework.Configuration.Json": "1.0.0-beta8"
-      }
+    "version": "3.1.0-*",
+    "description": "NPoco Tests",
+    "authors": [ "Adam Schroder" ],
+    "tags": [ "" ],
+    "projectUrl": "",
+    "licenseUrl": "",
+    "dependencies": {
+        "NPoco": {
+            "target": "project"
+        }
     },
-    "net45": {
-      "frameworkAssemblies": {
-        "System.configuration": "4.0.0.0",
-        "System.Data": "4.0.0.0",
-        "System.Runtime.Caching": "4.0.0.0",
-        "System.XML": "4.0.0.0"
-      },
-      "dependencies": {
-        "FirebirdSql.Data.FirebirdClient": "4.8.1.1",
-        "Microsoft.Framework.Configuration": "1.0.0-beta8",
-        "Microsoft.Framework.Configuration.Json": "1.0.0-beta8",
-        "Newtonsoft.Json": "7.0.1",
-        "NUnitLite": "3.0.0",
-        "System.Data.SQLite": "1.0.0-*"
-      }
+    "commands": {
+        "test": "NPoco.Tests"
     },
-    "dnxcore50": {
-      "dependencies": {
-        "Microsoft.CSharp": "4.0.1-beta-23516",
-        "Microsoft.Data.SQLite": "1.0.0-beta8",
-        "Microsoft.Framework.Caching.Abstractions": "1.0.0-beta8",
-        "Microsoft.Framework.Caching.Memory": "1.0.0-beta8",
-        "Microsoft.Framework.Configuration": "1.0.0-beta8",
-        "Microsoft.Framework.Configuration.Json": "1.0.0-beta8",
-        "Newtonsoft.Json": "7.0.1",
-        "NUnitLite": "3.0.0",
-        "System.Collections": "4.0.11-beta-23516",
-        "System.Collections.Specialized": "4.0.1-beta-23516",
-        "System.Console": "4.0.0-beta-23516",
-        "System.Data.Common": "4.0.1-beta-23516",
-        "System.Data.SqlClient": "4.0.0-beta-23516",
-        "System.Diagnostics.StackTrace": "4.0.1-beta-23516",
-        "System.Linq": "4.0.1-beta-23516",
-        "System.Linq.Queryable": "4.0.1-beta-23516",
-        "System.Net.Primitives": "4.0.11-beta-23516",
-        "System.Reflection": "4.1.0-beta-23516",
-        "System.Reflection.Emit": "4.0.1-beta-23516",
-        "System.Reflection.Emit.ILGeneration": "4.0.1-beta-23516",
-        "System.Reflection.Emit.Lightweight": "4.0.1-beta-23516",
-        "System.Reflection.Extensions": "4.0.1-beta-23516",
-        "System.Runtime": "4.0.21-beta-23516",
-        "System.Runtime.Extensions": "4.0.11-beta-23516",
-        "System.Text.Encoding": "4.0.11-beta-23516",
-        "System.Text.RegularExpressions": "4.0.11-beta-23516",
-        "System.Threading": "4.0.11-beta-23516",
-        "System.Xml.XmlDocument": "4.0.1-beta-23516",
-        "System.Xml.XmlSerializer": "4.0.11-beta-23516"
-      }
+    "frameworks": {
+        "dnx451": {
+            "frameworkAssemblies": {
+                "System.configuration": "4.0.0.0",
+                "System.Data": "4.0.0.0",
+                "System.Runtime.Caching": "4.0.0.0",
+                "System.XML": "4.0.0.0"
+            },
+            "dependencies": {
+                "Newtonsoft.Json": "7.0.1",
+                "NUnitLite": "3.0.0",
+                "FirebirdSql.Data.FirebirdClient": "4.8.1.1",
+                "System.Data.SQLite": "1.0.0-*",
+                "Microsoft.Extensions.Configuration": "1.0.0-rc1-final",
+                "Microsoft.Extensions.Configuration.Json": "1.0.0-rc1-final"
+            }
+        },
+        "net451": {
+            "frameworkAssemblies": {
+                "System.configuration": "4.0.0.0",
+                "System.Data": "4.0.0.0",
+                "System.Runtime.Caching": "4.0.0.0",
+                "System.XML": "4.0.0.0"
+            },
+            "dependencies": {
+                "FirebirdSql.Data.FirebirdClient": "4.8.1.1",
+                "Microsoft.Extensions.Configuration": "1.0.0-rc1-final",
+                "Microsoft.Extensions.Configuration.Json": "1.0.0-rc1-final",
+                "Newtonsoft.Json": "7.0.1",
+                "NUnitLite": "3.0.0",
+                "System.Data.SQLite": "1.0.0-*"
+            }
+        },
+        "dnxcore50": {
+            "dependencies": {
+                "Microsoft.CSharp": "4.0.1-beta-23516",
+                "Microsoft.Data.SQLite": "1.0.0-beta8",
+                "Microsoft.Extensions.Caching.Abstractions": "1.0.0-rc1-final",
+                "Microsoft.Extensions.Caching.Memory": "1.0.0-rc1-final",
+                "Microsoft.Extensions.Configuration": "1.0.0-rc1-final",
+                "Microsoft.Extensions.Configuration.Json": "1.0.0-rc1-final",
+                "Newtonsoft.Json": "7.0.1",
+                "NUnitLite": "3.0.0",
+                "System.Collections": "4.0.11-beta-23516",
+                "System.Collections.Specialized": "4.0.1-beta-23516",
+                "System.Console": "4.0.0-beta-23516",
+                "System.Data.Common": "4.0.1-beta-23516",
+                "System.Data.SqlClient": "4.0.0-beta-23516",
+                "System.Diagnostics.StackTrace": "4.0.1-beta-23516",
+                "System.Linq": "4.0.1-beta-23516",
+                "System.Linq.Queryable": "4.0.1-beta-23516",
+                "System.Net.Primitives": "4.0.11-beta-23516",
+                "System.Reflection": "4.1.0-beta-23516",
+                "System.Reflection.Emit": "4.0.1-beta-23516",
+                "System.Reflection.Emit.ILGeneration": "4.0.1-beta-23516",
+                "System.Reflection.Emit.Lightweight": "4.0.1-beta-23516",
+                "System.Reflection.Extensions": "4.0.1-beta-23516",
+                "System.Runtime": "4.0.21-beta-23516",
+                "System.Runtime.Extensions": "4.0.11-beta-23516",
+                "System.Text.Encoding": "4.0.11-beta-23516",
+                "System.Text.RegularExpressions": "4.0.11-beta-23516",
+                "System.Threading": "4.0.11-beta-23516",
+                "System.Xml.XmlDocument": "4.0.1-beta-23516",
+                "System.Xml.XmlSerializer": "4.0.11-beta-23516"
+            }
+        }
     }
-  }
 }

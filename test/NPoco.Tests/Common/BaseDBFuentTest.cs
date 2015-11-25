@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
-using Microsoft.Framework.Configuration.Json;
-using NPoco;
 #if !DNXCORE50
 using FirebirdSql.Data.FirebirdClient;
 #endif
@@ -13,6 +11,7 @@ using NPoco.FluentMappings;
 using NPoco.Tests.FluentMappings;
 using NPoco.Tests.FluentTests.QueryTests;
 using NUnit.Framework;
+using Microsoft.Extensions.Configuration;
 
 namespace NPoco.Tests.Common
 {
@@ -46,8 +45,8 @@ namespace NPoco.Tests.Common
                 })
             );
 
-            var configuration = new Microsoft.Framework.Configuration.ConfigurationBuilder()
-                .Add(new JsonConfigurationProvider("config.json"))
+            var configuration = new ConfigurationBuilder()
+                .AddJsonFile("config.json")
                 .Build();
 
             var testDBType = Convert.ToInt32(configuration.GetSection("TestDBType").Value);
