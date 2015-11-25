@@ -18,6 +18,7 @@ Task Build -depends Clean {
     Write-Host "Creating BuildArtifacts" -ForegroundColor Green
     Exec { dnu restore }
     Set-Location "$solution_dir"
+    #$env:DNX_BUILD_VERSION="alpha02"
     Exec { dnu pack --configuration release --out $build_artifacts_dir --quiet } 
 }
 
