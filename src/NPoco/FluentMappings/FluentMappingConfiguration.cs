@@ -172,8 +172,10 @@ namespace NPoco.FluentMappings
 
         private static IEnumerable<Type> FindTypes(ConventionScannerSettings scannerSettings)
         {
+#if !DNXCORE50
             if (scannerSettings.TheCallingAssembly)
                 scannerSettings.Assemblies.Add(FindTheCallingAssembly());
+#endif
 
             var types = scannerSettings.Assemblies
                 .SelectMany(x => x.GetExportedTypes())
@@ -275,19 +277,21 @@ namespace NPoco.FluentMappings
             }));
         }
 
+#if !DNXCORE50
         // Helper method if code is in seperate assembly
         private static Assembly FindTheCallingAssembly()
         {
-            var trace = new StackTrace(new Exception(), false);
+            if (!typeof(FluentMappingConfiguration).Assembly.FullName.StartsWith("NPoco,"))
+                return Assembly.GetCallingAssembly();
 
-            Assembly thisAssembly = typeof(FluentMappingConfiguration).GetTypeInfo().Assembly;
+            var trace = new StackTrace(false);
+
+            Assembly thisAssembly = Assembly.GetExecutingAssembly();
             Assembly callingAssembly = null;
-            var stackFrames = trace.GetFrames();
-
-            for (int i = 0; i < stackFrames.Length; i++)
+            for (int i = 0; i < trace.FrameCount; i++)
             {
-                StackFrame frame = stackFrames[i];
-                Assembly assembly = frame.GetMethod().DeclaringType.GetTypeInfo().Assembly;
+                StackFrame frame = trace.GetFrame(i);
+                Assembly assembly = frame.GetMethod().DeclaringType.Assembly;
                 if (assembly != thisAssembly)
                 {
                     callingAssembly = assembly;
@@ -296,5 +300,6 @@ namespace NPoco.FluentMappings
             }
             return callingAssembly;
         }
+#endif
     }
 }

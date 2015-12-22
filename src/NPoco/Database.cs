@@ -19,9 +19,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 using NPoco.Expressions;
-using NPoco.FluentMappings;
 using NPoco.Linq;
 #if !DNXCORE50 
 using System.Configuration;
@@ -75,6 +73,7 @@ namespace NPoco
             //    cmd.ExecuteNonQuery();
             //}
         }
+
 #if !DNXCORE50
         public Database(string connectionString, string providerName)
             : this(connectionString, providerName, DefaultEnableAutoSelect)
@@ -114,8 +113,8 @@ namespace NPoco
             _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
-
 #endif
+
         public Database(string connectionString, DatabaseType databaseType, DbProviderFactory provider)
             : this(connectionString, databaseType, provider, null, DefaultEnableAutoSelect)
         { }
@@ -127,8 +126,7 @@ namespace NPoco
 
             _connectionString = connectionString;
             _factory = provider;
-            var dbTypeName = (_factory == null ? _sharedConnection.GetType() : _factory.GetType()).Name;
-            _dbType = databaseType ?? DatabaseType.Resolve(dbTypeName, null);
+            _dbType = databaseType ?? DatabaseType.Resolve(_factory.GetType().Name, null);
             _providerName = _dbType.GetProviderName();
             _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
@@ -166,8 +164,7 @@ namespace NPoco
             _providerName = providerName;
 
             _factory = DbProviderFactories.GetFactory(_providerName);
-            var dbTypeName = (_factory == null ? _sharedConnection.GetType() : _factory.GetType()).Name;
-            _dbType = DatabaseType.Resolve(dbTypeName, _providerName);
+            _dbType = DatabaseType.Resolve(_factory.GetType().Name, _providerName);
             _isolationLevel = _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
@@ -245,6 +242,13 @@ namespace NPoco
         public void CloseSharedConnection()
         {
             if (KeepConnectionAlive) return;
+           
+            if (_transaction != null)
+            {
+                _transaction.Dispose();
+                _transaction = null;
+            }
+
             if (_sharedConnection == null) return;
 
             OnConnectionClosingInternal(_sharedConnection);
@@ -381,7 +385,10 @@ namespace NPoco
         public void AbortTransaction(bool fromComplete)
         {
             if (_transaction == null)
+            {
+                TransactionIsAborted = false;
                 return;
+            }
 
             if (fromComplete == false)
             {
