@@ -529,6 +529,13 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             public object Id { get; set; }
             public dynamic Dyn { get; set; }
         }
+
+        [Test]
+        public void Test30()
+        {
+            var data = Database.Fetch<UserWithPrivateParamLessConstructor>("select * from users");
+            Assert.AreEqual(15, data.Count);
+        }
     }
 
     public class Post : ContentBase

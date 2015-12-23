@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Reflection.Emit;
+using System.Reflection;
 
 namespace NPoco
 {
@@ -32,7 +33,7 @@ namespace NPoco
             if (_mapperCollection.HasFactory(_type))
                 return dataReader => _mapperCollection.GetFactory(_type)(dataReader);
 
-            var constructorInfo = _type.GetConstructor(new Type[0]);
+            var constructorInfo = _type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).SingleOrDefault(x => x.GetParameters().Length == 0);
             if (constructorInfo == null)
                 return _ => null;
 

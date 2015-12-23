@@ -42,8 +42,8 @@
     },
     "dnxcore50": {
       "dependencies": {
-        "Microsoft.Framework.Caching.Abstractions": "1.0.0-beta8",
-        "Microsoft.Framework.Caching.Memory": "1.0.0-beta8",
+        "Microsoft.Framework.Caching.Abstractions": "1.0.0-rc1-15658",
+        "Microsoft.Framework.Caching.Memory": "1.0.0-rc1-15658",
         "System.Collections": "4.0.11-beta-23516",
         "System.Collections.Specialized": "4.0.1-beta-23516",
         "System.Data.Common": "4.0.1-beta-23516",
