@@ -12,12 +12,14 @@ namespace NPoco.Tests.NewMapper
         {
             var pocoData = new PocoDataFactory(new MapperCollection()).ForType(typeof(ComplexMap));
 
-            Assert.AreEqual(5, pocoData.Columns.Count);
+            Assert.AreEqual(7, pocoData.Columns.Count);
             Assert.AreEqual(true, pocoData.Columns.ContainsKey("Id"));
             Assert.AreEqual(true, pocoData.Columns.ContainsKey("Name"));
             Assert.AreEqual(true, pocoData.Columns.ContainsKey("NestedComplexMap__Id"));
             Assert.AreEqual(true, pocoData.Columns.ContainsKey("NestedComplexMap__NestedComplexMap2__Id"));
+            Assert.AreEqual(true, pocoData.Columns.ContainsKey("NestedComplexMap__NestedComplexMap2__Name"));
             Assert.AreEqual(true, pocoData.Columns.ContainsKey("NestedComplexMap2__Id"));
+            Assert.AreEqual(true, pocoData.Columns.ContainsKey("NestedComplexMap2__Name"));
         }
 
         [Test]
@@ -82,6 +84,24 @@ namespace NPoco.Tests.NewMapper
             Assert.AreEqual(obj.NestedComplexMap.Id, results.NestedComplexMap.Id);
             Assert.AreEqual(obj.NestedComplexMap.NestedComplexMap2.Id, results.NestedComplexMap.NestedComplexMap2.Id);
         }
+
+        [Test]
+        public void ProjectToComplexColumn()
+        {
+            var obj = new ComplexMap()
+            {
+                Name = "Bill",
+                NestedComplexMap2 = new NestedComplexMap2()
+                {
+                    Id = 9,
+                    Name = "Silly"
+                }
+            };
+            Database.Insert(obj);
+            var results = Database.Query<ComplexMap>().ProjectTo(x => x.NestedComplexMap2).Single();
+            Assert.AreEqual(obj.NestedComplexMap2.Id, results.Id);
+            Assert.AreEqual(obj.NestedComplexMap2.Name, results.Name);
+        }
     }
 
     public class ComplexMap
@@ -104,5 +124,6 @@ namespace NPoco.Tests.NewMapper
     public class NestedComplexMap2
     {
         public int Id { get; set; }
+        public string Name { get; set; }
     }
 }

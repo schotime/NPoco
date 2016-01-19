@@ -108,7 +108,7 @@ namespace NPoco.Linq
                 where,
                 orderbys);
 
-            var newsql = ((ISqlExpression)_sqlExpression).ApplyPaging(resultantSql, cols.Select(x=>x.PocoColumn), _joinSqlExpressions);
+            var newsql = count ? resultantSql : ((ISqlExpression)_sqlExpression).ApplyPaging(resultantSql, cols.Select(x=>x.PocoColumn), _joinSqlExpressions);
 
             return new Sql(newsql, _sqlExpression.Context.Params);
         }

@@ -34,6 +34,23 @@ namespace NPoco
             return PrimaryKeyValues(obj);
         }
 
+        public IEnumerable<PocoMember> GetAllMembers()
+        {
+            return GetAllMembers(Members);
+        }
+
+        private IEnumerable<PocoMember> GetAllMembers(IEnumerable<PocoMember> pocoMembers)
+        {
+            foreach (var member in pocoMembers)
+            {
+                yield return member;
+                foreach(var childmember in GetAllMembers(member.PocoMemberChildren))
+                {
+                    yield return childmember;
+                }
+            }
+        }
+
         private Func<object, object[]> _primaryKeyValues;
         private Func<object, object[]> PrimaryKeyValues
         {

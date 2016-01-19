@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Reflection;
 
 namespace NPoco
 {
@@ -58,6 +59,12 @@ namespace NPoco
         }
 
         public bool IsDynamic
+        {
+            get;
+            set;
+        }
+
+        public List<MemberInfo> MemberInfoChain
         {
             get;
             set;

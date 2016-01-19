@@ -217,7 +217,7 @@ namespace NPoco.Expressions
             var exp = PartialEvaluator.Eval(fields, CanBeEvaluatedLocally);
             Visit(exp);
             _projection = false;
-            var proj = new List<SelectMember>(selectMembers.Union(generalMembers.Select(x=>new SelectMember() { EntityType = x.EntityType, PocoColumn = x.PocoColumn, PocoColumns = x.PocoColumns })));
+            var proj = selectMembers.Union(generalMembers.Select(x=>new SelectMember() { EntityType = x.EntityType, PocoColumn = x.PocoColumn, PocoColumns = x.PocoColumns })).ToList();
             selectMembers.Clear();
             return proj;
         }
@@ -1020,16 +1020,39 @@ namespace NPoco.Expressions
             {
                 var propertyInfos = MemberChainHelper.GetMembers(m).ToArray();
                 var type = GetCorrectType(m);
-   
-                var pocoColumns = ModelDef.AllColumns
+
+                var pocoMembers = ModelDef.GetAllMembers()
                     .Where(x => x.MemberInfoChain.Select(y => y.Name).SequenceEqual(propertyInfos.Select(y => y.Name)))
                     .ToArray();
-                        
-                var pocoColumn = pocoColumns.LastOrDefault();
-                if (pocoColumn == null)
+
+                var pocoMember = pocoMembers.LastOrDefault();
+                if (pocoMember == null)
                 {
-                    throw new Exception("Did you forget to include the property eg. Include(x => x.Address)");
+                    throw new Exception(
+                        string.Format("Did you forget to include the property eg. Include(x => x.{0})",
+                        string.Join(".", propertyInfos.Select(y => y.Name).Take(propertyInfos.Length - 1).ToArray())));
                 }
+
+                if (_projection &&
+                    (pocoMember.ReferenceType == ReferenceType.Foreign
+                    || pocoMember.ReferenceType == ReferenceType.OneToOne)
+                    || pocoMember.PocoColumn == null)
+                {
+                    foreach (var member in pocoMember.PocoMemberChildren.Where(x => x.PocoColumn != null))
+                    {
+                        generalMembers.Add(new GeneralMember()
+                        {
+                            EntityType = pocoMember.MemberInfoData.MemberType,
+                            PocoColumn = member.PocoColumn,
+                            PocoColumns = new [] { member.PocoColumn }
+                        });
+                    }
+
+                    return new PartialSqlString("");
+                }
+
+                var pocoColumn = pocoMember.PocoColumn;
+                var pocoColumns = pocoMembers.Select(x => x.PocoColumn).ToArray();
 
                 var columnName = (PrefixFieldWithTableName
                                           ? _databaseType.EscapeTableName(pocoColumn.TableInfo.AutoAlias) + "."

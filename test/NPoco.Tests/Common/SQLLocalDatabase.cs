@@ -143,7 +143,9 @@ namespace NPoco.Tests.Common
                     Name nvarchar(50) NULL, 
                     NestedComplexMap__Id int NULL, 
                     NestedComplexMap__NestedComplexMap2__Id int NULL, 
-                    NestedComplexMap2__Id int NULL
+                    NestedComplexMap__NestedComplexMap2__Name nvarchar(50) NULL, 
+                    NestedComplexMap2__Id int NULL,
+                    NestedComplexMap2__Name nvarchar(50) NULL
                 );
             ";
             cmd.ExecuteNonQuery();

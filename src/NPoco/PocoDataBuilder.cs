@@ -187,6 +187,7 @@ namespace NPoco
                     var pocoMember = new PocoMember()
                     {
                         MemberInfoData = new MemberInfoData(capturedMemberInfo),
+                        MemberInfoChain = members,
                         IsList = isList,
                         IsDynamic = isDynamic,
                         PocoColumn = capturedColumnInfo.ComplexMapping ? null : pc,

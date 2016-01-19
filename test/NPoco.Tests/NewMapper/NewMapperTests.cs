@@ -385,6 +385,19 @@ select 22 Money__Value /*poco_dual*/");
             Assert.NotNull(data[1].House.Address);
         }
 
+        [Test]
+        public void Test22_1()
+        {
+            var data = Database.Query<MyUserDec>()
+                .Include(x => x.House)
+                .ProjectTo(x => x.House)
+                .ToList();
+
+            Assert.AreEqual(15, data.Count);
+            Assert.AreEqual(2, data[1].HouseId);
+            Assert.AreEqual("1 Road Street, Suburb", data[1].Address);
+        }
+
         [TableName("Users"), PrimaryKey("UserId")]
         public class MyUserDec
         {
