@@ -48,6 +48,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void AnyQueryWhereAndLimit()
+        {
+            var userRecordsExist = Database.Query<User>().Limit(1).Any();
+            Assert.AreEqual(true, userRecordsExist);
+        }
+
+        [Test]
         public void DistinctQueryWithProjection()
         {
             var userRecordsExist = Database.Query<User>().Distinct(y => new {y.IsMale});

@@ -14,16 +14,10 @@ FormatTaskName (("-"*25) + "[{0}]" + ("-"*25))
 
 Task Default -Depends Build35
 
-Task Build35 -Depends Build40Async { 
+Task Build35 -Depends Build40 { 
 	Write-Host "Building 3.5 $solution_file" -ForegroundColor Green
     Exec { msbuild "$solution_file" /t:Clean /p:Configuration=Release /v:quiet } 
     Exec { msbuild "$solution_file" /t:Build /p:Configuration=Release /v:quiet /p:TargetFrameworkVersion=v3.5 /p:OutDir="$build_artifacts_dir\net35\" /p:DefineConstants="POCO_NO_DYNAMIC"}
-}
-
-Task Build40Async -Depends Build40 { 
-    Write-Host "Building 4.0 Async $solution_file" -ForegroundColor Green
-    Exec { msbuild "$solution_file" /t:Clean /p:Configuration=Release /v:quiet } 
-    Exec { msbuild "$solution_file" /t:Build /p:Configuration=Release /v:quiet /p:TargetFrameworkVersion=v4.0 /p:OutDir="$build_artifacts_dir\net40-async\" /p:DefineConstants="NET40ASYNC%3BNET45" } 
 }
 
 Task Build40 -Depends Build45 { 

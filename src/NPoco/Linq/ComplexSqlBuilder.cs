@@ -121,7 +121,7 @@ namespace NPoco.Linq
                 wheres.SQL,
                 orderbys);
 
-            var newsql = ((ISqlExpression)_sqlExpression).ApplyPaging(resultantSql, cols.Select(x=>x.PocoColumn));
+            var newsql = count ? resultantSql : ((ISqlExpression) _sqlExpression).ApplyPaging(resultantSql, cols.Select(x => x.PocoColumn));
 
             return new Sql(newsql, wheres.Arguments);
         }
