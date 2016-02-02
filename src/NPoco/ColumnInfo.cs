@@ -12,6 +12,7 @@ namespace NPoco
         public string ColumnAlias { get; set; }
         public bool ResultColumn { get; set; }
         public bool ComputedColumn { get; set; }
+        public ComputedColumnType ComputedColumnType { get; set; }
         public bool IgnoreColumn { get; set; }
         public bool VersionColumn { get; set; }
         public VersionColumnType VersionColumnType { get; set; }
@@ -82,6 +83,7 @@ namespace NPoco
                 ci.VersionColumn = colattr is VersionColumnAttribute;
                 ci.VersionColumnType = ci.VersionColumn ? ((VersionColumnAttribute) colattr).VersionColumnType : ci.VersionColumnType;
                 ci.ComputedColumn = colattr is ComputedColumnAttribute;
+                ci.ComputedColumnType = ci.ComputedColumn ? ((ComputedColumnAttribute)colattr).ComputedColumnType : ComputedColumnType.Always;
                 ci.ColumnAlias = aliasColumn != null ? aliasColumn.Alias : null;
             }
             else

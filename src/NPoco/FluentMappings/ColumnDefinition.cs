@@ -14,6 +14,7 @@ namespace NPoco.FluentMappings
         public bool? VersionColumn { get; set; }
         public VersionColumnType? VersionColumnType { get; set; }
         public bool? ComputedColumn { get; set; }
+        public ComputedColumnType? ComputedColumnType { get; set; }
         public bool? ForceUtc { get; set; }
         public MemberInfo[] MemberInfoChain { get; set; }
         public bool? IsComplexMapping { get; set; }

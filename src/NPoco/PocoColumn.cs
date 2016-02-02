@@ -32,6 +32,7 @@ namespace NPoco
         public bool VersionColumn;
         public VersionColumnType VersionColumnType;
         public bool ComputedColumn;
+        public ComputedColumnType ComputedColumnType;
         private Type _columnType;
         private MemberAccessor _memberAccessor;
         private List<MemberAccessor> _memberAccessorChain = new List<MemberAccessor>();

@@ -37,6 +37,7 @@ namespace NPoco.FluentMappings
         IColumnBuilder<TModel> Ignore();
         IColumnBuilder<TModel> Result();
         IColumnBuilder<TModel> Computed();
+        IColumnBuilder<TModel> Computed(ComputedColumnType computedColumnType);
         IColumnBuilder<TModel> Reference(ReferenceType referenceType = ReferenceType.Foreign);
         IColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> member, ReferenceType referenceType = ReferenceType.Foreign);
         IColumnBuilder<TModel> Serialized();
@@ -103,6 +104,12 @@ namespace NPoco.FluentMappings
         public IColumnBuilder<TModel> Computed()
         {
             _columnDefinition.ComputedColumn = true;
+            return this;
+        }
+
+        public IColumnBuilder<TModel> Computed(ComputedColumnType computedColumnType)
+        {
+            _columnDefinition.ComputedColumnType = computedColumnType;
             return this;
         }
 

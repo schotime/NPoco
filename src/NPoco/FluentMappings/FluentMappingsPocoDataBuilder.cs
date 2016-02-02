@@ -119,6 +119,7 @@ namespace NPoco.FluentMappings
                 else if (colattr.ComputedColumn.HasValue && colattr.ComputedColumn.Value)
                 {
                     columnInfo.ComputedColumn = true;
+                    columnInfo.ComputedColumnType = colattr.ComputedColumnType ?? ComputedColumnType.Always;
                 }
 
                 if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)

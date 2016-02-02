@@ -42,9 +42,21 @@ namespace NPoco.FluentMappings
             return this;
         }
 
+        public IColumnsBuilderConventions ComputedTypeAs(Func<MemberInfo, ComputedColumnType> computedPropertyTypeAsFunc)
+        {
+            _scannerSettings.ComputedPropertyTypeAs = computedPropertyTypeAsFunc;
+            return this;
+        }
+
         public IColumnsBuilderConventions VersionWhere(Func<MemberInfo, bool> versionPropertiesWhereFunc)
         {
             _scannerSettings.VersionPropertiesWhere = versionPropertiesWhereFunc;
+            return this;
+        }
+
+        public IColumnsBuilderConventions VersionTypeAs(Func<MemberInfo, VersionColumnType> versionPropertyTypeAsFunc)
+        {
+            _scannerSettings.VersionPropertyTypeAs = versionPropertyTypeAsFunc;
             return this;
         }
 

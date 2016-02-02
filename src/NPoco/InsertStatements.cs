@@ -8,7 +8,7 @@ namespace NPoco
 {
     public partial class Database
     {
-        private class InsertStatements
+        public class InsertStatements
         {
             public class PreparedInsertSql
             {
@@ -31,7 +31,7 @@ namespace NPoco
                 {
                     // Don't insert result columns
                     if (pocoColumn.ResultColumn
-                        || pocoColumn.ComputedColumn
+                        || (pocoColumn.ComputedColumn && (pocoColumn.ComputedColumnType == ComputedColumnType.Always || pocoColumn.ComputedColumnType == ComputedColumnType.ComputedOnInsert))
                         || (pocoColumn.VersionColumn && pocoColumn.VersionColumnType == VersionColumnType.RowVersion))
                     {
                         continue;

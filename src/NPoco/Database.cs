@@ -1490,8 +1490,11 @@ namespace NPoco
                 }
 
                 // Dont update result only columns
-                if (pocoColumn.ResultColumn || pocoColumn.ComputedColumn)
+                if (pocoColumn.ResultColumn
+                    || (pocoColumn.ComputedColumn && (pocoColumn.ComputedColumnType == ComputedColumnType.Always || pocoColumn.ComputedColumnType == ComputedColumnType.ComputedOnUpdate)))
+                {
                     continue;
+                }
 
                 if (!pocoColumn.VersionColumn && columns != null && !columns.Contains(pocoColumn.ColumnName, StringComparer.OrdinalIgnoreCase))
                     continue;

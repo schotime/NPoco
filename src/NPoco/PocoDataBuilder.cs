@@ -67,6 +67,7 @@ namespace NPoco
 
             //Build column list for automatic select
             pocoData.QueryColumns = pocoData.Columns.Where(c => !c.Value.ResultColumn && c.Value.ReferenceType == ReferenceType.None).ToArray();
+
             return pocoData;
         }
 
@@ -166,6 +167,7 @@ namespace NPoco
                         ResultColumn = capturedColumnInfo.ResultColumn,
                         ForceToUtc = capturedColumnInfo.ForceToUtc,
                         ComputedColumn = capturedColumnInfo.ComputedColumn,
+                        ComputedColumnType = capturedColumnInfo.ComputedColumnType,
                         ColumnType = capturedColumnInfo.ColumnType,
                         ColumnAlias = capturedColumnInfo.ColumnAlias,
                         VersionColumn = capturedColumnInfo.VersionColumn,

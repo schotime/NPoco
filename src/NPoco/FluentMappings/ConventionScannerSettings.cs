@@ -30,9 +30,10 @@ namespace NPoco.FluentMappings
         public Func<MemberInfo, Type> DbColumnTypesAs { get; set; }
         public List<Func<MemberInfo, bool>> IgnorePropertiesWhere { get; set; }
         public Func<MemberInfo, bool> VersionPropertiesWhere { get; set; }
-        public Func<MemberInfo, VersionColumnType> VersionColumnTypeAs { get; set; }
+        public Func<MemberInfo, VersionColumnType> VersionPropertyTypeAs { get; set; }
         public Func<MemberInfo, bool> ResultPropertiesWhere { get; set; }
         public Func<MemberInfo, bool> ComputedPropertiesWhere { get; set; }
+        public Func<MemberInfo, ComputedColumnType> ComputedPropertyTypeAs { get; set; }
         public Func<MemberInfo, bool> ForceDateTimesToUtcWhere { get; set; }
         public Func<MemberInfo, bool> ReferencePropertiesWhere { get; set; }
         public Func<MemberInfo, bool> ComplexPropertiesWhere { get; set; }

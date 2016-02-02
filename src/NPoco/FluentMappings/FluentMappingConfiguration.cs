@@ -133,8 +133,9 @@ namespace NPoco.FluentMappings
                     columnDefinition.DbColumnType = scannerSettings.DbColumnTypesAs(member);
                     columnDefinition.ResultColumn = scannerSettings.ResultPropertiesWhere(member);
                     columnDefinition.ComputedColumn = scannerSettings.ComputedPropertiesWhere(member);
+                    columnDefinition.ComputedColumnType = scannerSettings.ComputedPropertyTypeAs(member);
                     columnDefinition.VersionColumn = scannerSettings.VersionPropertiesWhere(member);
-                    columnDefinition.VersionColumnType = scannerSettings.VersionColumnTypeAs(member);
+                    columnDefinition.VersionColumnType = scannerSettings.VersionPropertyTypeAs(member);
                     columnDefinition.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(member);
                     columnDefinition.Serialized = scannerSettings.SerializedWhere(member);
                     yield return columnDefinition;
@@ -154,8 +155,9 @@ namespace NPoco.FluentMappings
                 DbColumnTypesAs = x => null,
                 ResultPropertiesWhere = x => false,
                 VersionPropertiesWhere = x => false,
-                VersionColumnTypeAs = x => VersionColumnType.Number,
+                VersionPropertyTypeAs = x => VersionColumnType.Number,
                 ComputedPropertiesWhere = x => false,
+                ComputedPropertyTypeAs = x => ComputedColumnType.Always,
                 ForceDateTimesToUtcWhere = x => true,
                 ReferencePropertiesWhere = x => x.GetMemberInfoType().IsAClass() && ReflectionUtils.GetCustomAttributes(x, typeof(ReferenceAttribute)).Any(),
                 ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && ReflectionUtils.GetCustomAttributes(x, typeof(ComplexMappingAttribute)).Any(),
@@ -204,6 +206,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.Value.IgnoreColumn = columnInfo.IgnoreColumn;
                     columnDefinition.Value.ResultColumn = columnInfo.ResultColumn;
                     columnDefinition.Value.ComputedColumn = columnInfo.ComputedColumn;
+                    columnDefinition.Value.ComputedColumnType = columnInfo.ComputedColumnType;
                     columnDefinition.Value.VersionColumn = columnInfo.VersionColumn;
                     columnDefinition.Value.VersionColumnType = columnInfo.VersionColumnType;
                     columnDefinition.Value.ForceUtc = columnInfo.ForceToUtc;
@@ -241,6 +244,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.IgnoreColumn = overrideColumnDefinition.Value.IgnoreColumn ?? convColDefinition.IgnoreColumn;
                     convColDefinition.ResultColumn = overrideColumnDefinition.Value.ResultColumn ?? convColDefinition.ResultColumn;
                     convColDefinition.ComputedColumn = overrideColumnDefinition.Value.ComputedColumn ?? convColDefinition.ComputedColumn;
+                    convColDefinition.ComputedColumnType = overrideColumnDefinition.Value.ComputedColumnType ?? convColDefinition.ComputedColumnType;
                     convColDefinition.VersionColumn = overrideColumnDefinition.Value.VersionColumn ?? convColDefinition.VersionColumn;
                     convColDefinition.VersionColumnType = overrideColumnDefinition.Value.VersionColumnType ?? convColDefinition.VersionColumnType;
                     convColDefinition.MemberInfo = overrideColumnDefinition.Value.MemberInfo ?? convColDefinition.MemberInfo;
