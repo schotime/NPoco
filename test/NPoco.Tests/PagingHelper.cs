@@ -1,4 +1,7 @@
-﻿using NPoco;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using NUnit.Framework;
 
 namespace NPoco.Tests
@@ -51,6 +54,30 @@ namespace NPoco.Tests
 
             Assert.AreEqual(null, parts.sqlOrderBy);
             Assert.AreEqual("SELECT COUNT(*) FROM (select test.*, (select top 1 d from test2 order by c) from test) npoco_tbl", parts.sqlCount);
+        }
+
+        [Test]
+        public void EnsureTheOrderIsExtractedWhenThereIsAcolumnCalledFrom()
+        {
+            var sql = @"select id, date_from from test1 order by date_from";
+
+            PagingHelper.SQLParts parts;
+            PagingHelper.SplitSQL(sql, out parts);
+
+            Assert.AreEqual("order by date_from", parts.sqlOrderBy);
+            Assert.AreEqual("SELECT COUNT(*) FROM (select id, date_from from test1 ) npoco_tbl", parts.sqlCount);
+        }
+
+        [Test]
+        public void EnsureTheOrderIsExtractedWhenThereIsAcolumnCalledFromWithNestedSubselect()
+        {
+            var sql = @"select id, date_from from(select id, date_from from test1) a order by date_from";
+
+            PagingHelper.SQLParts parts;
+            PagingHelper.SplitSQL(sql, out parts);
+
+            Assert.AreEqual("order by date_from", parts.sqlOrderBy);
+            Assert.AreEqual("SELECT COUNT(*) FROM (select id, date_from from(select id, date_from from test1) a ) npoco_tbl", parts.sqlCount);
         }
     }
 }
