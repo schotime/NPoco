@@ -1342,7 +1342,7 @@ namespace NPoco
         public object Insert<T>(T poco)
         {
             var pd = PocoDataFactory.ForType(poco.GetType());
-            return Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
+            return InsertImp(pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
         }
 
         public object Insert<T>(string tableName, string primaryKeyName, T poco)
@@ -1355,6 +1355,12 @@ namespace NPoco
         // the new id is returned.
         public virtual object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
+            return InsertImp(pd, tableName, primaryKeyName, autoIncrement, poco);
+        }
+
+        private object InsertImp<T>(PocoData pocoData, string tableName, string primaryKeyName, bool autoIncrement, T poco)
+        {
             if (!OnInsertingInternal(new InsertContext(poco, tableName, autoIncrement, primaryKeyName))) 
                 return 0;
 
@@ -1362,7 +1368,7 @@ namespace NPoco
             {
                 OpenSharedConnectionInternal();
 
-                var preparedInsert = InsertStatements.PrepareInsertSql(this, tableName, primaryKeyName, autoIncrement, poco);
+                var preparedInsert = InsertStatements.PrepareInsertSql(this, pocoData, tableName, primaryKeyName, autoIncrement, poco);
 
                 using (var cmd = CreateCommand(_sharedConnection, preparedInsert.Sql, preparedInsert.Rawvalues.ToArray()))
                 {
@@ -1407,7 +1413,7 @@ namespace NPoco
 
                 foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
                 {
-                    var preparedInserts = batchedPocos.Select(x => InsertStatements.PrepareInsertSql(this, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey,pd.TableInfo.AutoIncrement, x)).ToArray();
+                    var preparedInserts = batchedPocos.Select(x => InsertStatements.PrepareInsertSql(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey,pd.TableInfo.AutoIncrement, x)).ToArray();
 
                     var sql = new Sql();
                     foreach (var preparedInsertSql in preparedInserts)
@@ -1457,8 +1463,7 @@ namespace NPoco
 
         public virtual int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            return UpdateImp(tableName, primaryKeyName, poco, primaryKeyValue, columns,
-                (sql, args, next) => next(Execute(sql, args)), 0);
+            return UpdateImp(tableName, primaryKeyName, poco, primaryKeyValue, columns, (sql, args, next) => next(Execute(sql, args)), 0);
         }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco

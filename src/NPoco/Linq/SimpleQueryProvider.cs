@@ -360,11 +360,7 @@ namespace NPoco.Linq
 
         public System.Threading.Tasks.Task<IEnumerable<T>> ToEnumerableAsync()
         {
-            if (!_joinSqlExpressions.Any())
-                return _database.QueryAsync<T>(_sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
-
-            var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false, false);
-            return _database.QueryAsync<T>(sql);
+            return _database.QueryAsync<T>(BuildSql());
         }
 
         public async System.Threading.Tasks.Task<T> FirstOrDefaultAsync()

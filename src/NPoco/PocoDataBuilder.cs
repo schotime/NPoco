@@ -10,7 +10,7 @@ namespace NPoco
     public class PocoDataBuilder
     {
         private readonly Cache<string, Type> _aliasToType = Cache<string, Type>.CreateStaticCache();
-        
+
         protected Type Type { get; set; }
         private MapperCollection Mapper { get; set; }
         private PocoDataFactory PocoDataFactory { get; set; }
@@ -45,7 +45,7 @@ namespace NPoco
         private ColumnInfo[] GetColumnInfos(Type type, MemberInfo[] memberInfos)
         {
             return ReflectionUtils.GetFieldsAndPropertiesForClasses(type)
-                .Where(x=> !IsDictionaryType(x.DeclaringType))
+                .Where(x => !IsDictionaryType(x.DeclaringType))
                 .Select(x => GetColumnInfo(x, memberInfos)).ToArray();
         }
 
@@ -74,12 +74,9 @@ namespace NPoco
         protected virtual TableInfoPlan GetTableInfo(Type type, ColumnInfo[] columnInfos, List<MemberInfo> memberInfos)
         {
             var alias = CreateAlias(type.Name, type);
-            return () =>
-            {
-                var tableInfo = TableInfo.FromPoco(type);
-                tableInfo.AutoAlias = alias;
-                return tableInfo;
-            };
+            var tableInfo = TableInfo.FromPoco(type);
+            tableInfo.AutoAlias = alias;
+            return () => { return tableInfo.Clone(); };
         }
 
         protected virtual ColumnInfo GetColumnInfo(MemberInfo mi, MemberInfo[] toArray)
@@ -106,7 +103,7 @@ namespace NPoco
                 }
             }
         }
-        
+
         private IEnumerable<PocoMemberPlan> GetPocoMembers(MapperCollection mapper, ColumnInfo[] columnInfos, List<MemberInfo> memberInfos, string prefix = null)
         {
             var capturedMembers = memberInfos.ToArray();
@@ -124,7 +121,7 @@ namespace NPoco
 
                 var childrenPlans = new PocoMemberPlan[0];
                 TableInfoPlan childTableInfoPlan = null;
-                var members = new List<MemberInfo>(capturedMembers) {columnInfo.MemberInfo};
+                var members = new List<MemberInfo>(capturedMembers) { columnInfo.MemberInfo };
 
                 if (columnInfo.ComplexMapping || columnInfo.ReferenceType != ReferenceType.None)
                 {
@@ -134,7 +131,7 @@ namespace NPoco
                     }
 
                     var childColumnInfos = GetColumnInfos(memberInfoType, members.ToArray());
-                    
+
                     if (columnInfo.ReferenceType != ReferenceType.None)
                     {
                         childTableInfoPlan = GetTableInfo(memberInfoType, childColumnInfos, members);
@@ -154,16 +151,18 @@ namespace NPoco
                 var listType = GetListType(memberType, isList);
                 var isDynamic = capturedMemberInfo.IsDynamic();
                 var fastCreate = GetFastCreate(memberType, mapper, isList, isDynamic);
+                var columnName = GetColumnName(capturedPrefix, capturedColumnInfo.ColumnName);
+                var memberInfoData = new MemberInfoData(capturedMemberInfo);
 
                 yield return tableInfo =>
                 {
                     var pc = new PocoColumn
                     {
-                        ReferenceType = capturedColumnInfo.ReferenceType, 
-                        TableInfo = tableInfo, 
-                        MemberInfoData = new MemberInfoData(capturedMemberInfo),
+                        ReferenceType = capturedColumnInfo.ReferenceType,
+                        TableInfo = tableInfo,
+                        MemberInfoData = memberInfoData,
                         MemberInfoChain = members,
-                        ColumnName = GetColumnName(capturedPrefix, capturedColumnInfo.ColumnName),
+                        ColumnName = columnName,
                         ResultColumn = capturedColumnInfo.ResultColumn,
                         ForceToUtc = capturedColumnInfo.ForceToUtc,
                         ComputedColumn = capturedColumnInfo.ComputedColumn,
@@ -188,7 +187,7 @@ namespace NPoco
 
                     var pocoMember = new PocoMember()
                     {
-                        MemberInfoData = new MemberInfoData(capturedMemberInfo),
+                        MemberInfoData = memberInfoData,
                         MemberInfoChain = members,
                         IsList = isList,
                         IsDynamic = isDynamic,
@@ -198,7 +197,7 @@ namespace NPoco
                         PocoMemberChildren = children,
                     };
 
-                    pocoMember.SetMemberAccessor(accessors[accessors.Count-1], fastCreate, listType);
+                    pocoMember.SetMemberAccessor(accessors[accessors.Count - 1], fastCreate, listType);
 
                     return pocoMember;
                 };

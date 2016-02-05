@@ -36,7 +36,7 @@ namespace NPoco
         public Task<object> InsertAsync<T>(T poco)
         {
             var pd = PocoDataFactory.ForType(poco.GetType());
-            return InsertAsync(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
+            return InsertAsyncImp(pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
         }
 
         /// <summary>
@@ -50,7 +50,13 @@ namespace NPoco
         /// <remarks>Inserts a poco into a table.  If the poco has a property with the same name 
         /// as the primary key the id of the new record is assigned to it.  Either way,
         /// the new id is returned.</remarks>
-        public virtual async Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
+        public virtual Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
+        {
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
+            return InsertAsyncImp(pd, tableName, primaryKeyName, autoIncrement, poco);
+        }
+
+        private async Task<object> InsertAsyncImp<T>(PocoData pocoData, string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
             if (!OnInsertingInternal(new InsertContext(poco, tableName, autoIncrement, primaryKeyName)))
                 return 0;
@@ -59,7 +65,7 @@ namespace NPoco
             {
                 OpenSharedConnectionInternal();
 
-                var preparedInsert = InsertStatements.PrepareInsertSql(this, tableName, primaryKeyName, autoIncrement, poco);
+                var preparedInsert = InsertStatements.PrepareInsertSql(this, pocoData, tableName, primaryKeyName, autoIncrement, poco);
 
                 using (var cmd = CreateCommand(_sharedConnection, preparedInsert.Sql, preparedInsert.Rawvalues.ToArray()))
                 {

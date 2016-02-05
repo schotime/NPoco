@@ -18,9 +18,8 @@ namespace NPoco
                 public List<object> Rawvalues { get; set; }
             }
 
-            public static PreparedInsertSql PrepareInsertSql<T>(Database database, string tableName, string primaryKeyName, bool autoIncrement, T poco)
+            public static PreparedInsertSql PrepareInsertSql<T>(Database database, PocoData pd, string tableName, string primaryKeyName, bool autoIncrement, T poco)
             {
-                var pd = database.PocoDataFactory.ForObject(poco, primaryKeyName);
                 var names = new List<string>();
                 var values = new List<string>();
                 var rawvalues = new List<object>();

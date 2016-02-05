@@ -51,7 +51,7 @@ namespace NPoco
 
         internal void SetMemberAccessors(List<MemberAccessor> memberAccessors)
         {
-            _memberAccessor = memberAccessors.Last();
+            _memberAccessor = memberAccessors[memberAccessors.Count-1];
             _memberAccessorChain = memberAccessors;
         }
 
