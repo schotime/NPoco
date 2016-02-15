@@ -1429,22 +1429,22 @@ namespace NPoco.Expressions
             return exp;
         }
 
-        protected object GetTrueExpression()
+        protected virtual object GetTrueExpression()
         {
             return new PartialSqlString(string.Format("({0}={1})", GetQuotedTrueValue(), GetQuotedTrueValue()));
         }
 
-        protected object GetFalseExpression()
+        protected virtual object GetFalseExpression()
         {
             return new PartialSqlString(string.Format("({0}={1})", GetQuotedTrueValue(), GetQuotedFalseValue()));
         }
 
-        protected object GetQuotedTrueValue()
+        protected virtual object GetQuotedTrueValue()
         {
             return CreateParam(true);
         }
 
-        protected object GetQuotedFalseValue()
+        protected virtual object GetQuotedFalseValue()
         {
             return CreateParam(false);
         }

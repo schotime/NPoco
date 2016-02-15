@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
 using System.Linq;
+using System.Threading;
 using NPoco.DatabaseTypes;
 using NPoco.FluentMappings;
 using NPoco.Tests.FluentMappings;
@@ -19,6 +21,8 @@ namespace NPoco.Tests.Common
         [SetUp]
         public void SetUp()
         {
+          Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+
             var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(Usersss), typeof(House), typeof(Supervisor) };
             var dbFactory = new DatabaseFactory();
             dbFactory.Config().WithFluentConfig(
@@ -57,7 +61,7 @@ namespace NPoco.Tests.Common
                 case 8: // Firebird
                     TestDatabase = new FirebirdDatabase();
                     var db = new Database(TestDatabase.Connection, new FirebirdDatabaseType());
-                    db.Mapper = new FirebirdDefaultMapper();
+                    db.Mapper = new CustomFirebirdMapper();
                     Database = dbFactory.Build(db);
                     break;
 

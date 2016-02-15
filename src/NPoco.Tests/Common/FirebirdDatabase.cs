@@ -140,8 +140,11 @@ CREATE TABLE Users(
     TimeSpan time,
     TestEnum varchar(10),
     HouseId integer,
-    SupervisorId integer
-                );
+    SupervisorId integer,
+    Version timestamp,
+    VersionInt int default '0' NOT NULL,
+    YorN char(1)
+);
           
 CREATE TABLE ExtraUserInfos(
     ExtraUserInfoId integer PRIMARY KEY NOT NULL, 
@@ -163,6 +166,13 @@ CREATE TABLE CompositeObjects(
     DateEntered timestamp NOT NULL,
     DateUpdated timestamp  
 );
+
+
+CREATE TABLE GuidFromDb(
+    Id varchar(32) PRIMARY KEY, 
+    Name varchar(30)  
+);
+
 
 CREATE GENERATOR USERS_USERID_GEN;
 CREATE GENERATOR EXTRAUSERINFOS_ID_GEN;
@@ -198,6 +208,49 @@ BEGIN
       NEW.HOUSEID = GEN_ID(HOUSES_HOUSEID_GEN, 1);
 END^
 
+
+
+
+CREATE PROCEDURE GET_HEX_UUID
+RETURNS(
+  REAL_UUID CHAR(16) CHARACTER SET OCTETS,
+  HEX_UUID VARCHAR(32))
+AS
+    DECLARE VARIABLE i INTEGER;
+    DECLARE VARIABLE c INTEGER;
+BEGIN
+    real_uuid = GEN_UUID();
+    hex_uuid = '';
+    i = 0;
+    while (i < 16) do
+    begin
+        c = ascii_val(substring(real_uuid from i+1 for 1));
+        if (c < 0) then c = 256 + c;
+        hex_uuid = hex_uuid 
+        || substring('0123456789abcdef' from bin_shr(c, 4) + 1 for 1) 
+        || substring('0123456789abcdef' from bin_and(c, 15) + 1 for 1); 
+        i = i + 1;
+    end
+    suspend;
+END^
+
+CREATE TRIGGER GUIDFROMDB_BI FOR GUIDFROMDB
+ACTIVE BEFORE INSERT
+POSITION 0
+AS
+DECLARE VARIABLE HEX_UUID VARCHAR(32);
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+  BEGIN
+  	FOR SELECT FIRST 1 HEX_UUID 
+    FROM GET_HEX_UUID
+	    INTO :hex_uuid DO
+  	BEGIN
+    	new.id = hex_uuid;
+    END
+  END
+END^
+
 SET TERM ; ^
 
 CREATE ROLE %role%;
@@ -206,6 +259,8 @@ GRANT SELECT, UPDATE, INSERT, DELETE ON Users TO ROLE %role%;
 GRANT SELECT, UPDATE, INSERT, DELETE ON ExtraUserInfos TO ROLE %role%;
 GRANT SELECT, UPDATE, INSERT, DELETE ON Houses TO ROLE %role%;
 GRANT SELECT, UPDATE, INSERT, DELETE ON CompositeObjects TO ROLE %role%;
+GRANT SELECT, UPDATE, INSERT, DELETE ON GuidFromDb TO ROLE %role%;
+GRANT EXECUTE ON PROCEDURE GET_HEX_UUID TO ROLE %role%;
 
 GRANT %role% TO %user%;
 ".Replace("%role%", FbRole).Replace("%user%", FbUserName);

@@ -6,8 +6,16 @@ using NPoco.Expressions;
 
 namespace NPoco.DatabaseTypes
 {
+    /// <summary>
+    /// Support for Firebird databases
+    /// <remarks>
+    ///   Firebird doesn’t have some native guid-datatype alike to bool
+    ///   Firebird ADO.NET Provider dosen't support batch queries. (Database.FetchMultiple)
+    ///  </remarks>
+    /// </summary>
     public class FirebirdDatabaseType : DatabaseType
     {
+
         public override string GetParameterPrefix(string connectionString)
         {
             return "@";
@@ -62,7 +70,7 @@ namespace NPoco.DatabaseTypes
                 db.ExecuteNonQueryHelper(cmd);
                 return param.Value;
             }
-
+            
             db.ExecuteNonQueryHelper(cmd);
             return -1;
         }
