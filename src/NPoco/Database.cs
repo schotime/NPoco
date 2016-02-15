@@ -863,7 +863,7 @@ namespace NPoco
                 if (isConverterSet == false)
                 {
                     converter1 = MappingHelper.GetConverter(Mappers, null, typeof(TKey), key.GetType()) ?? (x => x);
-                    converter2 = MappingHelper.GetConverter(Mappers, null, typeof(TValue), value.GetType()) ?? (x => x);
+                    converter2 = (value != null ? MappingHelper.GetConverter(Mappers, null, typeof(TValue), value.GetType()) : null) ?? (x => x);
                     isConverterSet = true;
                 }
 

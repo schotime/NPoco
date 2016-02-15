@@ -106,5 +106,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(2, data[0]["userid"]);
             Assert.AreEqual("Name2", data[0]["name"]);
         }
+        
+        [Test]
+        public void QueryDictionary()
+        {
+            var data = Database.Dictionary<string, string>("select name, address__street from users");
+            Assert.AreEqual(null, data["Name1"]);
+            Assert.AreEqual("1 Road Street", data["Name2"]);
+        }
     }
 }
