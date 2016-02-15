@@ -125,5 +125,12 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var data = Database.Single<int>("select 2");
             Assert.AreEqual(2, data);
         }
+        
+        [Test]
+        public void QueryDictionary()
+        {
+            var data = Database.Dictionary<string, string>("select name, null from users");
+            Assert.AreEqual(null, data["Name1"]);
+        }
     }
 }

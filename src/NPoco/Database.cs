@@ -832,7 +832,7 @@ namespace NPoco
                 if (isConverterSet == false)
                 {
                     converter1 = MappingFactory.GetConverter(Mapper, null, typeof(TKey), key.GetType()) ?? (x => x);
-                    converter2 = MappingFactory.GetConverter(Mapper, null, typeof(TValue), value.GetType()) ?? (x => x);
+                    converter2 = (value != null ? MappingFactory.GetConverter(Mapper, null, typeof(TValue), value.GetType()) : null) ?? (x => x);
                     isConverterSet = true;
                 }
 
