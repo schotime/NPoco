@@ -1355,7 +1355,7 @@ namespace NPoco
         // the new id is returned.
         public virtual object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName, autoIncrement);
             return InsertImp(pd, tableName, primaryKeyName, autoIncrement, poco);
         }
 
@@ -1478,7 +1478,7 @@ namespace NPoco
             var sb = new StringBuilder();
             var index = 0;
             var rawvalues = new List<object>();
-            var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName, true);
             string versionName = null;
             object versionValue = null;
             VersionColumnType versionColumnType = VersionColumnType.Number;
@@ -1690,7 +1690,7 @@ namespace NPoco
             if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) 
                 return defaultRet;
 
-            var pd = poco != null ? PocoDataFactory.ForObject(poco, primaryKeyName) : null;
+            var pd = poco != null ? PocoDataFactory.ForObject(poco, primaryKeyName, true) : null;
             var primaryKeyValuePairs = GetPrimaryKeyValues(pd, primaryKeyName, primaryKeyValue ?? poco, primaryKeyValue == null);
             
             // Do it
@@ -1925,7 +1925,6 @@ namespace NPoco
             var underlyingType = Nullable.GetUnderlyingType(memberInfo.MemberType);
             return memberInfo.MemberType.GetTypeInfo().IsEnum || (underlyingType != null && underlyingType.GetTypeInfo().IsEnum);
         }
-
         
         private object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
         {

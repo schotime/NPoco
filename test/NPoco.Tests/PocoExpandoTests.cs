@@ -16,6 +16,14 @@ namespace NPoco.Tests
         }
 
         [Test]
+        public void CanInsertDynamic()
+        {
+            var result = Database.FirstOrDefault<dynamic>("select UserId, Name, Age from users where userid = 1");
+            var id = Database.Insert("Users", "UserId", result);
+            Assert.AreEqual(id, 16);
+        }
+
+        [Test]
         public void IsNewReturnsTrue()
         {
             dynamic results = new PocoExpando();
@@ -27,7 +35,7 @@ namespace NPoco.Tests
         {
             dynamic result = new PocoExpando();
             result.Name = "Name1";
-            PocoData pd = Database.PocoDataFactory.ForObject(result, "UserId");
+            PocoData pd = Database.PocoDataFactory.ForObject(result, "UserId", true);
             Assert.AreEqual(pd.Columns.Count, 2);
             Assert.True(pd.Columns.ContainsKey("UserId"));
             Assert.True(pd.Columns.ContainsKey("Name"));

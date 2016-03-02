@@ -52,7 +52,7 @@ namespace NPoco
         /// the new id is returned.</remarks>
         public virtual Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            var pd = PocoDataFactory.ForObject(poco, primaryKeyName);
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName, autoIncrement);
             return InsertAsyncImp(pd, tableName, primaryKeyName, autoIncrement, poco);
         }
 

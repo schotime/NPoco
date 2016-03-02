@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Data.Common;
 
@@ -18,6 +17,8 @@ namespace NPoco
 #endif
             Factories.Add(typeof(IDictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
             Factories.Add(typeof(Dictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
+
+            Add(new SqlServerDefaultMapper());
         }
 
         public void RegisterFactory<T>(Func<DbDataReader, T> factory)

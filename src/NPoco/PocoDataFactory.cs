@@ -31,7 +31,7 @@ namespace NPoco
                 : new Func<PocoDataBuilder>(() => Resolver(type, this))));
             return pocoDataBuilder.Build();
         }
-        public PocoData ForObject(object o, string primaryKeyName)
+        public PocoData ForObject(object o, string primaryKeyName, bool autoIncrement)
         {
             var t = o.GetType();
 #if !NET35
@@ -42,11 +42,11 @@ namespace NPoco
                 pd.Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
                 pd.Columns.Add(primaryKeyName, new ExpandoColumn() {ColumnName = primaryKeyName});
                 pd.TableInfo.PrimaryKey = primaryKeyName;
-                pd.TableInfo.AutoIncrement = true;
-                foreach (var col in ((IDictionary<string, object>) o).Keys)
+                pd.TableInfo.AutoIncrement = autoIncrement;
+                foreach (var col in ((IDictionary<string, object>) o))
                 {
-                    if (col != primaryKeyName)
-                        pd.Columns.Add(col, new ExpandoColumn() {ColumnName = col});
+                    if (col.Key != primaryKeyName)
+                        pd.Columns.Add(col.Key, new ExpandoColumn() {ColumnName = col.Key, MemberInfoData = new MemberInfoData(col.Key, col.Value.GetTheType() ?? typeof(object), typeof(object)) });
                 }
                 return pd;
             }
