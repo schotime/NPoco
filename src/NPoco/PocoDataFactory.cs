@@ -46,7 +46,11 @@ namespace NPoco
                 foreach (var col in ((IDictionary<string, object>) o))
                 {
                     if (col.Key != primaryKeyName)
-                        pd.Columns.Add(col.Key, new ExpandoColumn() {ColumnName = col.Key, MemberInfoData = new MemberInfoData(col.Key, col.Value.GetTheType() ?? typeof(object), typeof(object)) });
+                        pd.Columns.Add(col.Key, new ExpandoColumn()
+                        {
+                            ColumnName = col.Key,
+                            MemberInfoData = new MemberInfoData(col.Key, col.Value.GetTheType() ?? typeof(object), typeof(object)),
+                        });
                 }
                 return pd;
             }

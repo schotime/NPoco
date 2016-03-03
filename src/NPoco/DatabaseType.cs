@@ -340,17 +340,17 @@ namespace NPoco
 #if !NET35 && !NET40
         public virtual System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, DbCommand cmd)
         {
-            throw new NotSupportedException("Async is not supported by the provider you are using");
+            return cmd.ExecuteNonQueryAsync();
         }
 
         public virtual System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, DbCommand cmd)
         {
-            throw new NotSupportedException("Async is not supported by the provider you are using");
+            return cmd.ExecuteScalarAsync();
         }
 
         public virtual System.Threading.Tasks.Task<DbDataReader> ExecuteReaderAsync(Database database, DbCommand cmd)
         {
-            throw new NotSupportedException("Async is not supported by the provider you are using");
+            return cmd.ExecuteReaderAsync();
         }
 #endif
     }

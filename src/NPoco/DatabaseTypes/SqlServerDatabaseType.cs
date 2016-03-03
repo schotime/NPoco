@@ -63,36 +63,6 @@ namespace NPoco.DatabaseTypes
             AdjustSqlInsertCommandText(cmd, useOutputClause);
             return ExecuteScalarAsync(db, cmd);
         }
-
-        public override System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, DbCommand cmd)
-        {
-            var sqlCommand = cmd as SqlCommand;
-            if (sqlCommand != null)
-                return sqlCommand.ExecuteNonQueryAsync();
-            return base.ExecuteNonQueryAsync(database, cmd);
-        }
-
-        public override async System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, DbCommand cmd)
-        {
-            var dbCommand = cmd as SqlCommand;
-            
-            if (dbCommand != null)
-            {
-                return await dbCommand.ExecuteScalarAsync().ConfigureAwait(false);
-            }
-            return await base.ExecuteScalarAsync(database, cmd).ConfigureAwait(false);
-        }
-
-        public override async System.Threading.Tasks.Task<DbDataReader> ExecuteReaderAsync(Database database, DbCommand cmd)
-        {
-            var dbCommand = cmd as SqlCommand;
-            if (dbCommand != null)
-            {
-                return await dbCommand.ExecuteReaderAsync().ConfigureAwait(false);
-            }
-
-            return await base.ExecuteReaderAsync(database, cmd).ConfigureAwait(false);
-        }
 #endif
 
         public override string GetExistsSql()

@@ -44,12 +44,13 @@ namespace NPoco
                 type = ((FieldInfo) member).FieldType;
             else if (member is PropertyInfo)
                 type = ((PropertyInfo) member).PropertyType;
+            else if (member == null)
+                type = typeof (object);
             else
                 throw new NotSupportedException();
 
             return type;
         }
-
 
         public static bool IsDynamic(this MemberInfo member)
         {
@@ -64,26 +65,6 @@ namespace NPoco
         public static bool IsField(this MemberInfo member)
         {
             return member is FieldInfo;
-        }
-
-        public static object GetMemberInfoValue(this MemberInfo member, object obj)
-        {
-            object val;
-            if (member is FieldInfo)
-                val = ((FieldInfo)member).GetValue(obj);
-            else if(member is PropertyInfo)
-                val = ((PropertyInfo)member).GetValue(obj, null);
-            else
-                throw new NotSupportedException();
-            return val;
-        }
-
-        public static void SetMemberInfoValue(this MemberInfo member, object obj, object value)
-        {
-            if (member is FieldInfo)
-                ((FieldInfo)member).SetValue(obj, value);
-            else
-                ((PropertyInfo)member).SetValue(obj, value, null);
         }
 
         public static MethodInfo GetSetMethodOnDeclaringType(this PropertyInfo propertyInfo)
