@@ -549,6 +549,15 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             var data = Database.Fetch<UserWithPrivateParamLessConstructor>("select * from users");
             Assert.AreEqual(15, data.Count);
         }
+
+        [Test]
+        public void Test31()
+        {
+            Assert.Throws<Exception>(() =>
+            {
+                var fastCreate = new FastCreate(typeof(ContentBase), new MapperCollection());
+            });
+        }
     }
 
     public class Post : ContentBase

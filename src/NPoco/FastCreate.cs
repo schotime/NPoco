@@ -25,7 +25,14 @@ namespace NPoco
 
         public object Create(DbDataReader dataReader)
         {
-            return CreateDelegate(dataReader);
+            try
+            {
+                return CreateDelegate(dataReader);
+            }
+            catch (Exception exception)
+            {
+                throw new Exception("Error trying to create type " + _type, exception);
+            }
         }
 
         private Func<DbDataReader, object> GetCreateDelegate()
@@ -43,8 +50,15 @@ namespace NPoco
             il.Emit(OpCodes.Newobj, constructorInfo);
             il.Emit(OpCodes.Ret);
 
-            var del = constructor.CreateDelegate(Expression.GetFuncType(typeof (DbDataReader), typeof (object)));
-            return del as Func<DbDataReader, object>;
+            try
+            {
+                var del = constructor.CreateDelegate(Expression.GetFuncType(typeof(DbDataReader), typeof(object)));
+                return del as Func<DbDataReader, object>;
+            }
+            catch (Exception exception)
+            {
+                throw new Exception("Error trying to create type " + _type, exception);
+            }
         }
     }
 }
