@@ -17,8 +17,6 @@ namespace NPoco
 #endif
             Factories.Add(typeof(IDictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
             Factories.Add(typeof(Dictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
-
-            Add(new SqlServerDefaultMapper());
         }
 
         public void RegisterFactory<T>(Func<DbDataReader, T> factory)

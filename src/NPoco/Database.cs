@@ -1937,7 +1937,7 @@ namespace NPoco
                 return value.ToString();
             }
 
-            return value;
+            return _dbType.ProcessDefaultMappings(pocoColumn, value);
         }
     }
 }

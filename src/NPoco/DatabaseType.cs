@@ -353,5 +353,10 @@ namespace NPoco
             return cmd.ExecuteReaderAsync();
         }
 #endif
+
+        public virtual object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
+        {
+            return value;
+        }
     }
 }

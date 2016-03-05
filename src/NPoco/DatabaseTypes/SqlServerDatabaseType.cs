@@ -94,5 +94,14 @@ namespace NPoco.DatabaseTypes
         {
             return "System.Data.SqlClient";
         }
+
+        public override object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
+        {
+            if (pocoColumn.MemberInfoData.MemberType == typeof (byte[]) && value == null)
+            {
+                return new SqlParameter("__bytes", SqlDbType.VarBinary, -1) { Value = DBNull.Value };
+            }
+            return base.ProcessDefaultMappings(pocoColumn, value);
+        }
     }
 }
