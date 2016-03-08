@@ -6,7 +6,7 @@ using System.Threading;
 #if DNX451 || NET45 || NET40
 using System.Runtime.Caching;
 #elif DNXCORE50
-using Microsoft.Framework.Caching.Memory;
+using Microsoft.Extensions.Caching.Memory;
 #endif
 
 namespace NPoco
