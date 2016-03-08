@@ -79,7 +79,15 @@ namespace NPoco
             : this(connectionString, providerName, DefaultEnableAutoSelect)
         { }
 
+        public Database(string connectionString, string providerName, IsolationLevel isolationLevel)
+            : this(connectionString, providerName, isolationLevel, DefaultEnableAutoSelect)
+        { }
+
         public Database(string connectionString, string providerName, bool enableAutoSelect)
+            : this(connectionString, providerName, null, enableAutoSelect)
+        { }
+
+        public Database(string connectionString, string providerName, IsolationLevel? isolationLevel, bool enableAutoSelect)
         {
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = false;
@@ -89,7 +97,7 @@ namespace NPoco
             var dbTypeName = (_factory == null ? _sharedConnection.GetType() : _factory.GetType()).Name;
             _dbType = DatabaseType.Resolve(dbTypeName, providerName);
             _providerName = providerName;
-            _isolationLevel = _dbType.GetDefaultTransactionIsolationLevel();
+            _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 
@@ -136,8 +144,16 @@ namespace NPoco
         public Database(string connectionStringName)
             : this(connectionStringName, DefaultEnableAutoSelect)
         { }
-        
-        public Database(string connectionStringName,  bool enableAutoSelect)
+
+        public Database(string connectionStringName, IsolationLevel isolationLevel)
+            : this(connectionStringName, isolationLevel, DefaultEnableAutoSelect)
+        { }
+
+        public Database(string connectionStringName, bool enableAutoSelect)
+            : this(connectionStringName, (IsolationLevel?) null, enableAutoSelect)
+        { }
+
+        public Database(string connectionStringName, IsolationLevel? isolationLevel,  bool enableAutoSelect)
         {
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = false;
@@ -165,7 +181,7 @@ namespace NPoco
 
             _factory = DbProviderFactories.GetFactory(_providerName);
             _dbType = DatabaseType.Resolve(_factory.GetType().Name, _providerName);
-            _isolationLevel = _dbType.GetDefaultTransactionIsolationLevel();
+            _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 #endif
