@@ -9,8 +9,8 @@ namespace NPoco.FluentMappings
     {
         private readonly Mappings _mappings;
 
-        public FluentMappingsPocoDataBuilder(Type type, Mappings mappings, MapperCollection mapper, PocoDataFactory pocoDataFactory) : 
-            base(type, mapper, pocoDataFactory)
+        public FluentMappingsPocoDataBuilder(Type type, Mappings mappings, MapperCollection mapper) : 
+            base(type, mapper)
         {
             _mappings = mappings;
         }

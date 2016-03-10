@@ -54,7 +54,7 @@ namespace NPoco.Tests
         public void FluentConfigShouldBePlacedOnDatabaseWhenInsertedIntoFactoryConfig()
         {
             var db = new Database(new SqlConnection());
-            var pocoDataFactory = new PocoDataFactory((y,f) => new PocoDataBuilder(y, new MapperCollection(), f).Init());
+            var pocoDataFactory = new FluentPocoDataFactory((y,f) => new PocoDataBuilder(y, new MapperCollection()).Init());
             var fluentConfig = new FluentConfig(x=>pocoDataFactory);
 
             var factory = DatabaseFactory.Config(x =>
@@ -67,6 +67,7 @@ namespace NPoco.Tests
             Assert.AreEqual(fluentConfig.Config(null), database.PocoDataFactory);
         }
 
+        [TableName("Table1")]
         class WanderingPoco
         {
             public int Id { get; set; }
@@ -109,6 +110,24 @@ namespace NPoco.Tests
 
             var pocoData1 = db1.PocoDataFactory.ForType(typeof (WanderingPoco));
             var pocoData2 = db2.PocoDataFactory.ForType(typeof (WanderingPoco));
+
+            Assert.AreEqual("Table1", pocoData1.TableInfo.TableName);
+            Assert.AreEqual("Table2", pocoData2.TableInfo.TableName);
+        }
+
+        [Test]
+        public void DifferentFactoriesWithDifferentMappingsGetDifferentPocoDataForSamePocoWithoutFactory()
+        {
+            // Assume these factories connect to different data sources
+            var db1 = new Database(new SqlConnection()) { PocoDataFactory = new PocoDataFactory(new MapperCollection())};
+            var factory2 = DatabaseFactory.Config(x =>
+            {
+                x.UsingDatabase(() => new Database(new SqlConnection()));
+                x.WithFluentConfig(FluentMappingConfiguration.Configure(new AnotherMapping()));
+            });
+
+            var pocoData1 = db1.PocoDataFactory.ForType(typeof(WanderingPoco));
+            var pocoData2 = factory2.GetDatabase().PocoDataFactory.ForType(typeof(WanderingPoco));
 
             Assert.AreEqual("Table1", pocoData1.TableInfo.TableName);
             Assert.AreEqual("Table2", pocoData2.TableInfo.TableName);

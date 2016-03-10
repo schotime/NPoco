@@ -65,7 +65,7 @@ namespace NPoco
             }
         }
 
-        public PocoDataFactory GetPocoDataFactory()
+        public IPocoDataFactory GetPocoDataFactory()
         {
             if (_options.PocoDataFactory != null)
             {

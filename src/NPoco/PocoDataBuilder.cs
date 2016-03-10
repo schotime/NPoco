@@ -13,7 +13,6 @@ namespace NPoco
 
         protected Type Type { get; set; }
         private MapperCollection Mapper { get; set; }
-        private PocoDataFactory PocoDataFactory { get; set; }
 
         private List<PocoMemberPlan> _memberPlans { get; set; }
         private TableInfoPlan _tableInfoPlan { get; set; }
@@ -21,11 +20,10 @@ namespace NPoco
         private delegate PocoMember PocoMemberPlan(TableInfo tableInfo);
         protected delegate TableInfo TableInfoPlan();
 
-        public PocoDataBuilder(Type type, MapperCollection mapper, PocoDataFactory pocoDataFactory)
+        public PocoDataBuilder(Type type, MapperCollection mapper)
         {
             Type = type;
             Mapper = mapper;
-            PocoDataFactory = pocoDataFactory;
         }
 
         public PocoDataBuilder Init()

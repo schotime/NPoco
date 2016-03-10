@@ -1869,8 +1869,8 @@ namespace NPoco
         private MapperCollection _mappers = new MapperCollection();
         public MapperCollection Mappers { get { return _mappers; } }
 
-        private PocoDataFactory _pocoDataFactory;
-        public PocoDataFactory PocoDataFactory
+        private IPocoDataFactory _pocoDataFactory;
+        public IPocoDataFactory PocoDataFactory
         {
             get { return _pocoDataFactory ?? (_pocoDataFactory = new PocoDataFactory(Mappers)); }
             set { _pocoDataFactory = value; }

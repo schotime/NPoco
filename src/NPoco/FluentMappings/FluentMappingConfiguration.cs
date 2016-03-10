@@ -8,12 +8,12 @@ namespace NPoco.FluentMappings
 {
     public class FluentConfig
     {
-        public FluentConfig(Func<MapperCollection, PocoDataFactory> config)
+        public FluentConfig(Func<MapperCollection, FluentPocoDataFactory> config)
         {
             Config = config;
         }
 
-        public Func<MapperCollection, PocoDataFactory> Config { get; private set; }
+        public Func<MapperCollection, FluentPocoDataFactory> Config { get; private set; }
     }
 
     public class FluentMappingConfiguration
@@ -261,23 +261,23 @@ namespace NPoco.FluentMappings
         {
             var maps = mappings;
             var scana = scanner;
-            return new FluentConfig(mapper => new PocoDataFactory((t, pocoDataFactory) =>
+            return new FluentConfig(mapper => new FluentPocoDataFactory((t, pocoDataFactory) =>
             {
                 if (maps != null)
                 {
                     if (maps.Config.ContainsKey(t))
                     {
-                        return new FluentMappingsPocoDataBuilder(t, mappings, mapper, pocoDataFactory).Init();
+                        return new FluentMappingsPocoDataBuilder(t, mappings, mapper).Init();
                     }
 
                     if (scana != null)
                     {
                         var settings = ProcessSettings(scana);
                         var typeMapping = CreateMappings(settings, new[] { t });
-                        return new FluentMappingsPocoDataBuilder(t, typeMapping, mapper, pocoDataFactory).Init();
+                        return new FluentMappingsPocoDataBuilder(t, typeMapping, mapper).Init();
                     }
                 }
-                return new PocoDataBuilder(t, mapper, pocoDataFactory).Init();
+                return new PocoDataBuilder(t, mapper).Init();
             }));
         }
 
