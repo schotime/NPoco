@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Globalization;
+using System.Linq;
 using NPoco.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -306,8 +307,15 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void QueryWithProjectionAndEnclosedMethod()
         {
+            // need the CultureInfo.InvariantCulture to get "21.00" whatever the culture
+            // else for some (eg French) environments, ToString would produce eg "21,00"
+            //
+            // this also forces the string.Format overload with params args and tests that
+            // these arguments are properly supported (ProcessMethodSearchRecursively has
+            // to support NewArrayExpression).
+            //
             var users = Database.Query<User>()
-                .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format("{0:n}", x.Age) });
+                .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format(CultureInfo.InvariantCulture, "{0:n}", x.Age) });
 
             Assert.AreEqual("21.00", users[0].FormattedAge);
             Assert.AreEqual(15, users.Count);
