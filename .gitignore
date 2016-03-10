@@ -11,3 +11,4 @@ artifacts
 TestResult.xml
 UnitTests*
 .vs*
+project.lock.json
