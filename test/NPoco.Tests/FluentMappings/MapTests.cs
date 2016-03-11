@@ -87,7 +87,7 @@ namespace NPoco.Tests.FluentMappings
             var typeDefinition1 = new TypeDefinition(typeof(Supervisor));
             var map1 = new SupervisorMap(typeDefinition1);
             
-            Assert.AreEqual(2, typeDefinition1.ColumnConfiguration.Count);
+            Assert.AreEqual(4, typeDefinition1.ColumnConfiguration.Count);
             Assert.IsTrue(typeDefinition1.ColumnConfiguration["Age"].IgnoreColumn ?? false);
             Assert.IsTrue(typeDefinition1.ColumnConfiguration["IsSupervisor"].ResultColumn ?? false);
         }

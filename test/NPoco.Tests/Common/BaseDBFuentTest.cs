@@ -12,6 +12,7 @@ using NPoco.Tests.FluentMappings;
 using NPoco.Tests.FluentTests.QueryTests;
 using NUnit.Framework;
 using Microsoft.Extensions.Configuration;
+using NPoco.Tests.NewMapper.Models;
 
 namespace NPoco.Tests.Common
 {
@@ -29,7 +30,7 @@ namespace NPoco.Tests.Common
         [OneTimeSetUp]
         public void SetUp()
         {
-            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(UserWithExtraInfo), typeof(Usersss), typeof(House), typeof(Supervisor) };
+            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(UserWithExtraInfo), typeof(Usersss), typeof(House), typeof(Supervisor), typeof(One), typeof(Many), typeof(NestedClass) };
             var dbFactory = new DatabaseFactory();
             dbFactory.Config().WithFluentConfig(
                 FluentMappingConfiguration.Scan(s =>
@@ -162,6 +163,23 @@ namespace NPoco.Tests.Common
                 };
                 Database.Insert(extra);
                 InMemoryExtraUserInfos.Add(extra);
+
+                var one = new One()
+                {
+                    Name = "Name" + (i + 1),
+                };
+                Database.Insert(one);
+
+                for (int j = 0; j < (i % 3); j++)
+                {
+                    var many = new Many()
+                    {
+                        OneId = one.OneId,
+                        Currency = "Cur" + (i + j + 1),
+                        Value = (i + j + 1)
+                    };
+                    Database.Insert(many);
+                }
             }
         }
 
@@ -212,6 +230,12 @@ namespace NPoco.Tests.Common
             });
             For<Supervisor>().UseMap<SupervisorMap>();
             For<Supervisor>().TableName("users").Columns(x => x.Column(y => y.IsMale).WithName("is_male"));
+            For<One>().Columns(x =>
+            {
+                x.Many(y => y.Items).WithName("OneId").Reference(y => y.OneId);
+                x.Column(y => y.Nested).ComplexMapping();
+            });
+            For<Many>().TableName("Manys");
         }
     }
 }

@@ -16,8 +16,8 @@ namespace NPoco.FluentMappings
         IColumnsBuilderConventions ForceDateTimesToUtcWhere(Func<MemberInfo, bool> forceDateTimesToUtcWhereFunc);
         IColumnsBuilderConventions DbColumnTypeAs(Func<MemberInfo, Type> dbColumnTypeAsFunc);
         IColumnsBuilderConventions ReferenceNamed(Func<MemberInfo, string> refPropertiesNamedFunc);
-        IColumnsBuilderConventions SerializedWhere(Func<MemberInfo, bool> serializedWhereFunc);
         IColumnsBuilderConventions ReferencePropertiesWhere(Func<MemberInfo, bool> referencePropertiesWhereFunc);
+        IColumnsBuilderConventions SerializedWhere(Func<MemberInfo, bool> serializedWhereFunc);
         IColumnsBuilderConventions ComplexPropertiesWhere(Func<MemberInfo, bool> complexPropertiesWhereFunc);
     }
 }

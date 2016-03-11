@@ -99,7 +99,13 @@ namespace NPoco.FluentMappings
                     members.AddRange(capturedMembers);
                     members.Add(member);
 
-                    var columnDefinitions = GetColumnDefinitions(scannerSettings, member.GetMemberInfoType(), members, referenceProperty).ToList();
+                    var memberInfoType = member.GetMemberInfoType();
+                    if (PocoDataBuilder.IsList(member))
+                    {
+                        memberInfoType = memberInfoType.GetGenericArguments().First();
+                    }
+
+                    var columnDefinitions = GetColumnDefinitions(scannerSettings, memberInfoType, members, referenceProperty).ToList();
 
                     foreach (var columnDefinition in columnDefinitions)
                     {
@@ -110,12 +116,12 @@ namespace NPoco.FluentMappings
 
                     yield return new ColumnDefinition()
                     {
-                        MemberInfoChain = capturedMembers.Concat(new[] {member}).ToArray(),
+                        MemberInfoChain = capturedMembers.Concat(new[] { member }).ToArray(),
                         MemberInfo = member,
                         IsComplexMapping = complexProperty,
                         IsReferenceMember = referenceProperty,
-                        ReferenceType = referenceProperty ? ReferenceType.Foreign : ReferenceType.None,
-                        ReferenceMember = referenceProperty ? columnDefinitions.Single(x => x.DbColumnName.Equals(referenceDbColumnsNamed, StringComparison.OrdinalIgnoreCase)).MemberInfo : null,
+                        ReferenceType = ReferenceType.None,
+                        ReferenceMember = null,
                         DbColumnName = referenceProperty ? referenceDbColumnsNamed : null,
                     };
                 }

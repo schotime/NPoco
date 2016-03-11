@@ -24,6 +24,59 @@ namespace NPoco.FluentMappings
             _columnDefinitions[key] = columnDefinition;
             return builder;
         }
+
+        public IManyColumnBuilder<T2> Many<T2>(Expression<Func<T, IList<T2>>> property)
+        {
+            var members = MemberHelper<T>.GetMembers(property);
+            var columnDefinition = new ColumnDefinition() { MemberInfo = members.Last() };
+            var builder = new ManyColumnBuilder<T2>(columnDefinition);
+            var key = PocoColumn.GenerateKey(members);
+            _columnDefinitions[key] = columnDefinition;
+            return builder;
+        }
+    }
+
+    public interface IManyColumnBuilder<TModel>
+    {
+        IManyColumnBuilder<TModel> WithName(string name);
+        IManyColumnBuilder<TModel> WithDbType(Type type);
+        IManyColumnBuilder<TModel> WithDbType<T>();
+        IManyColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> member);
+    }
+
+    public class ManyColumnBuilder<TModel> : IManyColumnBuilder<TModel>
+    {
+        private readonly ColumnDefinition _columnDefinition;
+
+        public ManyColumnBuilder(ColumnDefinition columnDefinition)
+        {
+            _columnDefinition = columnDefinition;
+        }
+
+        public IManyColumnBuilder<TModel> WithName(string name)
+        {
+            _columnDefinition.DbColumnName = name;
+            return this;
+        }
+
+        public IManyColumnBuilder<TModel> WithDbType(Type type)
+        {
+            _columnDefinition.DbColumnType = type;
+            return this;
+        }
+
+        public IManyColumnBuilder<TModel> WithDbType<T>()
+        {
+            return WithDbType(typeof(T));
+        }
+
+        public IManyColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> member)
+        {
+            _columnDefinition.IsReferenceMember = true;
+            _columnDefinition.ReferenceType = ReferenceType.Many;
+            _columnDefinition.ReferenceMember = MemberHelper<TModel>.GetMembers(member).Last();
+            return this;
+        }
     }
 
     public interface IColumnBuilder<TModel>
@@ -115,15 +168,20 @@ namespace NPoco.FluentMappings
 
         public IColumnBuilder<TModel> Reference(ReferenceType referenceType = ReferenceType.Foreign)
         {
+            if (referenceType == ReferenceType.Many)
+            {
+                throw new Exception("Use Many(x => x.Items) instead of Column(x => x.Items) for one to many relationships");
+            }
+
             _columnDefinition.IsReferenceMember = true;
             _columnDefinition.ReferenceType = referenceType;
             return this;
         }
 
-        public IColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> joinColumn, ReferenceType referenceType = ReferenceType.Foreign)
+        public IColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> member, ReferenceType referenceType = ReferenceType.Foreign)
         {
             Reference(referenceType);
-            _columnDefinition.ReferenceMember = MemberHelper<TModel>.GetMembers(joinColumn).Last();
+            _columnDefinition.ReferenceMember = MemberHelper<TModel>.GetMembers(member).Last();
             return this;
         }
 

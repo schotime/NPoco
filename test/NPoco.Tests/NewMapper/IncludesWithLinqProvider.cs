@@ -1,5 +1,6 @@
 using System.Linq;
 using NPoco.Tests.Common;
+using NPoco.Tests.NewMapper.Models;
 using NUnit.Framework;
 
 namespace NPoco.Tests.NewMapper
@@ -33,6 +34,19 @@ namespace NPoco.Tests.NewMapper
                 .ToDynamicList();
 
             Assert.AreEqual(1, result[0].extrauserinfo__extrauserinfoid);
+        }
+
+        [Test]
+        public void Test3()
+        {
+            var result = Database
+                .Query<One>()
+                .IncludeMany(x => x.Items)
+                .ToList();
+
+            Assert.AreEqual(null, result[0].Items);
+            Assert.AreEqual(1, result[1].Items.Count);
+            Assert.AreEqual(2, result[2].Items.Count);
         }
     }
 }
