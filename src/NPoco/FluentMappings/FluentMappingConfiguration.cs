@@ -68,8 +68,11 @@ namespace NPoco.FluentMappings
                 config.Add(type, pocoDefn);
             }
 
-            MergeOverrides(config, scannerSettings.MappingOverrides);
-
+            foreach (var mappingOverride in scannerSettings.MappingOverrides)
+            {
+                MergeOverrides(config, mappingOverride);
+            }
+            
             //if (scannerSettings.OverrideWithAttributes)
             //{
             //    MergeAttributeOverrides(config);
@@ -229,7 +232,10 @@ namespace NPoco.FluentMappings
             foreach (var overrideTypeDefinition in overrideMappings.Config)
             {
                 if (!config.ContainsKey(overrideTypeDefinition.Key))
+                {
+                    config.Add(overrideTypeDefinition.Key, overrideTypeDefinition.Value);
                     continue;
+                }
 
                 var convTableDefinition = config[overrideTypeDefinition.Key];
 

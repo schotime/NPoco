@@ -11,9 +11,10 @@ namespace NPoco.FluentMappings
             Assemblies = new HashSet<Assembly>();
             IgnorePropertiesWhere = new List<Func<MemberInfo, bool>>();
             IncludeTypes = new List<Func<Type, bool>>();
+            MappingOverrides = new List<Mappings>();
         }
 
-        public Mappings MappingOverrides { get; set; }
+        public List<Mappings> MappingOverrides { get; set; }
 
         public HashSet<Assembly> Assemblies { get; set; }
         public bool TheCallingAssembly { get; set; }

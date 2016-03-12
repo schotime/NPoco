@@ -30,21 +30,21 @@ namespace NPoco.Tests.Common
         [OneTimeSetUp]
         public void SetUp()
         {
-            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(UserWithExtraInfo), typeof(Usersss), typeof(House), typeof(Supervisor), typeof(One), typeof(Many), typeof(NestedClass) };
+            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(UserWithExtraInfo), typeof(Usersss), typeof(House), typeof(Supervisor)};
             var dbFactory = new DatabaseFactory();
-            dbFactory.Config().WithFluentConfig(
-                FluentMappingConfiguration.Scan(s =>
-                {
-                    s.Assembly(typeof (User).GetTypeInfo().Assembly);
-                    s.IncludeTypes(types.Contains);
-                    s.PrimaryKeysNamed(y => ToLowerIf(y.Name + "Id", false));
-                    s.TablesNamed(y => ToLowerIf(Inflector.MakePlural(y.Name), false));
-                    s.Columns.Named(x => ToLowerIf(x.Name, false));
-                    s.Columns.ForceDateTimesToUtcWhere(x => x.GetMemberInfoType() == typeof(DateTime) || x.GetMemberInfoType() == typeof(DateTime?));
-                    s.Columns.ResultWhere(y => ColumnInfo.FromMemberInfo(y).ResultColumn);
-                    s.OverrideMappingsWith(new FluentMappingOverrides());
-                })
-            );
+            var config = FluentMappingConfiguration.Scan(s =>
+            {
+                s.Assembly(typeof (User).GetTypeInfo().Assembly);
+                s.IncludeTypes(types.Contains);
+                s.PrimaryKeysNamed(y => ToLowerIf(y.Name + "Id", false));
+                s.TablesNamed(y => ToLowerIf(Inflector.MakePlural(y.Name), false));
+                s.Columns.Named(x => ToLowerIf(x.Name, false));
+                s.Columns.ForceDateTimesToUtcWhere(x => x.GetMemberInfoType() == typeof(DateTime) || x.GetMemberInfoType() == typeof(DateTime?));
+                s.Columns.ResultWhere(y => ColumnInfo.FromMemberInfo(y).ResultColumn);
+                s.OverrideMappingsWith(new FluentMappingOverrides());
+                s.OverrideMappingsWith(new OneToManyMappings());
+            });
+            dbFactory.Config().WithFluentConfig(config);
 
             var configuration = new ConfigurationBuilder()
                 .AddJsonFile("config.json")
@@ -230,12 +230,35 @@ namespace NPoco.Tests.Common
             });
             For<Supervisor>().UseMap<SupervisorMap>();
             For<Supervisor>().TableName("users").Columns(x => x.Column(y => y.IsMale).WithName("is_male"));
-            For<One>().Columns(x =>
-            {
-                x.Many(y => y.Items).WithName("OneId").Reference(y => y.OneId);
-                x.Column(y => y.Nested).ComplexMapping();
-            });
-            For<Many>().TableName("Manys");
+        }
+    }
+
+    public class OneToManyMappings : Mappings
+    {
+        public OneToManyMappings()
+        {
+            For<One>()
+                .TableName("Ones")
+                .PrimaryKey(x => x.OneId)
+                .Columns(x =>
+                {
+                    x.Column(y => y.OneId);
+                    x.Column(y => y.Name);
+                    x.Column(y => y.Nested).ComplexMapping().Result();
+                    x.Many(y => y.Items).WithName("OneId").Reference(y => y.OneId);
+                }, true);
+
+            For<Many>()
+                .TableName("Manys")
+                .PrimaryKey(x => x.ManyId)
+                .Columns(x =>
+                {
+                    x.Column(y => y.ManyId);
+                    x.Column(y => y.Value);
+                    x.Column(y => y.Currency);
+                    x.Column(y => y.OneId);
+                    x.Column(y => y.One).WithName("OneId").Reference(y => y.OneId, ReferenceType.OneToOne);
+                }, true);
         }
     }
 }

@@ -48,5 +48,16 @@ namespace NPoco.Tests.NewMapper
             Assert.AreEqual(1, result[1].Items.Count);
             Assert.AreEqual(2, result[2].Items.Count);
         }
+
+        [Test]
+        public void Test4()
+        {
+            var results = Database.Fetch<Many>("select m.*, o.* from manys m left join ones o on m.oneid = o.oneid");
+
+            Assert.AreEqual(15, results.Count);
+            Assert.NotNull(results[0].One);
+            Assert.AreEqual("Name2", results[0].One.Name);
+            Assert.AreEqual(2, results[0].One.OneId);
+        }
     }
 }

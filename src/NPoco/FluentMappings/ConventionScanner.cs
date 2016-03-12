@@ -14,13 +14,13 @@ namespace NPoco.FluentMappings
 
         public void OverrideMappingsWith(Mappings mappings)
         {
-            _scannerSettings.MappingOverrides = mappings;
+            _scannerSettings.MappingOverrides.Add(mappings);
         }
 
         public void OverrideMappingsWith(params IMap[] maps)
         {
             var mappings = Mappings.BuildMappingsFromMaps(maps);
-            _scannerSettings.MappingOverrides = mappings;
+            _scannerSettings.MappingOverrides.Add(mappings);
         }
 
         public void Assembly(Assembly assembly)

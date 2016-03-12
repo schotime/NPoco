@@ -18,7 +18,8 @@ namespace NPoco.FluentMappings
         public IColumnBuilder<T2> Column<T2>(Expression<Func<T, T2>> property)
         {
             var members = MemberHelper<T>.GetMembers(property);
-            var columnDefinition = new ColumnDefinition() { MemberInfo = members.Last() };
+            var memberInfo = members.Last();
+            var columnDefinition = new ColumnDefinition() { MemberInfo = memberInfo, DbColumnName = memberInfo.Name };
             var builder = new ColumnBuilder<T2>(columnDefinition);
             var key = PocoColumn.GenerateKey(members);
             _columnDefinitions[key] = columnDefinition;

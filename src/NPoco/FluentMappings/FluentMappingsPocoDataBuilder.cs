@@ -15,13 +15,11 @@ namespace NPoco.FluentMappings
             _mappings = mappings;
         }
 
-        protected override string GetColumnName(string prefix, string columnName)
-        {
-            return columnName;
-        }
-
         protected override TableInfoPlan GetTableInfo(Type type, ColumnInfo[] columnInfos, List<MemberInfo> memberInfos)
         {
+            if (!_mappings.Config.ContainsKey(type))
+                return base.GetTableInfo(type, columnInfos, memberInfos);
+
             var typeConfig = _mappings.Config[type];
             // Get the table name
             var a = typeConfig.TableName ?? "";
@@ -66,11 +64,14 @@ namespace NPoco.FluentMappings
             };
         }
 
-        protected override ColumnInfo GetColumnInfo(MemberInfo mi, MemberInfo[] memberInfos)
+        protected override ColumnInfo GetColumnInfo(MemberInfo mi, Type type)
         {
-            var typeConfig = _mappings.Config[Type];
+            if (!_mappings.Config.ContainsKey(type))
+                return base.GetColumnInfo(mi, type);
+
+            var typeConfig = _mappings.Config[type];
             var columnInfo = new ColumnInfo() {MemberInfo = mi};
-            var key = PocoColumn.GenerateKey(memberInfos.Concat(new[] { mi }));
+            var key = mi.Name;
 
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
             var isColumnDefined = typeConfig.ColumnConfiguration.ContainsKey(key);

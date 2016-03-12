@@ -29,7 +29,7 @@ namespace NPoco
         public PocoDataBuilder Init()
         {
             var memberInfos = new List<MemberInfo>();
-            var columnInfos = GetColumnInfos(Type, memberInfos.ToArray());
+            var columnInfos = GetColumnInfos(Type);
 
             // Get table info plan
             _tableInfoPlan = GetTableInfo(Type, columnInfos, memberInfos);
@@ -40,11 +40,11 @@ namespace NPoco
             return this;
         }
 
-        private ColumnInfo[] GetColumnInfos(Type type, MemberInfo[] memberInfos)
+        private ColumnInfo[] GetColumnInfos(Type type)
         {
             return ReflectionUtils.GetFieldsAndPropertiesForClasses(type)
                 .Where(x => !IsDictionaryType(x.DeclaringType))
-                .Select(x => GetColumnInfo(x, memberInfos)).ToArray();
+                .Select(x => GetColumnInfo(x, type)).ToArray();
         }
 
         public static bool IsDictionaryType(Type type)
@@ -77,7 +77,7 @@ namespace NPoco
             return () => { return tableInfo.Clone(); };
         }
 
-        protected virtual ColumnInfo GetColumnInfo(MemberInfo mi, MemberInfo[] toArray)
+        protected virtual ColumnInfo GetColumnInfo(MemberInfo mi, Type type)
         {
             return ColumnInfo.FromMemberInfo(mi);
         }
@@ -128,7 +128,7 @@ namespace NPoco
                         continue;
                     }
 
-                    var childColumnInfos = GetColumnInfos(memberInfoType, members.ToArray());
+                    var childColumnInfos = GetColumnInfos(memberInfoType);
 
                     if (columnInfo.ReferenceType != ReferenceType.None)
                     {
