@@ -142,7 +142,8 @@ CREATE TABLE Users(
     TimeSpan time,
     TestEnum varchar(10),
     HouseId integer,
-    SupervisorId integer
+    SupervisorId integer,
+    ValueZZ integer
                 );
           
 CREATE TABLE ExtraUserInfos(

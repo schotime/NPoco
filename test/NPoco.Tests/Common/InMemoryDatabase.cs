@@ -41,7 +41,7 @@ namespace NPoco.Tests.Common
             base.RecreateDataBase();
 
             var cmd = Connection.CreateCommand();
-            cmd.CommandText = "CREATE TABLE Users(UserId INTEGER PRIMARY KEY, Name nvarchar(200), Age int, DateOfBirth datetime, Savings Decimal(10,5));";
+            cmd.CommandText = "CREATE TABLE Users(UserId INTEGER PRIMARY KEY, Name nvarchar(200), Age int, DateOfBirth datetime, Savings Decimal(10,5), ValueZZ int);";
             cmd.ExecuteNonQuery();
 
             cmd.CommandText = "CREATE TABLE ExtraUserInfos(ExtraUserInfoId INTEGER PRIMARY KEY, UserId int, Email nvarchar(200), Children int);";

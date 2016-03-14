@@ -39,6 +39,10 @@ namespace NPoco.Tests.Common
 
         [Column("HouseId")]
         public int? HouseId { get; set; }
+
+        // using a different column name here!
+        [Column("ValueZZ")]
+        public int? Value { get; set; }
     }
 
     [TableName("Houses"), PrimaryKey("HouseId")]
