@@ -71,7 +71,7 @@ namespace NPoco.RowMappers
         private IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, DbDataReader dataReader, PocoData pocoData, List<PocoMember> pocoMembers)
         {
             // find pocomember by property name
-            var pocoMember = FindMember(pocoMembers, groupedName.Item);
+            var pocoMember = pocoMembers.FirstOrDefault(x => IsEqual(groupedName.Item, x.Name));
 
             if (pocoMember == null)
             {
@@ -124,13 +124,7 @@ namespace NPoco.RowMappers
             }
         }
 
-        public static PocoMember FindMember(List<PocoMember> pocoMembers, string name)
-        {
-            return pocoMembers.FirstOrDefault(x => IsEqual(name, x.Name)
-                                                   || (x.PocoColumn != null && IsEqual(name, x.PocoColumn.ColumnAlias)));
-        }
-
-        private static bool IsEqual(string name, string value)
+        public static bool IsEqual(string name, string value)
         {
             return string.Equals(value, name, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(value, name.Replace("_", ""), StringComparison.OrdinalIgnoreCase);

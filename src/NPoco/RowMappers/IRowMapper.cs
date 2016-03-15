@@ -35,7 +35,7 @@ namespace NPoco.RowMappers
 
             if (cols.Any(x => x.Name.StartsWith(PropertyMapperNameConvention.SplitPrefix)))
             {
-                return (_columnNames = cols.ConvertFromNewConvention().ToArray());
+                return (_columnNames = cols.ConvertFromNewConvention(pocoData).ToArray());
             }
 
             return (_columnNames = cols.ConvertFromOldConvention(pocoData.Members).ToArray());

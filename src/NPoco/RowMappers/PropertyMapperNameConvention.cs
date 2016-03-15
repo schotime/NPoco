@@ -8,18 +8,32 @@ namespace NPoco.RowMappers
     {
         public static string SplitPrefix = "npoco_";
 
-        public static IEnumerable<PosName> ConvertFromNewConvention(this IEnumerable<PosName> posNames)
+        public static IEnumerable<PosName> ConvertFromNewConvention(this IEnumerable<PosName> posNames, PocoData pocoData)
         {
+            var allMembers = pocoData.GetAllMembers();
+            var scopedPocoMembers = pocoData.Members;
             string prefix = null;
+
             foreach (var posName in posNames)
             {
                 if (posName.Name.StartsWith(SplitPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     prefix = posName.Name.Substring(SplitPrefix.Length);
+                    var relevantMembers = allMembers.SingleOrDefault(x => string.Equals(PocoColumn.GenerateKey(x.MemberInfoChain), prefix, StringComparison.OrdinalIgnoreCase));
+                    if (relevantMembers != null)
+                    {
+                        scopedPocoMembers = relevantMembers.PocoMemberChildren;
+                    }
+                    
                     continue;
                 }
 
-                if (prefix != null)
+                var member = FindMember(scopedPocoMembers, posName.Name);
+                if (member != null && member.PocoColumn != null)
+                {
+                    posName.Name = member.PocoColumn.MemberInfoKey;
+                }
+                else
                 {
                     posName.Name = PocoDataBuilder.JoinStrings(prefix, posName.Name);
                 }
@@ -40,7 +54,7 @@ namespace NPoco.RowMappers
                     .Select(x => x.PocoMember)
                     .ToList();
 
-                var member = PropertyMapper.FindMember(unusedPocoMembers, posName.Name);
+                var member = FindMember(unusedPocoMembers, posName.Name);
                 if (member != null && member.PocoColumn != null)
                 {
                     level = members.Single(x => x.PocoMember == member).Level;
@@ -51,10 +65,24 @@ namespace NPoco.RowMappers
                 yield return posName;
             }
         }
+        
+        public static PocoMember FindMember(List<PocoMember> pocoMembers, string name)
+        {
+            return pocoMembers
+                .Where(x => x.ReferenceType == ReferenceType.None)
+                .FirstOrDefault(x =>
+                {
+                    var col = x.PocoColumn;
+
+                    if (col != null && PropertyMapper.IsEqual(name, col.ColumnAlias ?? col.ColumnName))
+                        return true;
+
+                    return PropertyMapper.IsEqual(name, x.Name);
+                });
+        }
 
         private static IEnumerable<PocoMemberLevel> FlattenPocoMembers(List<PocoMember> pocoMembers, LevelMonitor levelMonitor)
         {
-
             foreach (var pocoMember in pocoMembers.OrderBy(x => x.PocoMemberChildren.Count != 0))
             {
                 if (pocoMember.PocoColumn != null)

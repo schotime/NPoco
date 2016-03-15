@@ -343,6 +343,50 @@ from RecursionUser r
         }
 
         [Test]
+        public void Test18_1()
+        {
+            var data = Database.Fetch<RecursionUser2>(@"
+select r.*
+, null npoco_createdby, createdby1.*
+, null npoco_supervisor, supervisor1.*
+, null npoco_createdby__supervisor, supervisor2.*
+, null npoco_createdby__createdby, createdby3.*
+, null npoco_supervisor__createdby, createdby2.*
+, null npoco_supervisor__supervisor, supervisor3.*
+from RecursionUser r
+    inner join RecursionUser  createdby1 on r.createdbyid = createdby1.Id
+    inner join RecursionUser supervisor1 on r.supervisorid = supervisor1.Id
+    inner join RecursionUser supervisor2 on createdby1.supervisorid = supervisor2.Id
+    inner join RecursionUser  createdby2 on supervisor1.createdbyid = createdby2.Id
+    inner join RecursionUser supervisor3 on createdby2.supervisorid = supervisor3.Id
+    inner join RecursionUser  createdby3 on supervisor2.createdbyid = createdby3.Id
+");
+
+            for (int i = 0; i < data.Count; i++)
+            {
+                Assert.AreEqual("Name" + (i + 1), data[i].TheName);
+                Assert.AreEqual("Name" + 1, data[i].CreatedBy.TheName);
+                Assert.AreEqual("Name" + 2, data[i].CreatedBy.Supervisor.TheName);
+                Assert.AreEqual("Name" + 1, data[i].CreatedBy.CreatedBy.TheName);
+                Assert.AreEqual("Name" + 2, data[i].Supervisor.TheName);
+                Assert.AreEqual("Name" + 1, data[i].Supervisor.CreatedBy.TheName);
+                Assert.AreEqual("Name" + 2, data[i].Supervisor.Supervisor.TheName);
+            }
+        }
+
+        [Test]
+        public void Test18_2()
+        {
+            var data = Database.Fetch<RecursionUser2>(@"select r.* from RecursionUser r");
+
+            for (int i = 0; i < data.Count; i++)
+            {
+                Assert.AreEqual((i + 1), data[i].TheId);
+                Assert.AreEqual("Name" + (i + 1), data[i].TheName);
+            }
+        }
+
+        [Test]
         public void Test19()
         {
             var nestedConvention = new NestedConvention() { Name = "Name1" };
