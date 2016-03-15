@@ -96,6 +96,7 @@ namespace NPoco.FluentMappings
         IColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> member, ReferenceType referenceType = ReferenceType.Foreign);
         IColumnBuilder<TModel> Serialized();
         IColumnBuilder<TModel> ComplexMapping(string prefix = null);
+        IColumnBuilder<TModel> ForceToUtc(bool enabled);
     }
 
     public class ColumnBuilder<TModel> : IColumnBuilder<TModel>
@@ -196,6 +197,12 @@ namespace NPoco.FluentMappings
         {
             _columnDefinition.IsComplexMapping = true;
             _columnDefinition.ComplexPrefix = prefix;
+            return this;
+        }
+
+        public IColumnBuilder<TModel> ForceToUtc(bool enabled)
+        {
+            _columnDefinition.ForceUtc = enabled;
             return this;
         }
     }
