@@ -207,8 +207,8 @@ namespace NPoco.Expressions
             selectMembers.Clear();
             Visit(fields);
             return this;
-        } 
-        
+        }
+
         public virtual List<SelectMember> SelectProjection<TKey>(Expression<Func<T, TKey>> fields)
         {
             sep = string.Empty;
@@ -235,7 +235,7 @@ namespace NPoco.Expressions
 
         public virtual SqlExpression<T> Where(string sqlFilter, params object[] filterParams)
         {
-            if (string.IsNullOrEmpty(sqlFilter)) 
+            if (string.IsNullOrEmpty(sqlFilter))
                 return this;
 
             sqlFilter = ParameterHelper.ProcessParams(sqlFilter, filterParams, _params);
@@ -471,7 +471,7 @@ namespace NPoco.Expressions
         /// </param>
         /// <param name='rows'>
         /// Number of rows returned by a SELECT statement
-        /// </param>	
+        /// </param>
         public virtual SqlExpression<T> Limit(int skip, int rows)
         {
             Rows = rows;
@@ -852,7 +852,7 @@ namespace NPoco.Expressions
         {
             return this.Visit(assignment.Expression);
         }
-        
+
         protected virtual object VisitLambda(LambdaExpression lambda)
         {
             if (lambda.Body.NodeType == ExpressionType.MemberAccess && sep == " ")
@@ -964,7 +964,7 @@ namespace NPoco.Expressions
                 {
                     right = CreateParam(Convert.ToChar(right));
                 }
-                else if (left as MemberAccessString != null 
+                else if (left as MemberAccessString != null
                     && right is string
                     && ((MemberAccessString) left).PocoColumn.ColumnType == typeof (AnsiString))
                 {
@@ -1061,8 +1061,8 @@ namespace NPoco.Expressions
 
                 generalMembers.Add(new GeneralMember()
                 {
-                    EntityType = type, 
-                    PocoColumn = pocoColumn, 
+                    EntityType = type,
+                    PocoColumn = pocoColumn,
                     PocoColumns = pocoColumns
                 });
 
@@ -1094,7 +1094,7 @@ namespace NPoco.Expressions
             }
             return type;
         }
-        
+
         protected virtual object VisitNew(NewExpression nex)
         {
             var member = Expression.Convert(nex, typeof(object));
@@ -1216,7 +1216,7 @@ namespace NPoco.Expressions
             if (IsColumnAccess(m))
                 return VisitColumnAccessMethod(m);
 
-            if (_projection && VisitInnerMethodCall(m)) 
+            if (_projection && VisitInnerMethodCall(m))
                 return null;
 
             return Expression.Lambda(m).Compile().DynamicInvoke();
@@ -1240,14 +1240,25 @@ namespace NPoco.Expressions
                 return true;
             }
 
-            var nested = args as MethodCallExpression;
-            if (nested != null)
+            IEnumerable<Expression> nestedExpressions = null;
+            var nested1 = args as MethodCallExpression;
+            if (nested1 != null)
             {
-                foreach (var nestedArgs in nested.Arguments)
+                nestedExpressions = nested1.Arguments;
+            }
+            else
+            {
+                var nested2 = args as NewArrayExpression;
+                if (nested2 != null) nestedExpressions = nested2.Expressions;
+            }
+
+            if (nestedExpressions != null)
+            {
+                foreach (var nestedExpression in nestedExpressions)
                 {
-                    if (ProcessMethodSearchRecursively(nestedArgs, ref found))
+                    if (ProcessMethodSearchRecursively(nestedExpression, ref found))
                         return true;
-                }   
+                }
             }
 
             var result = Visit(args) as MemberAccessString;
@@ -1644,7 +1655,7 @@ namespace NPoco.Expressions
 
     public class MemberAccessString : PartialSqlString
     {
-        public MemberAccessString(PocoColumn pocoColumn, PocoColumn[] pocoColumns, string text, Type type) 
+        public MemberAccessString(PocoColumn pocoColumn, PocoColumn[] pocoColumns, string text, Type type)
             : base(text)
         {
             PocoColumn = pocoColumn;
