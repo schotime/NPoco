@@ -123,9 +123,9 @@ namespace NPoco.FluentMappings
                     columnInfo.ComputedColumnType = colattr.ComputedColumnType ?? ComputedColumnType.Always;
                 }
 
-                if (colattr.ForceUtc.HasValue && colattr.ForceUtc.Value)
+                if (colattr.ForceUtc.HasValue)
                 {
-                    columnInfo.ForceToUtc = true;
+                    columnInfo.ForceToUtc = colattr.ForceUtc.Value;
                 }
 
                 columnInfo.ColumnType = colattr.DbColumnType;

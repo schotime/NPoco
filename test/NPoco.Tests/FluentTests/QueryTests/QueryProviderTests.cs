@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System.Globalization;
+using System.Linq;
+using System.Threading;
 using NPoco.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -303,14 +305,68 @@ namespace NPoco.Tests.FluentTests.QueryTests
             }
         }
 
+        private static void SetCurrentCulture(CultureInfo culture)
+        {
+#if NET35 || NET40 || NET45 || NET451 || NET452 || DNX451 || DNX452
+            // In the .NET Framework 4.5.2 and earlier versions, the CurrentCulture property is read-only
+            Thread.CurrentThread.CurrentCulture = culture;
+#else
+            // Starting with the .NET Framework 4.6, the CurrentCulture property is read-write
+            // and Core does not have Thread.CurrentThread?
+            CultureInfo.CurrentCulture = culture;
+#endif
+        }
+
         [Test]
         public void QueryWithProjectionAndEnclosedMethod()
         {
-            var users = Database.Query<User>()
-                .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format("{0:n}", x.Age) });
+            var culture = CultureInfo.CurrentCulture;
 
-            Assert.AreEqual("21.00", users[0].FormattedAge);
-            Assert.AreEqual(15, users.Count);
+            try
+            {
+                // pretend the current culture is en-US
+                // else the test may fail on non-english envt due to comma vs dot in numbers
+                SetCurrentCulture(new CultureInfo("en-US"));
+
+                var users = Database.Query<User>()
+                    .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format("{0:n}", x.Age) });
+
+                Assert.AreEqual("21.00", users[0].FormattedAge);
+                Assert.AreEqual(15, users.Count);
+            }
+            finally
+            {
+                // restore
+                SetCurrentCulture(culture);
+            }
+        }
+
+        [Test]
+        public void QueryWithProjectionAndEnclosedMethod1()
+        {
+            var culture = CultureInfo.CurrentCulture;
+
+            try
+            {
+                // pretend the current culture is en-US
+                // else the test may fail on non-english envt due to comma vs dot in numbers
+                SetCurrentCulture(new CultureInfo("en-US"));
+
+                // use enough args to force the string.Format overload with "params object[]" args,
+                // these arguments are properly supported (ProcessMethodSearchRecursively supports
+                // NewArrayExpression).
+                var users = Database.Query<User>()
+                    .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format("{0:n} {1:n} {2:n} {3:n} {4:n} {5:n} {6:n}",
+                        x.Age, x.Age, x.Age, x.Age, x.Age, x.Age, x.Age) });
+
+                Assert.AreEqual("21.00 21.00 21.00 21.00 21.00 21.00 21.00", users[0].FormattedAge);
+                Assert.AreEqual(15, users.Count);
+            }
+            finally
+            {
+                // restore
+                SetCurrentCulture(culture);
+            }
         }
 
         [Test]

@@ -23,6 +23,7 @@ namespace NPoco
         public bool SerializedColumn { get; set; }
         public ReferenceType ReferenceType { get; set; }
         public string ReferenceMemberName { get; set; }
+        public MemberInfo MemberInfo { get; internal set; }
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
@@ -34,11 +35,11 @@ namespace NPoco
             var complexMapping = attrs.OfType<ComplexMappingAttribute>();
             var serializedColumnAttributes = attrs.OfType<SerializedColumnAttribute>();
             var reference = attrs.OfType<ReferenceAttribute>();
-          
+            var aliasColumn = attrs.OfType<AliasAttribute>().FirstOrDefault();
+
             // Check if declaring poco has [ExplicitColumns] attribute
             var explicitColumns = mi.DeclaringType.GetTypeInfo().GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Any();
 
-            var aliasColumn = (AliasAttribute)ReflectionUtils.GetCustomAttributes(mi, typeof(AliasAttribute)).FirstOrDefault();
             // Ignore column if declarying poco has [ExplicitColumns] attribute
             // and property doesn't have an explicit [Column] attribute,
             // or property has an [Ignore] attribute
@@ -84,12 +85,13 @@ namespace NPoco
                 ci.VersionColumnType = ci.VersionColumn ? ((VersionColumnAttribute) colattr).VersionColumnType : ci.VersionColumnType;
                 ci.ComputedColumn = colattr is ComputedColumnAttribute;
                 ci.ComputedColumnType = ci.ComputedColumn ? ((ComputedColumnAttribute)colattr).ComputedColumnType : ComputedColumnType.Always;
-                ci.ColumnAlias = aliasColumn != null ? aliasColumn.Alias : null;
             }
             else
             {
                 ci.ColumnName = mi.Name;
             }
+
+            ci.ColumnAlias = aliasColumn != null ? aliasColumn.Alias : null;
 
             if (columnTypeAttrs.Any())
             {
@@ -98,8 +100,6 @@ namespace NPoco
 
             return ci;
         }
-
-        public MemberInfo MemberInfo { get; internal set; }
     }
 
     public class SerializedColumnAttribute : ColumnAttribute

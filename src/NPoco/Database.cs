@@ -1,12 +1,12 @@
 /* NPoco 3.0 - A Tiny ORMish thing for your POCO's.
  * Copyright 2011-2015. All Rights Reserved.
- * 
+ *
  * Apache License 2.0 - http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Originally created by Brad Robinson (@toptensoftware)
- * 
- * Special thanks to Rob Conery (@robconery) for original inspiration (ie:Massive) and for 
- * use of Subsonic's T4 templates, Rob Sullivan (@DataChomp) for hard core DBA advice 
+ *
+ * Special thanks to Rob Conery (@robconery) for original inspiration (ie:Massive) and for
+ * use of Subsonic's T4 templates, Rob Sullivan (@DataChomp) for hard core DBA advice
  * and Adam Schroder (@schotime) for lots of suggestions, improvements and Oracle support
  */
 
@@ -21,7 +21,7 @@ using System.Reflection;
 using System.Text;
 using NPoco.Expressions;
 using NPoco.Linq;
-#if !DNXCORE50 
+#if !DNXCORE50
 using System.Configuration;
 #endif
 
@@ -79,7 +79,15 @@ namespace NPoco
             : this(connectionString, providerName, DefaultEnableAutoSelect)
         { }
 
+        public Database(string connectionString, string providerName, IsolationLevel isolationLevel)
+            : this(connectionString, providerName, isolationLevel, DefaultEnableAutoSelect)
+        { }
+
         public Database(string connectionString, string providerName, bool enableAutoSelect)
+            : this(connectionString, providerName, null, enableAutoSelect)
+        { }
+
+        public Database(string connectionString, string providerName, IsolationLevel? isolationLevel, bool enableAutoSelect)
         {
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = false;
@@ -89,7 +97,7 @@ namespace NPoco
             var dbTypeName = (_factory == null ? _sharedConnection.GetType() : _factory.GetType()).Name;
             _dbType = DatabaseType.Resolve(dbTypeName, providerName);
             _providerName = providerName;
-            _isolationLevel = _dbType.GetDefaultTransactionIsolationLevel();
+            _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 
@@ -136,8 +144,16 @@ namespace NPoco
         public Database(string connectionStringName)
             : this(connectionStringName, DefaultEnableAutoSelect)
         { }
-        
-        public Database(string connectionStringName,  bool enableAutoSelect)
+
+        public Database(string connectionStringName, IsolationLevel isolationLevel)
+            : this(connectionStringName, isolationLevel, DefaultEnableAutoSelect)
+        { }
+
+        public Database(string connectionStringName, bool enableAutoSelect)
+            : this(connectionStringName, (IsolationLevel?) null, enableAutoSelect)
+        { }
+
+        public Database(string connectionStringName, IsolationLevel? isolationLevel,  bool enableAutoSelect)
         {
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = false;
@@ -165,7 +181,7 @@ namespace NPoco
 
             _factory = DbProviderFactories.GetFactory(_providerName);
             _dbType = DatabaseType.Resolve(_factory.GetType().Name, _providerName);
-            _isolationLevel = _dbType.GetDefaultTransactionIsolationLevel();
+            _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 #endif
@@ -174,13 +190,13 @@ namespace NPoco
         public DatabaseType DatabaseType { get { return _dbType; } }
         public IsolationLevel IsolationLevel { get { return _isolationLevel; } }
 
-        private IDictionary<string, object> _data = new Dictionary<string, object>(); 
-        public IDictionary<string, object> Data { get { return _data; } }
+        private IDictionary<string, object> _data;
+        public IDictionary<string, object> Data => _data ?? (_data = new Dictionary<string, object>());
 
         // Automatically close connection
         public void Dispose()
         {
-            if (KeepConnectionAlive) return; 
+            if (KeepConnectionAlive) return;
             CloseSharedConnection();
         }
 
@@ -203,7 +219,7 @@ namespace NPoco
 
         private void OpenSharedConnectionImp(bool isInternal)
         {
-            if (_sharedConnection != null && _sharedConnection.State != ConnectionState.Broken && _sharedConnection.State != ConnectionState.Closed) 
+            if (_sharedConnection != null && _sharedConnection.State != ConnectionState.Broken && _sharedConnection.State != ConnectionState.Closed)
                 return;
 
             ShouldCloseConnectionAutomatically = isInternal;
@@ -242,7 +258,7 @@ namespace NPoco
         public void CloseSharedConnection()
         {
             if (KeepConnectionAlive) return;
-           
+
             if (_transaction != null)
             {
                 _transaction.Dispose();
@@ -423,7 +439,7 @@ namespace NPoco
         // Complete the transaction
         public void CompleteTransaction()
         {
-            if (_transaction == null) 
+            if (_transaction == null)
                 return;
 
             TransactionCount--;
@@ -441,7 +457,7 @@ namespace NPoco
 
             if (_transaction != null)
                 _transaction.Dispose();
-            
+
             _transaction = null;
 
             OnCompleteTransactionInternal();
@@ -675,7 +691,7 @@ namespace NPoco
         }
 
         private List<IInterceptor> _interceptors = new List<IInterceptor>();
-        public List<IInterceptor> Interceptors { get { return _interceptors; } } 
+        public List<IInterceptor> Interceptors { get { return _interceptors; } }
 
         protected virtual bool OnInserting(InsertContext insertContext)
         {
@@ -811,7 +827,7 @@ namespace NPoco
             sqlCount = parts.sqlCount;
         }
 
-        // Fetch a page	
+        // Fetch a page
         public Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
             return Page<T>(typeof(T), page, itemsPerPage, sql, args);
@@ -1171,9 +1187,9 @@ namespace NPoco
                     {
                         var typeIndex = 1;
                         var list1 = new List<T1>();
-                        var list2 = new List<T2>();
-                        var list3 = new List<T3>();
-                        var list4 = new List<T4>();
+                        var list2 = types.Length > 1 ? new List<T2>() : null;
+                        var list3 = types.Length > 2 ? new List<T3>() : null;
+                        var list4 = types.Length > 3 ? new List<T4>() : null;
                         do
                         {
                             if (typeIndex > types.Length)
@@ -1350,7 +1366,7 @@ namespace NPoco
             return Insert(tableName, primaryKeyName, true, poco);
         }
 
-        // Insert a poco into a table.  If the poco has a property with the same name 
+        // Insert a poco into a table.  If the poco has a property with the same name
         // as the primary key the id of the new record is assigned to it.  Either way,
         // the new id is returned.
         public virtual object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
@@ -1361,7 +1377,7 @@ namespace NPoco
 
         private object InsertImp<T>(PocoData pocoData, string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            if (!OnInsertingInternal(new InsertContext(poco, tableName, autoIncrement, primaryKeyName))) 
+            if (!OnInsertingInternal(new InsertContext(poco, tableName, autoIncrement, primaryKeyName)))
                 return 0;
 
             try
@@ -1408,7 +1424,7 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-                
+
                 var pd = PocoDataFactory.ForType(typeof(T));
 
                 foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
@@ -1420,7 +1436,7 @@ namespace NPoco
                     {
                         sql.Append(preparedInsertSql.Sql + options.StatementSeperator, preparedInsertSql.Rawvalues.ToArray());
                     }
-                    
+
                     using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
                     {
                         ExecuteNonQueryHelper(cmd);
@@ -1469,7 +1485,7 @@ namespace NPoco
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
         protected virtual TRet UpdateImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
         {
-            if (!OnUpdatingInternal(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns))) 
+            if (!OnUpdatingInternal(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns)))
                 return defaultId;
 
             if (columns != null && !columns.Any())
@@ -1505,7 +1521,7 @@ namespace NPoco
                     continue;
 
                 object value = pocoColumn.GetColumnValue(pd, poco, ProcessMapper);
-                
+
                 if (pocoColumn.VersionColumn)
                 {
                     versionName = pocoColumn.ColumnName;
@@ -1687,12 +1703,12 @@ namespace NPoco
 
         protected virtual TRet DeleteImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, Func<string, object[], TRet> executeFunc, TRet defaultRet)
         {
-            if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue))) 
+            if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue)))
                 return defaultRet;
 
             var pd = poco != null ? PocoDataFactory.ForObject(poco, primaryKeyName, true) : null;
             var primaryKeyValuePairs = GetPrimaryKeyValues(pd, primaryKeyName, primaryKeyValue ?? poco, primaryKeyValue == null);
-            
+
             // Do it
             var index = 0;
             var sql = string.Format("DELETE FROM {0} WHERE {1}", _dbType.EscapeTableName(tableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
@@ -1925,7 +1941,7 @@ namespace NPoco
             var underlyingType = Nullable.GetUnderlyingType(memberInfo.MemberType);
             return memberInfo.MemberType.GetTypeInfo().IsEnum || (underlyingType != null && underlyingType.GetTypeInfo().IsEnum);
         }
-        
+
         private object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
         {
             if (pocoColumn.SerializedColumn)
