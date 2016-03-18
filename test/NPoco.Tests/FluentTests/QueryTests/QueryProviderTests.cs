@@ -1,6 +1,12 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
+using System.Threading.Tasks;
+using NPoco.Compiled;
 using NPoco.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -104,6 +110,36 @@ namespace NPoco.Tests.FluentTests.QueryTests
         {
             var users = Database.Query<User>().Where(x => x.YorN == 'Y').ToList();
             Assert.AreEqual(8, users.Count);
+        }
+
+        [Test]
+        public void CompiledQuery()
+        {
+            var compiledQueryExpression = new My2 { MyName = "Na" };
+            var users1 = Database.Query(compiledQueryExpression);
+
+            Assert.AreEqual(8, users1);
+            //Assert.AreEqual(7, users2);
+        }
+
+        public class My2 : ICompiledQuery<User, int>
+        {
+            public string MyName { get; set; }
+
+            public Expression<Func<IQueryProviderWithIncludes<User>, int>> QueryIs()
+            {
+                return query => query.Where(x => x.Name.StartsWith(MyName)).Count();
+            }
+        }
+
+        public class My : ICompiledQueryAsync<User, int>
+        {
+            public char MyChar { get; set; }
+
+            public Expression<Func<IQueryProviderWithIncludes<User>, Task<int>>> QueryIs()
+            {
+                return query => query.Where(x => x.YorN == MyChar).CountAsync();
+            }
         }
 
         [Test]

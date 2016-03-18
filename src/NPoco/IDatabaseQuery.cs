@@ -42,6 +42,7 @@ namespace NPoco
         IEnumerable<T> Query<T>(string sql, params object[] args);
         IEnumerable<T> Query<T>(Sql sql);
         IQueryProviderWithIncludes<T> Query<T>();
+        TReturn Query<T, TReturn>(ICompiledQuery<T, TReturn> compiledQueryExpression);
         T SingleById<T>(object primaryKey);
         T SingleOrDefaultById<T>(object primaryKey);
         T Single<T>(string sql, params object[] args);
@@ -85,6 +86,7 @@ namespace NPoco
 
         Task<IEnumerable<T>> QueryAsync<T>(string sql, object[] args);
         Task<IEnumerable<T>> QueryAsync<T>(Sql sql);
+        Task<TReturn> QueryAsync<T, TReturn>(ICompiledQueryAsync<T, TReturn> compiledQueryExpression);
         //Task<IEnumerable<T>> QueryAsync<T>(Type[] types, Delegate cb, Sql sql);
 
         Task<List<T>> FetchAsync<T>(string sql, params object[] args);

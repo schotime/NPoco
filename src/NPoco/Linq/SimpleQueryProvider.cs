@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using NPoco.Expressions;
 
 namespace NPoco.Linq
@@ -70,6 +71,21 @@ namespace NPoco.Linq
         IQueryProviderWithIncludes<T> UsingAlias(string empty);
     }
 
+    public interface ICompiledQuery
+    {
+    }
+
+    public interface ICompiledQuery<TModel, TReturn> : ICompiledQuery
+    {
+        Expression<Func<IQueryProviderWithIncludes<TModel>, TReturn>> QueryIs();
+    }
+#if !NET35 && !NET40
+    public interface ICompiledQueryAsync<TModel, TReturn> : ICompiledQuery
+    {
+        Expression<Func<IQueryProviderWithIncludes<TModel>, System.Threading.Tasks.Task<TReturn>>> QueryIs();
+    }
+#endif
+
     public class QueryProvider<T> : IQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>
     {
         private readonly Database _database;
@@ -93,6 +109,7 @@ namespace NPoco.Linq
         {
         }
 
+        public Sql SqlForExecution { get; set; }
         SqlExpression<T> ISimpleQueryProviderExpression<T>.AtlasSqlExpression { get { return _sqlExpression; } }
 
         public IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left)
@@ -113,17 +130,23 @@ namespace NPoco.Linq
 
         public IQueryProviderWithIncludes<T> UsingAlias(string tableAlias)
         {
-            if (!string.IsNullOrEmpty(tableAlias))
-                _pocoData.TableInfo.AutoAlias = tableAlias;
+            if (SqlForExecution == null)
+            {
+                if (!string.IsNullOrEmpty(tableAlias))
+                    _pocoData.TableInfo.AutoAlias = tableAlias;
+            }
             return this;
         }
 
         private IQueryProviderWithIncludes<T> QueryProviderWithIncludes(Expression expression, string tableAlias, JoinType joinType)
         {
-            var joinExpressions = _buildComplexSql.GetJoinExpressions(expression, tableAlias, joinType);
-            foreach (var joinExpression in joinExpressions)
+            if (SqlForExecution == null)
             {
-                _joinSqlExpressions[joinExpression.Key] = joinExpression.Value;
+                var joinExpressions = _buildComplexSql.GetJoinExpressions(expression, tableAlias, joinType);
+                foreach (var joinExpression in joinExpressions)
+                {
+                    _joinSqlExpressions[joinExpression.Key] = joinExpression.Value;
+                }
             }
 
             return this;
@@ -177,8 +200,11 @@ namespace NPoco.Linq
 
         private void AddWhere(Expression<Func<T, bool>> whereExpression)
         {
-            if (whereExpression != null)
-                _sqlExpression = _sqlExpression.Where(whereExpression);
+            if (SqlForExecution == null)
+            {
+                if (whereExpression != null)
+                    _sqlExpression = _sqlExpression.Where(whereExpression);
+            }
         }
 
         public T FirstOrDefault()
@@ -232,12 +258,35 @@ namespace NPoco.Linq
 
         public int Count(Expression<Func<T, bool>> whereExpression)
         {
-            if (whereExpression != null)
-                _sqlExpression = _sqlExpression.Where(whereExpression);
+            if (SqlForExecution == null)
+            {
+                if (whereExpression != null)
+                    _sqlExpression = _sqlExpression.Where(whereExpression);
 
-            var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true, false);
+                SqlForExecution = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true, false);
+            }
+            
+            return Execute<int>(() => _database.ExecuteScalar<int>(SqlForExecution));
+        }
 
-            return _database.ExecuteScalar<int>(sql);
+        public bool CompileOnly { get; set; } = false;
+
+        private IEnumerable<TModel> ExecuteList<TModel>(Func<object> func)
+        {
+            if (CompileOnly)
+            {
+                return Enumerable.Empty<TModel>();
+            }
+            return (IEnumerable<TModel>)func();
+        }
+
+        private TModel Execute<TModel>(Func<object> func)
+        {
+            if (CompileOnly)
+            {
+                return default(TModel);
+            }
+            return (TModel)func();
         }
 
         public bool Any()
@@ -288,19 +337,29 @@ namespace NPoco.Linq
 
         public List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression)
         {
-            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
-            return ExecuteQuery(sql).Select(projectionExpression.Compile()).ToList();
+            if (SqlForExecution == null)
+            {
+                SqlForExecution = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
+            }
+            return ExecuteQuery(SqlForExecution).Select(projectionExpression.Compile()).ToList();
         }
 
         public List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
         {
-            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, true);
-            return ExecuteQuery(sql).Select(projectionExpression.Compile()).ToList();
+            if (SqlForExecution == null)
+            {
+                SqlForExecution = _buildComplexSql.GetSqlForProjection(projectionExpression, true);
+            }
+            return ExecuteQuery(SqlForExecution).Select(projectionExpression.Compile()).ToList();
         }
 
         public List<T> Distinct()
         {
-            return ExecuteQuery(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params)).ToList();
+            if (SqlForExecution == null)
+            {
+                SqlForExecution = new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params);
+            }
+            return ExecuteQuery(SqlForExecution).ToList();
         }
 
         public T[] ToArray()
@@ -327,27 +386,53 @@ namespace NPoco.Linq
         
         public IEnumerable<dynamic> ToDynamicEnumerable()
         {
-            var sql = BuildSql();
-            return _database.QueryImp<dynamic>(null, null, null, sql);
+            if (SqlForExecution == null)
+            {
+                SqlForExecution = BuildSql();
+            }
+
+            return ExecuteList<dynamic>(() => _database.QueryImp<dynamic>(null, null, null, SqlForExecution));
         }
 #endif
    
         private IEnumerable<T> ExecuteQuery(Sql sql)
         {
-            return _database.QueryImp(default(T), _listExpression, null, sql);
+            return ExecuteList<T>(() => _database.QueryImp(default(T), _listExpression, null, sql));
         }
         
         private Sql BuildSql()
         {
-            Sql sql;
-            if (_joinSqlExpressions.Any())
-                sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false, false);
-            else
-                sql = new Sql(true, _sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
-            return sql;
+            if (SqlForExecution == null)
+            {
+                if (_joinSqlExpressions.Any())
+                    SqlForExecution = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false, false);
+                else
+                    SqlForExecution = new Sql(true, _sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
+            }
+           
+            return SqlForExecution;
         }
 
 #if !NET35 && !NET40
+
+        private async System.Threading.Tasks.Task<TModel> ExecuteAsync<TModel>(Func<object> func)
+        {
+            if (CompileOnly)
+            {
+                return default(TModel);
+            }
+            return await ((System.Threading.Tasks.Task<TModel>)func()).ConfigureAwait(false);
+        }
+
+        private async System.Threading.Tasks.Task<IEnumerable<TModel>> ExecuteListAsync<TModel>(Func<object> func)
+        {
+            if (CompileOnly)
+            {
+                return Enumerable.Empty<TModel>();
+            }
+            return await ((System.Threading.Tasks.Task<IEnumerable<TModel>>)func()).ConfigureAwait(false);
+        }
+
         public async System.Threading.Tasks.Task<List<T>> ToListAsync()
         {
             return (await ToEnumerableAsync().ConfigureAwait(false)).ToList();
@@ -360,7 +445,11 @@ namespace NPoco.Linq
 
         public System.Threading.Tasks.Task<IEnumerable<T>> ToEnumerableAsync()
         {
-            return _database.QueryAsync<T>(BuildSql());
+            if (SqlForExecution == null)
+            {
+                SqlForExecution = BuildSql();
+            }
+            return ExecuteListAsync<T>(() => _database.QueryAsync<T>(SqlForExecution));
         }
 
         public async System.Threading.Tasks.Task<T> FirstOrDefaultAsync()
@@ -387,10 +476,14 @@ namespace NPoco.Linq
             return (await ToEnumerableAsync().ConfigureAwait(false)).Single();
         }
 
-        public async System.Threading.Tasks.Task<int> CountAsync()
+        public System.Threading.Tasks.Task<int> CountAsync()
         {
-            var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true, false);
-            return await _database.ExecuteScalarAsync<int>(sql).ConfigureAwait(false);
+            if (SqlForExecution == null)
+            {
+                SqlForExecution = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true, false);
+            }
+
+            return ExecuteAsync<int>(() => _database.ExecuteScalarAsync<int>(SqlForExecution));
         }
 
         public async System.Threading.Tasks.Task<bool> AnyAsync()
@@ -410,46 +503,69 @@ namespace NPoco.Linq
 
         public async System.Threading.Tasks.Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression)
         {
-            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
-            return (await _database.QueryAsync<T>(sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
+            if (SqlForExecution == null)
+            {
+                SqlForExecution = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
+            }
+            
+            return (await (ExecuteListAsync<T>(() => _database.QueryAsync<T>(SqlForExecution))).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
         }
 #endif
 
         public IQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression)
         {
-            _sqlExpression = _sqlExpression.Where(whereExpression);
+            if (SqlForExecution == null)
+            {
+                _sqlExpression = _sqlExpression.Where(whereExpression);
+            }
             return this;
         }
 
         public IQueryProvider<T> Where(string sql, params object[] args)
         {
-            _sqlExpression = _sqlExpression.Where(sql, args);
+            if (SqlForExecution == null)
+            {
+                _sqlExpression = _sqlExpression.Where(sql, args);
+            }
             return this;
         }
 
         public IQueryProvider<T> Where(Sql sql)
         {
-            _sqlExpression = _sqlExpression.Where(sql.SQL, sql.Arguments);
+            if (SqlForExecution == null)
+            {
+                _sqlExpression = _sqlExpression.Where(sql.SQL, sql.Arguments);
+            }
             return this;
         }
 
         public IQueryProvider<T> Where(Func<QueryContext<T>, Sql> queryBuilder)
         {
-            var sql = queryBuilder(new QueryContext<T>(_database, _pocoData, _joinSqlExpressions));
-            return Where(sql);
+            if (SqlForExecution == null)
+            {
+                var sql = queryBuilder(new QueryContext<T>(_database, _pocoData, _joinSqlExpressions));
+                return Where(sql);
+            }
+            return this;
         }
 
         public IQueryProvider<T> Limit(int rows)
         {
-            ThrowIfOneToMany();
-            _sqlExpression = _sqlExpression.Limit(rows);
+            if (SqlForExecution == null)
+            {
+                ThrowIfOneToMany();
+                _sqlExpression = _sqlExpression.Limit(rows);
+            }
             return this;
         }
 
         public IQueryProvider<T> Limit(int skip, int rows)
         {
-            ThrowIfOneToMany();
-            _sqlExpression = _sqlExpression.Limit(skip, rows);
+            if (SqlForExecution == null)
+            {
+                ThrowIfOneToMany();
+                _sqlExpression = _sqlExpression.Limit(skip, rows);
+            }
             return this;
         }
 
@@ -463,25 +579,37 @@ namespace NPoco.Linq
 
         public IQueryProvider<T> OrderBy(Expression<Func<T, object>> column)
         {
-            _sqlExpression = _sqlExpression.OrderBy(column);
+            if (SqlForExecution == null)
+            {
+                _sqlExpression = _sqlExpression.OrderBy(column);
+            }
             return this;
         }
 
         public IQueryProvider<T> OrderByDescending(Expression<Func<T, object>> column)
         {
-            _sqlExpression = _sqlExpression.OrderByDescending(column);
+            if (SqlForExecution == null)
+            {
+                _sqlExpression = _sqlExpression.OrderByDescending(column);
+            }
             return this;
         }
 
         public IQueryProvider<T> ThenBy(Expression<Func<T, object>> column)
         {
-            _sqlExpression = _sqlExpression.ThenBy(column);
+            if (SqlForExecution == null)
+            {
+                _sqlExpression = _sqlExpression.ThenBy(column);
+            }
             return this;
         }
 
         public IQueryProvider<T> ThenByDescending(Expression<Func<T, object>> column)
         {
-            _sqlExpression = _sqlExpression.ThenByDescending(column);
+            if (SqlForExecution == null)
+            {
+                _sqlExpression = _sqlExpression.ThenByDescending(column);
+            }
             return this;
         }
     }

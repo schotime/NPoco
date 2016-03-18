@@ -8,6 +8,8 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
+using NPoco.Compiled;
+using NPoco.Linq;
 
 namespace NPoco
 {
@@ -206,6 +208,12 @@ namespace NPoco
         {
             return QueryAsync(default(T), null, null, sql);
         }
+        
+        public Task<TReturn> QueryAsync<T, TReturn>(ICompiledQueryAsync<T, TReturn> compiledQueryExpression)
+        {
+            var result = CompiledQueryExecutor.ExecuteCompiledQueryAsync(compiledQueryExpression, this, CompiledQueries);
+            return result;
+        }
 
         internal async Task<IEnumerable<T>> QueryAsync<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql)
         {
@@ -300,7 +308,7 @@ namespace NPoco
                     object val = await ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
 
                     if (val == null || val == DBNull.Value)
-                        return await TaskAsyncHelper.FromResult(default(T)).ConfigureAwait(false);
+                        return default(T);
 
                     Type t = typeof(T);
                     Type u = Nullable.GetUnderlyingType(t);

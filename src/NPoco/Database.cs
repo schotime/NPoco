@@ -19,6 +19,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
+using NPoco.Compiled;
 using NPoco.Expressions;
 using NPoco.Linq;
 #if !DNXCORE50
@@ -1005,6 +1006,14 @@ namespace NPoco
             {
                 CloseSharedConnectionInternal();
             }
+        }
+
+        private readonly Dictionary<Type, CompiledQuery> CompiledQueries = new Dictionary<Type, CompiledQuery>();
+
+        public TReturn Query<T, TReturn>(ICompiledQuery<T, TReturn> compiledQueryExpression)
+        {
+            var result = CompiledQueryExecutor.ExecuteCompiledQuery(compiledQueryExpression, this, CompiledQueries);
+            return result;
         }
 
         public IQueryProviderWithIncludes<T> Query<T>()

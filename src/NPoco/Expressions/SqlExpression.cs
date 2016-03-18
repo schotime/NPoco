@@ -7,6 +7,7 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Collections.ObjectModel;
 using System.Linq.Expressions;
+using NPoco.Compiled;
 using NPoco.Linq;
 
 namespace NPoco.Expressions
@@ -72,6 +73,7 @@ namespace NPoco.Expressions
 
     public abstract class SqlExpression<T> : ISqlExpression
     {
+        public const string COMPILED_MEMBER_PREFIX = "CompiledMember__";
         private Expression<Func<T, bool>> underlyingExpression;
         private List<string> orderByProperties = new List<string>();
         private List<OrderByMember> orderByMembers = new List<OrderByMember>();
@@ -320,6 +322,13 @@ namespace NPoco.Expressions
                 if (query != null && query.Provider == this)
                     return false;
             }
+
+            MemberExpression mex = expression as MemberExpression;
+            if (mex != null && IsCompiledValue(mex.Member))
+            {
+                return false;
+            }
+
             MethodCallExpression mc = expression as MethodCallExpression;
             if (mc != null &&
                 (mc.Method.DeclaringType == typeof(Enumerable) ||
@@ -327,11 +336,11 @@ namespace NPoco.Expressions
             {
                 return false;
             }
-            if (expression.NodeType == ExpressionType.Convert &&
-                expression.Type == typeof(object))
+
+            if (expression.NodeType == ExpressionType.Convert &&expression.Type == typeof(object))
                 return true;
-            return expression.NodeType != ExpressionType.Parameter &&
-                   expression.NodeType != ExpressionType.Lambda;
+
+            return expression.NodeType != ExpressionType.Parameter && expression.NodeType != ExpressionType.Lambda;
         }
 
         //public virtual SqlExpression<T> GroupBy()
@@ -928,7 +937,11 @@ namespace NPoco.Expressions
                 left = Visit(b.Left);
                 right = Visit(b.Right);
 
-                if (left as EnumMemberAccess != null && right as PartialSqlString == null)
+                if (right is CompiledMemberString)
+                {
+                    right = CreateParam(right.ToString());
+                }
+                else if (left as EnumMemberAccess != null && right as PartialSqlString == null)
                 {
                     var pc = ((EnumMemberAccess)left).PocoColumn;
 
@@ -1013,6 +1026,11 @@ namespace NPoco.Expressions
                 isNull = true;
             }
 
+            if (IsCompiledValue(m.Member))
+            {
+                return new CompiledMemberString(COMPILED_MEMBER_PREFIX + m.Member.Name);
+            }
+
             if (m.Expression != null
                 && (m.Expression.NodeType == ExpressionType.Parameter
                     || m.Expression.NodeType == ExpressionType.Convert
@@ -1079,6 +1097,11 @@ namespace NPoco.Expressions
             var lambda = Expression.Lambda<Func<object>>(memberExp);
             var getter = lambda.Compile();
             return getter();
+        }
+
+        private bool IsCompiledValue(MemberInfo member)
+        {
+            return member.DeclaringType != null && member.DeclaringType.GetInterfaces().Any(x => x == typeof(ICompiledQuery));
         }
 
         private Type GetCorrectType(MemberExpression m)
@@ -1650,6 +1673,14 @@ namespace NPoco.Expressions
         public override string ToString()
         {
             return Text;
+        }
+    }
+
+    public class CompiledMemberString : PartialSqlString
+    {
+        public CompiledMemberString(string text) : base(text)
+        {
+            
         }
     }
 
