@@ -13,6 +13,8 @@ namespace NPoco.DatabaseTypes
         public bool UseOutputClause { get; set; }
 
         private static readonly Regex OrderByAlias = new Regex(@"[\""\[\]\w]+\.([\[\]\""\w]+)", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        private static readonly Regex OrderByColumns = new Regex(@"(?:([\""\[\]\w]+)\.)?([\[\]\""\w]+)(?:\s(asc|desc))?", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        private static readonly Regex StripOrderBy = new Regex(@"ORDER\s+BY\s+", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
         public override bool UseColumnAliases()
         {
@@ -21,14 +23,43 @@ namespace NPoco.DatabaseTypes
 
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
-            parts.sqlOrderBy = string.IsNullOrEmpty(parts.sqlOrderBy) ? null : OrderByAlias.Replace(parts.sqlOrderBy, "$1");
+            // fixme - issue: if the 'order by' column is aliased?
+            // SELECT table.id, table.name AS whatever FROM table ORDER BY table.name
+            // => (SELECT poco_base.*, ROW_NUMBER() OVER (ORDER BY name) poco_rn FROM (SELECT table.id, table.name AS whatever FROM table) poco_base) ...
+            // fails, because 'name' is not a column in table poco_base
+
+            var over = "ORDER BY (SELECT NULL /*poco_dual*/)";
+            if (parts.sqlOrderBy != null)
+            {
+                var trimChars = new[] { '[', ']', '"' };
+                over = OrderByColumns.Replace(StripOrderBy.Replace(parts.sqlOrderBy, ""), m =>
+                {
+                    var table = m.Groups[1].Value.Trim(trimChars);
+                    var column = m.Groups[2].Value.Trim(trimChars);
+                    var dir = m.Groups[3].Success ? (" " + m.Groups[3].Value) : null;
+
+                    // expensive, obviously, but what else?
+                    var lookup = new Regex(@"(?:[\[\""]?" + table + @"[\]\""]?\.)?[\[\""]?" + column + @"[\]\""]?\s+AS\s+([\[\]\""\w]+)", RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                    var matches = lookup.Matches(parts.sqlUnordered);
+
+                    if (matches.Count == 0) return EscapeSqlIdentifier(column) + dir; // obvious
+
+                    var match = matches.Count == 1
+                        ? matches[0] // use single match
+                        : matches.Cast<Match>().FirstOrDefault(x => x.Groups[1].Success); // use first fq (what else?)
+                    if (match == null) match = matches[0]; // use first (what else?)
+                    return EscapeSqlIdentifier(match.Groups[1].Value.Trim(trimChars)) + dir; // use the alias
+                });
+                over = "ORDER BY " + over;
+            }
+
             var sqlPage = string.Format("SELECT {4} FROM (SELECT poco_base.*, ROW_NUMBER() OVER ({0}) poco_rn \nFROM ( \n{1}) poco_base ) poco_paged \nWHERE poco_rn > @{2} AND poco_rn <= @{3} \nORDER BY poco_rn",
-                parts.sqlOrderBy ?? "ORDER BY (SELECT NULL /*poco_dual*/)", parts.sqlUnordered, args.Length, args.Length + 1, parts.sqlColumns);
+                over, parts.sqlUnordered, args.Length, args.Length + 1, parts.sqlColumns);
             args = args.Concat(new object[] { skip, skip + take }).ToArray();
 
             return sqlPage;
         }
-        
+
         private void AdjustSqlInsertCommandText(DbCommand cmd, bool useOutputClause)
         {
             if (!UseOutputClause && !useOutputClause)
@@ -36,7 +67,7 @@ namespace NPoco.DatabaseTypes
                 cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
             }
         }
-        
+
         public override string GetInsertOutputClause(string primaryKeyName, bool useOutputClause)
         {
             if (UseOutputClause || useOutputClause)
