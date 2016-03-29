@@ -52,6 +52,11 @@ namespace NPoco
             return new[] { typeof(object), typeof(IDictionary<string, object>), typeof(Dictionary<string, object>) }.Contains(type);
         }
 
+        public TableInfo BuildTableInfo()
+        {
+            return _tableInfoPlan();
+        }
+
         public PocoData Build()
         {
             var pocoData = new PocoData(Type, Mapper);

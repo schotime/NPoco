@@ -1357,8 +1357,8 @@ namespace NPoco
         // Insert an annotated poco object
         public object Insert<T>(T poco)
         {
-            var pd = PocoDataFactory.ForType(poco.GetType());
-            return InsertImp(pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
+            return Insert(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco);
         }
 
         public object Insert<T>(string tableName, string primaryKeyName, T poco)
@@ -1483,7 +1483,7 @@ namespace NPoco
         }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
-        protected virtual TRet UpdateImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
+        private TRet UpdateImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
         {
             if (!OnUpdatingInternal(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns)))
                 return defaultId;
@@ -1670,20 +1670,20 @@ namespace NPoco
 
         public int Update(object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            var pd = PocoDataFactory.ForType(poco.GetType());
-            return Update(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco, primaryKeyValue, columns);
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
+            return Update(tableInfo.TableName, tableInfo.PrimaryKey, poco, primaryKeyValue, columns);
         }
 
         public int Update<T>(string sql, params object[] args)
         {
-            var pd = PocoDataFactory.ForType(typeof(T));
-            return Execute(string.Format("UPDATE {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
+            var tableInfo = PocoDataFactory.TableInfoForType(typeof(T));
+            return Execute(string.Format("UPDATE {0} {1}", _dbType.EscapeTableName(tableInfo.TableName), sql), args);
         }
 
         public int Update<T>(Sql sql)
         {
-            var pd = PocoDataFactory.ForType(typeof(T));
-            return Execute(new Sql(string.Format("UPDATE {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
+            var tableInfo = PocoDataFactory.TableInfoForType(typeof(T));
+            return Execute(new Sql(string.Format("UPDATE {0}", _dbType.EscapeTableName(tableInfo.TableName))).Append(sql));
         }
 
         public IDeleteQueryProvider<T> DeleteMany<T>()
@@ -1701,7 +1701,7 @@ namespace NPoco
             return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, Execute, 0);
         }
 
-        protected virtual TRet DeleteImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, Func<string, object[], TRet> executeFunc, TRet defaultRet)
+        private TRet DeleteImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, Func<string, object[], TRet> executeFunc, TRet defaultRet)
         {
             if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue)))
                 return defaultRet;
@@ -1717,28 +1717,28 @@ namespace NPoco
 
         public int Delete(object poco)
         {
-            var pd = PocoDataFactory.ForType(poco.GetType());
-            return Delete(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco);
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
+            return Delete(tableInfo.TableName, tableInfo.PrimaryKey, poco);
         }
 
         public int Delete<T>(object pocoOrPrimaryKey)
         {
             if (pocoOrPrimaryKey.GetType() == typeof(T))
                 return Delete(pocoOrPrimaryKey);
-            var pd = PocoDataFactory.ForType(typeof(T));
-            return Delete(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, null, pocoOrPrimaryKey);
+            var tableInfo = PocoDataFactory.TableInfoForType(typeof(T));
+            return Delete(tableInfo.TableName, tableInfo.PrimaryKey, null, pocoOrPrimaryKey);
         }
 
         public int Delete<T>(string sql, params object[] args)
         {
-            var pd = PocoDataFactory.ForType(typeof(T));
-            return Execute(string.Format("DELETE FROM {0} {1}", _dbType.EscapeTableName(pd.TableInfo.TableName), sql), args);
+            var tableInfo = PocoDataFactory.TableInfoForType(typeof(T));
+            return Execute(string.Format("DELETE FROM {0} {1}", _dbType.EscapeTableName(tableInfo.TableName), sql), args);
         }
 
         public int Delete<T>(Sql sql)
         {
-            var pd = PocoDataFactory.ForType(typeof(T));
-            return Execute(new Sql(string.Format("DELETE FROM {0}", _dbType.EscapeTableName(pd.TableInfo.TableName))).Append(sql));
+            var tableInfo = PocoDataFactory.TableInfoForType(typeof(T));
+            return Execute(new Sql(string.Format("DELETE FROM {0}", _dbType.EscapeTableName(tableInfo.TableName))).Append(sql));
         }
 
         /// <summary>Checks if a poco represents a new record.</summary>
@@ -1796,14 +1796,14 @@ namespace NPoco
         // Insert new record or Update existing record
         public void Save<T>(T poco)
         {
-            var pd = PocoDataFactory.ForType(poco.GetType());
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
             if (IsNew(poco))
             {
-                Insert(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
+                Insert(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco);
             }
             else
             {
-                Update(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco);
+                Update(tableInfo.TableName, tableInfo.PrimaryKey, poco);
             }
         }
 

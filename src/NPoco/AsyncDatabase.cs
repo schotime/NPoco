@@ -35,8 +35,8 @@ namespace NPoco
         /// from the POCO's attributes</remarks>
         public Task<object> InsertAsync<T>(T poco)
         {
-            var pd = PocoDataFactory.ForType(poco.GetType());
-            return InsertAsyncImp(pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
+            return InsertAsync(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco);
         }
 
         /// <summary>
@@ -119,8 +119,8 @@ namespace NPoco
         
         public Task<int> UpdateAsync(object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            var pd = PocoDataFactory.ForType(poco.GetType());
-            return UpdateAsync(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco, primaryKeyValue, columns);
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
+            return UpdateAsync(tableInfo.TableName, tableInfo.PrimaryKey, poco, primaryKeyValue, columns);
         }
 
         public virtual Task<int> UpdateAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
@@ -131,8 +131,8 @@ namespace NPoco
 
         public Task<int> DeleteAsync(object poco)
         {
-            var pd = PocoDataFactory.ForType(poco.GetType());
-            return DeleteAsync(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, poco);
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
+            return DeleteAsync(tableInfo.TableName, tableInfo.PrimaryKey, poco);
         }
 
         public Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco)

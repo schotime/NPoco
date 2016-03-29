@@ -7,6 +7,7 @@ namespace NPoco
     public interface IPocoDataFactory
     {
         PocoData ForType(Type type);
+        TableInfo TableInfoForType(Type type);
         PocoData ForObject(object o, string primaryKeyName, bool autoIncrement);
     }
 
@@ -25,6 +26,13 @@ namespace NPoco
             PocoDataFactory.Guard(type);
             var pocoDataBuilder = _pocoDatas.Get(type, () => Resolver(type, this));
             return pocoDataBuilder.Build();
+        }
+
+        public TableInfo TableInfoForType(Type type)
+        {
+            PocoDataFactory.Guard(type);
+            var pocoDataBuilder = _pocoDatas.Get(type, () => Resolver(type, this));
+            return pocoDataBuilder.BuildTableInfo();
         }
 
         public PocoData ForObject(object o, string primaryKeyName, bool autoIncrement)
@@ -49,6 +57,14 @@ namespace NPoco
             var pocoDataBuilder = _pocoDatas.Get(type, () => new PocoDataBuilder(type, _mapper).Init());
             return pocoDataBuilder.Build();
         }
+
+        public TableInfo TableInfoForType(Type type)
+        {
+            Guard(type);
+            var pocoDataBuilder = _pocoDatas.Get(type, () => new PocoDataBuilder(type, _mapper).Init());
+            return pocoDataBuilder.BuildTableInfo();
+        }
+
         public PocoData ForObject(object o, string primaryKeyName, bool autoIncrement)
         {
             return ForObjectStatic(o, primaryKeyName, autoIncrement, ForType);
