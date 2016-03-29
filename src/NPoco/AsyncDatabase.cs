@@ -36,7 +36,7 @@ namespace NPoco
         public Task<object> InsertAsync<T>(T poco)
         {
             var pd = PocoDataFactory.ForType(poco.GetType());
-            return InsertAsyncImp(pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
+            return InsertAsync(pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, poco);
         }
 
         /// <summary>
