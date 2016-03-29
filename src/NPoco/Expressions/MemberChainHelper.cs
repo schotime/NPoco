@@ -10,12 +10,18 @@ namespace NPoco.Expressions
     {
         private static MemberExpression GetMemberExpression(Expression method)
         {
+            MemberExpression memberExpr = null;
             LambdaExpression lambda = method as LambdaExpression;
             if (lambda == null)
+            {
+                var call = method as MethodCallExpression;
+                if (call != null && (call.Method.Name == "get_Item" || call.Method.Name == "First"))
+                {
+                    return call.Object as MemberExpression;
+                }
                 return null;
-
-            MemberExpression memberExpr = null;
-
+            }
+            
             if (lambda.Body.NodeType == ExpressionType.Convert)
             {
                 memberExpr = ((UnaryExpression) lambda.Body).Operand as MemberExpression;
