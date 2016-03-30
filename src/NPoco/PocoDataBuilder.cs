@@ -154,7 +154,7 @@ namespace NPoco
                 var listType = GetListType(memberType, isList);
                 var isDynamic = capturedMemberInfo.IsDynamic();
                 var fastCreate = GetFastCreate(memberType, mapper, isList, isDynamic);
-                var columnName = GetColumnName(capturedPrefix, capturedColumnInfo.ColumnName);
+                var columnName = GetColumnName(capturedPrefix, capturedColumnInfo.ColumnName ?? capturedMemberInfo.Name);
                 var memberInfoData = new MemberInfoData(capturedMemberInfo);
 
                 yield return tableInfo =>

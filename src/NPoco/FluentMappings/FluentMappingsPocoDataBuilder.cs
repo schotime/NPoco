@@ -130,10 +130,6 @@ namespace NPoco.FluentMappings
 
                 columnInfo.ColumnType = colattr.DbColumnType;
             }
-            else
-            {
-                columnInfo.IgnoreColumn = true;
-            }
             
             return columnInfo;
         }
