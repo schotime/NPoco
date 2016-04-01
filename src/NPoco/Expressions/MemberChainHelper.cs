@@ -15,9 +15,13 @@ namespace NPoco.Expressions
             if (lambda == null)
             {
                 var call = method as MethodCallExpression;
-                if (call != null && (call.Method.Name == "get_Item" || call.Method.Name == "First"))
+                if (call != null)
                 {
-                    return call.Object as MemberExpression;
+                    if (call.Method.Name == "get_Item")
+                        return call.Object as MemberExpression;
+
+                    if ((call.Method.Name == "First" || call.Method.Name == "FirstOrDefault") && call.Arguments.Count >= 1)
+                        return call.Arguments.First() as MemberExpression;
                 }
                 return null;
             }

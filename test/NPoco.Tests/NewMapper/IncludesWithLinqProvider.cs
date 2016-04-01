@@ -41,6 +41,9 @@ namespace NPoco.Tests.NewMapper
         {
             var result = Database
                 .Query<One>()
+                .Include(X => X.Items.FirstOrDefault().One)
+                .Include(X => X.Items.First().One)
+                .Include(X => X.Items[0].One)
                 .IncludeMany(x => x.Items)
                 .ToList();
 
