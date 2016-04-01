@@ -50,6 +50,20 @@ select 8 Id, 'John' Name, 87.0 Money__Value, 'USD' Money__Code");
             Console.WriteLine(sw.ElapsedMilliseconds);
             Console.WriteLine(sw1.ElapsedMilliseconds);
         }
+
+        [Test]
+        public void GetOnlyProperties()
+        {
+            var result = Database.Single<GetzOnly>("select 'aaa' Name1, 'bbb' Name2");
+            Assert.AreEqual("aaa", result.Name1);
+            Assert.AreEqual("bbb", result.Name2);
+        }
+    }
+
+    public class GetzOnly
+    {
+        public string Name1 { get; }
+        public string Name2 { get; } = "Default";
     }
 
     public class TestNewMapper
