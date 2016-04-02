@@ -145,20 +145,15 @@ namespace NPoco
             return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, ExecuteAsync, TaskAsyncHelper.FromResult(0));
         }
 
-        public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
-        {
-            return PageAsync<T>(typeof(T), null, page, itemsPerPage, sql, args);
-        }
-
         public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql)
         {
             return PageAsync<T>(page, itemsPerPage, sql.SQL, sql.Arguments);
         }
 
-        public Task<Page<T>> PageAsync<T>(Type type, Delegate cb, long page, long itemsPerPage, string sql, params object[] args)
+        public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
-            return PageImp<T, Task<Page<T>>>(type, page, itemsPerPage, sql, args,
-                async (paged, thetypes, thesql) =>
+            return PageImp<T, Task<Page<T>>>(page, itemsPerPage, sql, args,
+                async (paged, thesql) =>
                 {
                     paged.Items = (await QueryAsync<T>(thesql).ConfigureAwait(false)).ToList();
                     return paged;

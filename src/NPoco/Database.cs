@@ -828,11 +828,6 @@ namespace NPoco
         }
 
         // Fetch a page
-        public Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args)
-        {
-            return Page<T>(typeof(T), page, itemsPerPage, sql, args);
-        }
-
         public Page<T> Page<T>(long page, long itemsPerPage, Sql sql)
         {
             return Page<T>(page, itemsPerPage, sql.SQL, sql.Arguments);
@@ -1119,9 +1114,9 @@ namespace NPoco
             return FetchOneToMany(many, idFunc, new Sql(sql, args));
         }
 
-        public Page<T> Page<T>(Type type, long page, long itemsPerPage, string sql, params object[] args)
+        public Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
-            return PageImp<T, Page<T>>(type, page, itemsPerPage, sql, args, (paged, thetypes, thesql) =>
+            return PageImp<T, Page<T>>(page, itemsPerPage, sql, args, (paged, thesql) =>
             {
                 paged.Items =  Query<T>(thesql).ToList();
                 return paged;
@@ -1129,7 +1124,7 @@ namespace NPoco
         }
 
         // Actual implementation of the multi-poco paging
-        protected TRet PageImp<T, TRet>(Type type, long page, long itemsPerPage, string sql, object[] args, Func<Page<T>, Type, Sql, TRet> executeQueryFunc)
+        protected TRet PageImp<T, TRet>(long page, long itemsPerPage, string sql, object[] args, Func<Page<T>, Sql, TRet> executeQueryFunc)
         {
             string sqlCount, sqlPage;
 
@@ -1152,7 +1147,7 @@ namespace NPoco
             OneTimeCommandTimeout = saveTimeout;
 
             // Get the records
-            return executeQueryFunc(result, type, new Sql(sqlPage, args));
+            return executeQueryFunc(result, new Sql(sqlPage, args));
         }
 
         public TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args)); }

@@ -102,7 +102,7 @@ namespace NPoco
             Type[] setParamTypes = new Type[] { typeof(object), typeof(object) };
             Type setReturnType = null;
 
-            var owner = _targetType.IsAbstract || _targetType.IsInterface ? null : _targetType;
+            var owner = _targetType.GetTypeInfo().IsAbstract || _targetType.GetTypeInfo().IsInterface ? null : _targetType;
             var setMethod = owner != null 
                 ? new DynamicMethod(Guid.NewGuid().ToString(), setReturnType, setParamTypes, owner, true)
                 : new DynamicMethod(Guid.NewGuid().ToString(), setReturnType, setParamTypes, true);
@@ -166,7 +166,7 @@ namespace NPoco
             Type[] setParamTypes = new[] { typeof(object) };
             Type setReturnType = typeof (object);
 
-            var owner = _targetType.IsAbstract || _targetType.IsInterface ? null : _targetType;
+            var owner = _targetType.GetTypeInfo().IsAbstract || _targetType.GetTypeInfo().IsInterface ? null : _targetType;
             var getMethod = owner != null 
                 ? new DynamicMethod(Guid.NewGuid().ToString(), setReturnType, setParamTypes, owner, true)
                 : new DynamicMethod(Guid.NewGuid().ToString(), setReturnType, setParamTypes, true);
