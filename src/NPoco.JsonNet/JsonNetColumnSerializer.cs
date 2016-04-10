@@ -12,9 +12,9 @@ namespace NPoco
             return JsonConvert.SerializeObject(value, SerializerSettings);
         }
 
-        public object Deserialize(string value, Type targeType)
+        public object Deserialize(string value, Type targetType)
         {
-            return JsonConvert.DeserializeObject(value, targeType, SerializerSettings);
+            return JsonConvert.DeserializeObject(value, targetType, SerializerSettings);
         }
     }
 }

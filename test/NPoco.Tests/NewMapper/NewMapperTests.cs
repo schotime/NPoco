@@ -208,7 +208,7 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
             Assert.AreEqual("Name1", data.Name);
             Assert.AreEqual("Street1", data.Address.StreetName);
             Assert.AreEqual(1, data.Address.StreetNo);
-            Assert.AreEqual(new DateTime(1971, 01, 01), data.Address.MovedInOn);
+            Assert.AreEqual(new DateTime(1971, 01, 01, 0, 0, 0, DateTimeKind.Utc), data.Address.MovedInOn);
         }
 
         [Test]

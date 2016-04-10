@@ -86,7 +86,7 @@ namespace NPoco
             var type = first.GetType();
             if (type.IsAClass() || type.IsArray)
             {
-                return DatabaseFactory.ColumnSerializer.Serialize(first) == DatabaseFactory.ColumnSerializer.Serialize(second);
+                return fastJSON.JSON.ToJSON(first) == fastJSON.JSON.ToJSON(second);
             }
 
             return first.Equals(second);

@@ -5,15 +5,14 @@
   "tags": [ "orm", "sql", "micro-orm", "database", "mvc" ],
   "projectUrl": "https://github.com/schotime/NPoco",
   "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
-  "dependencies": {
-    "Newtonsoft.Json": "7.0.1"
-  },
+
   "frameworks": {
     "dnx451": {
       "frameworkAssemblies": {
         "System.configuration": "4.0.0.0",
         "System.Data": "4.0.0.0",
         "System.Runtime.Caching": "4.0.0.0",
+        "System.Runtime.Serialization": "4.0.0.0",
         "System.XML": "4.0.0.0"
       }
     },
@@ -22,6 +21,7 @@
         "System.configuration": "4.0.0.0",
         "System.Data": "4.0.0.0",
         "System.Runtime.Caching": "4.0.0.0",
+        "System.Runtime.Serialization": "4.0.0.0",
         "System.XML": "4.0.0.0"
       }
     },
@@ -30,6 +30,7 @@
         "System.configuration": "4.0.0.0",
         "System.Data": "4.0.0.0",
         "System.Runtime.Caching": "4.0.0.0",
+        "System.Runtime.Serialization": "4.0.0.0",
         "System.XML": "4.0.0.0"
       }
     },
@@ -37,6 +38,7 @@
       "frameworkAssemblies": {
         "System.configuration": "2.0.0.0",
         "System.Data": "2.0.0.0",
+        "System.Runtime.Serialization": "",
         "System.XML": "2.0.0.0"
       }
     },
@@ -48,6 +50,7 @@
         "System.Collections.Specialized": "4.0.1-beta-23516",
         "System.Data.Common": "4.0.1-beta-23516",
         "System.Data.SqlClient": "4.0.0-beta-23516",
+        "System.Diagnostics.Tools": "4.0.1-beta-23516",
         "System.Diagnostics.StackTrace": "4.0.1-beta-23516",
         "System.Dynamic.Runtime": "4.0.11-beta-23516",
         "System.Linq": "4.0.1-beta-23516",
@@ -60,6 +63,7 @@
         "System.Reflection.Extensions": "4.0.1-beta-23516",
         "System.Runtime": "4.0.21-beta-23516",
         "System.Runtime.Extensions": "4.0.11-beta-23516",
+        "System.Runtime.Serialization.Primitives": "4.1.0-beta-23516",
         "System.Text.Encoding": "4.0.11-beta-23516",
         "System.Text.RegularExpressions": "4.0.11-beta-23516",
         "System.Threading": "4.0.11-beta-23516",

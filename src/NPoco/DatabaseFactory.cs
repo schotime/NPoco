@@ -10,7 +10,7 @@ namespace NPoco
 {
     public class DatabaseFactory
     {
-        public static IColumnSerializer ColumnSerializer = new JsonNetColumnSerializer();
+        public static IColumnSerializer ColumnSerializer = new FastJSONColumnSerializer();
 
         private DatabaseFactoryConfigOptions _options;
 
