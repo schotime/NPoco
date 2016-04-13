@@ -229,7 +229,7 @@ namespace NPoco.fastJSON
                 _output.Append('.');
                 _output.Append(dt.Millisecond.ToString("000", NumberFormatInfo.InvariantInfo));
             }
-            if (_params.UseUTCDateTime)
+            if (dt.Kind == DateTimeKind.Utc)
                 _output.Append('Z');
 
             _output.Append('\"');

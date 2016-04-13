@@ -758,10 +758,18 @@ namespace NPoco.fastJSON
             if (value[value.Length - 1] == 'Z')
                 utc = true;
 
-            if (_params.UseUTCDateTime == false && utc == false)
+            if (utc == false)
+            {
                 return new DateTime(year, month, day, hour, min, sec, ms);
+            }
             else
-                return new DateTime(year, month, day, hour, min, sec, ms, DateTimeKind.Utc).ToLocalTime();
+            {
+                if (_params.UseUTCDateTime == true)
+                    return new DateTime(year, month, day, hour, min, sec, ms, DateTimeKind.Utc).ToLocalTime();
+                else
+                    return new DateTime(year, month, day, hour, min, sec, ms, DateTimeKind.Utc);
+            }
+                
         }
 
         private object CreateArray(List<object> data, Type pt, Type bt, Dictionary<string, object> globalTypes)

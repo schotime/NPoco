@@ -205,10 +205,11 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
         public void Test14()
         {
             var data = Database.Fetch<UserWithAddress>().First();
+
             Assert.AreEqual("Name1", data.Name);
             Assert.AreEqual("Street1", data.Address.StreetName);
             Assert.AreEqual(1, data.Address.StreetNo);
-            Assert.AreEqual(new DateTime(1971, 01, 01, 0, 0, 0, DateTimeKind.Utc), data.Address.MovedInOn);
+            Assert.AreEqual(new DateTime(1971, 01, 01, 0, 0, 0), data.Address.MovedInOn);
         }
 
         [Test]
