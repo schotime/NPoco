@@ -93,10 +93,6 @@ namespace NPoco
                 }
                 else
                 {
-                    var indexOfExistingValue = args_dest.IndexOf(arg_val);
-                    if (indexOfExistingValue >= 0)
-                        return "@" + indexOfExistingValue;
-
                     args_dest.Add(arg_val);
                     return "@" + (args_dest.Count - 1).ToString();
                 }
