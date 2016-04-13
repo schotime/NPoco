@@ -10,7 +10,22 @@ namespace NPoco
 {
     public class DatabaseFactory
     {
-        public static IColumnSerializer ColumnSerializer = new JsonNetColumnSerializer();
+        private static IColumnSerializer _columnSerializer;
+
+        public static IColumnSerializer ColumnSerializer
+        {
+            get
+            {
+                if (_columnSerializer == null)
+                    throw new NullReferenceException("ColumnSerializer cannot be null. Use DatabaseFactory.RegisterColumnSerializer()");
+                return _columnSerializer;
+            }
+        }
+
+        public static void RegisterColumnSerializer(IColumnSerializer columnSerializer)
+        {
+            _columnSerializer = columnSerializer;
+        }
 
         private DatabaseFactoryConfigOptions _options;
 

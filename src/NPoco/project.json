@@ -5,9 +5,6 @@
   "tags": [ "orm", "sql", "micro-orm", "database", "mvc" ],
   "projectUrl": "https://github.com/schotime/NPoco",
   "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
-  "dependencies": {
-    "Newtonsoft.Json": "7.0.1"
-  },
   "frameworks": {
     "dnx451": {
       "frameworkAssemblies": {
