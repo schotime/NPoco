@@ -1,5 +1,5 @@
 ﻿{
-  "version": "3.1.0-*",
+  "version": "3.2.0-*",
   "description": "An extremely easy to use Micro-ORM supporting Sql Server, MySQL, PostgreSQL, Oracle, Sqlite, SqlCE. Originally Schotime's PetaPoco branch.",
   "authors": [ "Adam Schroder" ],
   "tags": [ "orm", "sql", "micro-orm", "database", "mvc" ],
