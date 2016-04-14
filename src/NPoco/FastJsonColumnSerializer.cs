@@ -2,7 +2,7 @@ using System;
 
 namespace NPoco
 {
-    public class FastJSONColumnSerializer : IColumnSerializer
+    public class FastJsonColumnSerializer : IColumnSerializer
     {
         public fastJSON.JSONParameters JSONParameters { get; set; } = new fastJSON.JSONParameters();
 
