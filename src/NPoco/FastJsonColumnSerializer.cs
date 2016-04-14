@@ -4,7 +4,11 @@ namespace NPoco
 {
     public class FastJsonColumnSerializer : IColumnSerializer
     {
-        public fastJSON.JSONParameters JSONParameters { get; set; } = new fastJSON.JSONParameters();
+        public fastJSON.JSONParameters JSONParameters { get; set; } = new fastJSON.JSONParameters()
+        {
+            UseUTCDateTime = false,
+            UseExtensions = false
+        };
 
         public string Serialize(object value)
         {
