@@ -5,7 +5,7 @@ namespace NPoco
 {
     public class JsonNetColumnSerializer : IColumnSerializer
     {
-        public static JsonSerializerSettings SerializerSettings = new JsonSerializerSettings() { DateFormatHandling = DateFormatHandling.IsoDateFormat };
+        public JsonSerializerSettings SerializerSettings = new JsonSerializerSettings() { DateFormatHandling = DateFormatHandling.IsoDateFormat };
         
         public string Serialize(object value)
         {
