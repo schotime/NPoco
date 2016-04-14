@@ -8,6 +8,7 @@ Properties {
     $build_dir = Split-Path $psake.build_script_file    
     $build_artifacts_dir = "$build_dir\build"
     $solution_dir = "$build_dir\src\NPoco"
+    $jsonnet = "$build_dir\src\NPoco.JsonNet"
 }
 
 FormatTaskName (("-"*25) + "[{0}]" + ("-"*25))
@@ -19,6 +20,8 @@ Task Build -depends Clean {
     Exec { dnu restore }
     Set-Location "$solution_dir"
     #$env:DNX_BUILD_VERSION="alpha02"
+    Exec { dnu pack --configuration release --out $build_artifacts_dir --quiet } 
+    Set-Location "$jsonnet"
     Exec { dnu pack --configuration release --out $build_artifacts_dir --quiet } 
 }
 
