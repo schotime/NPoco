@@ -17,12 +17,12 @@ Task Default -depends Build
 
 Task Build -depends Clean {
     Write-Host "Creating BuildArtifacts" -ForegroundColor Green
-    Exec { dnu restore }
+    Exec { dotnet restore }
     Set-Location "$solution_dir"
     #$env:DNX_BUILD_VERSION="alpha02"
-    Exec { dnu pack --configuration release --out $build_artifacts_dir --quiet } 
+    Exec { dotnet pack --configuration release --output $build_artifacts_dir } 
     Set-Location "$jsonnet"
-    Exec { dnu pack --configuration release --out $build_artifacts_dir --quiet } 
+    Exec { dotnet pack --configuration release --output $build_artifacts_dir } 
 }
 
 Task Clean {
