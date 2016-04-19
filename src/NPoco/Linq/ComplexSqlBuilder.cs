@@ -122,8 +122,7 @@ namespace NPoco.Linq
                 var member = joinSqlExpression.PocoMemberJoin;
 
                 cols = cols.Concat(joinSqlExpression.PocoMembers
-                    .Where(x => x.ReferenceType == ReferenceType.None)
-                    .Where(x => x.PocoColumn != null)
+                    .Where(x => x.ReferenceType == ReferenceType.None && x.PocoColumn != null && !x.PocoColumn.ResultColumn)
                     .Select(x => new StringPocoCol
                 {
                     StringCol = database.DatabaseType.EscapeTableName(x.PocoColumn.TableInfo.AutoAlias)
