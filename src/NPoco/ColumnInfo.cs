@@ -101,8 +101,4 @@ namespace NPoco
             return ci;
         }
     }
-
-    public class SerializedColumnAttribute : ColumnAttribute
-    {
-    }
 }
