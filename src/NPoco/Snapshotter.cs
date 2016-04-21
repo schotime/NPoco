@@ -22,6 +22,7 @@ namespace NPoco
         private readonly PocoData _pocoData;
         private T _trackedObject;
         private readonly Dictionary<PocoColumn, object> _originalValues = new Dictionary<PocoColumn, object>();
+        private static IColumnSerializer serializer = new FastJsonColumnSerializer();
 
         public Snapshot(PocoData pocoData, T trackedObject)
         {
@@ -86,7 +87,7 @@ namespace NPoco
             var type = first.GetType();
             if (type.IsAClass() || type.IsArray)
             {
-                return fastJSON.JSON.ToJSON(first) == fastJSON.JSON.ToJSON(second);
+                return serializer.Serialize(first) == serializer.Serialize(second);
             }
 
             return first.Equals(second);
