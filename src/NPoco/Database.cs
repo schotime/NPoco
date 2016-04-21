@@ -1542,7 +1542,7 @@ namespace NPoco
             }
 
             if (columns != null && columns.Any() && sb.Length == 0)
-                throw new ArgumentException("There were no columns in the columns list that matched your table", "columns");
+                return defaultId;
 
             var sql = string.Format("UPDATE {0} SET {1} WHERE {2}", _dbType.EscapeTableName(tableName), sb, BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
 
