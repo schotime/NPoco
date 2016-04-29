@@ -14,8 +14,10 @@ namespace NPoco
     public class MemberAccessor
     {
         private readonly Type _targetType;
-        private Type _memberType;
-        private static Hashtable _mTypeHash = new Hashtable
+        private readonly Type _memberType;
+        private readonly MemberInfo _member;
+
+        private static readonly Hashtable _mTypeHash = new Hashtable
         {
             [typeof(sbyte)] = OpCodes.Ldind_I1,
             [typeof(byte)] = OpCodes.Ldind_U1,
@@ -30,9 +32,6 @@ namespace NPoco
             [typeof(double)] = OpCodes.Ldind_R8,
             [typeof(float)] = OpCodes.Ldind_R4
         };
-        private bool _canRead;
-        private readonly bool _canWrite;
-        private readonly MemberInfo _member;
 
         /// <summary>
         /// Creates a new property accessor.
@@ -49,30 +48,30 @@ namespace NPoco
                 throw new Exception(string.Format("Property \"{0}\" does not exist for type " + "{1}.", memberName, targetType));
             }
 
-            _canRead = memberInfo.IsField() || ((PropertyInfo) memberInfo).CanRead;
-            _canWrite = memberInfo.IsField() || ((PropertyInfo) memberInfo).CanWrite;
+            var canRead = memberInfo.IsField() || ((PropertyInfo) memberInfo).CanRead;
+            var canWrite = memberInfo.IsField() || ((PropertyInfo) memberInfo).CanWrite;
 
             // roslyn automatically implemented properties, in particular for get-only properties: <{Name}>k__BackingField;
-            if (!_canWrite)
+            if (!canWrite)
             {
                 var backingFieldName = $"<{memberName}>k__BackingField";
                 var backingFieldMemberInfo = targetType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault(x => x.Name == backingFieldName);
                 if (backingFieldMemberInfo != null)
                 {
                     memberInfo = backingFieldMemberInfo;
-                    _canWrite = true;
+                    canWrite = true;
                 }
             }
 
             _memberType = memberInfo.GetMemberInfoType();
             _member = memberInfo;
 
-            if (_canWrite)
+            if (canWrite)
             {
                 SetDelegate = GetSetDelegate();
             }
 
-            if (_canRead)
+            if (canRead)
             {
                 GetDelegate = GetGetDelegate();
             }
@@ -173,7 +172,6 @@ namespace NPoco
 
             // From the method, get an ILGenerator. This is used to
             // emit the IL that we want.
-            //
             ILGenerator getIL = getMethod.GetILGenerator();
             
             getIL.DeclareLocal(typeof(object));
@@ -186,6 +184,10 @@ namespace NPoco
             if (_member.IsField())
             {
                 getIL.Emit(OpCodes.Ldfld, (FieldInfo)_member);
+                if (_memberType.GetTypeInfo().IsValueType)
+                {
+                    getIL.Emit(OpCodes.Box, _memberType);
+                }
             }
             else
             {
@@ -194,7 +196,6 @@ namespace NPoco
                 if (targetGetMethod.ReturnType.GetTypeInfo().IsValueType)
                 {
                     getIL.Emit(OpCodes.Box, targetGetMethod.ReturnType);
-                    //Box if necessary
                 }
             }
 

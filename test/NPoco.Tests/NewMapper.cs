@@ -58,7 +58,29 @@ select 8 Id, 'John' Name, 87.0 Money__Value, 'USD' Money__Code");
             Assert.AreEqual("aaa", result.Name1);
             Assert.AreEqual("bbb", result.Name2);
         }
+
+        [Test]
+        public void FieldAsPrimaryKey()
+        {
+            var user = Database.SingleById<Super>(1);
+            user.Name = "NameChanged";
+            Database.Save(user);
+            var userChanged = Database.SingleById<Super>(1);
+            Assert.AreEqual("NameChanged", userChanged.Name);
+        }
     }
+
+    public abstract class Base
+    {
+        public int UserId;
+    }
+
+    [TableName("Users"), PrimaryKey("UserId")]
+    public class Super : Base
+    {
+        public string Name { get; set; }
+    }
+
 
     public class GetzOnly
     {
