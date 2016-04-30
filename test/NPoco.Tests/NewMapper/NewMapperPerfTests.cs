@@ -1,15 +1,14 @@
-﻿using System;
+using System;
 using System.Diagnostics;
-using NPoco;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
 namespace NPoco.Tests
 {
-    public class NewMapperTests : BaseDBDecoratedTest
+    public class NewMapperPerfTests : BaseDBDecoratedTest
     {
         [Test]
-        public void Test1()
+        public void PerfTests()
         {
             var result = Database.Fetch<TestNewMapper>(@"
 select 4 Id, 'Will' Name, 23.0 Money__Value, 'AUD' Money__Code 
@@ -50,54 +49,18 @@ select 8 Id, 'John' Name, 87.0 Money__Value, 'USD' Money__Code");
             Console.WriteLine(sw.ElapsedMilliseconds);
             Console.WriteLine(sw1.ElapsedMilliseconds);
         }
-
-        [Test]
-        public void GetOnlyProperties()
+        
+        public class TestNewMapper
         {
-            var result = Database.Single<GetzOnly>("select 'aaa' Name1, 'bbb' Name2");
-            Assert.AreEqual("aaa", result.Name1);
-            Assert.AreEqual("bbb", result.Name2);
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public Money Money { get; set; }
         }
 
-        [Test]
-        public void FieldAsPrimaryKey()
+        public class Money
         {
-            var user = Database.SingleById<Super>(1);
-            user.Name = "NameChanged";
-            Database.Save(user);
-            var userChanged = Database.SingleById<Super>(1);
-            Assert.AreEqual("NameChanged", userChanged.Name);
+            public decimal Value { get; set; }
+            public string Code { get; set; }
         }
-    }
-
-    public abstract class Base
-    {
-        public int UserId;
-    }
-
-    [TableName("Users"), PrimaryKey("UserId")]
-    public class Super : Base
-    {
-        public string Name { get; set; }
-    }
-
-
-    public class GetzOnly
-    {
-        public string Name1 { get; }
-        public string Name2 { get; } = "Default";
-    }
-
-    public class TestNewMapper
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public Money Money { get; set; }
-    }
-
-    public class Money
-    {
-        public decimal Value { get; set; }
-        public string Code { get; set; }
     }
 }
