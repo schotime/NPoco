@@ -30,6 +30,11 @@ namespace NPoco.DatabaseTypes
             return -1;
         }
 
+        public override string GetParameterPrefix(string connectionString)
+        {
+            return "@p";
+        }
+
         public override string GetProviderName()
         {
             return "Npgsql2";
