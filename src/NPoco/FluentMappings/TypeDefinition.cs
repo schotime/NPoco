@@ -19,5 +19,6 @@ namespace NPoco.FluentMappings
         public bool? ExplicitColumns { get; set; }
         public Dictionary<string, ColumnDefinition> ColumnConfiguration { get; set; }
         public bool? UseOutputClause { get; set; }
+        public Type PersistedType { get; set; }
     }
 }

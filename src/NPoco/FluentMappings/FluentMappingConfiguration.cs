@@ -53,6 +53,7 @@ namespace NPoco.FluentMappings
                     AutoIncrement = scannerSettings.PrimaryKeysAutoIncremented(type),
                     PrimaryKey = scannerSettings.PrimaryKeysNamed(type),
                     TableName = scannerSettings.TablesNamed(type),
+                    PersistedType = scannerSettings.PersistedTypesBy(type),
                     SequenceName = scannerSettings.SequencesNamed(type),
                     UseOutputClause = scannerSettings.UseOutputClauseWhere(type),
                     ExplicitColumns = true
@@ -125,6 +126,7 @@ namespace NPoco.FluentMappings
                         IsReferenceMember = referenceProperty,
                         ReferenceType = ReferenceType.None,
                         ReferenceMember = null,
+                        ResultColumn = scannerSettings.ResultPropertiesWhere(member),
                         DbColumnName = referenceProperty ? referenceDbColumnsNamed : null,
                     };
                 }
@@ -160,6 +162,7 @@ namespace NPoco.FluentMappings
                 PrimaryKeysNamed = x => "ID",
                 TablesNamed = x => x.Name,
                 DbColumnsNamed = x => x.Name,
+                PersistedTypesBy = x => x,
                 AliasNamed = x => null,
                 DbColumnTypesAs = x => null,
                 ResultPropertiesWhere = x => false,
@@ -245,6 +248,7 @@ namespace NPoco.FluentMappings
                 convTableDefinition.AutoIncrement = overrideTypeDefinition.Value.AutoIncrement ?? convTableDefinition.AutoIncrement;
                 convTableDefinition.ExplicitColumns = overrideTypeDefinition.Value.ExplicitColumns ?? convTableDefinition.ExplicitColumns;
                 convTableDefinition.UseOutputClause = overrideTypeDefinition.Value.UseOutputClause ?? convTableDefinition.UseOutputClause;
+                convTableDefinition.PersistedType = overrideTypeDefinition.Value.PersistedType ?? convTableDefinition.PersistedType;
 
                 foreach (var overrideColumnDefinition in overrideMappings.Config[overrideTypeDefinition.Key].ColumnConfiguration)
                 {

@@ -35,7 +35,7 @@ namespace NPoco
         /// from the POCO's attributes</remarks>
         public Task<object> InsertAsync<T>(T poco)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual(typeof(T), poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
             return InsertAsync(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco);
         }
 
@@ -52,7 +52,7 @@ namespace NPoco
         /// the new id is returned.</remarks>
         public virtual Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            var pd = typeof(T) == poco.GetType() ? PocoDataFactory.ForObject(poco, primaryKeyName, autoIncrement) : PocoDataFactory.ForType(typeof(T));
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName, autoIncrement);
             return InsertAsyncImp(pd, tableName, primaryKeyName, autoIncrement, poco);
         }
 
@@ -119,7 +119,7 @@ namespace NPoco
         
         public Task<int> UpdateAsync<T>(T poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual(typeof(T), poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
             return UpdateAsync(tableInfo.TableName, tableInfo.PrimaryKey, poco, primaryKeyValue, columns);
         }
 
@@ -131,7 +131,7 @@ namespace NPoco
 
         public Task<int> DeleteAsync<T>(T poco)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual(typeof(T), poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
             return DeleteAsync(tableInfo.TableName, tableInfo.PrimaryKey, poco);
         }
 

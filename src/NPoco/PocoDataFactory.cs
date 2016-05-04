@@ -24,20 +24,35 @@ namespace NPoco
         public PocoData ForType(Type type)
         {
             PocoDataFactory.Guard(type);
-            var pocoDataBuilder = _pocoDatas.Get(type, () => Resolver(type, this));
+            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFalbackPocoDataBuilder(type));
             return pocoDataBuilder.Build();
         }
 
         public TableInfo TableInfoForType(Type type)
         {
             PocoDataFactory.Guard(type);
-            var pocoDataBuilder = _pocoDatas.Get(type, () => Resolver(type, this));
+            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFalbackPocoDataBuilder(type));
             return pocoDataBuilder.BuildTableInfo();
         }
 
         public PocoData ForObject(object o, string primaryKeyName, bool autoIncrement)
         {
             return PocoDataFactory.ForObjectStatic(o, primaryKeyName, autoIncrement, ForType);
+        }
+
+        private PocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
+        {
+            var builder = Resolver(type, this).Init();
+            if (builder.AlreadyPersistedTypeResolved)
+                return builder;
+            var persistedType = builder.BuildTableInfo().PersistedType;
+            if (persistedType == null)
+            {
+                builder.AlreadyPersistedTypeResolved = true;
+                return builder;
+            }
+            builder = Resolver(type, this).Init(true);
+            return builder;
         }
     }
 
@@ -54,20 +69,35 @@ namespace NPoco
         public PocoData ForType(Type type)
         {
             Guard(type);
-            var pocoDataBuilder = _pocoDatas.Get(type, () => new PocoDataBuilder(type, _mapper).Init());
+            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFalbackPocoDataBuilder(type));
             return pocoDataBuilder.Build();
         }
 
         public TableInfo TableInfoForType(Type type)
         {
             Guard(type);
-            var pocoDataBuilder = _pocoDatas.Get(type, () => new PocoDataBuilder(type, _mapper).Init());
+            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFalbackPocoDataBuilder(type));
             return pocoDataBuilder.BuildTableInfo();
         }
 
         public PocoData ForObject(object o, string primaryKeyName, bool autoIncrement)
         {
             return ForObjectStatic(o, primaryKeyName, autoIncrement, ForType);
+        }
+
+        private PocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
+        {
+            var builder = new PocoDataBuilder(type, _mapper).Init();
+            if (builder.AlreadyPersistedTypeResolved)
+                return builder;
+            var persistedType = builder.BuildTableInfo().PersistedType;
+            if (persistedType == null)
+            {
+                builder.AlreadyPersistedTypeResolved = true;
+                return builder;
+            }
+            builder = new PocoDataBuilder(persistedType, _mapper).Init(true);
+            return builder;
         }
 
         public static PocoData ForObjectStatic(object o, string primaryKeyName, bool autoIncrement, Func<Type, PocoData> fallback)

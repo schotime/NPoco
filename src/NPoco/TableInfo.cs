@@ -12,6 +12,7 @@ namespace NPoco
         public string SequenceName { get; set; }
         public string AutoAlias { get; set; }
         public bool UseOutputClause { get; set; }
+        public Type PersistedType { get; set; }
 
         public TableInfo Clone()
         {
@@ -22,7 +23,8 @@ namespace NPoco
                 TableName = TableName,
                 PrimaryKey = PrimaryKey,
                 SequenceName = SequenceName,
-                UseOutputClause = UseOutputClause
+                UseOutputClause = UseOutputClause,
+                PersistedType = PersistedType
             };
         }
 
@@ -43,6 +45,9 @@ namespace NPoco
 
             // Set autoincrement false if primary key has multiple columns
             tableInfo.AutoIncrement = tableInfo.AutoIncrement ? !tableInfo.PrimaryKey.Contains(',') : tableInfo.AutoIncrement;
+
+            a = t.GetTypeInfo().GetCustomAttributes(typeof(PersistedTypeAttribute), true).ToArray();
+            tableInfo.PersistedType = a.Length == 0 ? null : (a[0] as PersistedTypeAttribute).PersistedType;
 
             return tableInfo;
         }

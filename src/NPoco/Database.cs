@@ -1352,7 +1352,7 @@ namespace NPoco
         // Insert an annotated poco object
         public object Insert<T>(T poco)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual(typeof(T), poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
             return Insert(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco);
         }
 
@@ -1366,7 +1366,7 @@ namespace NPoco
         // the new id is returned.
         public virtual object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
-            var pd = typeof(T) == poco.GetType() ? PocoDataFactory.ForObject(poco, primaryKeyName, autoIncrement) : PocoDataFactory.ForType(typeof(T));
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName, autoIncrement);
             return InsertImp(pd, tableName, primaryKeyName, autoIncrement, poco);
         }
 
@@ -1489,7 +1489,7 @@ namespace NPoco
             var sb = new StringBuilder();
             var index = 0;
             var rawvalues = new List<object>();
-            var pd = typeof(T) == poco.GetType() ? PocoDataFactory.ForObject(poco, primaryKeyName, true) : PocoDataFactory.ForType(typeof(T));
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName, true);
             string versionName = null;
             object versionValue = null;
             VersionColumnType versionColumnType = VersionColumnType.Number;
@@ -1665,7 +1665,7 @@ namespace NPoco
 
         public int Update<T>(T poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual(typeof (T), poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
             return Update(tableInfo.TableName, tableInfo.PrimaryKey, poco, primaryKeyValue, columns);
         }
 
@@ -1701,7 +1701,7 @@ namespace NPoco
             if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue)))
                 return defaultRet;
 
-            var pd = poco != null ? (typeof(T) == poco.GetType() ? PocoDataFactory.ForObject(poco, primaryKeyName, true) : PocoDataFactory.ForType(typeof(T))) : null;
+            var pd = PocoDataFactory.ForObject(poco, primaryKeyName, true);
             var primaryKeyValuePairs = GetPrimaryKeyValues(pd, primaryKeyName, primaryKeyValue ?? poco, primaryKeyValue == null);
 
             // Do it
@@ -1712,7 +1712,7 @@ namespace NPoco
 
         public int Delete<T>(T poco)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual(typeof(T), poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
             return Delete(tableInfo.TableName, tableInfo.PrimaryKey, poco);
         }
 
@@ -1791,7 +1791,7 @@ namespace NPoco
         // Insert new record or Update existing record
         public void Save<T>(T poco)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual(typeof(T), poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
             if (IsNew(poco))
             {
                 Insert(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco);
@@ -1951,9 +1951,11 @@ namespace NPoco
             return _dbType.ProcessDefaultMappings(pocoColumn, value);
         }
 
-        private Type GetFirstTypeIfNotEqual(Type type1, Type type2)
+        private Type GetFirstTypeIfNotEqual<T>(Type type2)
         {
-            return type1 != type2 ? type1 : type2;
+            return type2;
+            //var type1 = typeof (T);
+            //return type1.GetTypeInfo().IsAbstract && type1 != type2 && type1 != typeof(object) ? type1 : type2;
         }
     }
 }

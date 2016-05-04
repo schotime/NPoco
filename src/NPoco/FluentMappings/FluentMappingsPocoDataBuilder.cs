@@ -60,7 +60,8 @@ namespace NPoco.FluentMappings
                 PrimaryKey = primaryKey,
                 SequenceName = sequenceName,
                 AutoIncrement = autoIncrement,
-                AutoAlias = autoAlias
+                AutoAlias = autoAlias,
+                PersistedType = typeConfig.PersistedType
             };
         }
 

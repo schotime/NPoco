@@ -113,6 +113,17 @@ namespace NPoco.FluentMappings
             return PrimaryKey(primaryKeyColumn, null);
         }
 
+        public Map<T> PersistedType<TPersistedType>()
+        {
+            return PersistedType(typeof (TPersistedType));
+        }
+        
+        public Map<T> PersistedType(Type type)
+        {
+            _petaPocoTypeDefinition.PersistedType = type;
+            return this;
+        }   
+
         TypeDefinition IMap.TypeDefinition
         {
             get { return _petaPocoTypeDefinition; }

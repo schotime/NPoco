@@ -35,11 +35,14 @@ namespace NPoco.Tests.NewMapper
             public abstract string Name { get; }
         }
 
+        [PersistedType(typeof(BaseUser))]
         public class SuperUser : BaseUser
         {
             public override string Name => "Super";
+            public string ExtraProp { get; set; } = "Extra";
         }
 
+        [PersistedType(typeof(BaseUser))]
         public class SuperUser2 : BaseUser
         {
             public override string Name => "Super2";

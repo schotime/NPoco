@@ -55,6 +55,11 @@ namespace NPoco.FluentMappings
             _scannerSettings.SequencesNamed = sequencesFunc;
         }
 
+        public void PersistedTypesBy(Func<Type, Type> persistedTypesByFunc)
+        {
+            _scannerSettings.PersistedTypesBy = persistedTypesByFunc;
+        }
+
         public void LazyLoadMappings()
         {
             _scannerSettings.Lazy = true;
