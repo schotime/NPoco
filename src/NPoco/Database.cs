@@ -1352,7 +1352,7 @@ namespace NPoco
         // Insert an annotated poco object
         public object Insert<T>(T poco)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
             return Insert(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco);
         }
 
@@ -1467,18 +1467,18 @@ namespace NPoco
             }
         }
 
-        public int Update<T>(string tableName, string primaryKeyName, T poco, object primaryKeyValue)
+        public int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
             return Update(tableName, primaryKeyName, poco, primaryKeyValue, null);
         }
 
-        public virtual int Update<T>(string tableName, string primaryKeyName, T poco, object primaryKeyValue, IEnumerable<string> columns)
+        public virtual int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
             return UpdateImp(tableName, primaryKeyName, poco, primaryKeyValue, columns, (sql, args, next) => next(Execute(sql, args)), 0);
         }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
-        private TRet UpdateImp<T, TRet>(string tableName, string primaryKeyName, T poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
+        private TRet UpdateImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
         {
             if (!OnUpdatingInternal(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns)))
                 return defaultId;
@@ -1629,17 +1629,17 @@ namespace NPoco
             return new UpdateQueryProvider<T>(this);
         }
 
-        public int Update<T>(string tableName, string primaryKeyName, T poco)
+        public int Update(string tableName, string primaryKeyName, object poco)
         {
             return Update(tableName, primaryKeyName, poco, null);
         }
 
-        public int Update<T>(string tableName, string primaryKeyName, T poco, IEnumerable<string> columns)
+        public int Update(string tableName, string primaryKeyName, object poco, IEnumerable<string> columns)
         {
             return Update(tableName, primaryKeyName, poco, null, columns);
         }
 
-        public int Update<T>(T poco, IEnumerable<string> columns)
+        public int Update(object poco, IEnumerable<string> columns)
         {
             return Update(poco, null, columns);
         }
@@ -1653,19 +1653,19 @@ namespace NPoco
             return Update(poco, columnNames.Union(otherNames));
         }
 
-        public int Update<T>(T poco)
+        public int Update(object poco)
         {
             return Update(poco, null, null);
         }
 
-        public int Update<T>(T poco, object primaryKeyValue)
+        public int Update(object poco, object primaryKeyValue)
         {
             return Update(poco, primaryKeyValue, null);
         }
 
-        public int Update<T>(T poco, object primaryKeyValue, IEnumerable<string> columns)
+        public int Update(object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
             return Update(tableInfo.TableName, tableInfo.PrimaryKey, poco, primaryKeyValue, columns);
         }
 
@@ -1686,22 +1686,22 @@ namespace NPoco
             return new DeleteQueryProvider<T>(this);
         }
 
-        public int Delete<T>(string tableName, string primaryKeyName, T poco)
+        public int Delete(string tableName, string primaryKeyName, object poco)
         {
             return Delete(tableName, primaryKeyName, poco, null);
         }
 
-        public virtual int Delete<T>(string tableName, string primaryKeyName, T poco, object primaryKeyValue)
+        public virtual int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
             return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, Execute, 0);
         }
 
-        private TRet DeleteImp<T, TRet>(string tableName, string primaryKeyName, T poco, object primaryKeyValue, Func<string, object[], TRet> executeFunc, TRet defaultRet)
+        private TRet DeleteImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, Func<string, object[], TRet> executeFunc, TRet defaultRet)
         {
             if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue)))
                 return defaultRet;
 
-            var pd = PocoDataFactory.ForObject(poco, primaryKeyName, true);
+            var pd = poco != null ? PocoDataFactory.ForObject(poco, primaryKeyName, true) : null;
             var primaryKeyValuePairs = GetPrimaryKeyValues(pd, primaryKeyName, primaryKeyValue ?? poco, primaryKeyValue == null);
 
             // Do it
@@ -1710,18 +1710,18 @@ namespace NPoco
             return executeFunc(sql, primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
 
-        public int Delete<T>(T poco)
+        public int Delete(object poco)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
             return Delete(tableInfo.TableName, tableInfo.PrimaryKey, poco);
         }
 
         public int Delete<T>(object pocoOrPrimaryKey)
         {
             if (pocoOrPrimaryKey.GetType() == typeof(T))
-                return Delete((T) pocoOrPrimaryKey);
+                return Delete(pocoOrPrimaryKey);
             var tableInfo = PocoDataFactory.TableInfoForType(typeof(T));
-            return Delete(tableInfo.TableName, tableInfo.PrimaryKey, default(T), pocoOrPrimaryKey);
+            return Delete(tableInfo.TableName, tableInfo.PrimaryKey, null, pocoOrPrimaryKey);
         }
 
         public int Delete<T>(string sql, params object[] args)
@@ -1791,7 +1791,7 @@ namespace NPoco
         // Insert new record or Update existing record
         public void Save<T>(T poco)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
             if (IsNew(poco))
             {
                 Insert(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco);
@@ -1949,13 +1949,6 @@ namespace NPoco
             }
 
             return _dbType.ProcessDefaultMappings(pocoColumn, value);
-        }
-
-        private Type GetFirstTypeIfNotEqual<T>(Type type2)
-        {
-            return type2;
-            //var type1 = typeof (T);
-            //return type1.GetTypeInfo().IsAbstract && type1 != type2 && type1 != typeof(object) ? type1 : type2;
         }
     }
 }

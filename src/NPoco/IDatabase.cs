@@ -82,15 +82,15 @@ namespace NPoco
         /// <summary>
         /// Update POCO in the table by convention or configuration
         /// </summary>        
-        System.Threading.Tasks.Task<int> UpdateAsync<T>(T poco);
+        System.Threading.Tasks.Task<int> UpdateAsync(object poco);
         /// <summary>
         /// Update POCO in the table by convention or configuration specifying which columns to update
         /// </summary>        
-        System.Threading.Tasks.Task<int> UpdateAsync<T>(T poco, IEnumerable<string> columns);
+        System.Threading.Tasks.Task<int> UpdateAsync(object poco, IEnumerable<string> columns);
         /// <summary>
         /// Delete POCO from table by convention or configuration
         /// </summary>        
-        System.Threading.Tasks.Task<int> DeleteAsync<T>(T poco);
+        System.Threading.Tasks.Task<int> DeleteAsync(object poco);
 #endif
         /// <summary>
         /// Insert POCO's into database using SqlBulkCopy for SqlServer (other DB's currently fall back to looping each row)
@@ -103,31 +103,31 @@ namespace NPoco
         /// <summary>
         /// Update POCO in the specified table, primary key and primarkey value
         /// </summary>        
-        int Update<T>(string tableName, string primaryKeyName, T poco, object primaryKeyValue);
+        int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
         /// <summary>
         /// Update POCO in the specified table, primary key
         /// </summary>        
-        int Update<T>(string tableName, string primaryKeyName, T poco);
+        int Update(string tableName, string primaryKeyName, object poco);
         /// <summary>
         /// Update POCO in the specified table, primary key, primarkey value for only the columns specified
         /// </summary>        
-        int Update<T>(string tableName, string primaryKeyName, T poco, object primaryKeyValue, IEnumerable<string> columns);
+        int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns);
         /// <summary>
         /// Update POCO in the specified table, primary key for only the columns specified
         /// </summary>        
-        int Update<T>(string tableName, string primaryKeyName, T poco, IEnumerable<string> columns);
+        int Update(string tableName, string primaryKeyName, object poco, IEnumerable<string> columns);
         /// <summary>
         /// Update POCO by convention or configuration for only the columns specified
         /// </summary>        
-        int Update<T>(T poco, IEnumerable<string> columns);
+        int Update(object poco, IEnumerable<string> columns);
         /// <summary>
         /// Update POCO by primary key for only the columns specified
         /// </summary>        
-        int Update<T>(T poco, object primaryKeyValue, IEnumerable<string> columns);
+        int Update(object poco, object primaryKeyValue, IEnumerable<string> columns);
         /// <summary>
         /// Update POCO by convention or configuration
         /// </summary>        
-        int Update<T>(T poco);
+        int Update(object poco);
         /// <summary>
         /// Update POCO by convention or configuration specifying the properties to update
         /// </summary>        
@@ -135,7 +135,7 @@ namespace NPoco
         /// <summary>
         /// Update POCO by primary key
         /// </summary>        
-        int Update<T>(T poco, object primaryKeyValue);
+        int Update(object poco, object primaryKeyValue);
         /// <summary>
         /// Runs an update statement deriving the table name from T and appending the sql provided. 
         /// </summary>        
@@ -157,15 +157,15 @@ namespace NPoco
         /// <summary>
         /// Delete POCO specifying the table name and primary key
         /// </summary>        
-        int Delete<T>(string tableName, string primaryKeyName, T poco);
+        int Delete(string tableName, string primaryKeyName, object poco);
         /// <summary>
         /// Delete POCO specifying the table name, primary key name and primary key value
         /// </summary>        
-        int Delete<T>(string tableName, string primaryKeyName, T poco, object primaryKeyValue);
+        int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
         /// <summary>
         /// Delete POCO using convention or configuration
         /// </summary>        
-        int Delete<T>(T poco);
+        int Delete(object poco);
         /// <summary>
         /// Runs an delete statement deriving the table name from T and appending the sql provided. 
         /// </summary>        

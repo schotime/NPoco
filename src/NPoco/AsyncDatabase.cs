@@ -20,7 +20,7 @@ namespace NPoco
         /// <param name="primaryKeyName">The name of the primary key column of the table</param>
         /// <param name="poco">The POCO object that specifies the column values to be inserted</param>
         /// <returns>The auto allocated primary key of the new record</returns>
-        public Task<object> InsertAsync<T>(string tableName, string primaryKeyName, T poco)
+        public Task<object> InsertAsync(string tableName, string primaryKeyName, object poco)
         {
             return InsertAsync(tableName, primaryKeyName, true, poco);
         }
@@ -35,7 +35,7 @@ namespace NPoco
         /// from the POCO's attributes</remarks>
         public Task<object> InsertAsync<T>(T poco)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
             return InsertAsync(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco);
         }
 
@@ -107,40 +107,40 @@ namespace NPoco
             return UpdateAsync(poco, columnNames.Union(otherNames));
         }
 
-        public Task<int> UpdateAsync<T>(T poco)
+        public Task<int> UpdateAsync(object poco)
         {
             return UpdateAsync(poco, null, null);
         }
 
-        public Task<int> UpdateAsync<T>(T poco, IEnumerable<string> columns)
+        public Task<int> UpdateAsync(object poco, IEnumerable<string> columns)
         {
             return UpdateAsync(poco, null, columns);
         }
         
-        public Task<int> UpdateAsync<T>(T poco, object primaryKeyValue, IEnumerable<string> columns)
+        public Task<int> UpdateAsync(object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
             return UpdateAsync(tableInfo.TableName, tableInfo.PrimaryKey, poco, primaryKeyValue, columns);
         }
 
-        public virtual Task<int> UpdateAsync<T>(string tableName, string primaryKeyName, T poco, object primaryKeyValue, IEnumerable<string> columns)
+        public virtual Task<int> UpdateAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
             return UpdateImp (tableName, primaryKeyName, poco, primaryKeyValue, columns,
                 async (sql, args, next) => next(await ExecuteAsync(sql, args).ConfigureAwait(false)), TaskAsyncHelper.FromResult(0));
         }
 
-        public Task<int> DeleteAsync<T>(T poco)
+        public Task<int> DeleteAsync(object poco)
         {
-            var tableInfo = PocoDataFactory.TableInfoForType(GetFirstTypeIfNotEqual<T>(poco.GetType()));
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
             return DeleteAsync(tableInfo.TableName, tableInfo.PrimaryKey, poco);
         }
 
-        public Task<int> DeleteAsync<T>(string tableName, string primaryKeyName, T poco)
+        public Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco)
         {
             return DeleteAsync(tableName, primaryKeyName, poco, null);
         }
 
-        public virtual Task<int> DeleteAsync<T>(string tableName, string primaryKeyName, T poco, object primaryKeyValue)
+        public virtual Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
             return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, ExecuteAsync, TaskAsyncHelper.FromResult(0));
         }
