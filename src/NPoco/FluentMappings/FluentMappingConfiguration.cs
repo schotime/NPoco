@@ -162,7 +162,7 @@ namespace NPoco.FluentMappings
                 PrimaryKeysNamed = x => "ID",
                 TablesNamed = x => x.Name,
                 DbColumnsNamed = x => x.Name,
-                PersistedTypesBy = x => x,
+                PersistedTypesBy = x => null,
                 AliasNamed = x => null,
                 DbColumnTypesAs = x => null,
                 ResultPropertiesWhere = x => false,

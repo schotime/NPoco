@@ -43,16 +43,12 @@ namespace NPoco
         private PocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
         {
             var builder = Resolver(type, this).Init();
-            if (builder.AlreadyPersistedTypeResolved)
-                return builder;
             var persistedType = builder.BuildTableInfo().PersistedType;
-            if (persistedType == null)
+            if (persistedType == null || persistedType == type)
             {
-                builder.AlreadyPersistedTypeResolved = true;
                 return builder;
             }
-            builder = Resolver(type, this).Init(true);
-            return builder;
+            return Resolver(type, this).Init();
         }
     }
 
@@ -88,16 +84,12 @@ namespace NPoco
         private PocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
         {
             var builder = new PocoDataBuilder(type, _mapper).Init();
-            if (builder.AlreadyPersistedTypeResolved)
-                return builder;
             var persistedType = builder.BuildTableInfo().PersistedType;
-            if (persistedType == null)
+            if (persistedType == null || persistedType == type)
             {
-                builder.AlreadyPersistedTypeResolved = true;
                 return builder;
             }
-            builder = new PocoDataBuilder(persistedType, _mapper).Init(true);
-            return builder;
+            return new PocoDataBuilder(persistedType, _mapper).Init();
         }
 
         public static PocoData ForObjectStatic(object o, string primaryKeyName, bool autoIncrement, Func<Type, PocoData> fallback)

@@ -20,18 +20,14 @@ namespace NPoco
         private delegate PocoMember PocoMemberPlan(TableInfo tableInfo);
         protected delegate TableInfo TableInfoPlan();
 
-        public bool AlreadyPersistedTypeResolved { get; set; }
-
         public PocoDataBuilder(Type type, MapperCollection mapper)
         {
             Type = type;
             Mapper = mapper;
         }
 
-        public PocoDataBuilder Init(bool alreadyPersistedTypeResolved = false)
+        public PocoDataBuilder Init()
         {
-            AlreadyPersistedTypeResolved = alreadyPersistedTypeResolved;
-
             var memberInfos = new List<MemberInfo>();
             var columnInfos = GetColumnInfos(Type);
 

@@ -27,25 +27,44 @@ namespace NPoco.Tests.NewMapper
             Assert.AreEqual(baseUser2.Name, "Super2");
             Database.Mappers.ClearFactories();
         }
+    }
 
-        [TableName("Users"), PrimaryKey("UserId")]
-        public abstract class BaseUser
+    public class PersistedTypeTests
+    {
+        [Test]
+        public void PersistedTypeCorrectlySet()
         {
-            public int UserId { get; set; }
-            public abstract string Name { get; }
+            var pocoDataFactory = new PocoDataFactory(new MapperCollection());
+            var pocoData = pocoDataFactory.ForType(typeof(SuperUser));
+            Assert.AreEqual(typeof(BaseUser), pocoData.Type);
         }
 
-        [PersistedType(typeof(BaseUser))]
-        public class SuperUser : BaseUser
+        [Test]
+        public void ColumnsDoesntContainPropertyDefinedInSuperType()
         {
-            public override string Name => "Super";
-            public string ExtraProp { get; set; } = "Extra";
+            var pocoData = new PocoDataFactory(new MapperCollection()).ForType(typeof(SuperUser));
+            Assert.False(pocoData.Columns.ContainsKey("ExtraProp"));
         }
+    }
 
-        [PersistedType(typeof(BaseUser))]
-        public class SuperUser2 : BaseUser
-        {
-            public override string Name => "Super2";
-        }
+
+    [TableName("Users"), PrimaryKey("UserId")]
+    public abstract class BaseUser
+    {
+        public int UserId { get; set; }
+        public abstract string Name { get; }
+    }
+
+    [PersistedType(typeof(BaseUser))]
+    public class SuperUser : BaseUser
+    {
+        public override string Name => "Super";
+        public string ExtraProp { get; set; } = "Extra";
+    }
+
+    [PersistedType(typeof(BaseUser))]
+    public class SuperUser2 : BaseUser
+    {
+        public override string Name => "Super2";
     }
 }
