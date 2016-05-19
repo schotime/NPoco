@@ -26,7 +26,7 @@ namespace NPoco
                 bulkCopy.WriteToServer(table);
             }
         }
-#if NET45 || DNX451
+#if NET45
         public static async System.Threading.Tasks.Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))

@@ -22,12 +22,7 @@ namespace NPoco.Tests.Common
 
             lock (_syncRoot)
             {
-
-#if DNXCORE50
                 Connection = new Microsoft.Data.Sqlite.SqliteConnection(ConnectionString);
-#else
-                Connection = new System.Data.SQLite.SQLiteConnection(ConnectionString);
-#endif
                 Connection.Open();
             }
         }
