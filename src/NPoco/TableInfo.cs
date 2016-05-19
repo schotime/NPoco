@@ -41,7 +41,7 @@ namespace NPoco
             tableInfo.PrimaryKey = a.Length == 0 ? "ID" : (a[0] as PrimaryKeyAttribute).Value;
             tableInfo.SequenceName = a.Length == 0 ? null : (a[0] as PrimaryKeyAttribute).SequenceName;
             tableInfo.AutoIncrement = a.Length == 0 ? true : (a[0] as PrimaryKeyAttribute).AutoIncrement;
-            tableInfo.UseOutputClause = a.Length == 0 ? true : (a[0] as PrimaryKeyAttribute).UseOutputClause;
+            tableInfo.UseOutputClause = a.Length == 0 ? false : (a[0] as PrimaryKeyAttribute).UseOutputClause;
 
             // Set autoincrement false if primary key has multiple columns
             tableInfo.AutoIncrement = tableInfo.AutoIncrement ? !tableInfo.PrimaryKey.Contains(',') : tableInfo.AutoIncrement;

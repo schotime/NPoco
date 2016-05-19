@@ -202,14 +202,21 @@ namespace NPoco.Tests.Common
             ";
             cmd.ExecuteNonQuery();
 
-//            Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
-//#if !DNXCORE50
-//            var dt = conn.GetSchema("Tables");
-//            foreach (DataRow row in dt.Rows)
-//            {
-//                Console.WriteLine(row[2]);
-//            }
-//#endif
+            cmd.CommandText = @"
+                CREATE TABLE NoPrimaryKey(
+                    Name nvarchar(50) NULL
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
+            //            Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
+            //#if !DNXCORE50
+            //            var dt = conn.GetSchema("Tables");
+            //            foreach (DataRow row in dt.Rows)
+            //            {
+            //                Console.WriteLine(row[2]);
+            //            }
+            //#endif
 
             cmd.Dispose();
             conn.Close();

@@ -603,6 +603,17 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
                 var fastCreate = new FastCreate(typeof(ContentBase), new MapperCollection());
             });
         }
+
+        [Test]
+        public void Test32()
+        {
+            var data = Database.Insert(new NoPrimaryKey());
+        }
+    }
+
+    public class NoPrimaryKey
+    {
+        public string Name { get; set; }
     }
 
     public class Post : ContentBase
