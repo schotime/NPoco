@@ -53,7 +53,7 @@ namespace NPoco.Tests.Common
     [ExplicitColumns]
     public class UserIntVersionDecorated : UserDecorated
     {
-        [VersionColumn("VersionInt", VersionColumnType.Number)]
+        [VersionColumn(VersionColumnType.Number)]
         public long VersionInt { get; set; }
     }
 
