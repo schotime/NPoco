@@ -1,5 +1,5 @@
 ﻿{
-  "version": "3.3.0-*",
+  "version": "3.3.2-*",
   "description": "NPoco.JsonNet",
   "packOptions": {
     "authors": [ "Adam" ],
