@@ -1,11 +1,17 @@
 ﻿{
-  "version": "3.3.2-*",
-  "description": "NPoco.JsonNet",
+  "version": "3.3.3-*",
+  "description": "Provides an implementation to use Json.NET as the serializer for serialized columns",
   "packOptions": {
-    "authors": [ "Adam" ],
-    "tags": [ "" ],
-    "projectUrl": "",
-    "licenseUrl": ""
+    "authors": [ "Adam Schroder" ],
+    "tags": [
+      "orm",
+      "sql",
+      "micro-orm",
+      "database",
+      "mvc"
+    ],
+    "projectUrl": "https://github.com/schotime/NPoco",
+    "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0"
   },  
   "dependencies": {
     "NPoco": {
