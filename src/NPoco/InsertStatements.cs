@@ -50,7 +50,7 @@ namespace NPoco
                     }
 
                     names.Add(database.DatabaseType.EscapeSqlIdentifier(pocoColumn.ColumnName));
-                    values.Add(string.Format("{0}{1}", database._paramPrefix, index++));
+                    values.Add(string.Format("@{0}", index++));
 
                     object val;
                     if (pocoColumn.ReferenceType == ReferenceType.Foreign)
