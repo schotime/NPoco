@@ -18,9 +18,6 @@
       "target": "project"
     }
   },
-  "commands": {
-    "test": "NPoco.Tests"
-  },
   "frameworks": {
     "net452": {
       "frameworkAssemblies": {
