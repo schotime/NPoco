@@ -187,6 +187,11 @@ namespace NPoco
             return (await QueryAsync<T>(sql, args).ConfigureAwait(false)).ToList();
         }
 
+        public Task<List<T>> FetchAsync<T>()
+        {
+            return FetchAsync<T>("");
+        }
+
         public async Task<List<T>> FetchAsync<T>(Sql sql)
         {
             return (await QueryAsync<T>(sql).ConfigureAwait(false)).ToList();
