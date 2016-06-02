@@ -24,6 +24,14 @@ namespace NPoco.Tests
         }
 
         [Test]
+        public void CanUpdateDynamic()
+        {
+            var result = Database.FirstOrDefault<dynamic>("select UserId, Name, Age from users where userid = 1");
+            result.Name = "changed";
+            Database.Update("users", "UserId", result, new[] { "Name" });
+        }
+
+        [Test]
         public void IsNewReturnsTrue()
         {
             dynamic results = new PocoExpando();
@@ -39,6 +47,19 @@ namespace NPoco.Tests
             Assert.AreEqual(pd.Columns.Count, 2);
             Assert.True(pd.Columns.ContainsKey("UserId"));
             Assert.True(pd.Columns.ContainsKey("Name"));
+        }
+
+        [Test]
+        public void CanGetPocoDataWithTypeForPocoExpando()
+        {
+            dynamic result = new PocoExpando();
+            result.Name = "Name1";
+            PocoData pd = Database.PocoDataFactory.ForObject(result, "UserId", true);
+            Assert.AreEqual(pd.Columns.Count, 2);
+            Assert.True(pd.Columns.ContainsKey("UserId"));
+            Assert.AreEqual(typeof(object), pd.Columns["UserId"].ColumnType);
+            Assert.True(pd.Columns.ContainsKey("Name"));
+            Assert.AreEqual(typeof(string), pd.Columns["Name"].ColumnType);
         }
     }
 }

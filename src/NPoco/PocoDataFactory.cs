@@ -98,21 +98,29 @@ namespace NPoco
 #if !NET35
             if (t == typeof (System.Dynamic.ExpandoObject) || t == typeof (PocoExpando))
             {
-                var pd = new PocoData();
-                pd.TableInfo = new TableInfo();
-                pd.Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
-                pd.Columns.Add(primaryKeyName, new ExpandoColumn() {ColumnName = primaryKeyName});
-                pd.TableInfo.PrimaryKey = primaryKeyName;
-                pd.TableInfo.AutoIncrement = autoIncrement;
+                var pd = new PocoData
+                {
+                    TableInfo = new TableInfo
+                    {
+                        PrimaryKey = primaryKeyName,
+                        AutoIncrement = autoIncrement
+                    },
+                    Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase)
+                };
+                //pd.Columns.Add(primaryKeyName, new ExpandoColumn() {ColumnName = primaryKeyName});
+                //pd.TableInfo.PrimaryKey = primaryKeyName;
+                //pd.TableInfo.AutoIncrement = autoIncrement;
                 foreach (var col in ((IDictionary<string, object>) o))
                 {
-                    if (col.Key != primaryKeyName)
-                        pd.Columns.Add(col.Key, new ExpandoColumn()
+                    //if (col.Key != primaryKeyName)
+                        pd.Columns.Add(col.Key, new ExpandoColumn
                         {
                             ColumnName = col.Key,
                             MemberInfoData = new MemberInfoData(col.Key, col.Value.GetTheType() ?? typeof (object), typeof (object)),
                         });
                 }
+                if (!pd.Columns.ContainsKey(primaryKeyName))
+                    pd.Columns.Add(primaryKeyName, new ExpandoColumn { ColumnName = primaryKeyName, ColumnType = typeof(object) });
                 return pd;
             }
             else
