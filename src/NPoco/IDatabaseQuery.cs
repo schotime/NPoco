@@ -360,7 +360,7 @@ namespace NPoco
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// Caution: This query will only be executed once you start iterating the result
         /// </summary>
-        Task<IEnumerable<T>> QueryAsync<T>(string sql, object[] args);
+        Task<IEnumerable<T>> QueryAsync<T>(string sql, params object[] args);
         
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
@@ -379,13 +379,18 @@ namespace NPoco
         Task<List<T>> FetchAsync<T>(Sql sql);
 
         /// <summary>
+        /// Fetch all objects of type T from the database. 
+        /// </summary>
+        Task<List<T>> FetchAsync<T>();
+
+        /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the page and itemsPerPage specified will be returned.
         /// Extra metadata in the Page class will also be returned.
         /// Note: This will perform two queries. One for the paged results and one for the count of all results.
         /// </summary>
-
         Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args);
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the page and itemsPerPage specified will be returned.
@@ -421,7 +426,7 @@ namespace NPoco
         /// <summary>
         /// Executes the provided sql and parameters and casts the result to T
         /// </summary>
-        Task<T> ExecuteScalarAsync<T>(string sql, object[] args);
+        Task<T> ExecuteScalarAsync<T>(string sql, params object[] args);
         
         /// <summary>
         /// Executes the provided sql and parameters and casts the result to T

@@ -49,17 +49,24 @@ namespace NPoco.DatabaseTypes
             return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", EscapeTableName(tableName), string.Join(",", names), string.Join(",", parameters));
         }
 
+
+        private DbParameter AdjustSqlInsertCommandText(DbCommand cmd, string primaryKeyName)
+        {
+            cmd.CommandText += string.Format(" returning {0}", EscapeSqlIdentifier(primaryKeyName));
+            var param = cmd.CreateParameter();
+            param.ParameterName = primaryKeyName;
+            param.Value = DBNull.Value;
+            param.Direction = ParameterDirection.ReturnValue;
+            param.DbType = DbType.Int64;
+            cmd.Parameters.Add(param);
+            return param;
+        }
+
         public override object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {
-                cmd.CommandText += string.Format(" returning {0}", EscapeSqlIdentifier(primaryKeyName));
-                var param = cmd.CreateParameter();
-                param.ParameterName = primaryKeyName;
-                param.Value = DBNull.Value;
-                param.Direction = ParameterDirection.ReturnValue;
-                param.DbType = DbType.Int64;
-                cmd.Parameters.Add(param);
+                var param = AdjustSqlInsertCommandText(cmd, primaryKeyName);
                 db.ExecuteNonQueryHelper(cmd);
                 return param.Value;
             }
@@ -67,6 +74,21 @@ namespace NPoco.DatabaseTypes
             db.ExecuteNonQueryHelper(cmd);
             return -1;
         }
+
+#if !NET35 && !NET40
+        public override async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        {
+            if (primaryKeyName != null)
+            {
+                var param = AdjustSqlInsertCommandText(cmd, primaryKeyName);
+                await db.ExecuteNonQueryHelperAsync(cmd);
+                return param.Value;
+            }
+
+            await db.ExecuteNonQueryHelperAsync(cmd);
+            return TaskAsyncHelper.FromResult<object>(-1);
+        }
+#endif
 
         public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
         {

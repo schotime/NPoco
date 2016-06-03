@@ -61,7 +61,7 @@ namespace NPoco.DatabaseTypes
         public override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             AdjustSqlInsertCommandText(cmd, useOutputClause);
-            return ExecuteScalarAsync(db, cmd);
+            return db.ExecuteScalarHelperAsync(cmd);
         }
 #endif
 

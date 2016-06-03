@@ -182,6 +182,11 @@ namespace NPoco
             return SkipTakeAsync<T>(skip, take, sql.SQL, sql.Arguments);
         }
 
+        public Task<List<T>> FetchAsync<T>()
+        {
+            return FetchAsync<T>("");
+        }
+
         public async Task<List<T>> FetchAsync<T>(string sql, params object[] args)
         {
             return (await QueryAsync<T>(sql, args).ConfigureAwait(false)).ToList();
@@ -247,7 +252,7 @@ namespace NPoco
             return (await QueryAsync<T>(sql).ConfigureAwait(false)).SingleOrDefault();
         }
 
-        public System.Threading.Tasks.Task<int> ExecuteAsync(string sql, params object[] args)
+        public Task<int> ExecuteAsync(string sql, params object[] args)
         {
             return ExecuteAsync(new Sql(sql, args));
         }
@@ -277,7 +282,7 @@ namespace NPoco
             }
         }
 
-        public Task<T> ExecuteScalarAsync<T>(string sql, object[] args)
+        public Task<T> ExecuteScalarAsync<T>(string sql, params object[] args)
         {
             return ExecuteScalarAsync<T>(new Sql(sql, args));
         }

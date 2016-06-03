@@ -19,6 +19,15 @@ namespace NPoco.DatabaseTypes
             return db.ExecuteScalar<object>("SELECT @@@IDENTITY AS NewID;");
         }
 
+
+#if !NET35 && !NET40
+        public override async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        {
+            await db.ExecuteNonQueryHelperAsync(cmd);
+            return await db.ExecuteScalarAsync<object>("SELECT @@@IDENTITY AS NewID;");
+        }
+#endif
+
         public override IsolationLevel GetDefaultTransactionIsolationLevel()
         {
             return IsolationLevel.ReadCommitted;

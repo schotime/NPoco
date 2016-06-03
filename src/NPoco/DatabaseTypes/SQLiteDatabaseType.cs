@@ -1,3 +1,4 @@
+using System;
 using System.Data;
 using System.Data.Common;
 
@@ -13,17 +14,36 @@ namespace NPoco.DatabaseTypes
             return base.MapParameterValue(value);
         }
 
+        private void AdjustSqlInsertCommandText(DbCommand cmd)
+        {
+            cmd.CommandText += ";\nSELECT last_insert_rowid();";
+        }
+
         public override object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {
-                cmd.CommandText += ";\nSELECT last_insert_rowid();";
+                AdjustSqlInsertCommandText(cmd);
                 return db.ExecuteScalarHelper(cmd);
             }
 
             db.ExecuteNonQueryHelper(cmd);
             return -1;
         }
+
+#if !NET35 && !NET40
+        public override async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        {
+            if (primaryKeyName != null)
+            {
+                AdjustSqlInsertCommandText(cmd);
+                return db.ExecuteScalarHelperAsync(cmd);
+            }
+
+            await db.ExecuteNonQueryHelperAsync(cmd);
+            return TaskAsyncHelper.FromResult<object>(-1);
+        }
+#endif
 
         public override string GetExistsSql()
         {

@@ -17,18 +17,37 @@ namespace NPoco.DatabaseTypes
         {
             return string.Format("\"{0}\"", str);
         }
+        
+        private void AdjustSqlInsertCommandText(DbCommand cmd, string primaryKeyName)
+        {
+            cmd.CommandText += string.Format(" returning {0} as NewID", EscapeSqlIdentifier(primaryKeyName));
+        }
 
         public override object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {
-                cmd.CommandText += string.Format(" returning {0} as NewID", EscapeSqlIdentifier(primaryKeyName));
+                AdjustSqlInsertCommandText(cmd, primaryKeyName);
                 return db.ExecuteScalarHelper(cmd);
             }
 
             db.ExecuteNonQueryHelper(cmd);
             return -1;
         }
+
+#if !NET35 && !NET40
+        public async override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        {
+            if (primaryKeyName != null)
+            {
+                AdjustSqlInsertCommandText(cmd, primaryKeyName);
+                return db.ExecuteScalarHelperAsync(cmd);
+            }
+
+            await db.ExecuteNonQueryHelperAsync(cmd);
+            return TaskAsyncHelper.FromResult<object>(-1);
+        }
+#endif
 
         public override string GetParameterPrefix(string connectionString)
         {
