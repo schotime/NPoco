@@ -157,7 +157,7 @@ namespace NPoco
             return new Template(this, sql, parameters);
         }
 
-        void AddClause(string name, string sql, object[] parameters, string joiner, string prefix, string postfix)
+        public void AddClause(string name, string sql, object[] parameters, string joiner, string prefix, string postfix)
         {
             Clauses clauses;
             if (!data.TryGetValue(name, out clauses))
