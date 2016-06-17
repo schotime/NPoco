@@ -7,7 +7,8 @@ namespace NPoco
         public fastJSON.JSONParameters JSONParameters { get; set; } = new fastJSON.JSONParameters()
         {
             UseUTCDateTime = false,
-            UseExtensions = false
+            UseExtensions = false,
+            UseFastGuid = false
         };
 
         public string Serialize(object value)
