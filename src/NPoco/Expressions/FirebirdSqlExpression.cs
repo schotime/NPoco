@@ -12,10 +12,11 @@ namespace NPoco.Expressions
 
         protected override string SubstringStatement(PartialSqlString columnName, int startIndex, int length)
         {
+            // Substring function doesn't work with parameters
             if (length >= 0)
-                return string.Format("substring({0} FROM {1} FOR {2})", columnName, CreateParam(startIndex), CreateParam(length));
+                return string.Format("substring({0} FROM {1} FOR {2})", columnName, startIndex, length);
             else
-                return string.Format("substring({0} FROM {1})", columnName, CreateParam(startIndex));
+                return string.Format("substring({0} FROM {1})", columnName, startIndex);
         }
     }
 }
