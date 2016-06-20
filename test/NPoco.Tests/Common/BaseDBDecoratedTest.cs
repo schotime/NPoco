@@ -29,6 +29,7 @@ namespace NPoco.Tests.Common
                 .Build();
             
             var testDBType = Convert.ToInt32(configuration.GetSection("TestDBType").Value);
+
             switch (testDBType)
             {
                 case 1: // SQLite In-Memory
@@ -167,7 +168,7 @@ namespace NPoco.Tests.Common
                     {
                         OneId = one.OneId,
                         Currency = "Cur" + (i + j + 1),
-                        Value = (i + j + 1)
+                        AValue = (i + j + 1)
                     };
                     Database.Insert(many);
                 }

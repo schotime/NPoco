@@ -9,7 +9,7 @@ namespace NPoco.Tests.NewMapper.Models
         [Reference(ReferenceType.OneToOne, ColumnName = "OneId", ReferenceMemberName = "OneId")]
         public One One { get; set; }
         public int OneId { get; set; }
-        public int Value { get; set; }
+        public int AValue { get; set; }
         public string Currency { get; set; }
     }
 }

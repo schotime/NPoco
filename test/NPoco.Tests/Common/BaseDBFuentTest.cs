@@ -176,7 +176,7 @@ namespace NPoco.Tests.Common
                     {
                         OneId = one.OneId,
                         Currency = "Cur" + (i + j + 1),
-                        Value = (i + j + 1)
+                        AValue = (i + j + 1)
                     };
                     Database.Insert(many);
                 }
@@ -254,7 +254,7 @@ namespace NPoco.Tests.Common
                 .Columns(x =>
                 {
                     x.Column(y => y.ManyId);
-                    x.Column(y => y.Value);
+                    x.Column(y => y.AValue);
                     x.Column(y => y.Currency);
                     x.Column(y => y.OneId);
                     x.Column(y => y.One).WithName("OneId").Reference(y => y.OneId, ReferenceType.OneToOne);

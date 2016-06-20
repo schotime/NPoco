@@ -173,21 +173,21 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
             Assert.AreEqual(1, user[0].OneId);
             Assert.AreEqual("Name1", user[0].Name);
             Assert.AreEqual(1, user[0].Items.Count);
-            Assert.AreEqual(12, user[0].Items[0].Value);
+            Assert.AreEqual(12, user[0].Items[0].AValue);
             Assert.AreEqual("USD", user[0].Items[0].Currency);
 
             Assert.AreEqual(2, user[1].OneId);
             Assert.AreEqual("Name2", user[1].Name);
             Assert.AreEqual(2, user[1].Items.Count);
-            Assert.AreEqual(14, user[1].Items[0].Value);
+            Assert.AreEqual(14, user[1].Items[0].AValue);
             Assert.AreEqual("YEN", user[1].Items[0].Currency);
-            Assert.AreEqual(15, user[1].Items[1].Value);
+            Assert.AreEqual(15, user[1].Items[1].AValue);
             Assert.AreEqual("GBP", user[1].Items[1].Currency);
 
             Assert.AreEqual(3, user[2].OneId);
             Assert.AreEqual("Name3", user[2].Name);
             Assert.AreEqual(1, user[2].Items.Count);
-            Assert.AreEqual(16, user[2].Items[0].Value);
+            Assert.AreEqual(16, user[2].Items[0].AValue);
             Assert.AreEqual("EUR", user[2].Items[0].Currency);
 
             Assert.AreEqual(4, user[3].OneId);
@@ -197,7 +197,7 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
             Assert.AreEqual(5, user[4].OneId);
             Assert.AreEqual("Name5", user[4].Name);
             Assert.AreEqual(1, user[4].Items.Count);
-            Assert.AreEqual(17, user[4].Items[0].Value);
+            Assert.AreEqual(17, user[4].Items[0].AValue);
             Assert.AreEqual("CHN", user[4].Items[0].Currency);
         }
 
