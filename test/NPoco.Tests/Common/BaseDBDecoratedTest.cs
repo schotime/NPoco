@@ -52,6 +52,7 @@ namespace NPoco.Tests.Common
                 case 8: // Firebird
                     TestDatabase = new FirebirdDatabase();
                     Database = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), FirebirdClientFactory.Instance, IsolationLevel.ReadUncommitted);
+                    Database.Mappers.Insert(0, new FirebirdDefaultMapper());
                     break;
 #endif
 

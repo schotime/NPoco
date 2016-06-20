@@ -31,5 +31,21 @@ namespace NPoco.Tests.Common
 
             return base.GetFromDbConverter(DestType, SourceType);
         }
+
+
+        public override Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo)
+        {
+            // Db:Guid -> string
+            if ((destType == typeof(string)) && (sourceMemberInfo.GetTheType() == typeof(Guid)))
+            {
+                return src =>
+                {
+                    Guid guid = (Guid)src;
+                    return (guid == Guid.Empty) ? null : guid.ToString();
+                };
+            }
+
+            return base.GetToDbConverter(destType, sourceMemberInfo);
+        }
     }
 }
