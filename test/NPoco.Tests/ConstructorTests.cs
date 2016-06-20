@@ -200,7 +200,8 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringAndProviderName()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
+            var factory = TestDatabase.GetProviderFactory();
+            var db = new Database(TestDatabase.ConnectionString, dbType, factory);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -218,7 +219,8 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringProviderNameAndSettings()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
+            var factory = TestDatabase.GetProviderFactory();
+            var db = new Database(TestDatabase.ConnectionString, dbType, factory);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -236,7 +238,8 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringAndDBType()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
+            var factory = TestDatabase.GetProviderFactory();
+            var db = new Database(TestDatabase.ConnectionString, dbType, factory);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -254,7 +257,8 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringDBTypeAndIsolationLevel()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance, IsolationLevel.ReadUncommitted);
+            var factory = TestDatabase.GetProviderFactory();
+            var db = new Database(TestDatabase.ConnectionString, dbType, factory, IsolationLevel.ReadUncommitted);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -272,7 +276,8 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringDBTypeAndSettings()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance, IsolationLevel.ReadUncommitted, false);
+            var factory = TestDatabase.GetProviderFactory();
+            var db = new Database(TestDatabase.ConnectionString, dbType, factory, IsolationLevel.ReadUncommitted, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -290,8 +295,9 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringAndDBProvider()
         {
             var dbType = GetConfiguredDatabaseType();
-            //var provider = DbProviderFactories.GetFactory(dbType.GetProviderName());
-            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
+           
+            var factory = TestDatabase.GetProviderFactory();
+            var db = new Database(TestDatabase.ConnectionString, dbType, factory);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -309,8 +315,8 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringDBProviderAndSettings()
         {
             var dbType = GetConfiguredDatabaseType();
-            //var provider = DbProviderFactories.GetFactory(dbType.GetProviderName());
-            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
+            var factory = TestDatabase.GetProviderFactory();
+            var db = new Database(TestDatabase.ConnectionString, dbType, factory);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);

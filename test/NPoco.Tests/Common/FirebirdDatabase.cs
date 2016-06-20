@@ -8,6 +8,7 @@ using FirebirdSql.Data.Isql;
 using FirebirdSql.Data.Services;
 using NPoco;
 using System.Reflection;
+using System.Data.Common;
 
 namespace NPoco.Tests.Common
 {
@@ -394,6 +395,11 @@ GRANT %role% TO %user%;
         public override void CleanupDataBase()
         {
 
+        }
+
+        public override DbProviderFactory GetProviderFactory()
+        {
+            return FirebirdClientFactory.Instance;
         }
     }
 }

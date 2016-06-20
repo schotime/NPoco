@@ -35,5 +35,7 @@ namespace NPoco.Tests.Common
             Connection.Close();
             Connection.Dispose();
         }
+
+        public abstract DbProviderFactory GetProviderFactory();        
     }
 }

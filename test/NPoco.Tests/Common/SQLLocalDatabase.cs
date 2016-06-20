@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.IO;
 using NPoco.DatabaseTypes;
@@ -172,7 +173,7 @@ namespace NPoco.Tests.Common
                 CREATE TABLE Manys(
                     ManyId int Identity(1,1) PRIMARY KEY NOT NULL, 
                     OneId int NOT NULL, 
-                    Value int NULL, 
+                    AValue int NULL, 
                     Currency nvarchar(50) NULL
                 );
             ";
@@ -229,6 +230,11 @@ namespace NPoco.Tests.Common
              * Trying to do any clean up here fails until the Database object gets disposed.
              * The create deletes and recreates the files anyone so this isn't really necessary
              */
+        }
+
+        public override DbProviderFactory GetProviderFactory()
+        {
+            return SqlClientFactory.Instance;
         }
     }
 }

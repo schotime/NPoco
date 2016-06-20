@@ -1,5 +1,6 @@
 ﻿using System;
 using NPoco;
+using System.Data.Common;
 
 namespace NPoco.Tests.Common
 {
@@ -59,6 +60,11 @@ namespace NPoco.Tests.Common
             cmd.ExecuteNonQuery();
 
             cmd.Dispose();
+        }
+
+        public override DbProviderFactory GetProviderFactory()
+        {
+            return Microsoft.Data.Sqlite.SqliteFactory.Instance;
         }
     }
 }
