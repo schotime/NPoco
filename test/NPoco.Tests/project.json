@@ -27,7 +27,7 @@
         "System.Xml": "4.0.0.0"
       },
       "dependencies": {
-        "FirebirdSql.Data.FirebirdClient": "4.8.1.1",
+        "FirebirdSql.Data.FirebirdClient": "4.10.0",
         "Microsoft.Extensions.Configuration": "1.0.0-rc2-final",
         "Microsoft.Extensions.Configuration.Json": "1.0.0-rc2-final",
         "Newtonsoft.Json": "8.0.3",
