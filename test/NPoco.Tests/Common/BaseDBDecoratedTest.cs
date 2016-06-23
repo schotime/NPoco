@@ -38,7 +38,7 @@ namespace NPoco.Tests.Common
 
                 case 2: // SQL Local DB
                     TestDatabase = new SQLLocalDatabase();
-                    Database = new Database(TestDatabase.Connection, new SqlServer2008DatabaseType() { UseOutputClause = false }, SqlClientFactory.Instance, IsolationLevel.ReadUncommitted); // Need read uncommitted for the transaction tests
+                    Database = new Database(TestDatabase.Connection, new SqlServer2008DatabaseType() { UseOutputClause = false }, IsolationLevel.ReadUncommitted); // Need read uncommitted for the transaction tests
                     break;
 
                 case 3: // SQL Server
@@ -51,7 +51,7 @@ namespace NPoco.Tests.Common
 #if !DNXCORE50
                 case 8: // Firebird
                     TestDatabase = new FirebirdDatabase();
-                    Database = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), FirebirdClientFactory.Instance, IsolationLevel.ReadUncommitted);
+                    Database = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), IsolationLevel.ReadUncommitted);
                     break;
 #endif
 
@@ -90,6 +90,11 @@ namespace NPoco.Tests.Common
             }
             
             TestDatabase.CleanupDataBase();
+        }
+
+        [OneTimeTearDown]
+        public void TearDown()
+        {
             TestDatabase.Dispose();
         }
 

@@ -30,11 +30,11 @@ namespace NPoco.Tests.Common
         [OneTimeSetUp]
         public void SetUp()
         {
-            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(UserWithExtraInfo), typeof(Usersss), typeof(House), typeof(Supervisor)};
+            var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(UserWithExtraInfo), typeof(Usersss), typeof(House), typeof(Supervisor) };
             var dbFactory = new DatabaseFactory();
             var config = FluentMappingConfiguration.Scan(s =>
             {
-                s.Assembly(typeof (User).GetTypeInfo().Assembly);
+                s.Assembly(typeof(User).GetTypeInfo().Assembly);
                 s.IncludeTypes(types.Contains);
                 s.PrimaryKeysNamed(y => ToLowerIf(y.Name + "Id", false));
                 s.TablesNamed(y => ToLowerIf(Inflector.MakePlural(y.Name), false));
@@ -56,12 +56,12 @@ namespace NPoco.Tests.Common
                 case 1: // SQLite In-Memory
                     TestDatabase = new InMemoryDatabase();
                     Database = dbFactory.Build(new Database(TestDatabase.Connection));
-                    break; 
+                    break;
 
                 case 2: // SQL Local DB
                 case 3: // SQL Server
                     TestDatabase = new SQLLocalDatabase();
-                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2008DatabaseType(), SqlClientFactory.Instance));
+                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2008DatabaseType()));
                     break;
 
                 case 4: // SQL CE
@@ -73,7 +73,7 @@ namespace NPoco.Tests.Common
 #if !DNXCORE50
                 case 8: // Firebird
                     TestDatabase = new FirebirdDatabase();
-                    var db = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), FirebirdClientFactory.Instance);
+                    var db = new Database(TestDatabase.Connection, new FirebirdDatabaseType());
                     db.Mappers.Insert(0, new FirebirdDefaultMapper());
                     Database = dbFactory.Build(db);
                     break;
@@ -94,6 +94,10 @@ namespace NPoco.Tests.Common
             {
                 Database.BeginTransaction();
             }
+            else
+            {
+                SetUp();
+            }
         }
 
         public bool NoTransaction { get; set; }
@@ -107,11 +111,13 @@ namespace NPoco.Tests.Common
             {
                 Database.AbortTransaction();
             }
-            else
-            {
-                SetUp();
-            }
+
             TestDatabase.CleanupDataBase();
+        }
+
+        [OneTimeTearDown]
+        public void TearDown()
+        {
             TestDatabase.Dispose();
         }
 
@@ -139,18 +145,18 @@ namespace NPoco.Tests.Common
                     Age = 20 + (i + 1),
                     DateOfBirth = new DateTime(1970, 1, 1).AddYears(i - 1),
                     Savings = 50.00m + (1.01m * (i + 1)),
-                    IsMale = (i%2 == 0),
-                    YorN = (i%2 == 0) ? 'Y' : 'N',
-                    UniqueId = (i%2 != 0 ? Guid.NewGuid() : (Guid?)null),
-                    TimeSpan = new TimeSpan(1,1,1),
-                    House = i%2==0 ? null : InMemoryHouses[i%5],
-                    SupervisorId = (i+1)%2==0?(i+1):(int?)null,
-                    Address = i%10 == 0 ? null : new Address()
+                    IsMale = (i % 2 == 0),
+                    YorN = (i % 2 == 0) ? 'Y' : 'N',
+                    UniqueId = (i % 2 != 0 ? Guid.NewGuid() : (Guid?)null),
+                    TimeSpan = new TimeSpan(1, 1, 1),
+                    House = i % 2 == 0 ? null : InMemoryHouses[i % 5],
+                    SupervisorId = (i + 1) % 2 == 0 ? (i + 1) : (int?)null,
+                    Address = i % 10 == 0 ? null : new Address()
                     {
                         Street = i + " Road Street",
                         City = "City " + i
                     },
-                    TestEnum = (i + 1)% 2 == 0 ? TestEnum.All : TestEnum.None
+                    TestEnum = (i + 1) % 2 == 0 ? TestEnum.All : TestEnum.None
                 };
                 Database.Insert(user);
                 InMemoryUsers.Add(user);

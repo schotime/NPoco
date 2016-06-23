@@ -103,6 +103,15 @@ namespace NPoco.Tests
         }
 
         [Test]
+        public void ConstructorWithConnectionNotOpenedThrows()
+        {
+            TestDatabase.Connection.Close();
+            var db = new Database(TestDatabase.Connection);
+
+            Assert.Throws<Exception>(() => db.Fetch<dynamic>("select 1 test"));
+        }
+
+        [Test]
         public void ConstructorWithConnectionAndDBType()
         {
             var dbType = GetConfiguredDatabaseType();
@@ -124,7 +133,7 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionDBTypeAndIsolationLevel()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.Connection, dbType, SqlClientFactory.Instance, IsolationLevel.ReadUncommitted);
+            var db = new Database(TestDatabase.Connection, dbType, IsolationLevel.ReadUncommitted);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -142,7 +151,7 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionDBTypeIsolationTypeAndSettings()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.Connection, dbType, SqlClientFactory.Instance, IsolationLevel.ReadUncommitted, false);
+            var db = new Database(TestDatabase.Connection, dbType, IsolationLevel.ReadUncommitted, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);

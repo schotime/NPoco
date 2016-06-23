@@ -32,35 +32,26 @@ namespace NPoco
         public const bool DefaultEnableAutoSelect = true;
 
         public Database(DbConnection connection)
-            : this(connection, null, null, null, DefaultEnableAutoSelect)
+            : this(connection, null, null, DefaultEnableAutoSelect)
         { }
 
         public Database(DbConnection connection, DatabaseType dbType)
-            : this(connection, dbType, null, null, DefaultEnableAutoSelect)
+            : this(connection, dbType, null, DefaultEnableAutoSelect)
         { }
-
+        
         public Database(DbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel)
-            : this(connection, dbType, null, isolationLevel, DefaultEnableAutoSelect)
+            : this(connection, dbType, isolationLevel, DefaultEnableAutoSelect)
         { }
 
-        public Database(DbConnection connection, DatabaseType dbType, DbProviderFactory dbProviderFactory)
-            : this(connection, dbType, dbProviderFactory, null, DefaultEnableAutoSelect)
-        { }
-
-        public Database(DbConnection connection, DatabaseType dbType, DbProviderFactory dbProviderFactory, IsolationLevel? isolationLevel)
-            : this(connection, dbType, dbProviderFactory, isolationLevel, DefaultEnableAutoSelect)
-        { }
-
-        public Database(DbConnection connection, DatabaseType dbType, DbProviderFactory dbProviderFactory, IsolationLevel? isolationLevel, bool enableAutoSelect)
+        public Database(DbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel, bool enableAutoSelect)
         {
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = true;
 
+            _connectionPassedIn = true;
             _sharedConnection = connection;
             _connectionString = connection.ConnectionString;
-            _factory = dbProviderFactory;
-            var dbTypeName = (_factory == null ? _sharedConnection.GetType() : _factory.GetType()).Name;
-            _dbType = dbType ?? DatabaseType.Resolve(dbTypeName, null);
+            _dbType = dbType ?? DatabaseType.Resolve(_sharedConnection.GetType().Name, null);
             _providerName = _dbType.GetProviderName();
             _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
@@ -219,6 +210,9 @@ namespace NPoco
 
         private void OpenSharedConnectionImp(bool isInternal)
         {
+            if (_connectionPassedIn && _sharedConnection != null && _sharedConnection.State != ConnectionState.Open)
+                throw new Exception("You must explicitly open the connection before executing anything when passing in a DbConnection to Database");
+
             if (_sharedConnection != null && _sharedConnection.State != ConnectionState.Broken && _sharedConnection.State != ConnectionState.Closed)
                 return;
 
@@ -1900,6 +1894,7 @@ namespace NPoco
         private object[] _lastArgs;
         private string _paramPrefix = "@";
         private VersionExceptionHandling _versionException = VersionExceptionHandling.Exception;
+        private readonly bool _connectionPassedIn;
 
         internal int ExecuteNonQueryHelper(DbCommand cmd)
         {

@@ -34,6 +34,7 @@ namespace NPoco.Tests.Common
 
             Connection.Close();
             Connection.Dispose();
+            Connection = null;
         }
     }
 }
