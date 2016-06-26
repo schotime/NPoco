@@ -28,6 +28,24 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         }
 
         [Test]
+        public void UpdatePrimaryKeyObjectOverridingPrimaryKey()
+        {
+            var poco = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            Assert.IsNotNull(poco);
+
+            poco.Age = InMemoryUsers[1].Age + 100;
+            poco.Savings = (Decimal)1234.23;
+            Database.Update(poco, InMemoryUsers[2].UserId);
+
+            var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[2].UserId);
+            Assert.IsNotNull(verify);
+
+            Assert.AreEqual(InMemoryUsers[2].UserId, verify.UserId);
+            Assert.AreNotEqual(InMemoryUsers[2].Age, verify.Age);
+            Assert.AreNotEqual(InMemoryUsers[2].Savings, verify.Savings);
+        }
+
+        [Test]
         public void UpdateCompositeKey()
         {
             const string dataTextData = "This is some updated text data.";

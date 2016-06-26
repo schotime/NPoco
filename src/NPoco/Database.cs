@@ -1493,9 +1493,10 @@ namespace NPoco
             foreach (var pocoColumn in pd.Columns.Values)
             {
                 // Don't update the primary key, but grab the value if we don't have it
-                if (primaryKeyValue == null && primaryKeyValuePairs.ContainsKey(pocoColumn.ColumnName))
-                {
-                    primaryKeyValuePairs[pocoColumn.ColumnName] = ProcessMapper(pocoColumn, pocoColumn.GetValue(poco));
+                if (primaryKeyValuePairs.ContainsKey(pocoColumn.ColumnName))
+                { 
+                    if (primaryKeyValue == null)
+                         primaryKeyValuePairs[pocoColumn.ColumnName] = ProcessMapper(pocoColumn, pocoColumn.GetValue(poco));
                     continue;
                 }
 
