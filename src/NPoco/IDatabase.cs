@@ -30,6 +30,10 @@ namespace NPoco
         /// </summary>        
         DbCommand CreateCommand(DbConnection connection, string sql, params object[] args);
         /// <summary>
+        /// Creates a command given a connection, commandType and sql
+        /// </summary>        
+        DbCommand CreateCommand(DbConnection connection, CommandType commandType, string sql, params object[] args);
+        /// <summary>
         /// Begins a new transaction and returns ITransaction which can be used in a using statement
         /// </summary>        
         ITransaction GetTransaction();

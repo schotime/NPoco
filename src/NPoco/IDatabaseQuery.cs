@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq.Expressions;
 using NPoco.Linq;
 #if !NET35 && !NET40
@@ -35,7 +36,12 @@ namespace NPoco
         /// Executes the provided sql and parameters
         /// </summary>
         int Execute(Sql sql);
-        
+
+        /// <summary>
+        /// Executes the provided sql and parameters with the specified commandType
+        /// </summary>
+        int Execute(Sql sql, CommandType commandType);
+
         /// <summary>
         /// Executes the provided sql and parameters and casts the result to T
         /// </summary>
@@ -45,6 +51,11 @@ namespace NPoco
         /// Executes the provided sql and parameters and casts the result to T
         /// </summary>
         T ExecuteScalar<T>(Sql sql);
+
+        /// <summary>
+        /// Executes the provided sql and parameters with the specified commandType and casts the result to T
+        /// </summary>
+        T ExecuteScalar<T>(Sql sql, CommandType commandType);
 
         /// <summary>
         /// Non generic Fetch which returns a list of objects of the given type provided

@@ -582,7 +582,12 @@ namespace NPoco
         }
 
         // Create a command
-        public virtual DbCommand CreateCommand(DbConnection connection, string sql, params object[] args)
+        public DbCommand CreateCommand(DbConnection connection, string sql, params object[] args)
+        {
+            return CreateCommand(connection, CommandType.Text, sql, args);
+        }
+
+        public virtual DbCommand CreateCommand(DbConnection connection, CommandType commandType, string sql, params object[] args)
         {
             // Perform parameter prefix replacements
             if (_paramPrefix != "@")
@@ -720,13 +725,18 @@ namespace NPoco
             return result && Interceptors.OfType<IDataInterceptor>().All(x => x.OnDeleting(this, deleteContext));
         }
 
+        public int Execute(Sql Sql)
+        {
+            return Execute(Sql, CommandType.Text);
+        }
+
         // Execute a non-query command
         public int Execute(string sql, params object[] args)
         {
             return Execute(new Sql(sql, args));
         }
 
-        public int Execute(Sql Sql)
+        public int Execute(Sql Sql, CommandType commandType)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -734,7 +744,7 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                using (var cmd = CreateCommand(_sharedConnection, commandType, sql, args))
                 {
                     var result = ExecuteNonQueryHelper(cmd);
                     return result;
@@ -751,13 +761,18 @@ namespace NPoco
             }
         }
 
+        public T ExecuteScalar<T>(Sql Sql)
+        {
+            return ExecuteScalar<T>(Sql, CommandType.Text);
+        }
+
         // Execute and cast a scalar property
         public T ExecuteScalar<T>(string sql, params object[] args)
         {
             return ExecuteScalar<T>(new Sql(sql, args));
         }
 
-        public T ExecuteScalar<T>(Sql Sql)
+        public T ExecuteScalar<T>(Sql Sql, CommandType commandType)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -765,7 +780,7 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                using (var cmd = CreateCommand(_sharedConnection, commandType, sql, args))
                 {
                     object val = ExecuteScalarHelper(cmd);
 
