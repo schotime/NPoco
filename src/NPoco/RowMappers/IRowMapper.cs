@@ -33,7 +33,7 @@ namespace NPoco.RowMappers
                 .Where(x => !string.Equals("poco_rn", x.Name))
                 .ToList();
 
-            if (cols.Any(x => x.Name.StartsWith(PropertyMapperNameConvention.SplitPrefix)))
+            if (cols.Any(x => x.Name.StartsWith(PropertyMapperNameConvention.SplitPrefix, StringComparison.OrdinalIgnoreCase)))
             {
                 return (_columnNames = cols.ConvertFromNewConvention(pocoData).ToArray());
             }
