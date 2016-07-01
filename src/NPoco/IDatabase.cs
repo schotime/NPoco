@@ -26,11 +26,7 @@ namespace NPoco
         /// </summary>        
         void AddParameter(DbCommand cmd, object value);
         /// <summary>
-        /// Creates a command given a connection and sql
-        /// </summary>        
-        DbCommand CreateCommand(DbConnection connection, string sql, params object[] args);
-        /// <summary>
-        /// Creates a command given a connection, commandType and sql
+        /// Creates a command given a connection, command type and sql
         /// </summary>        
         DbCommand CreateCommand(DbConnection connection, CommandType commandType, string sql, params object[] args);
         /// <summary>

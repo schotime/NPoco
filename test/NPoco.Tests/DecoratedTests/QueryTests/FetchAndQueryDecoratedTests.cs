@@ -2,6 +2,8 @@
 using System.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
+using System.Data;
+using System.Data.SqlClient;
 
 namespace NPoco.Tests.DecoratedTests.QueryTests
 {
@@ -146,6 +148,22 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         {
             var users = Database.Query<UserDecorated>().Where(x => x.IsMale).OrderBy(x => x.UserId).ToList();
             Assert.AreEqual(8, users.Count);
+        }
+
+        [Test]
+        public void FetchWithStoredProcedure()
+        {
+            var theName = "TheName";
+            var name = Database.ExecuteScalar<string>("TestProc", CommandType.StoredProcedure, new SqlParameter("Name", theName));
+            Assert.AreEqual(theName, name);
+        }
+
+        [Test]
+        public void FetchWithStoredProcedure2()
+        {
+            var theName = "TheName";
+            var name = Database.ExecuteScalar<string>("TestProc", CommandType.StoredProcedure, new { Name = theName });
+            Assert.AreEqual(theName, name);
         }
     }
 }

@@ -209,6 +209,15 @@ namespace NPoco.Tests.Common
             ";
             cmd.ExecuteNonQuery();
 
+            cmd.CommandText = @"
+                CREATE procedure TestProc (@Name nvarchar(50)) 
+                AS
+                BEGIN 
+                    select @Name
+                END
+            ";
+            cmd.ExecuteNonQuery();
+
             //            Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
             //#if !DNXCORE50
             //            var dt = conn.GetSchema("Tables");

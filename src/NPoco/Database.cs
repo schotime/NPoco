@@ -490,105 +490,113 @@ namespace NPoco
             var p = cmd.CreateParameter();
             p.ParameterName = string.Format("{0}{1}", _paramPrefix, cmd.Parameters.Count);
 
-            var dbtypeSet = false;
-
-            if (value == null)
-            {
-                p.Value = DBNull.Value;
-            }
-            else
-            {
-                // Give the database type first crack at converting to DB required type
-                value = _dbType.MapParameterValue(value);
-
-                var t = value.GetType();
-                var underlyingT = Nullable.GetUnderlyingType(t);
-                if (t.GetTypeInfo().IsEnum || (underlyingT != null && underlyingT.GetTypeInfo().IsEnum))		// PostgreSQL .NET driver wont cast enum to int
-                {
-                    p.Value = (int)value;
-                }
-                else if (t == typeof(Guid))
-                {
-                    p.Value = value;
-                    p.DbType = DbType.Guid;
-                    p.Size = 40;
-                    dbtypeSet = true;
-                }
-                else if (t == typeof(string))
-                {
-                    var strValue = value as string;
-                    if (strValue == null)
-                    {
-                        p.Size = 0;
-                        p.Value = String.Empty;
-                    }
-                    else
-                    {
-                        // out of memory exception occurs if trying to save more than 4000 characters to SQL Server CE NText column. Set before attempting to set Size, or Size will always max out at 4000
-                        if (strValue.Length + 1 > 4000 && p.GetType().Name == "SqlCeParameter")
-                        {
-                            p.GetType().GetProperty("SqlDbType").SetValue(p, SqlDbType.NText, null);
-                        }
-
-                        p.Size = Math.Max(strValue.Length + 1, 4000); // Help query plan caching by using common size
-                        p.Value = value;
-                    }
-                }
-                else if (t == typeof(AnsiString))
-                {
-                    var ansistrValue = value as AnsiString;
-                    if (ansistrValue == null)
-                    {
-                        p.Size = 0;
-                        p.Value = String.Empty;
-                        p.DbType = DbType.AnsiString;
-                    }
-                    else
-                    {
-                        // Thanks @DataChomp for pointing out the SQL Server indexing performance hit of using wrong string type on varchar
-                        p.Size = Math.Max(ansistrValue.Value.Length + 1, 4000);
-                        p.Value = ansistrValue.Value;
-                        p.DbType = DbType.AnsiString;
-                    }
-                    dbtypeSet = true;
-                }
-                else if (value.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
-                {
-                    p.GetType().GetProperty("UdtTypeName").SetValue(p, "geography", null); //geography is the equivalent SQL Server Type
-                    p.Value = value;
-                }
-
-                else if (value.GetType().Name == "SqlGeometry") //SqlGeometry is a CLR Type
-                {
-                    p.GetType().GetProperty("UdtTypeName").SetValue(p, "geometry", null); //geography is the equivalent SQL Server Type
-                    p.Value = value;
-                }
-                else
-                {
-                    p.Value = value;
-                }
-
-                if (!dbtypeSet)
-                {
-                    var dbType = _dbType.LookupDbType(p.Value.GetTheType(), p.ParameterName);
-                    if (dbType.HasValue)
-                    {
-                        p.DbType = dbType.Value;
-                    }
-                }
-            }
-
+            SetParameterValue(p, value);
+            
             cmd.Parameters.Add(p);
         }
 
+        private void SetParameterValue(DbParameter p, object value)
+        {
+            if (value == null)
+            {
+                p.Value = DBNull.Value;
+                return;
+            }
+
+            // Give the database type first crack at converting to DB required type
+            value = _dbType.MapParameterValue(value);
+
+            var dbtypeSet = false;
+            var t = value.GetType();
+            var underlyingT = Nullable.GetUnderlyingType(t);
+            if (t.GetTypeInfo().IsEnum || (underlyingT != null && underlyingT.GetTypeInfo().IsEnum))        // PostgreSQL .NET driver wont cast enum to int
+            {
+                p.Value = (int)value;
+            }
+            else if (t == typeof(Guid))
+            {
+                p.Value = value;
+                p.DbType = DbType.Guid;
+                p.Size = 40;
+                dbtypeSet = true;
+            }
+            else if (t == typeof(string))
+            {
+                var strValue = value as string;
+                if (strValue == null)
+                {
+                    p.Size = 0;
+                    p.Value = String.Empty;
+                }
+                else
+                {
+                    // out of memory exception occurs if trying to save more than 4000 characters to SQL Server CE NText column. Set before attempting to set Size, or Size will always max out at 4000
+                    if (strValue.Length + 1 > 4000 && p.GetType().Name == "SqlCeParameter")
+                    {
+                        p.GetType().GetProperty("SqlDbType").SetValue(p, SqlDbType.NText, null);
+                    }
+
+                    p.Size = Math.Max(strValue.Length + 1, 4000); // Help query plan caching by using common size
+                    p.Value = value;
+                }
+            }
+            else if (t == typeof(AnsiString))
+            {
+                var ansistrValue = value as AnsiString;
+                if (ansistrValue == null)
+                {
+                    p.Size = 0;
+                    p.Value = String.Empty;
+                    p.DbType = DbType.AnsiString;
+                }
+                else
+                {
+                    // Thanks @DataChomp for pointing out the SQL Server indexing performance hit of using wrong string type on varchar
+                    p.Size = Math.Max(ansistrValue.Value.Length + 1, 4000);
+                    p.Value = ansistrValue.Value;
+                    p.DbType = DbType.AnsiString;
+                }
+                dbtypeSet = true;
+            }
+            else if (value.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
+            {
+                p.GetType().GetProperty("UdtTypeName").SetValue(p, "geography", null); //geography is the equivalent SQL Server Type
+                p.Value = value;
+            }
+
+            else if (value.GetType().Name == "SqlGeometry") //SqlGeometry is a CLR Type
+            {
+                p.GetType().GetProperty("UdtTypeName").SetValue(p, "geometry", null); //geography is the equivalent SQL Server Type
+                p.Value = value;
+            }
+            else
+            {
+                p.Value = value;
+            }
+
+            if (!dbtypeSet)
+            {
+                var dbType = _dbType.LookupDbType(p.Value.GetTheType(), p.ParameterName);
+                if (dbType.HasValue)
+                {
+                    p.DbType = dbType.Value;
+                }
+            }
+        }
+
         // Create a command
-        public DbCommand CreateCommand(DbConnection connection, string sql, params object[] args)
+        private DbCommand CreateCommand(DbConnection connection, string sql, params object[] args)
         {
             return CreateCommand(connection, CommandType.Text, sql, args);
         }
-
+        
         public virtual DbCommand CreateCommand(DbConnection connection, CommandType commandType, string sql, params object[] args)
         {
+            if (commandType == CommandType.StoredProcedure)
+            {
+                return CreateStoredProcedureCommand(connection, sql, args);
+            }
+
             // Perform parameter prefix replacements
             if (_paramPrefix != "@")
                 sql = ParameterHelper.rxParamsPrefix.Replace(sql, m => _paramPrefix + m.Value.Substring(1));
@@ -597,7 +605,6 @@ namespace NPoco
             // Create the command and add parameters
             DbCommand cmd = connection.CreateCommand();
             cmd.Connection = connection;
-            cmd.CommandType = commandType;
             cmd.CommandText = sql;            
             cmd.Transaction = _transaction;
 
@@ -725,10 +732,45 @@ namespace NPoco
             var result = OnDeleting(deleteContext);
             return result && Interceptors.OfType<IDataInterceptor>().All(x => x.OnDeleting(this, deleteContext));
         }
-
-        public int Execute(Sql Sql)
+        
+        public DbCommand CreateStoredProcedureCommand(DbConnection connection, string name, params object[] args)
         {
-            return Execute(Sql, CommandType.Text);
+            DbCommand cmd = connection.CreateCommand();
+            cmd.Connection = connection;
+            cmd.CommandText = name;
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Transaction = _transaction;
+
+            if (args.Length == 1)
+            {
+                var arg = args[0] as DbParameter;
+                if (arg != null)
+                {
+                    cmd.Parameters.Add(arg);
+                }
+                else
+                {
+                    var props = args[0].GetType().GetProperties().Select(x => new { x.Name, Value = x.GetValue(args[0], null) }).ToList();
+                    foreach(var item in props)
+                    {
+                        DbParameter param = cmd.CreateParameter();
+                        param.ParameterName = item.Name;
+
+                        SetParameterValue(param, item.Value);
+                        
+                        cmd.Parameters.Add(param);
+                    }
+                }
+            }
+            else
+            {
+                cmd.Parameters.AddRange(args.OfType<DbParameter>().ToArray());
+            }
+
+            // Notify the DB type
+            _dbType.PreExecute(cmd);
+
+            return cmd;
         }
 
         // Execute a non-query command
@@ -737,11 +779,13 @@ namespace NPoco
             return Execute(new Sql(sql, args));
         }
 
-        public int Execute(Sql Sql, CommandType commandType)
+        public int Execute(Sql Sql)
         {
-            var sql = Sql.SQL;
-            var args = Sql.Arguments;
+            return Execute(Sql.SQL, CommandType.Text, Sql.Arguments);
+        }
 
+        public int Execute(string sql, CommandType commandType, params object[] args)
+        {
             try
             {
                 OpenSharedConnectionInternal();
@@ -762,22 +806,19 @@ namespace NPoco
             }
         }
 
-        public T ExecuteScalar<T>(Sql Sql)
-        {
-            return ExecuteScalar<T>(Sql, CommandType.Text);
-        }
-
         // Execute and cast a scalar property
         public T ExecuteScalar<T>(string sql, params object[] args)
         {
             return ExecuteScalar<T>(new Sql(sql, args));
         }
-
-        public T ExecuteScalar<T>(Sql Sql, CommandType commandType)
+        
+        public T ExecuteScalar<T>(Sql Sql)
         {
-            var sql = Sql.SQL;
-            var args = Sql.Arguments;
+            return ExecuteScalar<T>(Sql.SQL, CommandType.Text, Sql.Arguments);
+        }
 
+        public T ExecuteScalar<T>(string sql, CommandType commandType, params object[] args)
+        {
             try
             {
                 OpenSharedConnectionInternal();
@@ -788,10 +829,10 @@ namespace NPoco
                     if (val == null || val == DBNull.Value)
                         return default(T);
 
-                    Type t = typeof (T);
+                    Type t = typeof(T);
                     Type u = Nullable.GetUnderlyingType(t);
 
-                    return (T) Convert.ChangeType(val, u ?? t);
+                    return (T)Convert.ChangeType(val, u ?? t);
                 }
             }
             catch (Exception x)

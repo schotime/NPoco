@@ -38,9 +38,9 @@ namespace NPoco
         int Execute(Sql sql);
 
         /// <summary>
-        /// Executes the provided sql and parameters with the specified commandType
+        /// Executes the provided sql and parameters with the specified command type
         /// </summary>
-        int Execute(Sql sql, CommandType commandType);
+        int Execute(string sql, CommandType commandType, params object[] args);
 
         /// <summary>
         /// Executes the provided sql and parameters and casts the result to T
@@ -55,7 +55,7 @@ namespace NPoco
         /// <summary>
         /// Executes the provided sql and parameters with the specified commandType and casts the result to T
         /// </summary>
-        T ExecuteScalar<T>(Sql sql, CommandType commandType);
+        T ExecuteScalar<T>(string sql, CommandType commandType, params object[] args);
 
         /// <summary>
         /// Non generic Fetch which returns a list of objects of the given type provided
