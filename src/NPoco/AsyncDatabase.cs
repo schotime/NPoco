@@ -217,21 +217,20 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                DbCommand cmd = CreateCommand(_sharedConnection, sql, args); 
+                DbDataReader r;
+                try
                 {
-                    DbDataReader r;
-                    try
-                    {
-                        r = await ExecuteReaderHelperAsync(cmd).ConfigureAwait(false);
-                    }
-                    catch (Exception x)
-                    {
-                        OnExceptionInternal(x);
-                        throw;
-                    }
-
-                    return listExpression != null ? ReadOneToMany(instance, r, listExpression, idFunc) : Read<T>(typeof(T), instance, r);
+                    r = await ExecuteReaderHelperAsync(cmd).ConfigureAwait(false);
                 }
+                catch (Exception x)
+                {
+                    cmd.Dispose();
+                    OnExceptionInternal(x);
+                    throw;
+                }
+
+                return listExpression != null ? ReadOneToMany(instance, r, cmd, listExpression, idFunc) : Read<T>(typeof(T), instance, r, cmd);
             }
             catch
             {
