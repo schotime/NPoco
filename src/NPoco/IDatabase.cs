@@ -193,7 +193,7 @@ namespace NPoco
         /// </summary>        
         IDeleteQueryProvider<T> DeleteMany<T>();
         /// <summary>
-        /// Performs and insert or an update depending on whether the POCO already exists
+        /// Performs an insert or an update depending on whether the POCO already exists. (i.e. an upsert/merge)
         /// </summary>        
         void Save<T>(T poco);
         /// <summary>

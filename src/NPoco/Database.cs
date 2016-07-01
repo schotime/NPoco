@@ -597,7 +597,8 @@ namespace NPoco
             // Create the command and add parameters
             DbCommand cmd = connection.CreateCommand();
             cmd.Connection = connection;
-            cmd.CommandText = sql;
+            cmd.CommandType = commandType;
+            cmd.CommandText = sql;            
             cmd.Transaction = _transaction;
 
             foreach (var item in args)
@@ -1310,7 +1311,7 @@ namespace NPoco
         {
             var index = 0;
             var pd = PocoDataFactory.ForType(typeof (T));
-            var primaryKeyValuePairs = GetPrimaryKeyValues(pd, pd.TableInfo.PrimaryKey, primaryKey, false);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(pd, pd.TableInfo.PrimaryKey, primaryKey, primaryKey is T);
             var sql = AutoSelectHelper.AddSelectClause(this, typeof(T), string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)));
             var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
             return new Sql(true, sql, args);

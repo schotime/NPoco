@@ -132,6 +132,32 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         }
 
         [Test]
+        public void SaveCompositeKeyNewWithSingleOrDefaultById()
+        {
+            const int dataKey1ID = 100;
+            const int dataKey2ID = 200;
+            const int dataKey3ID = 300;
+            const string dataTextData = "This is some text data.";
+            var dataDateCreated = DateTime.Now;
+
+            var poco = new CompositeObjectDecorated();
+            poco.Key1ID = dataKey1ID;
+            poco.Key2ID = dataKey2ID;
+            poco.Key3ID = dataKey3ID;
+            poco.TextData = dataTextData;
+            poco.DateEntered = dataDateCreated;
+            Database.Save<CompositeObjectDecorated>(poco);
+
+            var verify = Database.SingleOrDefaultById<CompositeObjectDecorated>(poco);
+            Assert.IsNotNull(verify);
+
+            Assert.AreEqual(dataKey1ID, verify.Key1ID);
+            Assert.AreEqual(dataKey2ID, verify.Key2ID);
+            Assert.AreEqual(dataKey3ID, verify.Key3ID);
+            Assert.AreEqual(dataTextData, verify.TextData);
+        }
+
+        [Test]
         public void SaveCompositeKeyExisting()
         {
             const string dataTextData = "This is some updated text data.";
