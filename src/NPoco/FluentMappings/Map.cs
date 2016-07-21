@@ -85,11 +85,12 @@ namespace NPoco.FluentMappings
             return this;
         }
 
-        public Map<T> PrimaryKey(string primaryKeyColumn, bool autoIncrement, bool useOutputClause)
+        public Map<T> PrimaryKey(string primaryKeyColumn, bool autoIncrement = false, bool useOutputClause = false, bool UseIdGenerator = false)
         {
             _petaPocoTypeDefinition.PrimaryKey = primaryKeyColumn;
             _petaPocoTypeDefinition.AutoIncrement = autoIncrement;
             _petaPocoTypeDefinition.UseOutputClause = useOutputClause;
+            _petaPocoTypeDefinition.UseIdGenerator = UseIdGenerator;
             return this;
         }
 

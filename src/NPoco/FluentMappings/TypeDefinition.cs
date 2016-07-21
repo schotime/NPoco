@@ -20,5 +20,6 @@ namespace NPoco.FluentMappings
         public Dictionary<string, ColumnDefinition> ColumnConfiguration { get; set; }
         public bool? UseOutputClause { get; set; }
         public Type PersistedType { get; set; }
+        public bool? UseIdGenerator { get; set; }
     }
 }

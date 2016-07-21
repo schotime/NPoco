@@ -9,4 +9,11 @@ namespace NPoco.Tests.Common
         public Guid Id { get; private set; }
         public string Name { get; set; }
     }
+
+    [TableName("IdGenerated"), PrimaryKey("Id", UseIdGenerator = true)]
+    public class InsertFromIdGenerator
+    {
+        public long Id { get; private set; }
+        public string Data { get; set; }
+    }
 }

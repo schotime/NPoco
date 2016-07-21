@@ -38,7 +38,14 @@ namespace NPoco.Tests.Common
 
                 case 2: // SQL Local DB
                     TestDatabase = new SQLLocalDatabase();
-                    Database = new Database(TestDatabase.Connection, new SqlServer2008DatabaseType() { UseOutputClause = false }, IsolationLevel.ReadUncommitted); // Need read uncommitted for the transaction tests
+                    var dbType = new SqlServer2008DatabaseType() { UseOutputClause = false };
+                    Database = new Database(TestDatabase.Connection, dbType, IsolationLevel.ReadUncommitted)
+                    {
+                        IdentityGenerator = new LinearBlockIndentityGenerator(() => new Database(new SQLLocalDatabase(true).Connection, dbType))
+                        {
+                            BlockSize = 1000
+                        }
+                    }; // Need read uncommitted for the transaction tests
                     break;
 
                 case 3: // SQL Server

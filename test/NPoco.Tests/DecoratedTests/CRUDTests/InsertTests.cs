@@ -3,6 +3,7 @@ using System.Linq;
 using NPoco;
 using NPoco.Tests.Common;
 using NUnit.Framework;
+using System.Diagnostics;
 
 namespace NPoco.Tests.DecoratedTests.CRUDTests
 {
@@ -92,7 +93,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.AreEqual(dataKey3ID, verify.Key3ID);
             Assert.AreEqual(dataTextData, verify.TextData);
         }
-    
+
         [Test]
         public void VerifyNullablesCanBeInserted()
         {
@@ -114,7 +115,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
                 Age = x + 1
             });
 
-            Database.InsertBatch(users, new BatchOptions() {BatchSize = 22});
+            Database.InsertBatch(users, new BatchOptions() { BatchSize = 22 });
 
             var result = Database.Query<UserDecorated>().Count();
 
@@ -139,6 +140,25 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Database.Insert(user);
             var verify = Database.Single<JustPrimaryKey>("select * from justprimarykey");
             Assert.AreEqual(user.Id, verify.Id);
+        }
+
+        [Test]
+        public void InsertFromIdGeneratorDbIsSet()
+        {
+            var user = new InsertFromIdGenerator();
+            user.Data = "TextData";
+            Database.Insert(user);
+            var user2 = new InsertFromIdGenerator();
+            user2.Data = "TextData2";
+            Database.Insert(user2);
+            var verify = Database.Query<InsertFromIdGenerator>().OrderBy(x => x.Id).ToList();
+
+            Assert.True(verify[0].Id > 0);
+            Assert.AreEqual(user.Id, verify[0].Id);
+            Assert.AreEqual(user.Data, verify[0].Data);
+            Assert.True(verify[1].Id > verify[0].Id);
+            Assert.AreEqual(user2.Id, verify[1].Id);
+            Assert.AreEqual(user2.Data, verify[1].Data);
         }
     }
 }

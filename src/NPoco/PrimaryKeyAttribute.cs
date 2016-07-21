@@ -15,5 +15,6 @@ namespace NPoco
         public string SequenceName { get; set; }
         public bool AutoIncrement { get; set; }
         public bool UseOutputClause { get; set; }
+        public bool UseIdGenerator { get; set; }
     }
 }

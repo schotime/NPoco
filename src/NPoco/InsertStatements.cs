@@ -16,6 +16,7 @@ namespace NPoco
                 public string VersionName { get; set; }
                 public string Sql { get; set; }
                 public List<object> Rawvalues { get; set; }
+                public long? GeneratedId { get; set; }
             }
 
             public static PreparedInsertSql PrepareInsertSql<T>(Database database, PocoData pd, string tableName, string primaryKeyName, bool autoIncrement, T poco)
@@ -25,6 +26,8 @@ namespace NPoco
                 var rawvalues = new List<object>();
                 var index = 0;
                 var versionName = "";
+
+                var newId = AssignIdGeneratedPrimaryKey(database.IdentityGenerator, pd, primaryKeyName, poco);
 
                 foreach (var pocoColumn in pd.Columns.Values)
                 {
@@ -98,14 +101,15 @@ namespace NPoco
                     PocoData = pd,
                     Sql = sql,
                     Rawvalues = rawvalues,
-                    VersionName = versionName
+                    VersionName = versionName,
+                    GeneratedId = newId
                 };
             }
 
-            public static object AssignNonIncrementPrimaryKey<T>(string primaryKeyName, T poco, PreparedInsertSql preparedSql)
+            public static object AssignNonIncrementPrimaryKey<T>(string primaryKeyName, T poco, PocoData pocoData)
             {
                 PocoColumn pkColumn;
-                if (primaryKeyName != null && preparedSql.PocoData.Columns.TryGetValue(primaryKeyName, out pkColumn))
+                if (primaryKeyName != null && pocoData.Columns.TryGetValue(primaryKeyName, out pkColumn))
                     return pkColumn.GetValue(poco);
                 return null;
             }
@@ -122,16 +126,32 @@ namespace NPoco
                 }
             }
 
-            public static void AssignPrimaryKey<T>(string primaryKeyName, T poco, object id, PreparedInsertSql preparedSql)
+            public static void AssignPrimaryKey<T>(string primaryKeyName, T poco, object id, PocoData pocoData)
             {
                 if (primaryKeyName != null && id != null && id.GetType().GetTypeInfo().IsValueType)
                 {
                     PocoColumn pc;
-                    if (preparedSql.PocoData.Columns.TryGetValue(primaryKeyName, out pc))
+                    if (pocoData.Columns.TryGetValue(primaryKeyName, out pc))
                     {
                         pc.SetValue(poco, pc.ChangeType(id));
                     }
                 }
+            }
+
+            public static long? AssignIdGeneratedPrimaryKey<T>(IIdentityGenerator identityGenerator, PocoData pocoData, string primaryKeyName, T poco)
+            {
+                if (pocoData.TableInfo.UseIdGenerator)
+                {
+                    if (identityGenerator == null)
+                    {
+                        throw new NullReferenceException("IdentityGenerator on Database has not been set and UseIdGenerator has been used");
+                    }
+                    var newId = identityGenerator.Generate(pocoData.Type);
+                    AssignPrimaryKey(primaryKeyName, poco, newId, pocoData);
+                    return newId;
+                }
+
+                return null;
             }
         }
     }

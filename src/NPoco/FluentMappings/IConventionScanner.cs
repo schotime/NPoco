@@ -17,6 +17,7 @@ namespace NPoco.FluentMappings
         void TablesNamed(Func<Type, string> tableFunc);
         void PrimaryKeysNamed(Func<Type, string> primaryKeyFunc);
         void PrimaryKeysAutoIncremented(Func<Type, bool> primaryKeyAutoIncrementFunc);
+        void PrimaryKeysIdGenerated(Func<Type, bool> primaryKeyIdGeneratedFunc);
         void SequencesNamed(Func<Type, string> sequencesFunc);
         void PersistedTypesBy(Func<Type, Type> persistedTypesByFunc);
 

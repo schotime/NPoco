@@ -1464,12 +1464,12 @@ namespace NPoco
                     if (!autoIncrement)
                     {
                         ExecuteNonQueryHelper(cmd);
-                        id = InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, preparedInsert);
+                        id = preparedInsert.GeneratedId != null ? preparedInsert.GeneratedId : InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, pocoData);
                     }
                     else
                     {
                         id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray());
-                        InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
+                        InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, pocoData);
                     }
 
                     return id;
@@ -1962,6 +1962,18 @@ namespace NPoco
             set { _pocoDataFactory = value; }
         }
 
+        private IIdentityGenerator _identityGenerator;
+        public IIdentityGenerator IdentityGenerator
+        {
+            get
+            {
+                if (_identityGenerator == null)
+                    throw new NotImplementedException("No identityGenerator has been specified");
+                return _identityGenerator;
+            }
+            set { _identityGenerator = value; }
+        }
+        
         public string ConnectionString { get { return _connectionString; } }
 
         // Member variables

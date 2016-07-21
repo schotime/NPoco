@@ -56,6 +56,7 @@ namespace NPoco.FluentMappings
                     PersistedType = scannerSettings.PersistedTypesBy(type),
                     SequenceName = scannerSettings.SequencesNamed(type),
                     UseOutputClause = scannerSettings.UseOutputClauseWhere(type),
+                    UseIdGenerator = scannerSettings.PrimaryKeysIdGenerated(type),
                     ExplicitColumns = true
                 };
 
@@ -159,6 +160,7 @@ namespace NPoco.FluentMappings
             var defaultScannerSettings = new ConventionScannerSettings
             {
                 PrimaryKeysAutoIncremented = x => true,
+                PrimaryKeysIdGenerated = x => false,
                 PrimaryKeysNamed = x => "ID",
                 TablesNamed = x => x.Name,
                 DbColumnsNamed = x => x.Name,
@@ -208,6 +210,8 @@ namespace NPoco.FluentMappings
                 typeDefinition.Value.SequenceName = tableInfo.SequenceName;
                 typeDefinition.Value.AutoIncrement = tableInfo.AutoIncrement;
                 typeDefinition.Value.UseOutputClause = tableInfo.UseOutputClause;
+                typeDefinition.Value.UseIdGenerator = tableInfo.UseIdGenerator;
+                typeDefinition.Value.PersistedType = tableInfo.PersistedType;
 
                 foreach (var columnDefinition in typeDefinition.Value.ColumnConfiguration)
                 {
@@ -249,6 +253,7 @@ namespace NPoco.FluentMappings
                 convTableDefinition.ExplicitColumns = overrideTypeDefinition.Value.ExplicitColumns ?? convTableDefinition.ExplicitColumns;
                 convTableDefinition.UseOutputClause = overrideTypeDefinition.Value.UseOutputClause ?? convTableDefinition.UseOutputClause;
                 convTableDefinition.PersistedType = overrideTypeDefinition.Value.PersistedType ?? convTableDefinition.PersistedType;
+                convTableDefinition.UseIdGenerator = overrideTypeDefinition.Value.UseIdGenerator ?? convTableDefinition.UseIdGenerator;
 
                 foreach (var overrideColumnDefinition in overrideMappings.Config[overrideTypeDefinition.Key].ColumnConfiguration)
                 {

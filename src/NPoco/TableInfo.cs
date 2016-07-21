@@ -13,6 +13,7 @@ namespace NPoco
         public string AutoAlias { get; set; }
         public bool UseOutputClause { get; set; }
         public Type PersistedType { get; set; }
+        public bool UseIdGenerator { get; set; }
 
         public TableInfo Clone()
         {
@@ -24,7 +25,8 @@ namespace NPoco
                 PrimaryKey = PrimaryKey,
                 SequenceName = SequenceName,
                 UseOutputClause = UseOutputClause,
-                PersistedType = PersistedType
+                PersistedType = PersistedType,
+                UseIdGenerator = UseIdGenerator
             };
         }
 
@@ -40,11 +42,12 @@ namespace NPoco
             a = t.GetTypeInfo().GetCustomAttributes(typeof(PrimaryKeyAttribute), true).ToArray();
             tableInfo.PrimaryKey = a.Length == 0 ? "ID" : (a[0] as PrimaryKeyAttribute).Value;
             tableInfo.SequenceName = a.Length == 0 ? null : (a[0] as PrimaryKeyAttribute).SequenceName;
+            tableInfo.UseIdGenerator = a.Length == 0 ? false : (a[0] as PrimaryKeyAttribute).UseIdGenerator;
             tableInfo.AutoIncrement = a.Length == 0 ? true : (a[0] as PrimaryKeyAttribute).AutoIncrement;
             tableInfo.UseOutputClause = a.Length == 0 ? false : (a[0] as PrimaryKeyAttribute).UseOutputClause;
 
             // Set autoincrement false if primary key has multiple columns
-            tableInfo.AutoIncrement = tableInfo.AutoIncrement ? !tableInfo.PrimaryKey.Contains(',') : tableInfo.AutoIncrement;
+            tableInfo.AutoIncrement = tableInfo.AutoIncrement ? !(tableInfo.PrimaryKey.Contains(',') || tableInfo.UseIdGenerator) : tableInfo.AutoIncrement;
 
             a = t.GetTypeInfo().GetCustomAttributes(typeof(PersistedTypeAttribute), true).ToArray();
             tableInfo.PersistedType = a.Length == 0 ? null : (a[0] as PersistedTypeAttribute).PersistedType;

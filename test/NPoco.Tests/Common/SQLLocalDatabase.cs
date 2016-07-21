@@ -15,7 +15,7 @@ namespace NPoco.Tests.Common
         protected string FQDBFile { get; set; }
         protected string FQLogFile { get; set; }
 
-        public SQLLocalDatabase()
+        public SQLLocalDatabase(bool dontCreate = false)
         {
             DbType = new SqlServer2012DatabaseType();
             DBPath = Directory.GetCurrentDirectory();
@@ -26,17 +26,21 @@ namespace NPoco.Tests.Common
             ConnectionString = String.Format("Data Source=(LocalDB)\\v11.0;Integrated Security=True;AttachDbFileName=\"{0}\";", FQDBFile);
             ProviderName = "System.Data.SqlClient";
 
-            RecreateDataBase();
+            if (!dontCreate)
+            {
+                RecreateDataBase();                
+            }
+
             EnsureSharedConnectionConfigured();
 
-//            Console.WriteLine("Tables (Constructor): " + Environment.NewLine);
-//#if !DNXCORE50
-//            var dt = ((SqlConnection)Connection).GetSchema("Tables");
-//            foreach (DataRow row in dt.Rows)
-//            {
-//                Console.WriteLine((string)row[2]);
-//            }
-//#endif
+            //            Console.WriteLine("Tables (Constructor): " + Environment.NewLine);
+            //#if !DNXCORE50
+            //            var dt = ((SqlConnection)Connection).GetSchema("Tables");
+            //            foreach (DataRow row in dt.Rows)
+            //            {
+            //                Console.WriteLine((string)row[2]);
+            //            }
+            //#endif
         }
 
         public override void EnsureSharedConnectionConfigured()
@@ -138,6 +142,14 @@ namespace NPoco.Tests.Common
             cmd.ExecuteNonQuery();
 
             cmd.CommandText = @"
+                CREATE TABLE IdGenerated(
+                    Id int PRIMARY KEY NOT NULL, 
+                    Data nvarchar(512) NULL
+                );
+            ";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
                 CREATE TABLE ComplexMap(
                     Id int Identity(1,1) PRIMARY KEY NOT NULL, 
                     Name nvarchar(50) NULL, 
@@ -217,6 +229,16 @@ namespace NPoco.Tests.Common
                 END
             ";
             cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+                create table NPocoIds(
+                    id nvarchar(200) primary key, 
+                    nextval bigint
+                )
+            ";
+            cmd.ExecuteNonQuery();
+
+            
 
             //            Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
             //#if !DNXCORE50

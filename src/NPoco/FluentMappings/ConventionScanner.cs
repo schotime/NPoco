@@ -70,6 +70,11 @@ namespace NPoco.FluentMappings
             _scannerSettings.PrimaryKeysAutoIncremented = primaryKeyAutoIncrementFunc;
         }
 
+        public void PrimaryKeysIdGenerated(Func<Type, bool> primaryKeyIdGeneratedFunc)
+        {
+            _scannerSettings.PrimaryKeysIdGenerated = primaryKeyIdGeneratedFunc;
+        }
+
         //public void OverrideWithAttributes()
         //{
         //    _scannerSettings.OverrideWithAttributes = true;

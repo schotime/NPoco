@@ -76,12 +76,12 @@ namespace NPoco
                     if (!autoIncrement)
                     {
                         await _dbType.ExecuteNonQueryAsync(this, cmd).ConfigureAwait(false);
-                        id = InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, preparedInsert);
+                        id = preparedInsert.GeneratedId != null ? preparedInsert.GeneratedId : InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, pocoData);
                     }
                     else
                     {
                         id = await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray()).ConfigureAwait(false);
-                        InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
+                        InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, pocoData);
                     }
 
                     return id;

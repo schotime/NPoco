@@ -196,6 +196,11 @@ namespace NPoco
         /// Determines whether the POCO already exists
         /// </summary>        
         bool IsNew<T>(T poco);
+
+        /// <summary>
+        /// If set, can be used to retrieve a new id or used implicitly when the UseIdGenerator is set to true on the Primary Key
+        /// </summary>
+        IIdentityGenerator IdentityGenerator { get; set; }
     }
 
     public interface IDatabaseConfig

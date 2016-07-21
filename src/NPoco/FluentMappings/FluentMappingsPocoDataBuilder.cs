@@ -61,7 +61,9 @@ namespace NPoco.FluentMappings
                 SequenceName = sequenceName,
                 AutoIncrement = autoIncrement,
                 AutoAlias = autoAlias,
-                PersistedType = typeConfig.PersistedType
+                PersistedType = typeConfig.PersistedType,
+                UseIdGenerator = typeConfig.UseIdGenerator ?? false,
+                UseOutputClause = typeConfig.UseOutputClause ?? false
             };
         }
 

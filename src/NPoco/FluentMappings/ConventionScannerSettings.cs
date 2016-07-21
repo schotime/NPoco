@@ -23,6 +23,7 @@ namespace NPoco.FluentMappings
         public Func<Type, string> TablesNamed { get; set; }
         public Func<Type, string> PrimaryKeysNamed { get; set; }
         public Func<Type, bool> PrimaryKeysAutoIncremented { get; set; }
+        public Func<Type, bool> PrimaryKeysIdGenerated { get; internal set; }
         public Func<Type, string> SequencesNamed { get; set; }
         public Func<Type, bool> UseOutputClauseWhere { get; set; }
         public Func<Type, Type> PersistedTypesBy { get; set; }
@@ -44,7 +45,7 @@ namespace NPoco.FluentMappings
         public Func<MemberInfo, bool> SerializedWhere { get; set; }
 
         public bool Lazy { get; set; }
-
+        
         //public bool OverrideWithAttributes { get; set; }
     }
 }
