@@ -704,13 +704,20 @@ namespace NPoco
         {
             return true;
         }
-
+        protected virtual bool AfterInserting(InsertContext insertContext)
+        {
+            return true;
+        }
         private bool OnInsertingInternal(InsertContext insertContext)
         {
             var result = OnInserting(insertContext);
             return result && Interceptors.OfType<IDataInterceptor>().All(x => x.OnInserting(this, insertContext));
         }
-
+        private bool AfterInsertingInternal(InsertContext insertContext)
+        {
+            var result = AfterInserting(insertContext);
+            return result && Interceptors.OfType<IDataInterceptor>().All(x => x.AfterInserting(this, insertContext));
+        }
         protected virtual bool OnUpdating(UpdateContext updateContext)
         {
             return true;
@@ -1471,7 +1478,7 @@ namespace NPoco
                         id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray());
                         InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
                     }
-
+                    AfterInsertingInternal(new InsertContext(poco, tableName, autoIncrement, primaryKeyName));
                     return id;
                 }
             }

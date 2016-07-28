@@ -33,6 +33,7 @@ namespace NPoco
         bool OnInserting(IDatabase database, InsertContext insertContext);
         bool OnUpdating(IDatabase database, UpdateContext updateContext);
         bool OnDeleting(IDatabase database, DeleteContext deleteContext);
+        bool AfterInserting(IDatabase database, InsertContext insertContext);
     }
 
     public interface ITransactionInterceptor : IInterceptor
