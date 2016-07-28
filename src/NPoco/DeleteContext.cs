@@ -1,6 +1,6 @@
 namespace NPoco
 {
-    public class DeleteContext
+    public class DeleteContext : IDataContext
     {
         public DeleteContext(object poco, string tableName, string primaryKeyName, object primaryKeyValue)
         {

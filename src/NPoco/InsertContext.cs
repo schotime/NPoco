@@ -1,6 +1,6 @@
 namespace NPoco
 {
-    public class InsertContext
+    public class InsertContext : IDataContext
     {
         public InsertContext(object poco, string tableName, bool autoIncrement, string primaryKeyName)
         {

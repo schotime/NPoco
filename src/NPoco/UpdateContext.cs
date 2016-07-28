@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace NPoco
 {
-    public class UpdateContext
+    public class UpdateContext : IDataContext
     {
         public UpdateContext(object poco, string tableName, string primaryKeyName, object primaryKeyValue, IEnumerable<string> columnsToUpdate)
         {
@@ -18,5 +18,6 @@ namespace NPoco
         public string PrimaryKeyName { get; private set; }
         public object PrimaryKeyValue { get; private set; }
         public IEnumerable<string> ColumnsToUpdate { get; private set; }
+        //public Snapshot<>
     }
 }
