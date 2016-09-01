@@ -43,7 +43,7 @@ namespace NPoco
             // Ignore column if declarying poco has [ExplicitColumns] attribute
             // and property doesn't have an explicit [Column] attribute,
             // or property has an [Ignore] attribute
-            if ((explicitColumns && !colAttrs.Any()) || ignoreAttrs.Any())
+            if ((explicitColumns && !colAttrs.Any() && !reference.Any() && !complexMapping.Any()) || ignoreAttrs.Any())
             {
                 ci.IgnoreColumn = true;
             }
