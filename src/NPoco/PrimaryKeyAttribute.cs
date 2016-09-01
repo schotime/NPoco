@@ -11,6 +11,10 @@ namespace NPoco
             AutoIncrement = true;
         }
 
+        public PrimaryKeyAttribute(string[] primaryKey) : this(string.Join(",", primaryKey))
+        {            
+        }
+
         public string Value { get; private set; }
         public string SequenceName { get; set; }
         public bool AutoIncrement { get; set; }
