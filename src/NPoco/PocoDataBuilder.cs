@@ -7,7 +7,13 @@ using NPoco.RowMappers;
 
 namespace NPoco
 {
-    public class PocoDataBuilder
+    public interface InitializedPocoDataBuilder
+    {
+        TableInfo BuildTableInfo();
+        PocoData Build();
+    }
+
+    public class PocoDataBuilder : InitializedPocoDataBuilder
     {
         private readonly Cache<string, Type> _aliasToType = Cache<string, Type>.CreateStaticCache();
 
@@ -26,7 +32,7 @@ namespace NPoco
             Mapper = mapper;
         }
 
-        public PocoDataBuilder Init()
+        public InitializedPocoDataBuilder Init()
         {
             var memberInfos = new List<MemberInfo>();
             var columnInfos = GetColumnInfos(Type);
@@ -52,12 +58,12 @@ namespace NPoco
             return new[] { typeof(object), typeof(IDictionary<string, object>), typeof(Dictionary<string, object>) }.Contains(type);
         }
 
-        public TableInfo BuildTableInfo()
+        TableInfo InitializedPocoDataBuilder.BuildTableInfo()
         {
             return _tableInfoPlan();
         }
 
-        public PocoData Build()
+        PocoData InitializedPocoDataBuilder.Build()
         {
             var pocoData = new PocoData(Type, Mapper);
 

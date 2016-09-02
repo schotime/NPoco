@@ -697,9 +697,6 @@ namespace NPoco
             }
         }
 
-        private List<IInterceptor> _interceptors = new List<IInterceptor>();
-        public List<IInterceptor> Interceptors { get { return _interceptors; } }
-
         protected virtual bool OnInserting(InsertContext insertContext)
         {
             return true;
@@ -1952,8 +1949,18 @@ namespace NPoco
             return sb.ToString();
         }
 
-        private MapperCollection _mappers = new MapperCollection();
-        public MapperCollection Mappers { get { return _mappers; } }
+        private List<IInterceptor> _interceptors;
+        public List<IInterceptor> Interceptors
+        {
+            get { return _interceptors ?? (_interceptors = new List<IInterceptor>()); }
+        }
+
+        private MapperCollection _mappers;
+        public MapperCollection Mappers
+        {
+            get { return _mappers ?? (_mappers = new MapperCollection()); }
+            internal set { _mappers = value; }
+        }
 
         private IPocoDataFactory _pocoDataFactory;
         public IPocoDataFactory PocoDataFactory

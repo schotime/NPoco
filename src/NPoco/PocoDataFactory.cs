@@ -13,10 +13,10 @@ namespace NPoco
 
     public class FluentPocoDataFactory : IPocoDataFactory
     {
-        private readonly Cache<Type, PocoDataBuilder> _pocoDatas = Cache<Type, PocoDataBuilder>.CreateStaticCache();
-        public Func<Type, IPocoDataFactory, PocoDataBuilder> Resolver { get; private set; }
+        private readonly Cache<Type, InitializedPocoDataBuilder> _pocoDatas = Cache<Type, InitializedPocoDataBuilder>.CreateStaticCache();
+        public Func<Type, IPocoDataFactory, InitializedPocoDataBuilder> Resolver { get; private set; }
 
-        public FluentPocoDataFactory(Func<Type, IPocoDataFactory, PocoDataBuilder> resolver)
+        public FluentPocoDataFactory(Func<Type, IPocoDataFactory, InitializedPocoDataBuilder> resolver)
         {
             Resolver = resolver;
         }
@@ -40,21 +40,21 @@ namespace NPoco
             return PocoDataFactory.ForObjectStatic(o, primaryKeyName, autoIncrement, ForType);
         }
 
-        private PocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
+        private InitializedPocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
         {
-            var builder = Resolver(type, this).Init();
+            var builder = Resolver(type, this);
             var persistedType = builder.BuildTableInfo().PersistedType;
             if (persistedType == null || persistedType == type)
             {
                 return builder;
             }
-            return Resolver(type, this).Init();
+            return Resolver(type, this);
         }
     }
 
     public class PocoDataFactory : IPocoDataFactory
     {
-        private readonly static Cache<Type, PocoDataBuilder> _pocoDatas = Cache<Type, PocoDataBuilder>.CreateStaticCache();
+        private readonly static Cache<Type, InitializedPocoDataBuilder> _pocoDatas = Cache<Type, InitializedPocoDataBuilder>.CreateStaticCache();
         private readonly MapperCollection _mapper;
 
         public PocoDataFactory(MapperCollection mapper)
@@ -81,7 +81,7 @@ namespace NPoco
             return ForObjectStatic(o, primaryKeyName, autoIncrement, ForType);
         }
 
-        private PocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
+        private InitializedPocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
         {
             var builder = new PocoDataBuilder(type, _mapper).Init();
             var persistedType = builder.BuildTableInfo().PersistedType;
