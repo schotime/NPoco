@@ -98,6 +98,7 @@ namespace NPoco.Expressions
         }
 
         private string sep = string.Empty;
+        private char EscapeChar = '\\';
         private PocoData _pocoData;
         private readonly IDatabase _database;
         private readonly DatabaseType _databaseType;
@@ -1603,13 +1604,13 @@ namespace NPoco.Expressions
                     statement = string.Format("lower({0})", expression);
                     break;
                 case "StartsWith":
-                    statement = string.Format("upper({0}) like {1}", expression, CreateParam(args[0].ToString().ToUpper() + "%"));
+                    statement = CreateLikeStatement(expression, CreateParam(EscapeParam(args[0]) + "%"));
                     break;
                 case "EndsWith":
-                    statement = string.Format("upper({0}) like {1}", expression, CreateParam("%" + args[0].ToString().ToUpper()));
+                    statement = CreateLikeStatement(expression, CreateParam("%" + EscapeParam(args[0])));
                     break;
                 case "Contains":
-                    statement = string.Format("upper({0}) like {1}", expression, CreateParam("%" + args[0].ToString().ToUpper() + "%"));
+                    statement = CreateLikeStatement(expression, CreateParam("%" + EscapeParam(args[0]) + "%"));
                     break;
                 case "Substring":
                     var startIndex = Int32.Parse(args[0].ToString()) + 1;
@@ -1627,6 +1628,19 @@ namespace NPoco.Expressions
             }
 
             return new PartialSqlString(statement);
+        }
+
+        protected virtual string CreateLikeStatement(PartialSqlString expression, string param)
+        {
+            return string.Format("upper({0}) like {1} escape '{2}'", expression, param, EscapeChar);
+        }
+
+        protected virtual string EscapeParam(object par)
+        {
+            var param = par.ToString().ToUpper();
+            param = param.Replace(EscapeChar.ToString(), EscapeChar.ToString() + EscapeChar)
+                .Replace("_", EscapeChar + "_");
+            return param;
         }
 
         // Easy to override

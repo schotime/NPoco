@@ -523,6 +523,20 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(1, user.UserId);
         }
 
+        [Test]
+        public void QueryWithWhereContainsStartsWithUnderscore()
+        {
+            var houses = Database.Query<House>().Where(o => o.Address.StartsWith("_")).ToList();
+            Assert.AreEqual(1, houses.Count);
+        }
+
+        [Test]
+        public void QueryWithWhereContainsStartsWithEscapeChar()
+        {
+            var houses = Database.Query<House>().Where(o => o.Address.Contains("\\")).ToList();
+            Assert.AreEqual(1, houses.Count);
+        }
+
         //[Test]
         //public void QueryWithInheritedTypesAliasCorrectlyWithJoin()
         //{
