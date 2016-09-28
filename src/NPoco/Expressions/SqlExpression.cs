@@ -597,11 +597,15 @@ namespace NPoco.Expressions
         protected virtual string ToUpdateStatement(T item, bool excludeDefaults)
         {
             var setFields = new StringBuilder();
+            var primaryKeys = _pocoData.TableInfo.PrimaryKey.Split(',');
 
             foreach (var fieldDef in _pocoData.Columns)
             {
+                if (_pocoData.TableInfo.AutoIncrement && primaryKeys.Contains(fieldDef.Value.ColumnName, StringComparer.OrdinalIgnoreCase))
+                    continue;
+
                 if (Context.UpdateFields.Count > 0 && !Context.UpdateFields.Contains(fieldDef.Value.MemberInfoData.Name)) continue; // added
-                object value = fieldDef.Value.GetValue(item);
+                object value = fieldDef.Value.GetColumnValue(_pocoData, item, (pocoColumn, val) => ProcessMapperExtensions.ProcessMapper(_database, pocoColumn, val));
                 if (_database.Mappers != null)
                 {
                     value = _database.Mappers.FindAndExecute(x => x.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfoData.MemberInfo), value);
@@ -1157,7 +1161,7 @@ namespace NPoco.Expressions
 
         protected string CreateParam(object value)
         {
-            string paramPlaceholder = paramPrefix + _paramCounter++;
+            string paramPlaceholder = paramPrefix + _params.Count;
             _params.Add(value);
             return paramPlaceholder;
         }

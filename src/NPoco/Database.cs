@@ -1573,7 +1573,7 @@ namespace NPoco
                 if (primaryKeyValuePairs.ContainsKey(pocoColumn.ColumnName))
                 { 
                     if (primaryKeyValue == null)
-                         primaryKeyValuePairs[pocoColumn.ColumnName] = ProcessMapper(pocoColumn, pocoColumn.GetValue(poco));
+                         primaryKeyValuePairs[pocoColumn.ColumnName] = this.ProcessMapper(pocoColumn, pocoColumn.GetValue(poco));
                     continue;
                 }
 
@@ -1587,7 +1587,7 @@ namespace NPoco
                 if (!pocoColumn.VersionColumn && columns != null && !columns.Contains(pocoColumn.ColumnName, StringComparer.OrdinalIgnoreCase))
                     continue;
 
-                object value = pocoColumn.GetColumnValue(pd, poco, ProcessMapper);
+                object value = pocoColumn.GetColumnValue(pd, poco, this.ProcessMapper);
 
                 if (pocoColumn.VersionColumn)
                 {
@@ -1691,7 +1691,7 @@ namespace NPoco
             foreach (var primaryKeyValuePair in keys)
             {
                 var col = pd.Columns[primaryKeyValuePair];
-                primaryKeyValuePairs[primaryKeyValuePair] = ProcessMapper(col, primaryKeyValuePairs[primaryKeyValuePair]);
+                primaryKeyValuePairs[primaryKeyValuePair] = this.ProcessMapper(col, primaryKeyValuePairs[primaryKeyValuePair]);
             }
             return primaryKeyValuePairs;
         }
@@ -2008,30 +2008,33 @@ namespace NPoco
             return r;
         }
 
-        internal object ProcessMapper(PocoColumn pc, object value)
-        {
-            var converter = Mappers.Find(x => x.GetToDbConverter(pc.ColumnType, pc.MemberInfoData.MemberInfo));
-            return converter != null ? converter(value) : ProcessDefaultMappings(pc, value);
-        }
-
-        internal static bool IsEnum(MemberInfoData memberInfo)
+        public static bool IsEnum(MemberInfoData memberInfo)
         {
             var underlyingType = Nullable.GetUnderlyingType(memberInfo.MemberType);
             return memberInfo.MemberType.GetTypeInfo().IsEnum || (underlyingType != null && underlyingType.GetTypeInfo().IsEnum);
         }
+    }
 
-        private object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
+    internal static class ProcessMapperExtensions
+    {
+        internal static object ProcessMapper(this IDatabase database, PocoColumn pc, object value)
+        {
+            var converter = database.Mappers.Find(x => x.GetToDbConverter(pc.ColumnType, pc.MemberInfoData.MemberInfo));
+            return converter != null ? converter(value) : ProcessDefaultMappings(database, pc, value);
+        }
+        
+        internal static object ProcessDefaultMappings(IDatabase database, PocoColumn pocoColumn, object value)
         {
             if (pocoColumn.SerializedColumn)
             {
                 return DatabaseFactory.ColumnSerializer.Serialize(value);
             }
-            if (pocoColumn.ColumnType == typeof (string) && IsEnum(pocoColumn.MemberInfoData) && value != null)
+            if (pocoColumn.ColumnType == typeof(string) && Database.IsEnum(pocoColumn.MemberInfoData) && value != null)
             {
                 return value.ToString();
             }
 
-            return _dbType.ProcessDefaultMappings(pocoColumn, value);
+            return database.DatabaseType.ProcessDefaultMappings(pocoColumn, value);
         }
     }
 }

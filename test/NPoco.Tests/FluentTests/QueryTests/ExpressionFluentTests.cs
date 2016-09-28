@@ -243,6 +243,20 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void UpdateWhere1()
+        {
+            var age = InMemoryUsers[0].Age;
+            InMemoryUsers[0].Age = 99;
+
+            Database.UpdateWhere(InMemoryUsers[0], "Name = @0", InMemoryUsers[0].Name);
+            
+            var users = Database.SingleById<User>(InMemoryUsers[0].UserId);
+
+            Assert.AreEqual(99, users.Age);
+            InMemoryUsers[0].Age = age;
+        }
+
+        [Test]
         public void DeleteWhere()
         {
             var list = new[]
