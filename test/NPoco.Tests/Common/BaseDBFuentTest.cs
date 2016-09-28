@@ -137,6 +137,12 @@ namespace NPoco.Tests.Common
                 InMemoryHouses.Add(house);
             }
 
+            Database.Insert(new House
+                {
+                    Address = "_ Road\\Street, Suburb"
+                }
+            );
+
             for (var i = 0; i < 15; i++)
             {
                 var user = new User
