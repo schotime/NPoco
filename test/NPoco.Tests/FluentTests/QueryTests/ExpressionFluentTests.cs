@@ -172,6 +172,19 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchWithWhereExpressionContainsWithNullable()
+        {
+            var list = new[] { 2 };
+            var users = Database.Query<User>().Where(x => list.Contains(x.SupervisorId.Value)).ToList();
+
+            Assert.AreEqual(1, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(InMemoryUsers.Single(x => x.UserId == users[i].UserId), users[i]);
+            }
+        }
+
+        [Test]
         public void FetchWithWhereExpressionNotContains()
         {
             var list = new[] { 1, 2, 3, 4 };

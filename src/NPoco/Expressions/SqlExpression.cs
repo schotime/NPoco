@@ -893,7 +893,6 @@ namespace NPoco.Expressions
         {
             var member = m.Expression as MemberExpression;
             return member != null
-                && (m.Member.Name == "HasValue")
                 && member.Type.GetTypeInfo().IsGenericType && member.Type.GetGenericTypeDefinition() == typeof(Nullable<>);
         }
 
@@ -1014,8 +1013,11 @@ namespace NPoco.Expressions
 
             if (IsNullableMember(m))
             {
+                if (m.Member.Name == "HasValue")
+                {
+                    isNull = true;
+                }
                 m = m.Expression as MemberExpression;
-                isNull = true;
             }
 
             if (m.Expression != null
