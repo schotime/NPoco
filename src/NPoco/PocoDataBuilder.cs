@@ -125,7 +125,10 @@ namespace NPoco
                 var memberInfoType = columnInfo.MemberInfo.GetMemberInfoType();
                 if (columnInfo.ReferenceType == ReferenceType.Many)
                 {
-                    memberInfoType = memberInfoType.GetGenericArguments().First();
+                    var genericArguments = memberInfoType.GetGenericArguments();
+                    memberInfoType = genericArguments.Any() 
+                        ? genericArguments.First() 
+                        : memberInfoType.GetTypeWithGenericTypeDefinitionOf(typeof(IList<>)).GetGenericArguments().First();
                 }
 
                 var childrenPlans = new PocoMemberPlan[0];
@@ -217,14 +220,18 @@ namespace NPoco
         {
             return memberType.IsAClass() || isDynamic
                        ? (new FastCreate(isList
-                            ? memberType.GetGenericArguments().First()
+                            ? (memberType.GetGenericArguments().Any() ? memberType.GetGenericArguments().First() : memberType.GetTypeWithGenericTypeDefinitionOf(typeof(IList<>)).GetGenericArguments().First())
                             : memberType, mapperCollection))
                        : null;
         }
 
         private static Type GetListType(Type memberType, bool isList)
         {
-            return isList ? typeof(List<>).MakeGenericType(memberType.GetGenericArguments().First()) : null;
+            return isList
+                ? (memberType.GetGenericArguments().Length > 0
+                    ? typeof(List<>).MakeGenericType(memberType.GetGenericArguments().First())
+                    : memberType)
+                : null;
         }
 
         public List<MemberAccessor> GetMemberAccessors(IEnumerable<MemberInfo> memberInfos)

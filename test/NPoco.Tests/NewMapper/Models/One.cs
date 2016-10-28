@@ -13,11 +13,13 @@ namespace NPoco.Tests.NewMapper.Models
         public NestedClass Nested { get; set; }
 
         [Reference(ReferenceType.Many, ColumnName = "OneId", ReferenceMemberName = "OneId")]
-        public List<Many> Items { get; set; }
+        public ListMany Items { get; set; }
     }
 
     public class NestedClass
     {
         public string Name { get; set; }
     }
+
+    public class ListMany : List<Many> {}
 }
