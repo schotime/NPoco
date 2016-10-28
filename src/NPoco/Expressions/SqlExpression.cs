@@ -98,7 +98,7 @@ namespace NPoco.Expressions
         }
 
         private string sep = string.Empty;
-        private char EscapeChar = '\\';
+        protected string EscapeChar = "\\";
         private PocoData _pocoData;
         private readonly IDatabase _database;
         private readonly DatabaseType _databaseType;
@@ -1641,7 +1641,8 @@ namespace NPoco.Expressions
         protected virtual string EscapeParam(object par)
         {
             var param = par.ToString().ToUpper();
-            param = param.Replace(EscapeChar.ToString(), EscapeChar.ToString() + EscapeChar)
+            param = param
+                .Replace(EscapeChar, EscapeChar + EscapeChar)
                 .Replace("_", EscapeChar + "_");
             return param;
         }

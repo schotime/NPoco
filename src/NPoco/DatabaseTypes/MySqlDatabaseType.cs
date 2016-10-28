@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using NPoco.Expressions;
 
 namespace NPoco.DatabaseTypes
 {
@@ -41,6 +42,11 @@ namespace NPoco.DatabaseTypes
         public override IsolationLevel GetDefaultTransactionIsolationLevel()
         {
             return IsolationLevel.RepeatableRead;
+        }
+
+        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
+        {
+            return new MySqlSqlExpression<T>(db, pocoData, prefixTableName);
         }
     }
 }
