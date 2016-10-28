@@ -537,6 +537,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(1, houses.Count);
         }
 
+        [Test]
+        public void QueryWithIncludeInheritedReturnsNotNullObject()
+        {
+            var ex = Database.Query<Supervisor>().Include(i => i.House).ToList();
+            Assert.NotNull(ex[1].House);
+        }
+
         //[Test]
         //public void QueryWithInheritedTypesAliasCorrectlyWithJoin()
         //{
