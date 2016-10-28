@@ -198,6 +198,15 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchWithWhereExpressionContainsWithEmptyList()
+        {
+            var list = new int[] {};
+            var users = Database.Query<User>().Where(x => list.Contains(x.UserId)).ToList();
+
+            Assert.AreEqual(0, users.Count);
+        }
+
+        [Test]
         public void FetchWithWhereExpressionInAsExtensionMethod()
         {
             var list = new[] {1, 2, 3, 4};
