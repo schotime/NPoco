@@ -1,6 +1,6 @@
 using System;
 using System.Linq.Expressions;
-#if NET45
+#if !NET35 && !NET40
 using System.Threading.Tasks;
 #endif
 using NPoco.Expressions;
@@ -11,7 +11,7 @@ namespace NPoco.Linq
     {
         IDeleteQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
         int Execute();
-#if NET45
+#if !NET35 && !NET40
         Task<int> ExecuteAsync();
 #endif
     }
@@ -38,7 +38,7 @@ namespace NPoco.Linq
             return _database.Execute(_sqlExpression.Context.ToDeleteStatement(), _sqlExpression.Context.Params);
         }
 
-#if NET45
+#if !NET35 && !NET40
         public Task<int> ExecuteAsync()
         {
             return _database.ExecuteAsync(_sqlExpression.Context.ToDeleteStatement(), _sqlExpression.Context.Params);

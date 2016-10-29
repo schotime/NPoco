@@ -1,6 +1,6 @@
 using System;
 using System.Linq.Expressions;
-#if NET45
+#if !NET35 && !NET40
 using System.Threading.Tasks;
 #endif
 using NPoco.Expressions;
@@ -13,7 +13,7 @@ namespace NPoco.Linq
         IUpdateQueryProvider<T> ExcludeDefaults();
         IUpdateQueryProvider<T> OnlyFields(Expression<Func<T, object>> onlyFields);
         int Execute(T obj);
-#if NET45
+#if !NET35 && !NET40
         Task<int> ExecuteAsync(T obj);
 #endif
     }
@@ -56,7 +56,7 @@ namespace NPoco.Linq
             return _database.Execute(updateStatement, _sqlExpression.Context.Params);
         }
 
-#if NET45
+#if !NET35 && !NET40
         public Task<int> ExecuteAsync(T obj)
         {
             var updateStatement = _sqlExpression.Context.ToUpdateStatement(obj, _excludeDefaults, _onlyFields);
