@@ -87,7 +87,15 @@ namespace NPoco
                     }
                     if (sb.Length == 0)
                     {
-                        sb.AppendFormat("select 1 /*poco_dual*/ where 1 = 0");
+                        Type type = typeof(string);
+                        var t = arg_val.GetType();
+                        if (t.IsArray)
+                            type = t.GetElementType();
+                        else if (t.IsOrHasGenericInterfaceTypeOf(typeof(IEnumerable<>)))
+                            type = t.GetGenericArguments().First();
+
+                        sb.AppendFormat($"select @{args_dest.Count} /*poco_dual*/ where 1 = 0");
+                        args_dest.Add(MappingHelper.GetDefault(type));
                     }
                     return sb.ToString();
                 }

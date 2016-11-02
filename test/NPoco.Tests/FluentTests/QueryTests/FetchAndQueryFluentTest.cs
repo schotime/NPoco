@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -113,6 +114,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var data = Database.Dictionary<string, string>("select name, address__street from users");
             Assert.AreEqual(null, data["Name1"]);
             Assert.AreEqual("1 Road Street", data["Name2"]);
+        }
+
+        [Test]
+        public void EmptyInQueryWithGuids()
+        {
+            var list = new List<Guid>();
+            var data = Database.Fetch<User>("select * from users where uniqueid in (@1) and userid = @0 and name = @2", 1, list, "name");
+            Assert.AreEqual(0, data.Count);
         }
     }
 }

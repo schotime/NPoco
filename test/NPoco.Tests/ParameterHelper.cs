@@ -24,5 +24,18 @@ namespace NPoco.Tests
             Assert.AreEqual(testName, args[1]);
             Assert.AreEqual("SELECT * FROM test WHERE testID = @0 AND testName = @1", resultSql);
         }
+
+        [Test]
+        public void TestEmptyListInParameters()
+        {
+            var sql = "SELECT * FROM test WHERE testID in (@0)";
+
+            var list = new List<int>() {};
+
+            var args = new List<object>();
+            var resultSql = ParameterHelper.ProcessParams(sql, new[] { list }, args);
+
+            Assert.AreEqual(default(int), args[0]);
+        }
     }
 }
