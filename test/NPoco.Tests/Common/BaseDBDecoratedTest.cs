@@ -37,7 +37,8 @@ namespace NPoco.Tests.Common
                     break;
 
                 case 2: // SQL Local DB
-                    TestDatabase = new SQLLocalDatabase();
+                    var dataSource = configuration.GetSection("TestDbDataSource").Value;
+                    TestDatabase = new SQLLocalDatabase(dataSource);
                     Database = new Database(TestDatabase.Connection, new SqlServer2008DatabaseType() { UseOutputClause = false }, IsolationLevel.ReadUncommitted); // Need read uncommitted for the transaction tests
                     break;
 

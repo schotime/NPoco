@@ -60,7 +60,8 @@ namespace NPoco.Tests.Common
 
                 case 2: // SQL Local DB
                 case 3: // SQL Server
-                    TestDatabase = new SQLLocalDatabase();
+                    var dataSource = configuration.GetSection("TestDbDataSource").Value;
+                    TestDatabase = new SQLLocalDatabase(dataSource);
                     Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2008DatabaseType()));
                     break;
 
