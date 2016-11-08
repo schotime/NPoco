@@ -44,6 +44,19 @@ namespace NPoco.Tests
             Assert.AreEqual("SELECT COUNT(*) FROM (select test.* from test ) npoco_tbl", parts.sqlCount);
         }
 
+
+        [Test]
+        public void ExtractOrderbyCorrectlyWithMultiline()
+        {
+            var sql = "select test.* from test order by len(a),\r\nb";
+
+            PagingHelper.SQLParts parts;
+            PagingHelper.SplitSQL(sql, out parts);
+
+            Assert.AreEqual("order by len(a),\r\nb", parts.sqlOrderBy);
+            Assert.AreEqual("SELECT COUNT(*) FROM (select test.* from test ) npoco_tbl", parts.sqlCount);
+        }
+
         [Test]
         public void EnsureTheSubselectOrderByIsNotConsumed()
         {

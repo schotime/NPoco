@@ -11,11 +11,13 @@ namespace NPoco.Tests.Common
         protected const string DBName = "UnitTestsDB";
         protected const string DBFileName = "UnitTestsDB.mdf";
         protected const string LogFileName = "UnitTestsDB_log.ldf";
+        
         protected string DBPath { get; set; }
         protected string FQDBFile { get; set; }
         protected string FQLogFile { get; set; }
+        protected string ConnectionStringBase { get; set; }
 
-        public SQLLocalDatabase()
+        public SQLLocalDatabase(string dataSource)
         {
             DbType = new SqlServer2012DatabaseType();
             DBPath = Directory.GetCurrentDirectory();
@@ -23,7 +25,8 @@ namespace NPoco.Tests.Common
             FQDBFile = DBPath + "\\" + DBFileName;
             FQLogFile = DBPath + "\\" + LogFileName;
 
-            ConnectionString = String.Format("Data Source=(LocalDB)\\v11.0;Integrated Security=True;AttachDbFileName=\"{0}\";", FQDBFile);
+            ConnectionStringBase = String.Format("Data Source={0};Integrated Security=True;", dataSource);
+            ConnectionString = String.Format("{0}AttachDbFileName=\"{1}\";", ConnectionStringBase, FQDBFile);
             ProviderName = "System.Data.SqlClient";
 
             RecreateDataBase();
@@ -62,7 +65,7 @@ namespace NPoco.Tests.Common
              * Using new connection so that when a transaction is bound to Connection if it rolls back 
              * it doesn't blow away the tables
              */
-            var conn = new SqlConnection("Data Source=(LocalDB)\\v11.0;Integrated Security=True;");
+            var conn = new SqlConnection(ConnectionStringBase);
             conn.Open();
             var cmd = conn.CreateCommand();
 

@@ -1,3 +1,4 @@
 ﻿{
-  "TestDBType": 2
+    "TestDBType": 2,
+    "TestDbDataSource": "(LocalDB)\\v11.0"
 }

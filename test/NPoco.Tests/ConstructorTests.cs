@@ -27,7 +27,8 @@ namespace NPoco.Tests
                     break;
 
                 case 2: // SQL Local DB
-                    TestDatabase = new SQLLocalDatabase();
+                    var dataSource = configuration.GetSection("TestDbDataSource").Value;
+                    TestDatabase = new SQLLocalDatabase(dataSource);
                     break;
 
                 case 3: // SQL Server
