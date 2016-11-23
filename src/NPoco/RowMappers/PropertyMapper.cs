@@ -42,7 +42,9 @@ namespace NPoco.RowMappers
                 _mappingOntoExistingInstance = true;
             }
 
-            _mapPlan(dataReader, context.Instance);
+            object[] values = new object[dataReader.FieldCount];
+            dataReader.GetValues(values);
+            _mapPlan(dataReader, values, context.Instance);
 
             var result = context.Instance as IOnLoaded;
             if (result != null)
@@ -53,16 +55,16 @@ namespace NPoco.RowMappers
             return context.Instance;
         }
 
-        public delegate bool MapPlan(DbDataReader reader, object instance);
+        public delegate bool MapPlan(DbDataReader dataReader, object[] reader, object instance);
 
         private MapPlan BuildMapPlan(DbDataReader dataReader, PocoData pocoData)
         {
             var plans = _groupedNames.SelectMany(x => BuildMapPlans(x, dataReader, pocoData, pocoData.Members)).ToArray();
-            return (reader, instance) =>
+            return (reader, values, instance) =>
             {
                 foreach (MapPlan plan in plans)
                 {
-                    plan(reader, instance);
+                    plan(reader, values, instance);
                 }
                 return true;
             };
@@ -89,14 +91,14 @@ namespace NPoco.RowMappers
 
                     var subPlans = groupedName.SubItems.SelectMany(x => BuildMapPlans(x, dataReader, pocoData, children)).ToArray();
 
-                    yield return (reader, instance) =>
+                    yield return (reader, values, instance) =>
                     {
                         var newObject = pocoMember.IsList ? pocoMember.Create(dataReader) : (pocoMember.GetValue(instance) ?? pocoMember.Create(dataReader));
 
                         var shouldSetNestedObject = false;
                         foreach (var subPlan in subPlans)
                         {
-                            shouldSetNestedObject |= subPlan(reader, newObject);
+                            shouldSetNestedObject |= subPlan(reader, values, newObject);
                         }
 
                         if (shouldSetNestedObject)
@@ -120,7 +122,7 @@ namespace NPoco.RowMappers
                 var destType = pocoMember.MemberInfoData.MemberType;
                 var defaultValue = MappingHelper.GetDefault(destType);
                 var converter = GetConverter(pocoData, pocoMember.PocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
-                yield return (reader, instance) => MapValue(groupedName, reader, converter, instance, pocoMember.PocoColumn, defaultValue);
+                yield return (reader, values, instance) => MapValue(groupedName, values, converter, instance, pocoMember.PocoColumn, defaultValue);
             }
         }
 
@@ -130,12 +132,12 @@ namespace NPoco.RowMappers
                 || string.Equals(value, name.Replace("_", ""), StringComparison.OrdinalIgnoreCase);
         }
 
-        private bool MapValue(GroupResult<PosName> posName, DbDataReader reader, Func<object, object> converter, object instance, PocoColumn pocoColumn, object defaultValue)
+        private bool MapValue(GroupResult<PosName> posName, object[] values, Func<object, object> converter, object instance, PocoColumn pocoColumn, object defaultValue)
         {
-            if (!reader.IsDBNull(posName.Key.Pos))
+            var value = values[posName.Key.Pos];
+            if (!Equals(value, DBNull.Value))
             {
-                var value = converter != null ? converter(reader.GetValue(posName.Key.Pos)) : reader.GetValue(posName.Key.Pos);
-                pocoColumn.SetValue(instance, value);
+                pocoColumn.SetValue(instance, converter != null ? converter(value) : value);
                 return true;
             }
 

@@ -94,7 +94,13 @@ namespace NPoco.Tests.NewMapper
 
         public override int GetValues(object[] values)
         {
-            throw new NotImplementedException();
+            values[0] = "Name";
+            values[1] = 5;
+            values[2] = 23m;
+            values[3] = "AUD";
+            values[4] = 24m;
+            values[5] = "USD";
+            return 1;
         }
 
         public override int GetOrdinal(string name)
@@ -170,7 +176,7 @@ namespace NPoco.Tests.NewMapper
             return false;
         }
 
-        public override int FieldCount { get { return 4; } }
+        public override int FieldCount { get { return 6; } }
 
         public override object this[int ordinal]
         {
