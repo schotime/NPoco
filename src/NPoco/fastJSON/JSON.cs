@@ -412,6 +412,11 @@ namespace NPoco.fastJSON
 
         private object ChangeType(object value, Type conversionType)
         {
+            if (conversionType.IsAssignableFrom(value.GetType()))
+            {
+                return value;
+            }
+
             if (conversionType == typeof(int))
                 return (int)((long)value);
 
