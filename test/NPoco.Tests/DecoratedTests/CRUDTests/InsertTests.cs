@@ -36,6 +36,30 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         }
 
         [Test]
+        public void Issue240()
+        {
+            const string dataName = "John Doe";
+            const int dataAge = 56;
+            const decimal dataSavings = (decimal)345.23;
+            var dataDateOfBirth = DateTime.Now;
+
+            var poco = new UserDecorated();
+            poco.Name = dataName;
+            poco.Age = dataAge;
+            poco.Savings = dataSavings;
+            poco.DateOfBirth = dataDateOfBirth;
+            poco.Value = 33;
+            Database.Insert(poco);
+
+            Assert.IsTrue(poco.UserId > 0, "POCO failed to insert.");
+
+            var verify = Database.Query<UserDecorated>().FirstOrDefault();
+            Assert.IsNotNull(verify);
+
+            Assert.AreEqual(33, verify.Value);
+        }
+
+        [Test]
         public void InsertPrimaryKeyAssigned()
         {
             const int dataKey1ID = 100;
@@ -81,7 +105,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Database.Insert(poco);
 
             var verify = Database.SingleOrDefault<CompositeObjectDecorated>(@"
-                SELECT * 
+                SELECT *
                 FROM CompositeObjects
                 WHERE Key1_ID = @0 AND Key2ID = @1 AND Key3ID = @2
             ", dataKey1ID, dataKey2ID, dataKey3ID);
@@ -92,7 +116,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.AreEqual(dataKey3ID, verify.Key3ID);
             Assert.AreEqual(dataTextData, verify.TextData);
         }
-    
+
         [Test]
         public void VerifyNullablesCanBeInserted()
         {
