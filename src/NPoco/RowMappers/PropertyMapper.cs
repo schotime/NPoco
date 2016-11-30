@@ -55,7 +55,7 @@ namespace NPoco.RowMappers
             return context.Instance;
         }
 
-        public delegate bool MapPlan(DbDataReader dataReader, object[] reader, object instance);
+        public delegate bool MapPlan(DbDataReader dataReader, object[] values, object instance);
 
         private MapPlan BuildMapPlan(DbDataReader dataReader, PocoData pocoData)
         {
