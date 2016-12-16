@@ -25,6 +25,36 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void NullableExpressionHasValueWithAnotherExpression_ReturnsIsNotNull()
+        {
+            var sqlExpression = new DefaultSqlExpression<NullableProperty>(Database);
+            sqlExpression.Where(x => x.Age.HasValue && x.Age > 2);
+            var whereStatement = sqlExpression.Context.ToWhereStatement();
+            string expected = string.Format("WHERE (({0} is not null) AND ([Age] > @0))", escapedAgeIdentifier);
+            Assert.AreEqual(expected, whereStatement);
+        }
+
+        [Test]
+        public void NullableExpressionNotHasValueWithAnotherExpression_ReturnsNotIsNotNull()
+        {
+            var sqlExpression = new DefaultSqlExpression<NullableProperty>(Database);
+            sqlExpression.Where(x => !x.Age.HasValue && x.Age > 2);
+            var whereStatement = sqlExpression.Context.ToWhereStatement();
+            string expected = string.Format("WHERE (NOT ({0} is not null) AND ([Age] > @0))", escapedAgeIdentifier);
+            Assert.AreEqual(expected, whereStatement);
+        }
+
+        [Test]
+        public void ExpressionWithNullableExpressionNotHasValue_ReturnsNotIsNotNull()
+        {
+            var sqlExpression = new DefaultSqlExpression<NullableProperty>(Database);
+            sqlExpression.Where(x => x.Age > 2 && x.Age.HasValue);
+            var whereStatement = sqlExpression.Context.ToWhereStatement();
+            string expected = string.Format("WHERE (([Age] > @0) AND ({0} is not null))", escapedAgeIdentifier);
+            Assert.AreEqual(expected, whereStatement);
+        }
+
+        [Test]
         public void NullableExpressionHasValue_ReturnsIsNotNull()
         {
             var sqlExpression = new DefaultSqlExpression<NullableProperty>(Database);

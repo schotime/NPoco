@@ -909,12 +909,22 @@ namespace NPoco.Expressions
                 else
                     left = Visit(b.Left);
 
+                if (left as NullableMemberAccess != null)
+                {
+                    left = new PartialSqlString("(" + left + " is not null)");
+                }
+
                 m = b.Right as MemberExpression;
                 if (m != null && m.Expression != null
                     && m.Expression.NodeType == ExpressionType.Parameter)
                     right = new PartialSqlString(string.Format("{0} = {1}", VisitMemberAccess(m), GetQuotedTrueValue()));
                 else
                     right = Visit(b.Right);
+
+                if (right as NullableMemberAccess != null)
+                {
+                    right = new PartialSqlString("(" + right + " is not null)");
+                }
 
                 if (left as PartialSqlString == null && right as PartialSqlString == null)
                 {
