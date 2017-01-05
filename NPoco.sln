@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C7A94BA4-5689-4651-872D-7D7711D2DEDF}"
 EndProject
@@ -18,6 +18,8 @@ EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "NPoco.Tests", "test\NPoco.Tests\NPoco.Tests.xproj", "{B39C2641-0655-47CC-A1A3-5E1F84714FB5}"
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "NPoco.JsonNet", "src\NPoco.JsonNet\NPoco.JsonNet.xproj", "{8DCCBC0A-36D4-4F3C-9B16-39B23AAFD726}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "SqliteTest", "src\SqliteTest\SqliteTest.xproj", "{9E6EDC0E-A3B6-47B1-B86D-F210A5C9BABE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -37,6 +39,10 @@ Global
 		{8DCCBC0A-36D4-4F3C-9B16-39B23AAFD726}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8DCCBC0A-36D4-4F3C-9B16-39B23AAFD726}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8DCCBC0A-36D4-4F3C-9B16-39B23AAFD726}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E6EDC0E-A3B6-47B1-B86D-F210A5C9BABE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E6EDC0E-A3B6-47B1-B86D-F210A5C9BABE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E6EDC0E-A3B6-47B1-B86D-F210A5C9BABE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E6EDC0E-A3B6-47B1-B86D-F210A5C9BABE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -45,5 +51,6 @@ Global
 		{56481BBA-35A1-4061-9FE8-0ED9E1B6A0A3} = {C7A94BA4-5689-4651-872D-7D7711D2DEDF}
 		{B39C2641-0655-47CC-A1A3-5E1F84714FB5} = {8EDBB46A-95F8-442E-A432-19A50ED0683B}
 		{8DCCBC0A-36D4-4F3C-9B16-39B23AAFD726} = {C7A94BA4-5689-4651-872D-7D7711D2DEDF}
+		{9E6EDC0E-A3B6-47B1-B86D-F210A5C9BABE} = {C7A94BA4-5689-4651-872D-7D7711D2DEDF}
 	EndGlobalSection
 EndGlobal
