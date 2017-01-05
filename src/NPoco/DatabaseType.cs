@@ -24,6 +24,7 @@ namespace NPoco
         public static DatabaseType OracleManaged { get { return Singleton<OracleManagedDatabaseType>.Instance; } }
         public static DatabaseType MySQL { get { return Singleton<MySqlDatabaseType>.Instance; } }
         public static DatabaseType SQLite { get { return Singleton<SQLiteDatabaseType>.Instance; } }
+        public static DatabaseType MicrosoftSqlite { get { return Singleton<MicrosoftSqliteDatabaseType>.Instance; } }
         public static DatabaseType SQLCe { get { return Singleton<SqlServerCEDatabaseType>.Instance; } }
         public static DatabaseType Firebird { get { return Singleton<FirebirdDatabaseType>.Instance; } }
 
@@ -260,6 +261,8 @@ namespace NPoco
                 return Singleton<OracleDatabaseType>.Instance;
             if (typeName.StartsWith("SQLite"))
                 return Singleton<SQLiteDatabaseType>.Instance;
+            if (typeName.StartsWith("Sqlite"))
+                return Singleton<MicrosoftSqliteDatabaseType>.Instance;
             if (typeName.StartsWith("SqlConnection"))
                 return Singleton<SqlServerDatabaseType>.Instance;
             if (typeName.StartsWith("Fb") || typeName.StartsWith("Firebird"))
@@ -278,8 +281,10 @@ namespace NPoco
                     return Singleton<OracleDatabaseType>.Instance;
                 if (providerName.IndexOf("Oracle.ManagedDataAccess", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<OracleManagedDatabaseType>.Instance;
-                if (providerName.IndexOf("SQLite", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (providerName.IndexOf("SQLite", StringComparison.Ordinal) >= 0)
                     return Singleton<SQLiteDatabaseType>.Instance;
+                if (providerName.IndexOf("Sqlite", StringComparison.Ordinal) >= 0)
+                    return Singleton<MicrosoftSqliteDatabaseType>.Instance;
                 if (providerName.IndexOf("Firebird", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<FirebirdDatabaseType>.Instance;
             }
