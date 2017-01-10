@@ -60,6 +60,7 @@ namespace NPoco
                 pc.MemberInfo = mi;
                 pc.ColumnName = ci.ColumnName;
                 pc.ResultColumn = ci.ResultColumn;
+                pc.ComputedColumn = ci.ComputedColumn;
                 pc.ForceToUtc = ci.ForceToUtc;
                 pc.ComputedColumn = ci.ComputedColumn;
                 pc.ColumnType = ci.ColumnType;
