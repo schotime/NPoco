@@ -221,8 +221,11 @@ namespace NPoco
             _sharedConnection = _factory.CreateConnection();
             if (_sharedConnection == null) throw new Exception("SQL Connection failed to configure.");
 
-            _sharedConnection.ConnectionString = _connectionString;
-
+            if (string.IsNullOrWhiteSpace(_sharedConnection.ConnectionString)) 
+            {
+                _sharedConnection.ConnectionString = _connectionString;
+            }
+            
             if (_sharedConnection.State == ConnectionState.Broken)
             {
                 _sharedConnection.Close();
@@ -258,7 +261,7 @@ namespace NPoco
                 _transaction.Dispose();
                 _transaction = null;
             }
-
+e
             if (_sharedConnection == null) return;
 
             OnConnectionClosingInternal(_sharedConnection);
