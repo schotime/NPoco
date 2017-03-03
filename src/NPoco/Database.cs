@@ -1959,7 +1959,7 @@ namespace NPoco
         public MapperCollection Mappers
         {
             get { return _mappers ?? (_mappers = new MapperCollection()); }
-            internal set { _mappers = value; }
+            set { _mappers = value; }
         }
 
         private IPocoDataFactory _pocoDataFactory;

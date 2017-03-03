@@ -203,7 +203,7 @@ namespace NPoco
         /// <summary>
         /// A collection of mappers used for converting values on inserting or on mapping
         /// </summary>        
-        MapperCollection Mappers { get; }
+        MapperCollection Mappers { get; set; }
         /// <summary>
         /// The PocoData factory used to build the meta data used by NPoco
         /// </summary>        
