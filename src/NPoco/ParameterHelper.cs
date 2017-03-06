@@ -15,9 +15,17 @@ namespace NPoco
 
         public static string ProcessParams(string _sql, object[] args_src, List<object> args_dest)
         {
+            var parameters = new Dictionary<string, int>();
             return rxParamsPrefix.Replace(_sql, m =>
             {
                 string param = m.Value.Substring(1);
+
+                if (parameters.ContainsKey(param))
+                {
+                    return "@" + parameters[param];
+                }
+
+                parameters[param] = args_dest.Count;
 
                 object arg_val;
 
