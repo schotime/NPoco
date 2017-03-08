@@ -13,7 +13,7 @@ namespace NPoco.Tests
     {
         public static int Main(string[] args)
         {
-#if NET452
+#if NET462
             return new AutoRun().Execute(args);
 #else
             return new AutoRun(typeof(Program).GetTypeInfo().Assembly)

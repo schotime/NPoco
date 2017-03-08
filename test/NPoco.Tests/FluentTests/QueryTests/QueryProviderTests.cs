@@ -307,7 +307,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
 
         private static void SetCurrentCulture(CultureInfo culture)
         {
-#if NET35 || NET40 || NET45 || NET451 || NET452 || DNX451 || DNX452
+#if NET35 || NET40 || NET45 || NET451 || NET452 || NET462 || DNX451 || DNX452
             // In the .NET Framework 4.5.2 and earlier versions, the CurrentCulture property is read-only
             Thread.CurrentThread.CurrentCulture = culture;
 #else

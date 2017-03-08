@@ -1148,7 +1148,7 @@ namespace NPoco.Expressions
         }
 
         List<object> _params = new List<object>();
-        int _paramCounter = 0;
+        
         string paramPrefix;
         private bool _projection;
         public SqlExpressionContext Context { get; private set; }
