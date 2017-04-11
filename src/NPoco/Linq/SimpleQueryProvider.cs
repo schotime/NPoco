@@ -171,7 +171,7 @@ namespace NPoco.Linq
                     ThenByDescending(expression);
                 }
             }
-            
+
             return this;
         }
 
@@ -324,19 +324,19 @@ namespace NPoco.Linq
         {
             return ToDynamicEnumerable().ToList();
         }
-        
+
         public IEnumerable<dynamic> ToDynamicEnumerable()
         {
             var sql = BuildSql();
             return _database.QueryImp<dynamic>(null, null, null, sql);
         }
 #endif
-   
+
         private IEnumerable<T> ExecuteQuery(Sql sql)
         {
             return _database.QueryImp(default(T), _listExpression, null, sql);
         }
-        
+
         private Sql BuildSql()
         {
             Sql sql;
@@ -360,7 +360,7 @@ namespace NPoco.Linq
 
         public System.Threading.Tasks.Task<IEnumerable<T>> ToEnumerableAsync()
         {
-            return _database.QueryAsync<T>(BuildSql());
+            return _database.QueryAsync(default(T), _listExpression, null, BuildSql());
         }
 
         public async System.Threading.Tasks.Task<T> FirstOrDefaultAsync()
