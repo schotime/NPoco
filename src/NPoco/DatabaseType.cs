@@ -74,7 +74,7 @@ namespace NPoco
         /// <summary>
         /// Configire the specified type to be mapped to a given db-type
         /// </summary>
-        protected void AddTypeMap(Type type, DbType dbType)
+        public void AddTypeMap(Type type, DbType dbType)
         {
             typeMap[type] = dbType;
         }
