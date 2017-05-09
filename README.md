@@ -1,6 +1,8 @@
 NPoco
 =====
 
+[![Join the chat at https://gitter.im/schotime/NPoco](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/schotime/NPoco?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Welcome to the NPoco! NPoco is a fork of PetaPoco based on Schotime's branch with a handful of extra features.
 
 ### Getting Started: Your first query
