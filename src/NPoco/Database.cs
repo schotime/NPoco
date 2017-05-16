@@ -549,6 +549,11 @@ namespace NPoco
                     p.Value = String.Empty;
                     p.DbType = DbType.AnsiString;
                 }
+                else if (t == typeof(decimal))
+                {
+                    p.Value = value;
+                    p.DbType = DbType.Decimal;
+                }
                 else
                 {
                     // Thanks @DataChomp for pointing out the SQL Server indexing performance hit of using wrong string type on varchar
