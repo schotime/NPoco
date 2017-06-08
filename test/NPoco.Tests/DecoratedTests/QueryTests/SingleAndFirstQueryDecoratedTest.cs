@@ -272,5 +272,28 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
 
             Assert.True(userExists);
         }
+
+        [Test]
+        public void DefaultToUtcKindForDatetimeWithAttribute()
+        {
+            var user = Database.Single<UserDecorated>("select u.* from users u where u.userid = 1");
+
+            Assert.NotNull(user);
+            Assert.AreEqual(DateTimeKind.Utc, user.DateOfBirth.Kind);
+        }
+
+        [Test]
+        public void DefaultToUtcKindForDatetime()
+        {
+            var user = Database.Single<MyDateTimeClass>("select u.* from users u where u.userid = 1");
+
+            Assert.NotNull(user);
+            Assert.AreEqual(DateTimeKind.Utc, user.DateOfBirth.Kind);
+        }
+
+        public class MyDateTimeClass
+        {
+            public DateTime DateOfBirth { get; set; }
+        }
     }
 }

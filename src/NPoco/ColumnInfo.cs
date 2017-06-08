@@ -16,7 +16,7 @@ namespace NPoco
         public bool IgnoreColumn { get; set; }
         public bool VersionColumn { get; set; }
         public VersionColumnType VersionColumnType { get; set; }
-        public bool ForceToUtc { get; set; }
+        public bool ForceToUtc { get; set; } = true;
         public Type ColumnType { get; set; }
         public bool ComplexMapping { get; set; }
         public string ComplexPrefix { get; set; }
