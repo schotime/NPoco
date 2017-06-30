@@ -900,7 +900,7 @@ namespace NPoco.Expressions
         {
             object left, right;
             var operand = BindOperant(b.NodeType);   //sep= " " ??
-            if (operand == "AND" || operand == "OR")
+            if (b.NodeType == ExpressionType.AndAlso || b.NodeType == ExpressionType.OrElse)
             {
                 var m = b.Left as MemberExpression;
                 if (m != null && m.Expression != null
@@ -1420,7 +1420,6 @@ namespace NPoco.Expressions
 
         protected virtual string BindOperant(ExpressionType e)
         {
-
             switch (e)
             {
                 case ExpressionType.Equal:
@@ -1451,6 +1450,14 @@ namespace NPoco.Expressions
                     return "MOD";
                 case ExpressionType.Coalesce:
                     return "COALESCE";
+                case ExpressionType.And:
+                    return "&";
+                case ExpressionType.Or:
+                    return "|";
+                case ExpressionType.ExclusiveOr:
+                    return "^";
+                case ExpressionType.Not:
+                    return "~";
                 default:
                     return e.ToString();
             }
