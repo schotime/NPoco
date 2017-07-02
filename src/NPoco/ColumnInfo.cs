@@ -28,13 +28,13 @@ namespace NPoco
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
             var ci = new ColumnInfo{MemberInfo = mi};
-            var attrs = ReflectionUtils.GetCustomAttributes(mi);
-            var colAttrs = attrs.OfType<ColumnAttribute>();
-            var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>();
-            var ignoreAttrs = attrs.OfType<IgnoreAttribute>();
-            var complexMapping = attrs.OfType<ComplexMappingAttribute>();
-            var serializedColumnAttributes = attrs.OfType<SerializedColumnAttribute>();
-            var reference = attrs.OfType<ReferenceAttribute>();
+            var attrs = ReflectionUtils.GetCustomAttributes(mi).ToArray();
+            var colAttrs = attrs.OfType<ColumnAttribute>().ToArray();
+            var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>().ToArray();
+            var ignoreAttrs = attrs.OfType<IgnoreAttribute>().ToArray();
+            var complexMapping = attrs.OfType<ComplexMappingAttribute>().ToArray();
+            var serializedColumnAttributes = attrs.OfType<SerializedColumnAttribute>().ToArray();
+            var reference = attrs.OfType<ReferenceAttribute>().ToArray();
             var aliasColumn = attrs.OfType<AliasAttribute>().FirstOrDefault();
 
             // Check if declaring poco has [ExplicitColumns] attribute
@@ -77,21 +77,32 @@ namespace NPoco
             // Read attribute
             if (colAttrs.Any())
             {
-                var colattr = colAttrs.First();
-                ci.ColumnName = colattr.Name ?? mi.Name;
-                ci.ForceToUtc = colattr.ForceToUtc;
-                ci.ResultColumn = colattr is ResultColumnAttribute;
-                ci.VersionColumn = colattr is VersionColumnAttribute;
-                ci.VersionColumnType = ci.VersionColumn ? ((VersionColumnAttribute) colattr).VersionColumnType : ci.VersionColumnType;
-                ci.ComputedColumn = colattr is ComputedColumnAttribute;
-                ci.ComputedColumnType = ci.ComputedColumn ? ((ComputedColumnAttribute)colattr).ComputedColumnType : ComputedColumnType.Always;
+                ci.ColumnName = colAttrs.FirstOrDefault(x => !string.IsNullOrEmpty(x.Name))?.Name ?? mi.Name;
+                ci.ForceToUtc = colAttrs.All(x => x.ForceToUtc);
+
+                var resultAttr = colAttrs.OfType<ResultColumnAttribute>().FirstOrDefault();
+                ci.ResultColumn = resultAttr != null;
+
+                if (!ci.ResultColumn)
+                {
+                    var versionAttr = colAttrs.OfType<VersionColumnAttribute>().FirstOrDefault();
+                    ci.VersionColumn = versionAttr != null;
+                    ci.VersionColumnType = versionAttr?.VersionColumnType ?? ci.VersionColumnType;
+                }
+
+                if (!ci.VersionColumn && !ci.ResultColumn)
+                {
+                    var computedAttr = colAttrs.OfType<ComputedColumnAttribute>().FirstOrDefault();
+                    ci.ComputedColumn = computedAttr != null;
+                    ci.ComputedColumnType = computedAttr?.ComputedColumnType ?? ComputedColumnType.Always;
+                }
             }
             else
             {
                 ci.ColumnName = mi.Name;
             }
 
-            ci.ColumnAlias = aliasColumn != null ? aliasColumn.Alias : null;
+            ci.ColumnAlias = aliasColumn?.Alias;
 
             if (columnTypeAttrs.Any())
             {
