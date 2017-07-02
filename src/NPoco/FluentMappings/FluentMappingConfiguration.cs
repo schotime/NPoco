@@ -269,6 +269,8 @@ namespace NPoco.FluentMappings
                     convColDefinition.ReferenceMember = overrideColumnDefinition.Value.ReferenceMember ?? convColDefinition.ReferenceMember;
                     convColDefinition.ReferenceType = overrideColumnDefinition.Value.ReferenceType ?? convColDefinition.ReferenceType;
                     convColDefinition.Serialized = overrideColumnDefinition.Value.Serialized ?? convColDefinition.Serialized;
+                    convColDefinition.ComplexPrefix = overrideColumnDefinition.Value.ComplexPrefix ?? convColDefinition.ComplexPrefix;
+                    convColDefinition.IsComplexMapping = overrideColumnDefinition.Value.IsComplexMapping ?? convColDefinition.IsComplexMapping;
                 }
             }
         }
