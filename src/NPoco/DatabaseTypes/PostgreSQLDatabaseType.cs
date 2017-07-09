@@ -36,12 +36,12 @@ namespace NPoco.DatabaseTypes
         }
 
 #if !NET35 && !NET40
-        public async override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {
                 AdjustSqlInsertCommandText(cmd, primaryKeyName);
-                return db.ExecuteScalarHelperAsync(cmd);
+                return await db.ExecuteScalarHelperAsync(cmd);
             }
 
             await db.ExecuteNonQueryHelperAsync(cmd);
