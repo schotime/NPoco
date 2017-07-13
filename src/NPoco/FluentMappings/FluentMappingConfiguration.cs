@@ -149,6 +149,8 @@ namespace NPoco.FluentMappings
                     columnDefinition.VersionColumnType = scannerSettings.VersionPropertyTypeAs(member);
                     columnDefinition.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(member);
                     columnDefinition.Serialized = scannerSettings.SerializedWhere(member);
+                    columnDefinition.IsComplexMapping = scannerSettings.ComplexPropertiesWhere(member);
+                    columnDefinition.ValueObjectColumn = scannerSettings.ValueObjectColumnWhere(member);
                     yield return columnDefinition;
                 }
             }
@@ -178,6 +180,7 @@ namespace NPoco.FluentMappings
                 UseOutputClauseWhere = x => false,
                 SerializedWhere = x => ReflectionUtils.GetCustomAttributes(x, typeof(SerializedColumnAttribute)).Any(),
                 DbColumnWhere = x => ReflectionUtils.GetCustomAttributes(x, typeof(ColumnAttribute)).Any(),
+                ValueObjectColumnWhere = x => x.GetMemberInfoType().GetInterfaces().Any(y => y == typeof(IValueObject)),
                 Lazy = false
             };
             scanner.Invoke(new ConventionScanner(defaultScannerSettings));
@@ -223,6 +226,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.Value.VersionColumnType = columnInfo.VersionColumnType;
                     columnDefinition.Value.ForceUtc = columnInfo.ForceToUtc;
                     columnDefinition.Value.Serialized = columnInfo.SerializedColumn;
+                    columnDefinition.Value.ValueObjectColumn = columnInfo.ValueObjectColumn;
                 }
             }
         }
@@ -271,6 +275,8 @@ namespace NPoco.FluentMappings
                     convColDefinition.Serialized = overrideColumnDefinition.Value.Serialized ?? convColDefinition.Serialized;
                     convColDefinition.ComplexPrefix = overrideColumnDefinition.Value.ComplexPrefix ?? convColDefinition.ComplexPrefix;
                     convColDefinition.IsComplexMapping = overrideColumnDefinition.Value.IsComplexMapping ?? convColDefinition.IsComplexMapping;
+                    convColDefinition.ValueObjectColumn = overrideColumnDefinition.Value.ValueObjectColumn ?? convColDefinition.ValueObjectColumn;
+                    convColDefinition.ValueObjectColumnName = overrideColumnDefinition.Value.ValueObjectColumnName ?? convColDefinition.ValueObjectColumnName;
                 }
             }
         }

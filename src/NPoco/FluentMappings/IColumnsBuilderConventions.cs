@@ -19,5 +19,6 @@ namespace NPoco.FluentMappings
         IColumnsBuilderConventions ReferencePropertiesWhere(Func<MemberInfo, bool> referencePropertiesWhereFunc);
         IColumnsBuilderConventions SerializedWhere(Func<MemberInfo, bool> serializedWhereFunc);
         IColumnsBuilderConventions ComplexPropertiesWhere(Func<MemberInfo, bool> complexPropertiesWhereFunc);
+        IColumnsBuilderConventions ValueObjectColumnWhere(Func<MemberInfo, bool> valueObjectColumnWhereFunc);
     }
 }

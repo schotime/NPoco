@@ -55,7 +55,7 @@ namespace NPoco
                     return converter;
                 }
             }
-            else if (!dstType.IsAssignableFrom(srcType))
+            else if (pc != null && !pc.ValueObjectColumn && !dstType.IsAssignableFrom(srcType))
             {
                 converter = src => Convert.ChangeType(src, (underlyingType ?? dstType), null);
             }

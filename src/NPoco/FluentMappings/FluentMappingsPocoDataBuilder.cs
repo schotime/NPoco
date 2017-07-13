@@ -77,7 +77,11 @@ namespace NPoco.FluentMappings
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
             var isColumnDefined = typeConfig.ColumnConfiguration.ContainsKey(key);
 
-            if (isColumnDefined && typeConfig.ColumnConfiguration[key].IsComplexMapping.HasValue && typeConfig.ColumnConfiguration[key].IsComplexMapping.Value)
+            if (isColumnDefined && typeConfig.ColumnConfiguration[key].ValueObjectColumn.HasValue && typeConfig.ColumnConfiguration[key].ValueObjectColumn.Value)
+            {
+                columnInfo.ValueObjectColumn = true;
+            }
+            else if (isColumnDefined && typeConfig.ColumnConfiguration[key].IsComplexMapping.HasValue && typeConfig.ColumnConfiguration[key].IsComplexMapping.Value)
             {
                 columnInfo.ComplexMapping = true;
 

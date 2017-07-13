@@ -909,7 +909,7 @@ namespace NPoco.Expressions
                 else
                     left = Visit(b.Left);
 
-                if (left as NullableMemberAccess != null)
+                if (left is NullableMemberAccess)
                 {
                     left = new PartialSqlString("(" + left + " is not null)");
                 }
@@ -921,20 +921,20 @@ namespace NPoco.Expressions
                 else
                     right = Visit(b.Right);
 
-                if (right as NullableMemberAccess != null)
+                if (right is NullableMemberAccess)
                 {
                     right = new PartialSqlString("(" + right + " is not null)");
                 }
 
-                if (left as PartialSqlString == null && right as PartialSqlString == null)
+                if (!(left is PartialSqlString) && !(right is PartialSqlString))
                 {
                     var result = Expression.Lambda(b).Compile().DynamicInvoke();
                     return new PartialSqlString(CreateParam(result));
                 }
 
-                if (left as PartialSqlString == null)
+                if (!(left is PartialSqlString))
                     left = ((bool)left) ? GetTrueExpression() : GetFalseExpression();
-                if (right as PartialSqlString == null)
+                if (!(right is PartialSqlString))
                     right = ((bool)right) ? GetTrueExpression() : GetFalseExpression();
             }
             else
@@ -942,56 +942,54 @@ namespace NPoco.Expressions
                 left = Visit(b.Left);
                 right = Visit(b.Right);
 
-                if (left as EnumMemberAccess != null && right as PartialSqlString == null)
+                // Put the member on the left if there is only one member so the right hand logic can be calulated correctly
+                if (right is MemberAccessString && !(left is MemberAccessString))
                 {
-                    var pc = ((EnumMemberAccess)left).PocoColumn;
+                    var saveRight = right;
+                    right = left;
+                    left = saveRight;
+                }
 
-                    long numvericVal;
+                var isMemberAccessString = left.CanBeCastTo<MemberAccessString>(out var memberAccessString);
+
+                if (left.CanBeCastTo<EnumMemberAccess>(out var enumMemberAccess) && !(right is PartialSqlString))
+                {
+                    var pc = enumMemberAccess.PocoColumn;
                     if (pc.ColumnType == typeof(string))
                         right = CreateParam(Enum.Parse(GetMemberInfoTypeForEnum(pc), right.ToString()).ToString());
-                    else if (Int64.TryParse(right.ToString(), out numvericVal))
+                    else if (Int64.TryParse(right.ToString(), out long numvericVal))
                         right = CreateParam(Enum.ToObject(GetMemberInfoTypeForEnum(pc), numvericVal));
                     else
                         right = CreateParam(right);
                 }
-                else if (left as NullableMemberAccess != null && right as PartialSqlString == null)
+                else if (left is NullableMemberAccess && !(right is PartialSqlString))
                 {
                     operand = ((bool)right) ? "is not" : "is";
                     right = new PartialSqlString("null");
                 }
-                else if (right as EnumMemberAccess != null && left as PartialSqlString == null)
-                {
-                    var pc = ((EnumMemberAccess)right).PocoColumn;
-
-                    //enum value was returned by Visit(b.Left)
-                    long numvericVal;
-                    if (pc.ColumnType == typeof(string))
-                        left = CreateParam(Enum.Parse(GetMemberInfoTypeForEnum(pc), left.ToString()).ToString());
-                    else if (Int64.TryParse(left.ToString(), out numvericVal))
-                        left = CreateParam(Enum.ToObject(GetMemberInfoTypeForEnum(pc), numvericVal));
-                    else
-                        left = CreateParam(left);
-                }
-                else if (left as MemberAccessString != null
-                    && right is int
-                    && new [] { typeof(char), typeof(char?) }.Contains(((MemberAccessString)left).PocoColumn.MemberInfoData.MemberType))
+                else if (isMemberAccessString && right is int
+                    && new [] { typeof(char), typeof(char?) }.Contains(memberAccessString.PocoColumn.MemberInfoData.MemberType))
                 {
                     right = CreateParam(Convert.ToChar(right));
                 }
-                else if (left as MemberAccessString != null
-                    && right is string
-                    && ((MemberAccessString) left).PocoColumn.ColumnType == typeof (AnsiString))
+                else if (isMemberAccessString && right is string
+                    && memberAccessString.PocoColumn.ColumnType == typeof (AnsiString))
                 {
                     right = CreateParam(new AnsiString((string)right));
                 }
-                else if (left as PartialSqlString == null && right as PartialSqlString == null)
+                else if (isMemberAccessString
+                    && memberAccessString.PocoColumn.ValueObjectColumn)
+                {
+                    right = CreateParam(memberAccessString.PocoColumn.GetValueObjectValue(right));
+                }
+                else if (!(left is PartialSqlString) && !(right is PartialSqlString))
                 {
                     var result = Expression.Lambda(b).Compile().DynamicInvoke();
                     return result;
                 }
-                else if (left as PartialSqlString == null)
+                else if (!(left is PartialSqlString))
                     left = CreateParam(left);
-                else if (right as PartialSqlString == null)
+                else if (!(right is PartialSqlString))
                     right = CreateParam(right);
 
             }
@@ -1672,7 +1670,6 @@ namespace NPoco.Expressions
             else
                 return string.Format("substring({0},{1},8000)", columnName, CreateParam(startIndex));
         }
-
     }
 
     public class PartialSqlString

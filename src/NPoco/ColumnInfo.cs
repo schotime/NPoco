@@ -19,6 +19,7 @@ namespace NPoco
         public bool ForceToUtc { get; set; } = true;
         public Type ColumnType { get; set; }
         public bool ComplexMapping { get; set; }
+        public bool ValueObjectColumn { get; set; }
         public string ComplexPrefix { get; set; }
         public bool SerializedColumn { get; set; }
         public ReferenceType ReferenceType { get; set; }
@@ -52,6 +53,10 @@ namespace NPoco
             {
                 ci.ComplexMapping = true;
                 ci.ComplexPrefix = complexMapping.First().CustomPrefix;
+            }
+            else if (mi.GetMemberInfoType().GetInterfaces().Any(x => x == typeof(IValueObject)))
+            {
+                ci.ValueObjectColumn = true;
             }
             else if (serializedColumnAttributes.Any())
             {

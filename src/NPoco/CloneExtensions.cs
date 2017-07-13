@@ -19,9 +19,9 @@ namespace NPoco
 
         public static Object Copy(this Object originalObject)
         {
-            return InternalCopy(originalObject, new Dictionary<Object, Object>(new ReferenceEqualityComparer()));
+            return InternalCopy(originalObject, new Dictionary<object, object>(new ReferenceEqualityComparer()));
         }
-        private static Object InternalCopy(Object originalObject, IDictionary<Object, Object> visited)
+        private static Object InternalCopy(Object originalObject, IDictionary<object, object> visited)
         {
             if (originalObject == null) return null;
             var typeToReflect = originalObject.GetType();
@@ -67,6 +67,13 @@ namespace NPoco
         public static T Copy<T>(this T original)
         {
             return (T)Copy((Object)original);
+        }
+
+        public static bool CanBeCastTo<TCastType>(this object inValue, out TCastType value)
+        {
+            var result = inValue is TCastType;
+            value = result ? (TCastType)inValue : default(TCastType);
+            return result;
         }
     }
 

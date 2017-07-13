@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using NPoco.FluentMappings;
 using NPoco.RowMappers;
 
 namespace NPoco
@@ -165,7 +166,7 @@ namespace NPoco
                 var fastCreate = GetFastCreate(memberType, mapper, isList, isDynamic);
                 var columnName = GetColumnName(capturedPrefix, capturedColumnInfo.ColumnName ?? capturedMemberInfo.Name);
                 var memberInfoData = new MemberInfoData(capturedMemberInfo);
-
+                
                 yield return tableInfo =>
                 {
                     var pc = new PocoColumn
@@ -183,8 +184,14 @@ namespace NPoco
                         ColumnAlias = capturedColumnInfo.ColumnAlias,
                         VersionColumn = capturedColumnInfo.VersionColumn,
                         VersionColumnType = capturedColumnInfo.VersionColumnType,
-                        SerializedColumn = capturedColumnInfo.SerializedColumn
+                        SerializedColumn = capturedColumnInfo.SerializedColumn,
+                        ValueObjectColumn = capturedColumnInfo.ValueObjectColumn
                     };
+
+                    if (pc.ValueObjectColumn)
+                    {
+                        SetupValueObject(pc, fastCreate);
+                    }
 
                     pc.SetMemberAccessors(accessors);
 
@@ -214,6 +221,20 @@ namespace NPoco
                     return pocoMember;
                 };
             }
+        }
+
+        private static void SetupValueObject(PocoColumn pc, FastCreate fastCreate)
+        {
+            var memberName = "Value";
+            var hasIValueObject = pc.MemberInfoData.MemberType.GetTypeWithGenericTypeDefinitionOf(typeof(IValueObject<>));
+            MemberInfo property = string.IsNullOrEmpty(pc.ValueObjectColumnName)
+                ? pc.MemberInfoData.MemberType.GetProperties().FirstOrDefault(x => x.Name.IndexOf(memberName, StringComparison.OrdinalIgnoreCase) >= 0)
+                  ?? pc.MemberInfoData.MemberType.GetProperties().First()
+                : ReflectionUtils.GetFieldsAndProperties(pc.MemberInfoData.MemberType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).First(x => x.Name == pc.ValueObjectColumnName);
+            var type = hasIValueObject != null ? hasIValueObject.GetGenericArguments().First() : property.GetMemberInfoType();
+            var memberAccessor = hasIValueObject != null ? new MemberAccessor(typeof(IValueObject<>).MakeGenericType(type), memberName) : new MemberAccessor(pc.MemberInfoData.MemberType, property.Name);
+            pc.SetValueObjectAccessors(fastCreate, (target, value) => memberAccessor.Set(target, value), target => memberAccessor.Get(target));
+            pc.ColumnType = type;
         }
 
         private static FastCreate GetFastCreate(Type memberType, MapperCollection mapperCollection, bool isList, bool isDynamic)

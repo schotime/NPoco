@@ -42,6 +42,7 @@ namespace NPoco.FluentMappings
         public Func<MemberInfo, string> ReferenceDbColumnsNamed { get; set; }
         public Func<MemberInfo, bool> DbColumnWhere { get; set; }
         public Func<MemberInfo, bool> SerializedWhere { get; set; }
+        public Func<MemberInfo, bool> ValueObjectColumnWhere { get; set; }
 
         public bool Lazy { get; set; }
 
