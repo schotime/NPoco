@@ -64,7 +64,7 @@ namespace NPoco.Tests.NewMapper
     public class User4
     {
         public int UserId { get; }
-        public MyNameObject4 Name { get; set; } = new MyNameObject4();
+        public MyNameObject4 Name { get; set; }
     }
 
     public class ValueObjectTests : BaseDBDecoratedTest
@@ -164,8 +164,7 @@ namespace NPoco.Tests.NewMapper
 
                 For<User4>()
                     .TableName("users")
-                    .PrimaryKey(x => x.UserId)
-                    .Columns(x => x.Column(y => y.Name).ValueObject(y => y.Getter));
+                    .PrimaryKey(x => x.UserId);
 
             }
         }
@@ -177,6 +176,7 @@ namespace NPoco.Tests.NewMapper
             {
                 s.Assembly(typeof(User2).GetTypeInfo().Assembly);
                 s.IncludeTypes(t => t == typeof(User4));
+                s.Columns.ValueObjectColumnWhere(x => x.GetMemberInfoType() == typeof(MyNameObject4));
                 s.OverrideMappingsWith(new MyMapping());
             });
 
@@ -188,6 +188,26 @@ namespace NPoco.Tests.NewMapper
             var myNameObject = new MyNameObject4("Name1");
             var user = factory.Build(Database).Query<User4>().Where(x => x.Name == myNameObject).Single();
             Assert.AreEqual("Name1", user.Name.Getter);
+        }
+
+        [Test]
+        public void ValueObjectTestWithNullValue()
+        {
+            var map = FluentMappingConfiguration.Scan(s =>
+            {
+                s.Assembly(typeof(User2).GetTypeInfo().Assembly);
+                s.IncludeTypes(t => t == typeof(User4));
+                s.Columns.ValueObjectColumnWhere(x => x.GetMemberInfoType() == typeof(MyNameObject4));
+                s.OverrideMappingsWith(new MyMapping());
+            });
+
+            var factory = DatabaseFactory.Config(x =>
+            {
+                x.WithFluentConfig(map);
+            });
+
+            var user = factory.Build(Database).SingleOrDefault<User4>("select null as Name /*poco_dual*/");
+            Assert.AreEqual(null, user.Name);
         }
     }
 }

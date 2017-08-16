@@ -185,7 +185,7 @@ namespace NPoco
                         VersionColumn = capturedColumnInfo.VersionColumn,
                         VersionColumnType = capturedColumnInfo.VersionColumnType,
                         SerializedColumn = capturedColumnInfo.SerializedColumn,
-                        ValueObjectColumn = capturedColumnInfo.ValueObjectColumn
+                        ValueObjectColumn = capturedColumnInfo.ValueObjectColumn,
                     };
 
                     if (pc.ValueObjectColumn)

@@ -26,6 +26,7 @@ namespace NPoco.FluentMappings
         public Func<Type, string> SequencesNamed { get; set; }
         public Func<Type, bool> UseOutputClauseWhere { get; set; }
         public Func<Type, Type> PersistedTypesBy { get; set; }
+        public Func<Type, bool> MapNestedTypesWhere { get; set; }
 
         public Func<MemberInfo, string> DbColumnsNamed { get; set; }
         public Func<MemberInfo, string> AliasNamed { get; set; }

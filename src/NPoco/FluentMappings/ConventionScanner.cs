@@ -60,6 +60,11 @@ namespace NPoco.FluentMappings
             _scannerSettings.PersistedTypesBy = persistedTypesByFunc;
         }
 
+        public void MapNestedTypesWhere(Func<Type, bool> mapNestedTypesFunc)
+        {
+            _scannerSettings.MapNestedTypesWhere = mapNestedTypesFunc;
+        }
+
         public void LazyLoadMappings()
         {
             _scannerSettings.Lazy = true;
