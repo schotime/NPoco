@@ -286,5 +286,13 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         {
             public DateTime DateOfBirth { get; set; }
         }
+
+        [Test]
+        public void SingleOrDefaultForValueType()
+        {
+            var boolean = Database.Single<bool>("select 1 /*poco_dual*/");
+
+            Assert.AreEqual(true, boolean);
+        }
     }
 }
