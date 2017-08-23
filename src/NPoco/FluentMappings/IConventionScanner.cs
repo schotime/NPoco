@@ -19,7 +19,7 @@ namespace NPoco.FluentMappings
         void PrimaryKeysAutoIncremented(Func<Type, bool> primaryKeyAutoIncrementFunc);
         void SequencesNamed(Func<Type, string> sequencesFunc);
         void PersistedTypesBy(Func<Type, Type> persistedTypesByFunc);
-        void MapNestedTypesWhere(Func<Type, bool> mapNestedTypesFunc);
+        void MapNestedTypesWhen(Func<Type, bool> mapNestedTypesFunc);
 
         void LazyLoadMappings();
 

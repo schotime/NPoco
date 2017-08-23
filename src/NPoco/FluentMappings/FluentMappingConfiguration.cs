@@ -182,7 +182,7 @@ namespace NPoco.FluentMappings
                 DbColumnWhere = x => ReflectionUtils.GetCustomAttributes(x, typeof(ColumnAttribute)).Any(),
                 ValueObjectColumnWhere = x => x.GetMemberInfoType().GetInterfaces().Any(y => y == typeof(IValueObject)),
                 Lazy = false,
-                MapNestedTypesWhere = x => !x.IsNested
+                MapNestedTypesWhen = x => false
             };
             scanner.Invoke(new ConventionScanner(defaultScannerSettings));
             return defaultScannerSettings;
@@ -198,7 +198,7 @@ namespace NPoco.FluentMappings
             var types = scannerSettings.Assemblies
                 .SelectMany(x => x.GetExportedTypes())
                 .Where(x => scannerSettings.IncludeTypes.All(y => y.Invoke(x)))
-                .Where(x => scannerSettings.MapNestedTypesWhere(x))
+                .Where(x => scannerSettings.MapNestedTypesWhen(x) || !x.IsNested)
                 .Where(x => !typeof (Map<>).IsAssignableFrom(x) && !typeof (Mappings).IsAssignableFrom(x));
             return types;
         }
