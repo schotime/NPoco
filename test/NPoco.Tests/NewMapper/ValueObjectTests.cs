@@ -187,7 +187,9 @@ namespace NPoco.Tests.NewMapper
 
             var myNameObject = new MyNameObject4("Name1");
             var user = factory.Build(Database).Query<User4>().Where(x => x.Name == myNameObject).Single();
+            var user1 = factory.Build(Database).Query<User4>().Where(x => myNameObject == x.Name).Single();
             Assert.AreEqual("Name1", user.Name.Getter);
+            Assert.AreEqual("Name1", user1.Name.Getter);
         }
 
         [Test]

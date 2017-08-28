@@ -899,7 +899,9 @@ namespace NPoco.Expressions
         protected virtual object VisitBinary(BinaryExpression b)
         {
             object left, right;
+            bool switchLeftRight = false;
             var operand = BindOperant(b.NodeType);   //sep= " " ??
+
             if (b.NodeType == ExpressionType.AndAlso || b.NodeType == ExpressionType.OrElse)
             {
                 var m = b.Left as MemberExpression;
@@ -942,19 +944,13 @@ namespace NPoco.Expressions
                 left = Visit(b.Left);
                 right = Visit(b.Right);
 
-                // Put the member on the left if there is only one member so the right hand logic can be calulated correctly
-                if (right is MemberAccessString && !(left is MemberAccessString))
-                {
-                    var saveRight = right;
-                    right = left;
-                    left = saveRight;
-                }
+                var isLeftMemberAccessString = left.CanBeCastTo<MemberAccessString>(out var leftMemberAccessString);
+                var isRightMemberAccessString = right.CanBeCastTo<MemberAccessString>(out var rightMemberAccessString);
 
-                var isMemberAccessString = left.CanBeCastTo<MemberAccessString>(out var memberAccessString);
-
-                if (left.CanBeCastTo<EnumMemberAccess>(out var enumMemberAccess) && !(right is PartialSqlString))
+                // Enums
+                if (left.CanBeCastTo<EnumMemberAccess>(out var leftEnumMemberAccess) && !(right is PartialSqlString))
                 {
-                    var pc = enumMemberAccess.PocoColumn;
+                    var pc = leftEnumMemberAccess.PocoColumn;
                     if (pc.ColumnType == typeof(string))
                         right = CreateParam(Enum.Parse(GetMemberInfoTypeForEnum(pc), right.ToString()).ToString());
                     else if (Int64.TryParse(right.ToString(), out long numvericVal))
@@ -962,25 +958,56 @@ namespace NPoco.Expressions
                     else
                         right = CreateParam(right);
                 }
+                else if (right.CanBeCastTo<EnumMemberAccess>(out var rightEnumMemberAccess) && !(left is PartialSqlString))
+                {
+                    var pc = rightEnumMemberAccess.PocoColumn;
+                    if (pc.ColumnType == typeof(string))
+                        left = CreateParam(Enum.Parse(GetMemberInfoTypeForEnum(pc), left.ToString()).ToString());
+                    else if (Int64.TryParse(left.ToString(), out long numvericVal))
+                        left = CreateParam(Enum.ToObject(GetMemberInfoTypeForEnum(pc), numvericVal));
+                    else
+                        left = CreateParam(left);
+                }
+                // Nullable Members
                 else if (left is NullableMemberAccess && !(right is PartialSqlString))
                 {
                     operand = ((bool)right) ? "is not" : "is";
                     right = new PartialSqlString("null");
                 }
-                else if (isMemberAccessString && right is int
-                    && new [] { typeof(char), typeof(char?) }.Contains(memberAccessString.PocoColumn.MemberInfoData.MemberType))
+                else if (right is NullableMemberAccess && !(left is PartialSqlString))
+                {
+                    operand = ((bool)left) ? "is not" : "is";
+                    left = new PartialSqlString("null");
+                    switchLeftRight = true;
+                }
+                // Chars
+                else if (isLeftMemberAccessString && right is int
+                    && new [] { typeof(char), typeof(char?) }.Contains(leftMemberAccessString.PocoColumn.MemberInfoData.MemberType))
                 {
                     right = CreateParam(Convert.ToChar(right));
                 }
-                else if (isMemberAccessString && right is string
-                    && memberAccessString.PocoColumn.ColumnType == typeof (AnsiString))
+                else if (isRightMemberAccessString && left is int
+                         && new[] { typeof(char), typeof(char?) }.Contains(rightMemberAccessString.PocoColumn.MemberInfoData.MemberType))
+                {
+                    left = CreateParam(Convert.ToChar(left));
+                }
+                // AnsiString
+                else if (isLeftMemberAccessString && right is string && leftMemberAccessString.PocoColumn.ColumnType == typeof (AnsiString))
                 {
                     right = CreateParam(new AnsiString((string)right));
                 }
-                else if (isMemberAccessString
-                    && memberAccessString.PocoColumn.ValueObjectColumn)
+                else if (isRightMemberAccessString && left is string && rightMemberAccessString.PocoColumn.ColumnType == typeof(AnsiString))
                 {
-                    right = CreateParam(memberAccessString.PocoColumn.GetValueObjectValue(right));
+                    left = CreateParam(new AnsiString((string)left));
+                }
+                // ValueObject
+                else if (isLeftMemberAccessString && leftMemberAccessString.PocoColumn.ValueObjectColumn)
+                {
+                    right = CreateParam(leftMemberAccessString.PocoColumn.GetValueObjectValue(right));
+                }
+                else if (isRightMemberAccessString && rightMemberAccessString.PocoColumn.ValueObjectColumn)
+                {
+                    left = CreateParam(rightMemberAccessString.PocoColumn.GetValueObjectValue(left));
                 }
                 else if (!(left is PartialSqlString) && !(right is PartialSqlString))
                 {
@@ -994,8 +1021,18 @@ namespace NPoco.Expressions
 
             }
 
-            if (operand == "=" && right.ToString().Equals("null", StringComparison.OrdinalIgnoreCase)) operand = "is";
-            else if (operand == "<>" && right.ToString().Equals("null", StringComparison.OrdinalIgnoreCase)) operand = "is not";
+            if (operand == "=" && right.ToString().Equals("null", StringComparison.OrdinalIgnoreCase)) { operand = "is"; }
+            else if (operand == "=" && left.ToString().Equals("null", StringComparison.OrdinalIgnoreCase)) { operand = "is"; switchLeftRight = true; }
+            else if (operand == "<>" && right.ToString().Equals("null", StringComparison.OrdinalIgnoreCase)) { operand = "is not"; }
+            else if (operand == "<>" && left.ToString().Equals("null", StringComparison.OrdinalIgnoreCase)) { operand = "is not"; switchLeftRight = true; }
+
+            // Switch left and right for situtations like is null
+            if (switchLeftRight)
+            {
+                var saveleft = left;
+                left = right;
+                right = saveleft;
+            }
 
             switch (operand)
             {

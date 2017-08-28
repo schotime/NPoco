@@ -1,11 +1,8 @@
 {
   "profiles": {
-    "test": {
-      "commandName": "test",
-      "commandLineArgs": "--where=\"test =~ Test32\""
-    },
     "NPoco.Tests": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "--where=\"test =~ TestName\""
     }
   }
 }

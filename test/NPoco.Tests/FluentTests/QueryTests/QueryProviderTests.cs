@@ -114,6 +114,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void QueryWithWhereCharNullReversed()
+        {
+            var users = Database.Query<User>().Where(x => null == x.YorN).ToList();
+            Assert.AreEqual(0, users.Count);
+        }
+
+        [Test]
         public void QueryWithWhereCharVar()
         {
             var s = 'Y';
@@ -230,6 +237,19 @@ namespace NPoco.Tests.FluentTests.QueryTests
         {
             var users = Database.Query<User>().Where(x => x.UserId > 10).ToList();
             var inmemory = InMemoryUsers.Where(x => x.UserId > 10).ToList();
+
+            Assert.AreEqual(5, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(inmemory[i], users[i]);
+            }
+        }
+
+        [Test]
+        public void QueryWithWhereReversed()
+        {
+            var users = Database.Query<User>().Where(x => 10 < x.UserId).ToList();
+            var inmemory = InMemoryUsers.Where(x => 10 < x.UserId).ToList();
 
             Assert.AreEqual(5, users.Count);
             for (int i = 0; i < users.Count; i++)
