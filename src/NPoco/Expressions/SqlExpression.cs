@@ -898,6 +898,9 @@ namespace NPoco.Expressions
 
         protected virtual object VisitBinary(BinaryExpression b)
         {
+            // Fix VB and CompareString
+            b = FixExpressionForVb(b);
+
             object left, right;
             bool switchLeftRight = false;
             var operand = BindOperant(b.NodeType);   //sep= " " ??
@@ -1042,6 +1045,23 @@ namespace NPoco.Expressions
                 default:
                     return new PartialSqlString("(" + left + sep + operand + sep + right + ")");
             }
+        }
+
+        private static BinaryExpression FixExpressionForVb(BinaryExpression b)
+        {
+            if (b.Left is MethodCallExpression)
+            {
+                var method = (MethodCallExpression) b.Left;
+                if (method.Method.Name == "CompareString"
+                    && method.Method.DeclaringType.FullName == "Microsoft.VisualBasic.CompilerServices.Operators")
+                {
+                    var left = method.Arguments[0];
+                    var right = method.Arguments[1];
+
+                    return b.NodeType == ExpressionType.Equal ? Expression.Equal(left, right) : Expression.NotEqual(left, right);
+                }
+            }
+            return b;
         }
 
         private static Type GetMemberInfoTypeForEnum(PocoColumn pc)

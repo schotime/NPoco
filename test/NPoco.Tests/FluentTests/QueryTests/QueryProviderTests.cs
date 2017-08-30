@@ -589,3 +589,20 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public int UserId { get; set; }
     }
 }
+
+//VB Tests for query provider
+//Imports NPoco
+//Imports NPoco.Expressions
+
+//Module Module1
+//    Sub Main()
+//        Dim Db = New Database("asdf", "System.Data.SqlClient")
+//        Dim exp = New DefaultSqlExpression (Of User)(Db)
+//        Dim whered = exp.Where(Function(item) (item.Name = "Test"))
+//        Console.WriteLine(whered.Context.ToSelectStatement())
+//    End Sub
+//End Module
+
+//Public Class User
+//    Public Property Name As String
+//End Class
