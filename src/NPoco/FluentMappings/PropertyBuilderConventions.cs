@@ -95,5 +95,11 @@ namespace NPoco.FluentMappings
             _scannerSettings.SerializedWhere = serializedWhereFunc;
             return this;
         }
+
+        public IColumnsBuilderConventions ValueObjectColumnWhere(Func<MemberInfo, bool> valueObjectColumnWhere)
+        {
+            _scannerSettings.ValueObjectColumnWhere = valueObjectColumnWhere;
+            return this;
+        }
     }
 }

@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using NPoco.Tests.Common;
 using NPoco.Tests.NewMapper.Models;
 using NUnit.Framework;
@@ -61,6 +62,17 @@ namespace NPoco.Tests.NewMapper
             Assert.NotNull(results[0].One);
             Assert.AreEqual("Name2", results[0].One.Name);
             Assert.AreEqual(2, results[0].One.OneId);
+        }
+
+        [Test]
+        public async Task IncludeManyAsync()
+        {
+            var results = await Database
+                .Query<One>()
+                .IncludeMany(x => x.Items)
+                .ToListAsync();
+
+            Assert.AreEqual(15, results.Count);
         }
     }
 }

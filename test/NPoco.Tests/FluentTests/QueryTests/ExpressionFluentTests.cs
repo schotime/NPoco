@@ -310,5 +310,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 
             Assert.AreEqual(expected, selectStatement);
         }
+
+        [Test]
+        public void BitwiseSupport()
+        {
+            var users = Database.Query<User>().Where(x => (x.UserId & (int)TestEnum.None) == (int)TestEnum.None).ToList();
+            Assert.AreEqual(8, users.Count);
+            Assert.AreEqual(1, users[0].UserId);
+        }
     }
 }

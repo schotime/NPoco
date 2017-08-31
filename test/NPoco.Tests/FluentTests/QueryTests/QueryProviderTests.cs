@@ -114,6 +114,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void QueryWithWhereCharNullReversed()
+        {
+            var users = Database.Query<User>().Where(x => null == x.YorN).ToList();
+            Assert.AreEqual(0, users.Count);
+        }
+
+        [Test]
         public void QueryWithWhereCharVar()
         {
             var s = 'Y';
@@ -239,6 +246,19 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void QueryWithWhereReversed()
+        {
+            var users = Database.Query<User>().Where(x => 10 < x.UserId).ToList();
+            var inmemory = InMemoryUsers.Where(x => 10 < x.UserId).ToList();
+
+            Assert.AreEqual(5, users.Count);
+            for (int i = 0; i < users.Count; i++)
+            {
+                AssertUserValues(inmemory[i], users[i]);
+            }
+        }
+
+        [Test]
         public void QueryWithWhereAnd()
         {
             var users = Database.Query<User>().Where(x => x.UserId > 10 && x.UserId < 12).ToList();
@@ -307,7 +327,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
 
         private static void SetCurrentCulture(CultureInfo culture)
         {
-#if NET35 || NET40 || NET45 || NET451 || NET452 || DNX451 || DNX452
+#if NET35 || NET40 || NET45 || NET451 || NET452 || NET462 || DNX451 || DNX452
             // In the .NET Framework 4.5.2 and earlier versions, the CurrentCulture property is read-only
             Thread.CurrentThread.CurrentCulture = culture;
 #else
@@ -569,3 +589,20 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public int UserId { get; set; }
     }
 }
+
+//VB Tests for query provider
+//Imports NPoco
+//Imports NPoco.Expressions
+
+//Module Module1
+//    Sub Main()
+//        Dim Db = New Database("asdf", "System.Data.SqlClient")
+//        Dim exp = New DefaultSqlExpression (Of User)(Db)
+//        Dim whered = exp.Where(Function(item) (item.Name = "Test"))
+//        Console.WriteLine(whered.Context.ToSelectStatement())
+//    End Sub
+//End Module
+
+//Public Class User
+//    Public Property Name As String
+//End Class

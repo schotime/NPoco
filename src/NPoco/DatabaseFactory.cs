@@ -37,7 +37,7 @@ namespace NPoco
             return dbFactory;
         }
 
-        public Database Build(Database database)
+        public IDatabase Build(IDatabase database)
         {
             var mappers = BuildMapperCollection(database);
             ConfigurePocoDataFactoryAndMappers(database, mappers);
@@ -45,12 +45,12 @@ namespace NPoco
             return database;
         }
 
-        private void ConfigureInterceptors(Database database)
+        private void ConfigureInterceptors(IDatabase database)
         {
             database.Interceptors.AddRange(_options.Interceptors);
         }
 
-        private void ConfigurePocoDataFactoryAndMappers(Database database, MapperCollection mappers)
+        private void ConfigurePocoDataFactoryAndMappers(IDatabase database, MapperCollection mappers)
         {
             database.Mappers = mappers;
             if (_options.PocoDataFactory != null)
@@ -59,7 +59,7 @@ namespace NPoco
             }
         }
 
-        private MapperCollection BuildMapperCollection(Database database)
+        private MapperCollection BuildMapperCollection(IDatabase database)
         {
             var mc = new MapperCollection();
             mc.AddRange(database.Mappers);

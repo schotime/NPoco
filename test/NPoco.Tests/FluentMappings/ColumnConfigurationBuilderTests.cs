@@ -193,5 +193,31 @@ namespace NPoco.Tests.FluentMappings
             Assert.AreEqual(true, columnDefinitions.ContainsKey("House__Address"));
             Assert.AreEqual(MemberHelper<User>.GetMembers(x => x.House.Address).Last(), columnDefinitions["House__Address"].MemberInfo);
         }
+
+        public class FluentMappingOverrides : Mappings
+        {
+            public FluentMappingOverrides()
+            {
+                For<User>().Columns(x =>
+                {
+                    x.Column(y => y.Address).ComplexMapping("CM");
+                });
+            }
+        }
+
+        [Test]
+        public void FluentMappingOverridesShouldOverrideComplexMappingPrefix()
+        {
+            var map = FluentMappingConfiguration.Scan(s =>
+            {
+                s.Assembly(typeof(User).GetTypeInfo().Assembly);
+                s.IncludeTypes(t => t == typeof(User));
+                s.Columns.ComplexPropertiesWhere(y => ColumnInfo.FromMemberInfo(y).ComplexMapping);
+                s.OverrideMappingsWith(new FluentMappingOverrides());
+            });
+
+            var pd = map.Config(new MapperCollection()).Resolver(typeof(User), new PocoDataFactory(new MapperCollection())).Build();
+            Assert.AreEqual(true, pd.Columns.ContainsKey("CM__Street"));
+        }
     }
 }

@@ -26,6 +26,7 @@ namespace NPoco.FluentMappings
         public Func<Type, string> SequencesNamed { get; set; }
         public Func<Type, bool> UseOutputClauseWhere { get; set; }
         public Func<Type, Type> PersistedTypesBy { get; set; }
+        public Func<Type, bool> MapNestedTypesWhen { get; set; }
 
         public Func<MemberInfo, string> DbColumnsNamed { get; set; }
         public Func<MemberInfo, string> AliasNamed { get; set; }
@@ -42,6 +43,7 @@ namespace NPoco.FluentMappings
         public Func<MemberInfo, string> ReferenceDbColumnsNamed { get; set; }
         public Func<MemberInfo, bool> DbColumnWhere { get; set; }
         public Func<MemberInfo, bool> SerializedWhere { get; set; }
+        public Func<MemberInfo, bool> ValueObjectColumnWhere { get; set; }
 
         public bool Lazy { get; set; }
 

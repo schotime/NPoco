@@ -44,6 +44,8 @@ namespace NPoco.Linq
         System.Threading.Tasks.Task<bool> AnyAsync();
         System.Threading.Tasks.Task<Page<T>> ToPageAsync(int page, int pageSize);
         System.Threading.Tasks.Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression);
+        System.Threading.Tasks.Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression);
+        System.Threading.Tasks.Task<List<T>> DistinctAsync();
 #endif
     }
 
@@ -171,7 +173,7 @@ namespace NPoco.Linq
                     ThenByDescending(expression);
                 }
             }
-            
+
             return this;
         }
 
@@ -324,19 +326,19 @@ namespace NPoco.Linq
         {
             return ToDynamicEnumerable().ToList();
         }
-        
+
         public IEnumerable<dynamic> ToDynamicEnumerable()
         {
             var sql = BuildSql();
             return _database.QueryImp<dynamic>(null, null, null, sql);
         }
 #endif
-   
+
         private IEnumerable<T> ExecuteQuery(Sql sql)
         {
             return _database.QueryImp(default(T), _listExpression, null, sql);
         }
-        
+
         private Sql BuildSql()
         {
             Sql sql;
@@ -360,7 +362,7 @@ namespace NPoco.Linq
 
         public System.Threading.Tasks.Task<IEnumerable<T>> ToEnumerableAsync()
         {
-            return _database.QueryAsync<T>(BuildSql());
+            return _database.QueryAsync(default(T), _listExpression, null, BuildSql());
         }
 
         public async System.Threading.Tasks.Task<T> FirstOrDefaultAsync()
@@ -411,6 +413,17 @@ namespace NPoco.Linq
         public async System.Threading.Tasks.Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
+            return (await _database.QueryAsync<T>(sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
+        }
+
+        public async System.Threading.Tasks.Task<List<T>> DistinctAsync()
+        {
+            return (await _database.QueryAsync<T>(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params))).ToList();
+        }
+
+        public async System.Threading.Tasks.Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression)
+        {
+            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, true);
             return (await _database.QueryAsync<T>(sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
         }
 #endif

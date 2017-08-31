@@ -149,6 +149,8 @@ namespace NPoco.FluentMappings
                     columnDefinition.VersionColumnType = scannerSettings.VersionPropertyTypeAs(member);
                     columnDefinition.ForceUtc = scannerSettings.ForceDateTimesToUtcWhere(member);
                     columnDefinition.Serialized = scannerSettings.SerializedWhere(member);
+                    columnDefinition.IsComplexMapping = scannerSettings.ComplexPropertiesWhere(member);
+                    columnDefinition.ValueObjectColumn = scannerSettings.ValueObjectColumnWhere(member);
                     yield return columnDefinition;
                 }
             }
@@ -178,7 +180,9 @@ namespace NPoco.FluentMappings
                 UseOutputClauseWhere = x => false,
                 SerializedWhere = x => ReflectionUtils.GetCustomAttributes(x, typeof(SerializedColumnAttribute)).Any(),
                 DbColumnWhere = x => ReflectionUtils.GetCustomAttributes(x, typeof(ColumnAttribute)).Any(),
-                Lazy = false
+                ValueObjectColumnWhere = x => x.GetMemberInfoType().GetInterfaces().Any(y => y == typeof(IValueObject)),
+                Lazy = false,
+                MapNestedTypesWhen = x => false
             };
             scanner.Invoke(new ConventionScanner(defaultScannerSettings));
             return defaultScannerSettings;
@@ -194,7 +198,8 @@ namespace NPoco.FluentMappings
             var types = scannerSettings.Assemblies
                 .SelectMany(x => x.GetExportedTypes())
                 .Where(x => scannerSettings.IncludeTypes.All(y => y.Invoke(x)))
-                .Where(x => !x.IsNested && !typeof (Map<>).IsAssignableFrom(x) && !typeof (Mappings).IsAssignableFrom(x));
+                .Where(x => scannerSettings.MapNestedTypesWhen(x) || !x.IsNested)
+                .Where(x => !typeof (Map<>).IsAssignableFrom(x) && !typeof (Mappings).IsAssignableFrom(x));
             return types;
         }
 
@@ -223,6 +228,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.Value.VersionColumnType = columnInfo.VersionColumnType;
                     columnDefinition.Value.ForceUtc = columnInfo.ForceToUtc;
                     columnDefinition.Value.Serialized = columnInfo.SerializedColumn;
+                    columnDefinition.Value.ValueObjectColumn = columnInfo.ValueObjectColumn;
                 }
             }
         }
@@ -269,6 +275,10 @@ namespace NPoco.FluentMappings
                     convColDefinition.ReferenceMember = overrideColumnDefinition.Value.ReferenceMember ?? convColDefinition.ReferenceMember;
                     convColDefinition.ReferenceType = overrideColumnDefinition.Value.ReferenceType ?? convColDefinition.ReferenceType;
                     convColDefinition.Serialized = overrideColumnDefinition.Value.Serialized ?? convColDefinition.Serialized;
+                    convColDefinition.ComplexPrefix = overrideColumnDefinition.Value.ComplexPrefix ?? convColDefinition.ComplexPrefix;
+                    convColDefinition.IsComplexMapping = overrideColumnDefinition.Value.IsComplexMapping ?? convColDefinition.IsComplexMapping;
+                    convColDefinition.ValueObjectColumn = overrideColumnDefinition.Value.ValueObjectColumn ?? convColDefinition.ValueObjectColumn;
+                    convColDefinition.ValueObjectColumnName = overrideColumnDefinition.Value.ValueObjectColumnName ?? convColDefinition.ValueObjectColumnName;
                 }
             }
         }

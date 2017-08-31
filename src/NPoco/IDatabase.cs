@@ -88,6 +88,10 @@ namespace NPoco
         /// </summary>        
         System.Threading.Tasks.Task<int> UpdateAsync(object poco, IEnumerable<string> columns);
         /// <summary>
+        /// Update POCO in the table by convention or configuration specifying which columns to update
+        /// </summary>  
+        System.Threading.Tasks.Task<int> UpdateAsync<T>(T poco, Expression<Func<T, object>> fields);
+        /// <summary>
         /// Delete POCO from table by convention or configuration
         /// </summary>        
         System.Threading.Tasks.Task<int> DeleteAsync(object poco);
@@ -203,7 +207,7 @@ namespace NPoco
         /// <summary>
         /// A collection of mappers used for converting values on inserting or on mapping
         /// </summary>        
-        MapperCollection Mappers { get; }
+        MapperCollection Mappers { get; set; }
         /// <summary>
         /// The PocoData factory used to build the meta data used by NPoco
         /// </summary>        

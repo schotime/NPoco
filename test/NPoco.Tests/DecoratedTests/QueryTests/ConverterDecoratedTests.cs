@@ -11,7 +11,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         public void DateIsOfUnspecifiedByDefault()
         {
             var data = Database.SingleById<UserDecorated>(1);
-            Assert.AreEqual(DateTimeKind.Unspecified, data.DateOfBirth.Kind);
+            Assert.AreEqual(DateTimeKind.Utc, data.DateOfBirth.Kind);
         }
     }
 }

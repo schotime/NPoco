@@ -12,7 +12,7 @@ namespace NPoco
             ForceToUtc = true;
             MemberInfoChain = new List<MemberInfo>();
         }
-        
+
         public static string GenerateKey(IEnumerable<MemberInfo> memberInfoChain)
         {
             return string.Join(PocoData.Separator, memberInfoChain.Select(x => x.Name).ToArray());
@@ -36,6 +36,9 @@ namespace NPoco
         private Type _columnType;
         private MemberAccessor _memberAccessor;
         private List<MemberAccessor> _memberAccessorChain = new List<MemberAccessor>();
+        private Action<object, object> valueObjectSetter;
+        private Func<object, object> valueObjectGetter;
+        private FastCreate fastCreate;
 
         public Type ColumnType
         {
@@ -48,28 +51,52 @@ namespace NPoco
 
         public ReferenceType ReferenceType { get; set; }
         public bool SerializedColumn { get; set; }
+        public bool ValueObjectColumn { get; set; }
+        public string ValueObjectColumnName { get; set; }
 
         internal void SetMemberAccessors(List<MemberAccessor> memberAccessors)
         {
-            _memberAccessor = memberAccessors[memberAccessors.Count-1];
+            _memberAccessor = memberAccessors[memberAccessors.Count - 1];
             _memberAccessorChain = memberAccessors;
+        }
+
+        internal void SetValueObjectAccessors(FastCreate fastCreate, Action<object, object> setter, Func<object, object> getter)
+        {
+            this.fastCreate = fastCreate;
+            valueObjectSetter = setter;
+            valueObjectGetter = getter;
         }
 
         public virtual void SetValue(object target, object val)
         {
+            if (valueObjectGetter != null)
+            {
+                var property = GetRecursiveValue(target) ?? fastCreate.Create(null);
+                valueObjectSetter?.Invoke(property, val);
+                val = property;
+            }
+
             _memberAccessor.Set(target, val);
         }
 
         public virtual object GetValue(object target)
         {
+            return valueObjectGetter != null 
+                ? valueObjectGetter(GetRecursiveValue(target) ?? fastCreate.Create(null)) 
+                : GetRecursiveValue(target);
+        }
+
+        public object GetValueObjectValue(object valueObject)
+        {
+            return valueObjectGetter?.Invoke(valueObject);
+        }
+
+        private object GetRecursiveValue(object target)
+        {
             foreach (var memberAccessor in _memberAccessorChain)
             {
                 target = target == null ? null : memberAccessor.Get(target);
             }
-            //foreach (var memberInfo in MemberInfoChain)
-            //{
-            //    target = target == null ? null : memberInfo.GetMemberInfoValue(target);
-            //}
             return target;
         }
 
