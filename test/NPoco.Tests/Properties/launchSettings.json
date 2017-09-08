@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "NPoco.Tests": {
-      "commandName": "Project",
-      "commandLineArgs": "--where=\"test =~ TestName\""
-    }
-  }
-}

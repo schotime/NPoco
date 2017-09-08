@@ -12,7 +12,7 @@ namespace NPoco.Tests
     {
         private int testDBType;
 
-        [SetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             var configuration = new ConfigurationBuilder()
@@ -50,7 +50,7 @@ namespace NPoco.Tests
             }
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public void CleanUp()
         {
             if (TestDatabase == null) return;
