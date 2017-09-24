@@ -10,6 +10,7 @@ namespace NPoco.Tests.Common
             DbType = DatabaseType.SQLite;
             ConnectionString = "Data Source=:memory:;Version=3;";
             ProviderName = DatabaseType.SQLite.GetProviderName();
+            Factory = Microsoft.Data.Sqlite.SqliteFactory.Instance;
             
             RecreateDataBase();
             EnsureSharedConnectionConfigured();

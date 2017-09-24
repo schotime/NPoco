@@ -420,7 +420,7 @@ namespace NPoco
             TransactionIsAborted = false;
 
             // You cannot continue to use a connection after a transaction has been rolled back
-            if (_sharedConnection != null)
+            if (_sharedConnection != null && !this.KeepConnectionAlive)
             {
                 _sharedConnection.Close();
                 _sharedConnection.Open();

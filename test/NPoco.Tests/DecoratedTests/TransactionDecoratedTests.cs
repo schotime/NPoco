@@ -313,22 +313,20 @@ namespace NPoco.Tests.DecoratedTests
             Assert.IsNotNull(userAfterCreate);
             Assert.AreEqual(userAfterCreate.Name, nameInsert);
 
-
-            var dbTrans = new Database(TestDatabase.ConnectionString, TestDatabase.DbType, SqlClientFactory.Instance);
-            dbTrans.BeginTransaction();
+            Database.BeginTransaction();
 
             user.Name = nameUpdate;
             user.Age = ageUpdate;
-            dbTrans.Update(user);
+            Database.Update(user);
 
-            var userPreCommitInside = dbTrans.SingleOrDefault<UserDecorated>("WHERE UserID = @0", user.UserId);
+            var userPreCommitInside = Database.SingleOrDefault<UserDecorated>("WHERE UserID = @0", user.UserId);
             Assert.IsNotNull(userPreCommitInside);
             Assert.AreEqual(nameUpdate, userPreCommitInside.Name);
             Assert.AreEqual(ageUpdate, userPreCommitInside.Age);
 
 
-            dbTrans.CompleteTransaction();
-            dbTrans.Dispose();
+            Database.CompleteTransaction();
+            Database.Dispose();
 
             var userPostCommit = Database.SingleOrDefault<UserDecorated>("WHERE UserID = @0", user.UserId);
             Assert.IsNotNull(userPostCommit);
@@ -359,21 +357,20 @@ namespace NPoco.Tests.DecoratedTests
             Assert.AreEqual(userAfterCreate.Name, nameInsert);
 
 
-            var dbTrans = new Database(TestDatabase.ConnectionString, TestDatabase.DbType, SqlClientFactory.Instance);
-            dbTrans.BeginTransaction();
+            Database.BeginTransaction();
 
             user.Name = nameUpdate;
             user.Age = ageUpdate;
-            dbTrans.Update(user);
+            Database.Update(user);
 
             // Verify inside of transaction
-            var userPreCommitInside = dbTrans.SingleOrDefault<UserDecorated>("WHERE UserID = @0", user.UserId);
+            var userPreCommitInside = Database.SingleOrDefault<UserDecorated>("WHERE UserID = @0", user.UserId);
             Assert.IsNotNull(userPreCommitInside);
             Assert.AreEqual(nameUpdate, userPreCommitInside.Name);
             Assert.AreEqual(ageUpdate, userPreCommitInside.Age);
 
-            dbTrans.AbortTransaction();
-            dbTrans.Dispose();
+            Database.AbortTransaction();
+            Database.Dispose();
 
             var userPostCommit = Database.SingleOrDefault<UserDecorated>("WHERE UserID = @0", user.UserId);
             Assert.IsNotNull(userPostCommit);

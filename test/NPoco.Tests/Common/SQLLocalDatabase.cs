@@ -28,6 +28,7 @@ namespace NPoco.Tests.Common
             ConnectionStringBase = String.Format("Data Source={0};Integrated Security=True;", dataSource);
             ConnectionString = String.Format("{0}AttachDbFileName=\"{1}\";", ConnectionStringBase, FQDBFile);
             ProviderName = "System.Data.SqlClient";
+            Factory = SqlClientFactory.Instance;
 
             RecreateDataBase();
             EnsureSharedConnectionConfigured();
