@@ -4,6 +4,7 @@ using System.Data.Common;
 
 namespace NPoco.DatabaseTypes
 {
+    //version > 2.0
     public class MicrosoftSqliteDatabaseType : DatabaseType
     {
         public override object MapParameterValue(object value)
@@ -52,22 +53,19 @@ namespace NPoco.DatabaseTypes
 
         public override IsolationLevel GetDefaultTransactionIsolationLevel()
         {
-            // SQLiteDatabaseType uses IsolationLevel.ReadCommitted as default.
-            // This is not available in Microsoft.Data.Sqlite yet. See:
-            // https://github.com/aspnet/Microsoft.Data.Sqlite/issues/214
-            return IsolationLevel.Serializable;
+            return IsolationLevel.ReadCommitted;
         }
 
         public override string GetSQLForTransactionLevel(IsolationLevel isolationLevel)
         {
-            // SQLiteDatabaseType supports IsolationLevel.ReadCommitted and
-            // IsolationLevel.Serializable. IsolationLevel.ReadCommitted is not
-            // available in Microsoft.Data.Sqlite yet. See:
-            // https://github.com/aspnet/Microsoft.Data.Sqlite/issues/214
             switch (isolationLevel)
             {
                 case IsolationLevel.Serializable:
                     return "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;";
+                case IsolationLevel.ReadCommitted:
+                    return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
+                case IsolationLevel.ReadUncommitted:
+                    return "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;";
                 default:
                     throw new ArgumentException("IsolationLevel " + isolationLevel.ToString() + " not supported", "isolationLevel");
             }

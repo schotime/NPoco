@@ -55,7 +55,10 @@ namespace NPoco.Tests.Common
                     Database = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), IsolationLevel.ReadUncommitted);
                     break;
 #endif
-
+                case 9: // Microsoft.Data.SQLite
+                    TestDatabase = new SqliteDatabase();
+                    Database = new Database(TestDatabase.Connection) { KeepConnectionAlive = true };
+                    break;
                 default:
                     Assert.Fail("Unknown database platform specified");
                     return;

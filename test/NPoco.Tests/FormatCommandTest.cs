@@ -7,14 +7,14 @@ namespace NPoco.Tests
 {
     public class FormatCommandTest
     {
-        [Test]
-        public void FormattingWithSqlParameterThatIsNotNull()
-        {
-            var cmd = new SqlCommand();
-            cmd.Parameters.Add(new SqlParameter("Test", SqlDbType.NVarChar));
-            var db = new MyDb();
-            Assert.AreEqual("\n\t -> @0 [SqlParameter, String] = \"\"", db.FormatCommand(cmd));
-        }
+        //[Test]
+        //public void FormattingWithSqlParameterThatIsNotNull()
+        //{
+        //    var cmd = new SqlCommand();
+        //    cmd.Parameters.Add(new SqlParameter("Test", System.Data.SqlDbType.NVarChar));
+        //    var db = new MyDb();
+        //    Assert.AreEqual("\n\t -> @0 [SqlParameter, String] = \"\"", db.FormatCommand(cmd));
+        //}
 
         [Test]
         public void FormattingWithNullValue()

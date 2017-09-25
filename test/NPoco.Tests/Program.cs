@@ -11,6 +11,7 @@ namespace NPoco.Tests
 {
     public class Program
     {
+#if !DNXCORE50
         public static int Main(string[] args)
         {
 #if NET462
@@ -20,5 +21,6 @@ namespace NPoco.Tests
                 .Execute(args, new ExtendedTextWrapper(Console.Out), Console.In);
 #endif
         }
+#endif
     }
 }

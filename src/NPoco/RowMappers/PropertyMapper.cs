@@ -121,8 +121,16 @@ namespace NPoco.RowMappers
             {
                 var destType = pocoMember.MemberInfoData.MemberType;
                 var defaultValue = MappingHelper.GetDefault(destType);
-                var converter = GetConverter(pocoData, pocoMember.PocoColumn, dataReader.GetFieldType(groupedName.Key.Pos), destType);
-                yield return (reader, values, instance) => MapValue(groupedName, values, converter, instance, pocoMember.PocoColumn, defaultValue);
+                yield return (reader, values, instance) => MapValue(groupedName, values,
+                    //CHANGE
+                    /* Microsoft sqlite returns int for all null values
+                     * see: 
+                     *  https://github.com/aspnet/Microsoft.Data.Sqlite/issues/300
+                     *  https://github.com/aspnet/Microsoft.Data.Sqlite/blob/6f8967722fb0f577c80645f6a3c8b8f3c37bcee4/src/Microsoft.Data.Sqlite.Core/SqliteDataRecord.cs#L138
+                     * Get the appropriate source (db) type from the active data reader to convert accordingly
+                    */
+                    GetConverter(pocoData, pocoMember.PocoColumn, reader.GetFieldType(groupedName.Key.Pos), destType),
+                    instance, pocoMember.PocoColumn, defaultValue);
             }
         }
 
