@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>An extremely easy to use Micro-ORM supporting Sql Server, MySQL, PostgreSQL, Oracle, Sqlite, SqlCE. Originally Schotime's PetaPoco branch.</Description>
-    <VersionPrefix>3.7.2</VersionPrefix>
+    <VersionPrefix>3.8.0</VersionPrefix>
     <TargetFrameworks>net35;net45;net40;netstandard1.3</TargetFrameworks>
     <AssemblyName>NPoco</AssemblyName>
     <PackageId>NPoco</PackageId>
