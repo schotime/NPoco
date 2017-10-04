@@ -17,10 +17,10 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
 
             Assert.NotNull(user.ExtraUserInfo);
             Assert.AreEqual(1, user.ExtraUserInfo.Count);
-            Assert.AreEqual(InMemoryExtraUserInfos[0].ExtraUserInfoId, user.ExtraUserInfo[0].ExtraUserInfoId);
-            Assert.AreEqual(InMemoryExtraUserInfos[0].UserId, user.ExtraUserInfo[0].UserId);
-            Assert.AreEqual(InMemoryExtraUserInfos[0].Email, user.ExtraUserInfo[0].Email);
-            Assert.AreEqual(InMemoryExtraUserInfos[0].Children, user.ExtraUserInfo[0].Children);
+            Assert.AreEqual(InMemoryExtraUserInfos[0].ExtraUserInfoId, user.ExtraUserInfo.ElementAt(0).ExtraUserInfoId);
+            Assert.AreEqual(InMemoryExtraUserInfos[0].UserId, user.ExtraUserInfo.ElementAt(0).UserId);
+            Assert.AreEqual(InMemoryExtraUserInfos[0].Email, user.ExtraUserInfo.ElementAt(0).Email);
+            Assert.AreEqual(InMemoryExtraUserInfos[0].Children, user.ExtraUserInfo.ElementAt(0).Children);
         }
 
         [Test]

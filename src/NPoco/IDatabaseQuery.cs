@@ -140,28 +140,28 @@ namespace NPoco
         /// The one columns should come first then the many columns. 
         /// eg. select one.*, many.* from one inner join many on one.id = many.oneid
         /// </summary>
-        List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, string sql, params object[] args);
+        List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, string sql, params object[] args);
         
         /// <summary>
         /// Fetch objects of type T using the sql provided, but also retrieve the many property's data using the sql provided.
         /// The one columns should come first then the many columns. 
         /// eg. select one.*, many.* from one inner join many on one.id = many.oneid
         /// </summary>
-        List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Sql sql);
+        List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Sql sql);
         
         /// <summary>
         /// Fetch objects of type T using the sql provided, but also retrieve the many property's data using the sql provided.
         /// The one columns should come first then the many columns. 
         /// eg. select one.*, many.* from one inner join many on one.id = many.oneid
         /// </summary>
-        List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Func<T, object> idFunc, string sql, params object[] args);
+        List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Func<T, object> idFunc, string sql, params object[] args);
         
         /// <summary>
         /// Fetch objects of type T using the sql provided, but also retrieve the many property's data using the sql provided.
         /// The one columns should come first then the many columns. 
         /// eg. select one.*, many.* from one inner join many on one.id = many.oneid
         /// </summary>
-        List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Func<T, object> idFunc, Sql sql);
+        List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Func<T, object> idFunc, Sql sql);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 

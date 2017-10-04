@@ -26,7 +26,7 @@ namespace NPoco.FluentMappings
             return builder;
         }
 
-        public IManyColumnBuilder<T2> Many<T2>(Expression<Func<T, IList<T2>>> property)
+        public IManyColumnBuilder<T2> Many<T2>(Expression<Func<T, ICollection<T2>>> property)
         {
             var members = MemberHelper<T>.GetMembers(property);
             var columnDefinition = new ColumnDefinition() { MemberInfo = members.Last() };

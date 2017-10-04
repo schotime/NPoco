@@ -986,9 +986,9 @@ namespace NPoco
             }
         }
 
-        private IEnumerable<T> ReadOneToMany<T>(T instance, DbDataReader r, DbCommand cmd, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc)
+        private IEnumerable<T> ReadOneToMany<T>(T instance, DbDataReader r, DbCommand cmd, Expression<Func<T, IEnumerable>> listExpression, Func<T, object[]> idFunc)
         {
-            Func<T, IList> listFunc = null;
+            Func<T, IEnumerable> listFunc = null;
             PocoMember pocoMember = null;
             PocoMember foreignMember = null;
 
@@ -1115,7 +1115,7 @@ namespace NPoco
             }
         }
 
-        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql)
+        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IEnumerable>> listExpression, Func<T, object[]> idFunc, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -1165,22 +1165,22 @@ namespace NPoco
             return r;
         }
 
-        public List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Sql sql)
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Sql sql)
         {
             return QueryImp(default(T), many, null, sql).ToList();
         }
 
-        public List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, string sql, params object[] args)
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, string sql, params object[] args)
         {
             return FetchOneToMany(many, new Sql(sql, args));
         }
 
-        public List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Func<T, object> idFunc, Sql sql)
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Func<T, object> idFunc, Sql sql)
         {
             return QueryImp(default(T), many, x => new[] { idFunc(x) }, sql).ToList();
         }
 
-        public List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Func<T, object> idFunc, string sql, params object[] args)
+        public List<T> FetchOneToMany<T>(Expression<Func<T, IEnumerable>> many, Func<T, object> idFunc, string sql, params object[] args)
         {
             return FetchOneToMany(many, idFunc, new Sql(sql, args));
         }

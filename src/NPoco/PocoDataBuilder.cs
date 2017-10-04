@@ -129,7 +129,7 @@ namespace NPoco
                     var genericArguments = memberInfoType.GetGenericArguments();
                     memberInfoType = genericArguments.Any() 
                         ? genericArguments.First() 
-                        : memberInfoType.GetTypeWithGenericTypeDefinitionOf(typeof(IList<>)).GetGenericArguments().First();
+                        : memberInfoType.GetTypeWithGenericTypeDefinitionOf(typeof(ICollection<>)).GetGenericArguments().First();
                 }
 
                 var childrenPlans = new PocoMemberPlan[0];
@@ -241,7 +241,7 @@ namespace NPoco
         {
             return memberType.IsAClass() || isDynamic
                        ? (new FastCreate(isList
-                            ? (memberType.GetGenericArguments().Any() ? memberType.GetGenericArguments().First() : memberType.GetTypeWithGenericTypeDefinitionOf(typeof(IList<>)).GetGenericArguments().First())
+                            ? (memberType.GetGenericArguments().Any() ? memberType.GetGenericArguments().First() : memberType.GetTypeWithGenericTypeDefinitionOf(typeof(ICollection<>)).GetGenericArguments().First())
                             : memberType, mapperCollection))
                        : null;
         }
@@ -264,7 +264,7 @@ namespace NPoco
 
         public static bool IsList(MemberInfo mi)
         {
-            return mi.GetMemberInfoType().IsOfGenericType(typeof(IList<>)) && !mi.GetMemberInfoType().IsArray;
+            return mi.GetMemberInfoType().IsOfGenericType(typeof(ICollection<>)) && !IsDictionaryType(mi.GetMemberInfoType()) && !mi.GetMemberInfoType().IsArray;
         }
 
         protected virtual string GetColumnName(string prefix, string columnName)
