@@ -12,7 +12,7 @@ namespace NPoco.Tests
     {
         private int testDBType;
 
-        [OneTimeSetUp]
+        [SetUp]
         public void SetUp()
         {
             var configuration = new ConfigurationBuilder()
@@ -43,16 +43,14 @@ namespace NPoco.Tests
                     TestDatabase = new FirebirdDatabase();
                     break;
 #endif
-                case 9: // Microsoft.Data.SQLite
-                    TestDatabase = new SqliteDatabase();
-                    break;
+
                 default:
                     Assert.Fail("Unknown database platform specified: " + testDBType);
                     return;
             }
         }
 
-        [OneTimeTearDown]
+        [TearDown]
         public void CleanUp()
         {
             if (TestDatabase == null) return;
@@ -81,8 +79,6 @@ namespace NPoco.Tests
                     return new PostgreSQLDatabaseType();
                 case 8: // Firebird
                     return new FirebirdDatabaseType();
-                case 9: // Microsoft.Data.Sqlite
-                    return new MicrosoftSqliteDatabaseType();
                 default:
                     Assert.Fail("Unknown database platform specified : " + testDBType);
                     return null;
@@ -214,7 +210,7 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringAndProviderName()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.ConnectionString, dbType, TestDatabase.Factory);
+            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -232,7 +228,7 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringProviderNameAndSettings()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.ConnectionString, dbType, TestDatabase.Factory);
+            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -250,7 +246,7 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringAndDBType()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.ConnectionString, dbType, TestDatabase.Factory);
+            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -268,7 +264,7 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringDBTypeAndIsolationLevel()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.ConnectionString, dbType, TestDatabase.Factory, IsolationLevel.ReadUncommitted);
+            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance, IsolationLevel.ReadUncommitted);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -286,7 +282,7 @@ namespace NPoco.Tests
         public void ConstructorWithConnectionStringDBTypeAndSettings()
         {
             var dbType = GetConfiguredDatabaseType();
-            var db = new Database(TestDatabase.ConnectionString, dbType, TestDatabase.Factory, IsolationLevel.ReadUncommitted, false);
+            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance, IsolationLevel.ReadUncommitted, false);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -305,7 +301,7 @@ namespace NPoco.Tests
         {
             var dbType = GetConfiguredDatabaseType();
             //var provider = DbProviderFactories.GetFactory(dbType.GetProviderName());
-            var db = new Database(TestDatabase.ConnectionString, dbType, TestDatabase.Factory);
+            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);
@@ -324,7 +320,7 @@ namespace NPoco.Tests
         {
             var dbType = GetConfiguredDatabaseType();
             //var provider = DbProviderFactories.GetFactory(dbType.GetProviderName());
-            var db = new Database(TestDatabase.ConnectionString, dbType, TestDatabase.Factory);
+            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
             db.OpenSharedConnection();
             Assert.IsNotNull(db.Connection);
             Assert.IsTrue(db.Connection.State == ConnectionState.Open);

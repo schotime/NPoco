@@ -79,11 +79,7 @@ namespace NPoco.Tests.Common
                     Database = dbFactory.Build(db);
                     break;
 #endif
-                case 9: // Microsoft.Data.SQLite
-                    TestDatabase = new SqliteDatabase();
-                    Database = dbFactory.Build(new Database(TestDatabase.Connection) { KeepConnectionAlive = true });
-                    Database.Mappers.Add(new SqliteMapper());
-                    break;
+
                 default:
                     Assert.Fail("Unknown database platform specified");
                     return;

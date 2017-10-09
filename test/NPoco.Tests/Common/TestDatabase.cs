@@ -11,7 +11,6 @@ namespace NPoco.Tests.Common
         public string ConnectionString { get; set; }
         public string ProviderName { get; set; }
         public DbConnection Connection { get; set; }
-        public DbProviderFactory Factory { get; set; }
 
         protected static readonly object _syncRoot = new object();
 
