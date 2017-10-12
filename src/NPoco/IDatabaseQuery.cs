@@ -358,6 +358,27 @@ namespace NPoco
 
 #if !NET35 && !NET40
         /// <summary>
+        /// Fetch the only row of type T using the sql and parameters specified
+        /// Get an object of type T by primary key value
+        /// </summary>
+        Task<T> SingleAsync<T>(string sql, params object[] args);
+
+        /// <summary>
+        /// Fetch the only row of type T using the sql and parameters specified
+        /// </summary>
+        Task<T> SingleAsync<T>(Sql sql);
+
+        /// <summary>
+        /// Fetch the only row of type T using the sql and parameters specified
+        /// </summary>
+        Task<T> SingleOrDefaultAsync<T>(string sql, params object[] args);
+
+        /// <summary>
+        /// Fetch the only row of type T using the sql and parameters specified
+        /// </summary>
+        Task<T> SingleOrDefaultAsync<T>(Sql sql);
+
+        /// <summary>
         /// Get an object of type T by primary key value
         /// </summary>
         Task<T> SingleByIdAsync<T>(object primaryKey);
@@ -366,6 +387,26 @@ namespace NPoco
         /// Get an object of type T by primary key value
         /// </summary>
         Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey);
+
+        /// <summary>
+        /// Fetch the first row of type T using the sql and parameters specified
+        /// </summary>
+        Task<T> FirstAsync<T>(string sql, params object[] args);
+
+        /// <summary>
+        /// Fetch the first row of type T using the sql and parameters specified
+        /// </summary>
+        Task<T> FirstAsync<T>(Sql sql);
+
+        /// <summary>
+        /// Fetch the first row of type T using the sql and parameters specified
+        /// </summary>
+        Task<T> FirstOrDefaultAsync<T>(string sql, params object[] args);
+
+        /// <summary>
+        /// Fetch the first row of type T using the sql and parameters specified
+        /// </summary>
+        Task<T> FirstOrDefaultAsync<T>(Sql sql);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
