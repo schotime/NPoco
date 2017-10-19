@@ -6,6 +6,7 @@
     <TargetFrameworks>net35;net45;net40;netstandard1.3</TargetFrameworks>
     <AssemblyName>NPoco</AssemblyName>
     <PackageId>NPoco</PackageId>
+    <Authors>Adam Schröder</Authors>
     <PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
     <PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
