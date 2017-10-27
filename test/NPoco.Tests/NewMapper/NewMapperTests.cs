@@ -609,6 +609,32 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         {
             var data = Database.Insert(new NoPrimaryKey());
         }
+
+        [Test]
+        public void Test33()
+        {
+            var users = Database.Query<UserDecorated>()
+                .Where(x=> new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new {list = new[] {2}}))
+                .Where(x => x.UserId.In(new[] { 1, 2 }))
+                .OrderBy(x => x.UserId)
+                .ToList();
+
+            Assert.AreEqual(1, users.Count);
+            Assert.AreEqual(2, users[0].UserId);
+        }
+
+        [Test]
+        public void Test34()
+        {
+            var users = Database.Query<UserDecorated>()
+                .Where(x => x.UserId.In(new[] { 2 }))
+                .Where(x => new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new { list = new[] { 1, 2 } }))
+                .OrderBy(x => x.UserId)
+                .ToList();
+
+            Assert.AreEqual(1, users.Count);
+            Assert.AreEqual(2, users[0].UserId);
+        }
     }
 
     public class NoPrimaryKey

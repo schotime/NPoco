@@ -37,6 +37,8 @@ namespace NPoco.Linq
             return pocoMember.PocoMemberJoin.PocoColumn.TableInfo.AutoAlias;
         }
 
+        public PocoData PocoData =>_database.PocoDataFactory.ForType(typeof(T));
+
         public PocoData GetPocoDataFor<TModel>()
         {
             return _database.PocoDataFactory.ForType(typeof (TModel));

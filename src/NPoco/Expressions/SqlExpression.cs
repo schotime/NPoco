@@ -103,7 +103,6 @@ namespace NPoco.Expressions
         private readonly IDatabase _database;
         private readonly DatabaseType _databaseType;
         private bool PrefixFieldWithTableName { get; set; }
-        private bool WhereStatementWithoutWhereString { get; set; }
         private Type _type { get; set; }
 
         public SqlExpression(IDatabase database, PocoData pocoData, bool prefixTableName)
@@ -113,7 +112,6 @@ namespace NPoco.Expressions
             _database = database;
             _databaseType = database.DatabaseType;
             PrefixFieldWithTableName = prefixTableName;
-            WhereStatementWithoutWhereString = false;
             paramPrefix = "@";
             Context = new SqlExpressionContext(this);
         }
@@ -171,29 +169,6 @@ namespace NPoco.Expressions
         }
 
         /// <summary>
-        /// Clear select expression. All properties will be selected.
-        /// </summary>
-        //public virtual SqlExpression<T> Select()
-        //{
-        //    return Select(string.Empty);
-        //}
-
-        /// <summary>
-        /// set the specified selectExpression.
-        /// </summary>
-        /// <param name='selectExpression'>
-        /// raw Select expression: "Select SomeField1, SomeField2 from SomeTable"
-        /// </param>
-        //public virtual SqlExpression<T> Select(string selectExpression)
-        //{
-        //    if (!string.IsNullOrEmpty(selectExpression))
-        //    {
-        //        this.selectExpression = selectExpression;
-        //    }
-        //    return this;
-        //}
-
-        /// <summary>
         /// Fields to be selected.
         /// </summary>
         /// <param name='fields'>
@@ -228,12 +203,6 @@ namespace NPoco.Expressions
             return SelectProjection(fields);
         }
 
-        //public virtual SqlExpression<T> Where()
-        //{
-        //    if (underlyingExpression != null) underlyingExpression = null; //Where() clears the expression
-        //    return Where(string.Empty);
-        //}
-
         public virtual SqlExpression<T> Where(string sqlFilter, params object[] filterParams)
         {
             if (string.IsNullOrEmpty(sqlFilter))
@@ -241,6 +210,13 @@ namespace NPoco.Expressions
 
             sqlFilter = ParameterHelper.ProcessParams(sqlFilter, filterParams, _params);
 
+            appendSqlFilter(sqlFilter);
+
+            return this;
+        }
+
+        private void appendSqlFilter(string sqlFilter)
+        {
             if (string.IsNullOrEmpty(whereExpression))
             {
                 whereExpression = "WHERE " + sqlFilter;
@@ -249,8 +225,6 @@ namespace NPoco.Expressions
             {
                 whereExpression += " AND " + sqlFilter;
             }
-
-            return this;
         }
 
         public string On<T2>(Expression<Func<T, T2, bool>> predicate)
@@ -289,26 +263,16 @@ namespace NPoco.Expressions
             return this;
         }
 
-        //public virtual SqlExpression<T> Or(Expression<Func<T, bool>> predicate)
-        //{
-        //    if (predicate != null)
-        //    {
-        //        if (underlyingExpression == null)
-        //            underlyingExpression = predicate;
-        //        else
-        //            underlyingExpression = underlyingExpression.Or(predicate);
-
-        //        ProcessInternalExpression();
-        //    }
-        //    return this;
-        //}
-
         private void ProcessInternalExpression()
         {
             sep = " ";
             var exp = PartialEvaluator.Eval(underlyingExpression, CanBeEvaluatedLocally);
-            whereExpression = Visit(exp).ToString();
-            if (!string.IsNullOrEmpty(whereExpression)) whereExpression = (WhereStatementWithoutWhereString ? "" : "WHERE ") + whereExpression;
+            var sqlFilter = Visit(exp).ToString();
+
+            if (!string.IsNullOrEmpty(sqlFilter))
+            {
+                appendSqlFilter(sqlFilter);
+            }
         }
 
         private bool CanBeEvaluatedLocally(Expression expression)
@@ -335,17 +299,6 @@ namespace NPoco.Expressions
                    expression.NodeType != ExpressionType.Lambda;
         }
 
-        //public virtual SqlExpression<T> GroupBy()
-        //{
-        //    return GroupBy(string.Empty);
-        //}
-
-        //public virtual SqlExpression<T> GroupBy(string groupBy)
-        //{
-        //    this.groupBy = groupBy;
-        //    return this;
-        //}
-
         public virtual SqlExpression<T> GroupBy<TKey>(Expression<Func<T, TKey>> keySelector)
         {
             sep = string.Empty;
@@ -353,51 +306,6 @@ namespace NPoco.Expressions
             if (!string.IsNullOrEmpty(groupBy)) groupBy = string.Format("GROUP BY {0}", groupBy);
             return this;
         }
-
-        //public virtual SqlExpression<T> Having()
-        //{
-        //    return Having(string.Empty);
-        //}
-
-        //public virtual SqlExpression<T> Having(string sqlFilter, params object[] filterParams)
-        //{
-        //    havingExpression = !string.IsNullOrEmpty(sqlFilter) ? sqlFilter : string.Empty;
-        //    foreach (var filterParam in filterParams)
-        //    {
-        //        CreateParam(filterParam);
-        //    }
-        //    if (!string.IsNullOrEmpty(havingExpression)) havingExpression = "HAVING " + havingExpression;
-        //    return this;
-        //}
-
-        //public virtual SqlExpression<T> Having(Expression<Func<T, bool>> predicate)
-        //{
-
-        //    if (predicate != null)
-        //    {
-        //        sep = " ";
-        //        havingExpression = Visit(predicate).ToString();
-        //        if (!string.IsNullOrEmpty(havingExpression)) havingExpression = "HAVING " + havingExpression;
-        //    }
-        //    else
-        //        havingExpression = string.Empty;
-
-        //    return this;
-        //}
-
-
-
-        //public virtual SqlExpression<T> OrderBy()
-        //{
-        //    return OrderBy(string.Empty);
-        //}
-
-        //public virtual SqlExpression<T> OrderBy(string orderBy)
-        //{
-        //    orderByProperties.Clear();
-        //    this.orderBy = orderBy;
-        //    return this;
-        //}
 
         public virtual SqlExpression<T> OrderBy<TKey>(Expression<Func<T, TKey>> keySelector)
         {
@@ -494,29 +402,6 @@ namespace NPoco.Expressions
         }
 
         /// <summary>
-        /// Clear Sql Limit clause
-        /// </summary>
-        //public virtual SqlExpression<T> Limit()
-        //{
-        //    Skip = null;
-        //    Rows = null;
-        //    return this;
-        //}
-
-
-        /// <summary>
-        /// Fields to be updated.
-        /// </summary>
-        /// <param name='updatefields'>
-        /// IList<string> containing Names of properties to be updated
-        /// </param>
-        //public virtual SqlExpression<T> Update(IList<string> updateFields)
-        //{
-        //    this.updateFields = updateFields;
-        //    return this;
-        //}
-
-        /// <summary>
         /// Fields to be updated.
         /// </summary>
         /// <param name='fields'>
@@ -534,52 +419,6 @@ namespace NPoco.Expressions
             generalMembers.Clear();
             return this;
         }
-
-        /// <summary>
-        /// Clear UpdateFields list ( all fields will be updated)
-        /// </summary>
-        //public virtual SqlExpression<T> Update()
-        //{
-        //    this.updateFields = new List<string>();
-        //    return this;
-        //}
-
-        /// <summary>
-        /// Fields to be inserted.
-        /// </summary>
-        /// <param name='fields'>
-        /// x=> x.SomeProperty1 or x=> new{ x.SomeProperty1, x.SomeProperty2}
-        /// </param>
-        /// <typeparam name='TKey'>
-        /// objectWithProperties
-        /// </typeparam>
-        //public virtual SqlExpression<T> Insert<TKey>(Expression<Func<T, TKey>> fields)
-        //{
-        //    sep = string.Empty;
-        //    Context.InsertFields = Visit(fields).ToString().Split(',').ToList();
-        //    return this;
-        //}
-
-        /// <summary>
-        /// fields to be inserted.
-        /// </summary>
-        /// <param name='insertFields'>
-        /// IList&lt;string&gt; containing Names of properties to be inserted
-        /// </param>
-        //public virtual SqlExpression<T> Insert(IList<string> insertFields)
-        //{
-        //    this.insertFields = insertFields;
-        //    return this;
-        //}
-
-        /// <summary>
-        /// Clear InsertFields list ( all fields will be inserted)
-        /// </summary>
-        //public virtual SqlExpression<T> Insert()
-        //{
-        //    this.insertFields = new List<string>();
-        //    return this;
-        //}
 
         protected virtual string ToDeleteStatement()
         {
@@ -650,11 +489,6 @@ namespace NPoco.Expressions
 
             return applyPaging ? ApplyPaging(sql.ToString(), ModelDef.QueryColumns.Select(x=> new[] { x.Value }), new Dictionary<string, JoinData>()) : sql.ToString();
         }
-
-        //public virtual string ToCountStatement()
-        //{
-        //    return OrmLiteConfig.DialectProvider.ToCountStatement(modelDef.ModelType, WhereExpression, null);
-        //}
 
         private string GetSelectExpression(bool distinct)
         {
