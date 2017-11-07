@@ -181,5 +181,15 @@ namespace NPoco.Tests
             Assert.AreEqual(1, temp.Parameters.Length);
             Assert.AreEqual("select * from test where  1<>2  and id = @0", temp.RawSql);
         }
+
+        [Test]
+        public void Test14()
+        {
+            var builder = new SqlBuilder();
+
+            var template = builder.AddTemplate("SELECT /**select**/, COUNT(*) FROM test /**groupby**/");
+
+            Assert.AreEqual("SELECT  1 , COUNT(*) FROM test ", template.RawSql);
+        }
     }
 }
