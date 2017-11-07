@@ -55,7 +55,7 @@ namespace NPoco
                 this.builder = builder;
             }
 
-            static Regex regex = new Regex(@"(\/\*\*.+\*\*\/)", RegexOptions.Compiled | RegexOptions.Multiline);
+            static Regex regex = new Regex(@"(\/\*\*[^*/]+\*\*\/)", RegexOptions.Compiled | RegexOptions.Multiline);
 
             void ResolveSql()
             {
