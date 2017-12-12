@@ -85,6 +85,17 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void QueryWithSeparateWheresProduceSameSql()
+        {
+            var users1 = Database.Query<User>().Where(x => x.UserId == 1).Where(x => x.UserId == 2).ToList();
+            var sql1 = ((Database)Database).LastSQL;
+            var users2 = Database.Query<User>().Where(x => x.UserId == 1 && x.UserId == 2).ToList();
+            var sql2 = ((Database)Database).LastSQL.Replace("((","(").Replace("))", ")");
+
+            Assert.AreEqual(sql1, sql2);
+        }
+
+        [Test]
         public void QueryWithWhereFalse()
         {
             var users = Database.Query<User>().Where(x => false).ToList();

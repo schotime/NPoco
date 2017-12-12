@@ -258,15 +258,15 @@ namespace NPoco.Expressions
                 else
                     underlyingExpression = underlyingExpression.And(predicate);
 
-                ProcessInternalExpression();
+                ProcessInternalExpression(predicate);
             }
             return this;
         }
 
-        private void ProcessInternalExpression()
+        private void ProcessInternalExpression(Expression<Func<T, bool>> predicate)
         {
             sep = " ";
-            var exp = PartialEvaluator.Eval(underlyingExpression, CanBeEvaluatedLocally);
+            var exp = PartialEvaluator.Eval(predicate, CanBeEvaluatedLocally);
             var sqlFilter = Visit(exp).ToString();
 
             if (!string.IsNullOrEmpty(sqlFilter))
