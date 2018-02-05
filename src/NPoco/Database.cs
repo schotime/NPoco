@@ -1197,6 +1197,11 @@ namespace NPoco
         // Actual implementation of the multi-poco paging
         protected TRet PageImp<T, TRet>(long page, long itemsPerPage, string sql, object[] args, Func<Page<T>, Sql, TRet> executeQueryFunc)
         {
+            if (page <= 0 || itemsPerPage <= 0)
+            {
+                throw new ArgumentException("Parameter page and itemsPerPage must be greater then zero.");
+            }
+
             string sqlCount, sqlPage;
 
             long offset = (page - 1) * itemsPerPage;
