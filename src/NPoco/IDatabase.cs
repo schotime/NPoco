@@ -73,7 +73,7 @@ namespace NPoco
         /// Insert POCO into the table by convention or configuration
         /// </summary>   
         object Insert<T>(T poco);
-              
+
 #if !NET35 && !NET40
         /// <summary>
         /// Insert POCO into the table by convention or configuration

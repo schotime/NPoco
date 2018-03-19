@@ -32,6 +32,7 @@ namespace NPoco.Linq
         List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T> Distinct();
+        List<T2> GroupByAndProject<T2>(Expression<Func<T, T2>> column);
 #if !NET35 && !NET40
         System.Threading.Tasks.Task<List<T>> ToListAsync();
         System.Threading.Tasks.Task<T[]> ToArrayAsync();
@@ -51,6 +52,7 @@ namespace NPoco.Linq
 
     public interface IQueryProvider<T> : IQueryResultProvider<T>
     {
+        Sql BuildSql();
         IQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
         IQueryProvider<T> Where(string sql, params object[] args);
         IQueryProvider<T> Where(Sql sql);
@@ -62,6 +64,12 @@ namespace NPoco.Linq
         IQueryProvider<T> Limit(int rows);
         IQueryProvider<T> Limit(int skip, int rows);
         IQueryProvider<T> From(QueryBuilder<T> builder);
+        IQueryProvider<T> GroupBy(Expression<Func<T, object>> column);
+        IQueryProvider<T> Select(Expression<Func<T, object>> column, string alias = null);
+        IQueryProvider<T> Sum(Expression<Func<T, object>> column, string alias = null);
+        IQueryProvider<T> Avg(Expression<Func<T, object>> column, string alias = null);
+        IQueryProvider<T> CountExp(Expression<Func<T, object>> column, string alias = null);
+        List<K> Execute<K>();
     }
 
     public interface IQueryProviderWithIncludes<T> : IQueryProvider<T>
@@ -72,19 +80,49 @@ namespace NPoco.Linq
         IQueryProviderWithIncludes<T> UsingAlias(string empty);
     }
 
+    public class SubQueryProvider<T> : QueryProvider<T>
+    {
+        private IQueryProvider<T> _subQuery;
+
+        public IQueryProvider<T> SubQuery { get { return _subQuery; } }
+
+        public SubQueryProvider(Database database, IQueryProvider<T> subQuery) : base(database, null, subQuery.BuildSql().SQL)
+        {
+            _subQuery = subQuery;
+            _sqlExpression.Context.AddParams(_subQuery.BuildSql().Arguments);
+        }
+
+        public override Sql BuildSql()
+        {
+            Sql sql;
+            if (_joinSqlExpressions.Any())
+                sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, false, false);
+            else
+                sql = new Sql(true, _sqlExpression.Context.ToSelectStatement(), _sqlExpression.Context.Params);
+            return sql;
+        }
+    }
+
     public class QueryProvider<T> : IQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>
     {
-        private readonly Database _database;
-        private SqlExpression<T> _sqlExpression;
-        private Dictionary<string, JoinData> _joinSqlExpressions = new Dictionary<string, JoinData>();
-        private readonly ComplexSqlBuilder<T> _buildComplexSql;
-        private Expression<Func<T, IList>> _listExpression = null;
-        private PocoData _pocoData;
+        protected readonly Database _database;
+        protected SqlExpression<T> _sqlExpression;
+        protected Dictionary<string, JoinData> _joinSqlExpressions = new Dictionary<string, JoinData>();
+        protected readonly ComplexSqlBuilder<T> _buildComplexSql;
+        protected Expression<Func<T, IList>> _listExpression = null;
+        protected PocoData _pocoData;
 
-        public QueryProvider(Database database, Expression<Func<T, bool>> whereExpression)
+
+        public QueryProvider(Database database, Expression<Func<T, bool>> whereExpression, string subQuery = null)
         {
             _database = database;
-            _pocoData = database.PocoDataFactory.ForType(typeof (T));
+            _pocoData = database.PocoDataFactory.ForType(typeof(T));
+            if (subQuery != null)
+            {
+                _pocoData.TableInfo.TableName = subQuery;
+                _pocoData.TableInfo.IsInlineView = true;
+            }
+
             _sqlExpression = database.DatabaseType.ExpressionVisitor<T>(database, _pocoData, true);
             _buildComplexSql = new ComplexSqlBuilder<T>(database, _pocoData, _sqlExpression, _joinSqlExpressions);
             _sqlExpression = _sqlExpression.Where(whereExpression);
@@ -310,7 +348,7 @@ namespace NPoco.Linq
             return ToEnumerable().ToArray();
         }
 
-        public List<T> ToList()
+        public virtual List<T> ToList()
         {
             return ToEnumerable().ToList();
         }
@@ -334,12 +372,12 @@ namespace NPoco.Linq
         }
 #endif
 
-        private IEnumerable<T> ExecuteQuery(Sql sql)
+        protected IEnumerable<T> ExecuteQuery(Sql sql)
         {
             return _database.QueryImp(default(T), _listExpression, null, sql);
         }
 
-        private Sql BuildSql()
+        public virtual Sql BuildSql()
         {
             Sql sql;
             if (_joinSqlExpressions.Any())
@@ -480,6 +518,42 @@ namespace NPoco.Linq
             return this;
         }
 
+        public IQueryProvider<T> GroupBy(Expression<Func<T, object>> column)
+        {
+            _sqlExpression = _sqlExpression.GroupBy(column);
+            return this;
+        }
+
+        public IQueryProvider<T> Sum(Expression<Func<T, object>> column, string alias = null)
+        {
+            _sqlExpression = _sqlExpression.Sum(column, alias);
+            return this;
+        }
+
+        public IQueryProvider<T> Avg(Expression<Func<T, object>> column, string alias = null)
+        {
+            _sqlExpression = _sqlExpression.Avg(column, alias);
+            return this;
+        }
+
+        public IQueryProvider<T> CountExp(Expression<Func<T, object>> column, string alias = null)
+        {
+            _sqlExpression = _sqlExpression.CountExp(column, alias);
+            return this;
+        }
+
+        public IQueryProvider<T> Select(Expression<Func<T, object>> column, string alias = null)
+        {
+            _sqlExpression = _sqlExpression.Select(column, alias);
+            return this;
+        }
+
+        public List<T2> GroupByAndProject<T2>(Expression<Func<T, T2>> column)
+        {
+            _sqlExpression = _sqlExpression.GroupBy(column);
+            return ProjectTo<T2>(column);
+        }
+
         public IQueryProvider<T> OrderByDescending(Expression<Func<T, object>> column)
         {
             _sqlExpression = _sqlExpression.OrderByDescending(column);
@@ -496,6 +570,11 @@ namespace NPoco.Linq
         {
             _sqlExpression = _sqlExpression.ThenByDescending(column);
             return this;
+        }
+
+        public List<K> Execute<K>()
+        {
+            return _database.QueryImp<K>(default(K), null, null, BuildSql()).ToList();
         }
     }
 }

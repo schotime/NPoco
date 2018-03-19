@@ -52,7 +52,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void DistinctQueryWithProjection()
         {
-            var userRecordsExist = Database.Query<User>().Distinct(y => new {y.IsMale});
+            var userRecordsExist = Database.Query<User>().Distinct(y => new { y.IsMale });
             Assert.AreEqual(2, userRecordsExist.Count);
         }
 
@@ -90,7 +90,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var users1 = Database.Query<User>().Where(x => x.UserId == 1).Where(x => x.UserId == 2).ToList();
             var sql1 = ((Database)Database).LastSQL;
             var users2 = Database.Query<User>().Where(x => x.UserId == 1 && x.UserId == 2).ToList();
-            var sql2 = ((Database)Database).LastSQL.Replace("((","(").Replace("))", ")");
+            var sql2 = ((Database)Database).LastSQL.Replace("((", "(").Replace("))", ")");
 
             Assert.AreEqual(sql1, sql2);
         }
@@ -194,7 +194,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void QueryWithOrderByDescendingThenBy()
         {
-            var users = Database.Query<User>().Include(x=>x.House).OrderByDescending(x => x.House.HouseId).ThenBy(x => x.UserId).ToList();
+            var users = Database.Query<User>().Include(x => x.House).OrderByDescending(x => x.House.HouseId).ThenBy(x => x.UserId).ToList();
             var inmemory = InMemoryUsers.OrderByDescending(x => x.House != null ? x.House.HouseId : -1).ThenBy(x => x.UserId).ToList();
 
             Assert.AreEqual(15, users.Count);
@@ -220,8 +220,8 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void QueryWithLimit()
         {
-            var users = Database.Query<User>().OrderBy(x=>x.UserId).Limit(5).ToList();
-            var inmemory = InMemoryUsers.OrderBy(x=>x.UserId).Take(5).ToList();
+            var users = Database.Query<User>().OrderBy(x => x.UserId).Limit(5).ToList();
+            var inmemory = InMemoryUsers.OrderBy(x => x.UserId).Take(5).ToList();
 
             Assert.AreEqual(5, users.Count);
             for (int i = 0; i < users.Count; i++)
@@ -233,7 +233,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void QueryWithLimitWithOffset()
         {
-            var users = Database.Query<User>().OrderBy(x => x.UserId).Limit(5,5).ToList();
+            var users = Database.Query<User>().OrderBy(x => x.UserId).Limit(5, 5).ToList();
             var inmemory = InMemoryUsers.OrderBy(x => x.UserId).Skip(5).Take(5).ToList();
 
             Assert.AreEqual(5, users.Count);
@@ -285,7 +285,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void QueryWithInclude()
         {
-            var users = Database.Query<User>().Include(x=>x.House).ToList();
+            var users = Database.Query<User>().Include(x => x.House).ToList();
 
             Assert.AreEqual(15, users.Count);
             for (int i = 0; i < users.Count; i++)
@@ -309,9 +309,31 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void SubQueryWithAggregationTest()
+        {
+            var q = Database.FromSubQuery(
+                              Database.Query<CompositeUserTest>()
+                              .Include(x => x.ExtraUserInfo)
+                              .Include(x => x.House)
+                              .Where(x => x.ExtraUserInfo.Children > 10)
+                           )
+                          .Select(t => t.House.Address, "HomeAddress")
+                          .Sum(t => t.ExtraUserInfo.Children, "ChildrenSum")
+                          .Avg(t => t.ExtraUserInfo.Children, "ChildrenAvg")
+                          .GroupBy(t => t.House.Address).OrderByDescending(t => t.House.Address).Where(t => t.House.HouseId > 0);
+
+            var sql = q.BuildSql();
+
+            Assert.True(sql.SQL.Equals("SELECT [CUT].[House__Address] as [HomeAddress], SUM([CUT].[ExtraUserInfo__Children]) as [ChildrenSum], AVG([CUT].[ExtraUserInfo__Children]) as [ChildrenAvg] \nFROM (SELECT [CUT].[UserId] as [UserId], [CUT].[HouseId] as [HouseId], [CUT].[Name] as [Name], [EUID].[ExtraUserInfoId] as [ExtraUserInfo__ExtraUserInfoId], [EUID].[UserId] as [ExtraUserInfo__UserId], [EUID].[Email] as [ExtraUserInfo__Email], [EUID].[Children] as [ExtraUserInfo__Children], [HD].[HouseId] as [House__HouseId], [HD].[Address] as [House__Address] FROM [Users] [CUT]  \n  LEFT JOIN [ExtraUserInfos] [EUID] ON [CUT].[UserId] = [EUID].[UserId] \n  LEFT JOIN [Houses] [HD] ON [CUT].[HouseId] = [HD].[HouseId] \nWHERE ([EUID].[Children] > @0) ) [CUT] \nWHERE ([CUT].[House__HouseId] > @1) \nGROUP BY [CUT].[House__Address] \nORDER BY [House__Address] DESC"));
+
+            var result = q.Execute<SubQueryTest>();
+            Assert.True(result.Count == 2);
+        }
+
+        [Test]
         public void QueryWithIncludeAndNestedWhere()
         {
-            var users = Database.Query<User>().Include(x => x.House).Where(x=> x.House.Address == InMemoryHouses[0].Address).ToList();
+            var users = Database.Query<User>().Include(x => x.House).Where(x => x.House.Address == InMemoryHouses[0].Address).ToList();
             var inmemory = InMemoryUsers.Where(x => x.House != null && x.House.Address == InMemoryHouses[0].Address).ToList();
 
             Assert.AreEqual(1, users.Count);
@@ -325,7 +347,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         [Test]
         public void QueryWithIncludeAndNestedOrderBy()
         {
-            var users = Database.Query<User>().Include(x => x.House).Where(x=>x.House != null).OrderBy(x => x.House.Address).ToList();
+            var users = Database.Query<User>().Include(x => x.House).Where(x => x.House != null).OrderBy(x => x.House.Address).ToList();
             var inmemory = InMemoryUsers.Where(x => x.House != null).OrderBy(x => x.House.Address).ToList();
 
             Assert.AreEqual(7, users.Count);
@@ -387,8 +409,11 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 // these arguments are properly supported (ProcessMethodSearchRecursively supports
                 // NewArrayExpression).
                 var users = Database.Query<User>()
-                    .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format("{0:n} {1:n} {2:n} {3:n} {4:n} {5:n} {6:n}",
-                        x.Age, x.Age, x.Age, x.Age, x.Age, x.Age, x.Age) });
+                    .ProjectTo(x => new ProjectUser2
+                    {
+                        FormattedAge = string.Format("{0:n} {1:n} {2:n} {3:n} {4:n} {5:n} {6:n}",
+                        x.Age, x.Age, x.Age, x.Age, x.Age, x.Age, x.Age)
+                    });
 
                 Assert.AreEqual("21.00 21.00 21.00 21.00 21.00 21.00 21.00", users[0].FormattedAge);
                 Assert.AreEqual(15, users.Count);
@@ -487,9 +512,9 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 .Where(x => x.House != null)
                 .OrderBy(x => x.House.HouseId)
                 .Limit(5)
-                .ProjectTo(x => new { Address = (x.House != null ? x.House.Address : string.Empty), x.House.HouseId});
+                .ProjectTo(x => new { Address = (x.House != null ? x.House.Address : string.Empty), x.House.HouseId });
 
-            var inmemory = InMemoryUsers.Where(x => x.House != null).OrderBy(x => x.House.HouseId).Select(x => new {x.House.Address, x.House.HouseId}).ToList();
+            var inmemory = InMemoryUsers.Where(x => x.House != null).OrderBy(x => x.House.HouseId).Select(x => new { x.House.Address, x.House.HouseId }).ToList();
 
             Assert.AreEqual(5, users.Count);
             for (int i = 0; i < users.Count; i++)

@@ -16,22 +16,22 @@ namespace NPoco
         /// Opens the DbConnection manually
         /// </summary>
         IDatabase OpenSharedConnection();
-        
+
         /// <summary>
         /// Closes the DBConnection manually
         /// </summary>
         void CloseSharedConnection();
-        
+
         /// <summary>
         /// Builds a paged query from a non-paged query
         /// </summary>
         void BuildPageQueries<T>(long skip, long take, string sql, ref object[] args, out string sqlCount, out string sqlPage);
-        
+
         /// <summary>
         /// Executes the provided sql and parameters
         /// </summary>
         int Execute(string sql, params object[] args);
-        
+
         /// <summary>
         /// Executes the provided sql and parameters
         /// </summary>
@@ -46,7 +46,7 @@ namespace NPoco
         /// Executes the provided sql and parameters and casts the result to T
         /// </summary>
         T ExecuteScalar<T>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Executes the provided sql and parameters and casts the result to T
         /// </summary>
@@ -61,18 +61,18 @@ namespace NPoco
         /// Non generic Fetch which returns a list of objects of the given type provided
         /// </summary>
         List<object> Fetch(Type type, string sql, params object[] args);
-        
+
         /// <summary>
         /// Non generic Fetch which returns a list of objects of the given type provided
         /// </summary>
         List<object> Fetch(Type type, Sql Sql);
-        
+
         /// <summary>
         /// Non generic Query which returns a list of objects of the given type provided. 
         /// Caution: This query will only be executed once you start iterating the result
         /// </summary>
         IEnumerable<object> Query(Type type, string sql, params object[] args);
-        
+
         /// <summary>
         /// Non generic Query which returns a list of objects of the given type provided. 
         /// Caution: This query will only be executed once you start iterating the result
@@ -84,29 +84,29 @@ namespace NPoco
         /// Caution: This will retrieve ALL objects in the table
         /// </summary>
         List<T> Fetch<T>();
-        
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// </summary>
         List<T> Fetch<T>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified
         /// </summary>
         List<T> Fetch<T>(Sql sql);
-        
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the page and itemsPerPage values specified will be returned.
         /// </summary>
         List<T> Fetch<T>(long page, long itemsPerPage, string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the page and itemsPerPage values specified will be returned.
         /// </summary>
         List<T> Fetch<T>(long page, long itemsPerPage, Sql sql);
-        
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the page and itemsPerPage specified will be returned.
@@ -114,7 +114,7 @@ namespace NPoco
         /// Note: This will perform two queries. One for the paged results and one for the count of all results.
         /// </summary>
         Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the page and itemsPerPage specified will be returned.
@@ -128,7 +128,7 @@ namespace NPoco
         /// The sql provided will be converted so that only the results for the skip and take values specified will be returned.
         /// </summary>
         List<T> SkipTake<T>(long skip, long take, string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the skip and take values specified will be returned.
@@ -141,21 +141,21 @@ namespace NPoco
         /// eg. select one.*, many.* from one inner join many on one.id = many.oneid
         /// </summary>
         List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch objects of type T using the sql provided, but also retrieve the many property's data using the sql provided.
         /// The one columns should come first then the many columns. 
         /// eg. select one.*, many.* from one inner join many on one.id = many.oneid
         /// </summary>
         List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Sql sql);
-        
+
         /// <summary>
         /// Fetch objects of type T using the sql provided, but also retrieve the many property's data using the sql provided.
         /// The one columns should come first then the many columns. 
         /// eg. select one.*, many.* from one inner join many on one.id = many.oneid
         /// </summary>
         List<T> FetchOneToMany<T>(Expression<Func<T, IList>> many, Func<T, object> idFunc, string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch objects of type T using the sql provided, but also retrieve the many property's data using the sql provided.
         /// The one columns should come first then the many columns. 
@@ -168,43 +168,46 @@ namespace NPoco
         /// Caution: This query will only be executed once you start iterating the result
         /// </summary>
         IEnumerable<T> Query<T>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// Caution: This query will only be executed once you start iterating the result
         /// </summary>
         IEnumerable<T> Query<T>(Sql sql);
-        
+
+        //IQueryProvider<T> Query<T,K>(IQueryProvider<K> subQuery);
+        SubQueryProvider<T> FromSubQuery<T>(IQueryProvider<T> subQuery);
+
         /// <summary>
         /// Entry point for LINQ queries
         /// </summary>
         IQueryProviderWithIncludes<T> Query<T>();
-        
+
         /// <summary>
         /// Get an object of type T by primary key value
         /// </summary>
         T SingleById<T>(object primaryKey);
-        
+
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
         /// </summary>
         T Single<T>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified into the T instance provided
         /// </summary>
         T SingleInto<T>(T instance, string sql, params object[] args);
-        
+
         /// <summary>
         /// Get an object of type T by primary key value where the row may not be there
         /// </summary>
         T SingleOrDefaultById<T>(object primaryKey);
-        
+
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
         /// </summary>
         T SingleOrDefault<T>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified into the T instance provided
         /// </summary>
@@ -214,17 +217,17 @@ namespace NPoco
         /// Fetch the first row of type T using the sql and parameters specified
         /// </summary>
         T First<T>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified into the T instance provided
         /// </summary>
         T FirstInto<T>(T instance, string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified
         /// </summary>
         T FirstOrDefault<T>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified into the T instance provided
         /// </summary>
@@ -234,37 +237,37 @@ namespace NPoco
         /// Fetch the only row of type T using the Sql specified
         /// </summary>
         T Single<T>(Sql sql);
-        
+
         /// <summary>
         /// Fetch the only row of type T using the Sql specified into the T instance provided
         /// </summary>
         T SingleInto<T>(T instance, Sql sql);
-        
+
         /// <summary>
         /// Fetch the only row of type T using the Sql specified
         /// </summary>
         T SingleOrDefault<T>(Sql sql);
-        
+
         /// <summary>
         /// Fetch the only row of type T using the Sql specified
         /// </summary>
         T SingleOrDefaultInto<T>(T instance, Sql sql);
-        
+
         /// <summary>
         /// Fetch the first row of type T using the Sql specified
         /// </summary>
         T First<T>(Sql sql);
-        
+
         /// <summary>
         /// Fetch the first row of type T using the Sql specified into the T instance provided
         /// </summary>
         T FirstInto<T>(T instance, Sql sql);
-        
+
         /// <summary>
         /// Fetch the first row of type T using the Sql specified
         /// </summary>
         T FirstOrDefault<T>(Sql sql);
-        
+
         /// <summary>
         /// Fetch the first row of type T using the Sql specified
         /// </summary>
@@ -274,17 +277,17 @@ namespace NPoco
         /// Fetches the first two columns into a dictionary using the first value as the key and the second as the value
         /// </summary>
         Dictionary<TKey, TValue> Dictionary<TKey, TValue>(Sql Sql);
-        
+
         /// <summary>
         /// Fetches the first two columns into a dictionary using the first value as the key and the second as the value
         /// </summary>
         Dictionary<TKey, TValue> Dictionary<TKey, TValue>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Checks if the POCO of type T exists by using the primary key value
         /// </summary>
         bool Exists<T>(object primaryKey);
-        
+
         /// <summary>
         /// Specifies the command timeout to be used for the very next command
         /// </summary>
@@ -295,31 +298,31 @@ namespace NPoco
         /// In this method you must provide how you will take the results and combine them
         /// </summary>
         TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetches multiple result sets into the one object.
         /// In this method you must provide how you will take the results and combine them
         /// </summary>
         TRet FetchMultiple<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetches multiple result sets into the one object.
         /// In this method you must provide how you will take the results and combine them
         /// </summary>
         TRet FetchMultiple<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetches multiple result sets into the one object.
         /// In this method you must provide how you will take the results and combine them
         /// </summary>
         TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, Sql sql);
-        
+
         /// <summary>
         /// Fetches multiple result sets into the one object.
         /// In this method you must provide how you will take the results and combine them
         /// </summary>
         TRet FetchMultiple<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, Sql sql);
-        
+
         /// <summary>
         /// Fetches multiple result sets into the one object.
         /// In this method you must provide how you will take the results and combine them
@@ -330,27 +333,27 @@ namespace NPoco
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
         Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
         Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
         Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(string sql, params object[] args);
-        
+
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
         Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(Sql sql);
-        
+
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
         Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql);
-        
+
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -85,12 +85,14 @@ namespace NPoco.Linq
             // Override select columns with projected ones
             if (newMembers != null)
             {
-                var selectMembers = ((ISqlExpression) _sqlExpression).OrderByMembers
-                    .Select(x => new SelectMember() {PocoColumn = x.PocoColumn, EntityType = x.EntityType, PocoColumns = x.PocoColumns})
+                var selectMembers = ((ISqlExpression)_sqlExpression).OrderByMembers
+                    .Select(x => new SelectMember() { PocoColumn = x.PocoColumn, EntityType = x.EntityType, PocoColumns = x.PocoColumns })
                     .Where(x => !newMembers.Any(y => y.EntityType == x.EntityType && y.PocoColumns.SequenceEqual(x.PocoColumns)));
 
                 cols = newMembers.Concat(selectMembers).Select(x =>
                 {
+
+                    // Count ve sum functionlarıni stringcol'a ekle
                     return new StringPocoCol
                     {
                         StringCol = database.DatabaseType.EscapeTableName(x.PocoColumn.TableInfo.AutoAlias) + "." +
@@ -102,13 +104,13 @@ namespace NPoco.Linq
 
             // replace templates
             var resultantSql = string.Format(sqlTemplate,
-                (distinct ? "DISTINCT " : "") + string.Join(", ", cols.Select(x=>x.StringCol).ToArray()),
-                database.DatabaseType.EscapeTableName(modelDef.TableInfo.TableName) + " " + database.DatabaseType.EscapeTableName(modelDef.TableInfo.AutoAlias),
+                (distinct ? "DISTINCT " : "") + string.Join(", ", cols.Select(x => x.StringCol).ToArray()),
+                ((_pocoData.TableInfo.IsInlineView) ? string.Format("({0})", modelDef.TableInfo.TableName) : database.DatabaseType.EscapeTableName(modelDef.TableInfo.TableName)) + " " + database.DatabaseType.EscapeTableName(modelDef.TableInfo.AutoAlias),
                 joins,
                 where,
                 orderbys);
 
-            var newsql = count ? resultantSql : ((ISqlExpression)_sqlExpression).ApplyPaging(resultantSql, cols.Select(x=>x.PocoColumn), _joinSqlExpressions);
+            var newsql = count ? resultantSql : ((ISqlExpression)_sqlExpression).ApplyPaging(resultantSql, cols.Select(x => x.PocoColumn), _joinSqlExpressions);
 
             return new Sql(newsql, _sqlExpression.Context.Params);
         }
@@ -124,11 +126,11 @@ namespace NPoco.Linq
                 cols = cols.Concat(joinSqlExpression.PocoMembers
                     .Where(x => x.ReferenceType == ReferenceType.None && x.PocoColumn != null && !x.PocoColumn.ResultColumn)
                     .Select(x => new StringPocoCol
-                {
-                    StringCol = database.DatabaseType.EscapeTableName(x.PocoColumn.TableInfo.AutoAlias)
+                    {
+                        StringCol = database.DatabaseType.EscapeTableName(x.PocoColumn.TableInfo.AutoAlias)
                                 + "." + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.MemberInfoKey),
-                    PocoColumn = new[] { x.PocoColumn }
-                })).ToList(); 
+                        PocoColumn = new[] { x.PocoColumn }
+                    })).ToList();
 
                 joins.Add(string.Format("  {0} JOIN " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.TableName) + " " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.AutoAlias) + " ON " + joinSqlExpression.OnSql, joinSqlExpression.JoinType == JoinType.Inner ? "INNER" : "LEFT"));
             }

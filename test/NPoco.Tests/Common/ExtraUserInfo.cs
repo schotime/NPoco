@@ -1,5 +1,6 @@
 namespace NPoco.Tests.Common
 {
+    [TableName("ExtraUserInfos")]
     public class ExtraUserInfo
     {
         public int ExtraUserInfoId { get; set; }

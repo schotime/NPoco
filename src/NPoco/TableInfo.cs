@@ -6,6 +6,7 @@ namespace NPoco
 {
     public class TableInfo
     {
+        public bool IsInlineView { get; set; }
         public string TableName { get; set; }
         public string PrimaryKey { get; set; }
         public bool AutoIncrement { get; set; }
@@ -24,7 +25,8 @@ namespace NPoco
                 PrimaryKey = PrimaryKey,
                 SequenceName = SequenceName,
                 UseOutputClause = UseOutputClause,
-                PersistedType = PersistedType
+                PersistedType = PersistedType,
+                IsInlineView = IsInlineView
             };
         }
 
@@ -48,7 +50,7 @@ namespace NPoco
 
             a = t.GetTypeInfo().GetCustomAttributes(typeof(PersistedTypeAttribute), true).ToArray();
             tableInfo.PersistedType = a.Length == 0 ? null : (a[0] as PersistedTypeAttribute).PersistedType;
-
+            tableInfo.IsInlineView = false;
             return tableInfo;
         }
     }

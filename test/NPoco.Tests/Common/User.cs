@@ -3,6 +3,33 @@ using NPoco;
 
 namespace NPoco.Tests.Common
 {
+    public class SubQueryTest
+    {
+        public int ChildrenSum { get; set; }
+
+        public double ChildrenAvg { get; set; }
+
+        public string HomeAddress { get; set; }
+    }
+
+
+    [TableName("Users")]
+    public class CompositeUserTest
+    {
+        public int UserId { get; set; }
+
+        public int? HouseId { get; set; }
+
+        public virtual string Name { get; set; }
+
+        [Reference(ReferenceType.OneToOne, ColumnName = "UserId", ReferenceMemberName = "UserId")]
+        public ExtraUserInfoDecorated ExtraUserInfo { get; set; }
+
+
+        [Reference(ReferenceType.OneToOne, ColumnName = "HouseId", ReferenceMemberName = "HouseId")]
+        public HouseDecorated House { get; set; }
+    }
+
     public class User
     {
         public User()
