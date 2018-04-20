@@ -22,8 +22,14 @@ namespace NPoco
                 if (parameters.TryGetValue(m.Value, out item))
                     return item;
 
-                item = parameters[m.Value] = ProcessParam(ref sql, m.Value, args_src, args_dest);
-                return item;
+                var param = ProcessParam(ref sql, m.Value, args_src, args_dest);
+                if (!string.IsNullOrEmpty(param))
+                {
+                    item = parameters[m.Value] = param;
+                    return item;
+                }
+                else
+                    return "@" + m.Value;
             });
         }
         
@@ -74,8 +80,7 @@ namespace NPoco
                     }
                 }
 
-                if (!found)
-                    throw new ArgumentException(String.Format("Parameter '@{0}' specified but none of the passed arguments have a property with this name (in '{1}')", param, sql));
+                if (!found) return string.Empty;
             }
 
             // Expand collections to parameter lists
