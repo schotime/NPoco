@@ -559,11 +559,16 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         [Test]
         public void Test28()
         {
-            var data = Database.Fetch<Test28Class>("select 3 Id, 'Name' Name, null, 'dyn' Dynamic__Value1, 'dict' Dict__Value2").Single();
+            var data = Database.Fetch<Test28Class>("select 3 Id, 'Name' Name, null, 'dyn' Dynamic__Value1, 'dict' Dict__Value2, null npoco_Nest1__Dict2, 'dictnested' Value3, null npoco_Dict2__Value4, 'my string' S, 5 I, null npoco, 'oh my' DictHell__Key1__Dict2__Key2__S, 99 DictInt__ints").Single();
             Assert.AreEqual(3, data.Id);
             Assert.AreEqual("Name", data.Name);
             Assert.AreEqual("dyn", data.Dynamic.Value1);
             Assert.AreEqual("dict", data.Dict["Value2"]);
+            Assert.AreEqual("dictnested", data.Nest1.Dict2["Value3"]);
+            Assert.AreEqual("my string", data.Dict2["Value4"].S);
+            Assert.AreEqual(5, data.Dict2["Value4"].I);
+            Assert.AreEqual(99, data.DictInt["ints"]);
+            Assert.AreEqual("oh my", data.DictHell["Key1"].Dict2["Key2"].S);
         }
 
         public class Test28Class
@@ -572,6 +577,21 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             public string Name { get; set; }
             public dynamic Dynamic { get; set; }
             public Dictionary<string, object> Dict { get; set; }
+            public Dictionary<string, int> DictInt { get; set; }
+            public Dictionary<string, Nest2> Dict2 { get; set; }
+            public Dictionary<string, Test28Class> DictHell { get; set; }
+            public Nest Nest1 { get; set; } = new Nest();
+
+            public class Nest2
+            {
+                public string S { get; set; }
+                public int I { get; set; }
+            }
+
+            public class Nest
+            {
+                public Dictionary<string, object> Dict2 { get; set; }
+            }
         }
 
         [Test]

@@ -24,7 +24,7 @@ namespace NPoco
         private List<PocoMemberPlan> _memberPlans { get; set; }
         private TableInfoPlan _tableInfoPlan { get; set; }
 
-        private delegate PocoMember PocoMemberPlan(TableInfo tableInfo);
+        public delegate PocoMember PocoMemberPlan(TableInfo tableInfo);
         protected delegate TableInfo TableInfoPlan();
 
         public PocoDataBuilder(Type type, MapperCollection mapper)
@@ -42,12 +42,12 @@ namespace NPoco
             _tableInfoPlan = GetTableInfo(Type, columnInfos, memberInfos);
 
             // Get pocomember plan
-            _memberPlans = GetPocoMembers(Mapper, columnInfos, memberInfos).ToList();
+            _memberPlans = GetPocoMembers(columnInfos, memberInfos).ToList();
 
             return this;
         }
 
-        private ColumnInfo[] GetColumnInfos(Type type)
+        public ColumnInfo[] GetColumnInfos(Type type)
         {
             return ReflectionUtils.GetFieldsAndPropertiesForClasses(type)
                 .Where(x => !IsDictionaryType(x.DeclaringType))
@@ -56,7 +56,8 @@ namespace NPoco
 
         public static bool IsDictionaryType(Type type)
         {
-            return new[] { typeof(object), typeof(IDictionary<string, object>), typeof(Dictionary<string, object>) }.Contains(type);
+            return new[] {typeof(object), typeof(IDictionary<string, object>), typeof(Dictionary<string, object>)}.Contains(type)
+                || (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) && type.GetGenericArguments().First() == typeof(string));
         }
 
         TableInfo InitializedPocoDataBuilder.BuildTableInfo()
@@ -114,7 +115,7 @@ namespace NPoco
             }
         }
 
-        private IEnumerable<PocoMemberPlan> GetPocoMembers(MapperCollection mapper, ColumnInfo[] columnInfos, List<MemberInfo> memberInfos, string prefix = null)
+        public IEnumerable<PocoMemberPlan> GetPocoMembers(ColumnInfo[] columnInfos, List<MemberInfo> memberInfos, string prefix = null)
         {
             var capturedMembers = memberInfos.ToArray();
             var capturedPrefix = prefix;
@@ -152,7 +153,7 @@ namespace NPoco
 
                     var newPrefix = JoinStrings(capturedPrefix, columnInfo.ReferenceType != ReferenceType.None ? "" : (columnInfo.ComplexPrefix ?? columnInfo.MemberInfo.Name));
 
-                    childrenPlans = GetPocoMembers(mapper, childColumnInfos, members, newPrefix).ToArray();
+                    childrenPlans = GetPocoMembers(childColumnInfos, members, newPrefix).ToArray();
                 }
 
                 MemberInfo capturedMemberInfo = columnInfo.MemberInfo;
@@ -163,7 +164,7 @@ namespace NPoco
                 var isList = IsList(capturedMemberInfo);
                 var listType = GetListType(memberType, isList);
                 var isDynamic = capturedMemberInfo.IsDynamic();
-                var fastCreate = GetFastCreate(memberType, mapper, isList, isDynamic);
+                var fastCreate = GetFastCreate(memberType, Mapper, isList, isDynamic);
                 var columnName = GetColumnName(capturedPrefix, capturedColumnInfo.ColumnName ?? capturedMemberInfo.Name);
                 var memberInfoData = new MemberInfoData(capturedMemberInfo);
                 

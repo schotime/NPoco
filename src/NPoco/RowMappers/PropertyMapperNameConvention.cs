@@ -16,6 +16,12 @@ namespace NPoco.RowMappers
 
             foreach (var posName in posNames)
             {
+                if (posName.Name == "npoco")
+                {
+                    prefix = null;
+                    continue;
+                }
+
                 if (posName.Name.StartsWith(SplitPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     prefix = posName.Name.Substring(SplitPrefix.Length);

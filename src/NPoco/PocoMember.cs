@@ -92,6 +92,11 @@ namespace NPoco
             _creator = fastCreate;
         }
 
+        public void SetDynamicMemberAccessor(FastCreate fastCreate)
+        {
+            _creator = fastCreate;
+        }
+
         public virtual void SetValue(object target, object value)
         {
             _memberAccessor.Set(target, value);
