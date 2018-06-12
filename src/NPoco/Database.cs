@@ -27,7 +27,7 @@ using System.Configuration;
 
 namespace NPoco
 {
-    public partial class Database : IDatabase
+    public partial class Database : IDatabase, IDatabaseHelpers
     {
         public const bool DefaultEnableAutoSelect = true;
 
@@ -788,7 +788,7 @@ namespace NPoco
                 OpenSharedConnectionInternal();
                 using (var cmd = CreateCommand(_sharedConnection, commandType, sql, args))
                 {
-                    var result = ExecuteNonQueryHelper(cmd);
+                    var result = ((IDatabaseHelpers)this).ExecuteNonQueryHelper(cmd);
                     return result;
                 }
             }
@@ -2007,6 +2007,20 @@ namespace NPoco
             OnExecutedCommandInternal(cmd);
             return r;
         }
+
+        int IDatabaseHelpers.ExecuteNonQueryHelper(DbCommand cmd) => ExecuteNonQueryHelper(cmd);
+
+        object IDatabaseHelpers.ExecuteScalarHelper(DbCommand cmd) => ExecuteScalarHelper(cmd);
+
+        DbDataReader IDatabaseHelpers.ExecuteReaderHelper(DbCommand cmd) => ExecuteReaderHelper(cmd);
+
+#if !NET35 && !NET40
+        System.Threading.Tasks.Task<int> IDatabaseHelpers.ExecuteNonQueryHelperAsync(DbCommand cmd) => ExecuteNonQueryHelperAsync(cmd);
+
+        System.Threading.Tasks.Task<object> IDatabaseHelpers.ExecuteScalarHelperAsync(DbCommand cmd) => ExecuteScalarHelperAsync(cmd);
+
+        System.Threading.Tasks.Task<DbDataReader> IDatabaseHelpers.ExecuteReaderHelperAsync(DbCommand cmd) => ExecuteReaderHelperAsync(cmd);
+#endif
 
         public static bool IsEnum(MemberInfoData memberInfo)
         {
