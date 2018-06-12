@@ -1,3 +1,5 @@
+using System;
+
 namespace NPoco.Expressions
 {
     public class MySqlSqlExpression<T> : SqlExpression<T>
@@ -20,5 +22,26 @@ namespace NPoco.Expressions
                 .Replace("_", EscapeChar + "_");
             return param;
         }
+
+#if !NETSTANDARD1_3
+        protected override string GetDateTimeSql(string memberName, object m)
+        {
+            string sql = null;
+            switch (memberName)
+            {
+                case "Year": sql = string.Format("YEAR({0})", m); break;
+                case "Day": sql = string.Format("MONTH({0})", m); break;
+                case "Month": sql = string.Format("DAY({0})", m); break;
+                case "Hour": sql = string.Format("HOUR({0})", m); break;
+                case "Minute": sql = string.Format("MINUTE({0})", m); break;
+                case "Second": sql = string.Format("SECOND({0})", m); break;
+                //case "HasValue": sql = m.ToString() + " IS NOT NULL "; break;
+                default: throw new NotSupportedException("Not Supported " + memberName);
+            }
+            return sql;
+
+             
+        } 
+#endif
     }
 }

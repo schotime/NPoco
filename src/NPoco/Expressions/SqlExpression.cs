@@ -38,14 +38,14 @@ namespace NPoco.Expressions
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((SelectMember) obj);
+            return Equals((SelectMember)obj);
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                return ((EntityType != null ? EntityType.GetHashCode() : 0)*397) ^ (PocoColumn != null ? PocoColumn.GetHashCode() : 0);
+                return ((EntityType != null ? EntityType.GetHashCode() : 0) * 397) ^ (PocoColumn != null ? PocoColumn.GetHashCode() : 0);
             }
         }
     }
@@ -193,7 +193,7 @@ namespace NPoco.Expressions
             var exp = PartialEvaluator.Eval(fields, CanBeEvaluatedLocally);
             Visit(exp);
             _projection = false;
-            var proj = selectMembers.Union(generalMembers.Select(x=>new SelectMember() { EntityType = x.EntityType, PocoColumn = x.PocoColumn, PocoColumns = x.PocoColumns })).ToList();
+            var proj = selectMembers.Union(generalMembers.Select(x => new SelectMember() { EntityType = x.EntityType, PocoColumn = x.PocoColumn, PocoColumns = x.PocoColumns })).ToList();
             selectMembers.Clear();
             return proj;
         }
@@ -487,13 +487,13 @@ namespace NPoco.Expressions
                        "" :
                        " \n" + OrderByExpression);
 
-            return applyPaging ? ApplyPaging(sql.ToString(), ModelDef.QueryColumns.Select(x=> new[] { x.Value }), new Dictionary<string, JoinData>()) : sql.ToString();
+            return applyPaging ? ApplyPaging(sql.ToString(), ModelDef.QueryColumns.Select(x => new[] { x.Value }), new Dictionary<string, JoinData>()) : sql.ToString();
         }
 
         private string GetSelectExpression(bool distinct)
         {
             var selectMembersFromOrderBys = orderByMembers
-                .Select(x => new SelectMember() { PocoColumn = x.PocoColumn, EntityType = x.EntityType, PocoColumns = new[] { x.PocoColumn }})
+                .Select(x => new SelectMember() { PocoColumn = x.PocoColumn, EntityType = x.EntityType, PocoColumns = new[] { x.PocoColumn } })
                 .Where(x => !selectMembers.Any(y => y.EntityType == x.EntityType && y.PocoColumn.MemberInfoData.Name == x.PocoColumn.MemberInfoData.Name));
 
             var morecols = selectMembers.Concat(selectMembersFromOrderBys);
@@ -717,7 +717,7 @@ namespace NPoco.Expressions
                 var result = Visit(lambda.Body);
                 if (result is bool)
                 {
-                    return ((bool) result) ? "1=1" : "1<>1";
+                    return ((bool)result) ? "1=1" : "1<>1";
                 }
             }
             return Visit(lambda.Body);
@@ -819,7 +819,7 @@ namespace NPoco.Expressions
                 }
                 // Chars
                 else if (isLeftMemberAccessString && right is int
-                    && new [] { typeof(char), typeof(char?) }.Contains(leftMemberAccessString.PocoColumn.MemberInfoData.MemberType))
+                    && new[] { typeof(char), typeof(char?) }.Contains(leftMemberAccessString.PocoColumn.MemberInfoData.MemberType))
                 {
                     right = CreateParam(Convert.ToChar(right));
                 }
@@ -829,7 +829,7 @@ namespace NPoco.Expressions
                     left = CreateParam(Convert.ToChar(left));
                 }
                 // AnsiString
-                else if (isLeftMemberAccessString && right is string && leftMemberAccessString.PocoColumn.ColumnType == typeof (AnsiString))
+                else if (isLeftMemberAccessString && right is string && leftMemberAccessString.PocoColumn.ColumnType == typeof(AnsiString))
                 {
                     right = CreateParam(new AnsiString((string)right));
                 }
@@ -885,7 +885,7 @@ namespace NPoco.Expressions
         {
             if (b.Left is MethodCallExpression)
             {
-                var method = (MethodCallExpression) b.Left;
+                var method = (MethodCallExpression)b.Left;
                 if (method.Method.Name == "CompareString"
                     && method.Method.DeclaringType.FullName == "Microsoft.VisualBasic.CompilerServices.Operators")
                 {
@@ -950,7 +950,7 @@ namespace NPoco.Expressions
                         {
                             EntityType = pocoMember.MemberInfoData.MemberType,
                             PocoColumn = member.PocoColumn,
-                            PocoColumns = new [] { member.PocoColumn }
+                            PocoColumns = new[] { member.PocoColumn }
                         });
                     }
 
@@ -980,12 +980,71 @@ namespace NPoco.Expressions
 
                 return new MemberAccessString(pocoColumn, pocoColumns, columnName, type);
             }
+#if !NETSTANDARD1_3
+            if (m.Member.ReflectedType == typeof(DateTime) || m.Member.ReflectedType == typeof(DateTime?))
+            {
+                var m1 = m.Expression as MemberExpression;
+                if (m1 != null)
+                {
+                    var p = Expression.Convert(m1, typeof(object));
+                    if (p.NodeType == ExpressionType.Convert)
+                    {
+                        var pp = m1.Expression as ParameterExpression;
+                        if (pp == null)
+                        {
+                            m1 = m1.Expression as MemberExpression;
+                            if (m1 != null) { pp = m1.Expression as ParameterExpression; }
+                        }
+                        if (pp != null)
+                        {
+                            if (m.Member.Name == "Value") return Visit(m1);
+                            return new PartialSqlString(GetDateTimeSql(m.Member.Name, Visit(m1)));
+                        }
+                    }
+                }
+            }
+#endif
 
             var memberExp = Expression.Convert(m, typeof(object));
             var lambda = Expression.Lambda<Func<object>>(memberExp);
             var getter = lambda.Compile();
             return getter();
         }
+#if !NETSTANDARD1_3
+        protected virtual string GetDateTimeSql(string memberName, object m)
+        {
+            string sql = null;
+            switch (memberName)
+            {
+                case "Year": sql = string.Format("DATEPART(YEAR,{0})", m); break;
+                case "Day": sql = string.Format("DATEPART(MONTH,{0})", m); break;
+                case "Month": sql = string.Format("DATEPART(DAY,{0})", m); break;
+                case "Hour": sql = string.Format("DATEPART(HOUR,{0})", m); break;
+                case "Minute": sql = string.Format("DATEPART(MINUTE,{0})", m); break;
+                case "Second": sql = string.Format("DATEPART(SECOND,{0})", m); break;
+                //case "HasValue": sql = m.ToString() + " IS NOT NULL "; break;
+                default: throw new NotSupportedException("Not Supported " + memberName);
+            }
+            return sql;
+        }
+        //PostgreSQL
+        //  https://www.postgresql.org/docs/9.1/static/functions-datetime.html
+        //case SqlFunction.Year: return CreateFunction("EXTRACT(YEAR FROM TIMESTAMP {0})", args);
+        //  case SqlFunction.Month: return CreateFunction("EXTRACT(MONTH FROM TIMESTAMP {0})", args);
+        //  case SqlFunction.Day: return CreateFunction("EXTRACT(DAY FROM TIMESTAMP {0})", args);
+        //  case SqlFunction.Hour: return CreateFunction("EXTRACT(HOUR FROM TIMESTAMP {0})", args);
+        //  case SqlFunction.Minute: return CreateFunction("EXTRACT(MINUTE FROM TIMESTAMP {0})", args);
+        //  case SqlFunction.Second: return CreateFunction("EXTRACT(SECOND FROM TIMESTAMP {0})", args);
+
+        //Oracle
+        // http://blog.csdn.net/gccr/article/details/1802740
+        //case SqlFunction.Year: return CreateFunction("EXTRACT(YEAR FROM TIMESTAMP {0})", args);
+        //       case SqlFunction.Month: return CreateFunction("EXTRACT(MONTH FROM TIMESTAMP {0})", args);
+        //       case SqlFunction.Day: return CreateFunction("EXTRACT(DAY FROM TIMESTAMP {0})", args);
+        //       case SqlFunction.Hour: return CreateFunction("EXTRACT(HOUR FROM TIMESTAMP {0})", args);
+        //       case SqlFunction.Minute: return CreateFunction("EXTRACT(MINUTE FROM TIMESTAMP {0})", args);
+        //       case SqlFunction.Second: return CreateFunction("EXTRACT(SECOND FROM TIMESTAMP {0})", args);
+#endif
 
         private Type GetCorrectType(MemberExpression m)
         {
@@ -1037,7 +1096,7 @@ namespace NPoco.Expressions
         }
 
         List<object> _params = new List<object>();
-        
+
         string paramPrefix;
         private bool _projection;
         public SqlExpressionContext Context { get; private set; }
@@ -1140,7 +1199,7 @@ namespace NPoco.Expressions
 
         private bool ProcessMethodSearchRecursively(Expression args, ref bool found)
         {
-            if (args.NodeType == ExpressionType.Parameter && args.Type == typeof (T))
+            if (args.NodeType == ExpressionType.Parameter && args.Type == typeof(T))
             {
                 selectMembers.AddRange(_pocoData.QueryColumns.Select(x => new SelectMember { PocoColumn = x.Value, EntityType = _pocoData.Type, PocoColumns = new[] { x.Value } }));
                 return true;
@@ -1393,7 +1452,7 @@ namespace NPoco.Expressions
 
         private string BuildSelectExpression(List<SelectMember> fields, bool distinct)
         {
-            var cols = fields ?? _pocoData.QueryColumns.Select(x => new SelectMember{ PocoColumn = x.Value, EntityType = _pocoData.Type, PocoColumns = new[] { x.Value }});
+            var cols = fields ?? _pocoData.QueryColumns.Select(x => new SelectMember { PocoColumn = x.Value, EntityType = _pocoData.Type, PocoColumns = new[] { x.Value } });
             return string.Format("SELECT {0}{1} \nFROM {2}",
                 (distinct ? "DISTINCT " : ""),
                     string.Join(", ", cols.Select(x =>
@@ -1446,7 +1505,7 @@ namespace NPoco.Expressions
             if (quotedColName == null)
                 quotedColName = Visit(m);
 
-            var inArgs = ((IEnumerable) getter()).Cast<object>().ToList();
+            var inArgs = ((IEnumerable)getter()).Cast<object>().ToList();
             if (inArgs.Count == 0)
             {
                 return "1 = 0";
