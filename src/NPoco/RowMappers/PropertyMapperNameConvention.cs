@@ -18,6 +18,7 @@ namespace NPoco.RowMappers
             {
                 if (posName.Name == "npoco")
                 {
+                    scopedPocoMembers.Clear();
                     prefix = null;
                     continue;
                 }

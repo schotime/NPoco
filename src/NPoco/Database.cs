@@ -65,7 +65,7 @@ namespace NPoco
             //}
         }
 
-#if !DNXCORE50
+#if !DNXCORE50 && !NETSTANDARD2_0
         public Database(string connectionString, string providerName)
             : this(connectionString, providerName, DefaultEnableAutoSelect)
         { }
@@ -131,7 +131,7 @@ namespace NPoco
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 
-#if !DNXCORE50
+#if !DNXCORE50 && !NETSTANDARD2_0
         public Database(string connectionStringName)
             : this(connectionStringName, DefaultEnableAutoSelect)
         { }
@@ -788,7 +788,7 @@ namespace NPoco
                 OpenSharedConnectionInternal();
                 using (var cmd = CreateCommand(_sharedConnection, commandType, sql, args))
                 {
-                    var result = ((IDatabaseHelpers)this).ExecuteNonQueryHelper(cmd);
+                    var result = ExecuteNonQueryHelper(cmd);
                     return result;
                 }
             }
