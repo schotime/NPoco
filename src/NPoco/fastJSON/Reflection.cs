@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using System.Reflection;
 using System.Collections;
-#if !SILVERLIGHT
+using System.Text;
+using System.Runtime.Serialization;
+#if !DNXCORE50
 using System.Data;
 #endif
 using System.Collections.Specialized;
@@ -14,7 +16,7 @@ namespace NPoco.fastJSON
     {
         public string Name;
         public string lcName;
-        //public string OtherName;
+        public string memberName;
         public Reflection.GenericGetter Getter;
     }
 
@@ -34,9 +36,8 @@ namespace NPoco.fastJSON
         StringKeyDictionary,
         NameValue,
         StringDictionary,
-
-        Hashtable,
 #if !DNXCORE50
+        Hashtable,
         DataSet,
         DataTable,
 #endif
@@ -53,6 +54,9 @@ namespace NPoco.fastJSON
         public Reflection.GenericGetter getter;
         public Type[] GenericTypes;
         public string Name;
+#if !NET35
+        public string memberName;
+#endif
         public myPropInfoType Type;
         public bool CanWrite;
 
@@ -60,11 +64,12 @@ namespace NPoco.fastJSON
         public bool IsValueType;
         public bool IsGenericType;
         public bool IsStruct;
+        public bool IsInterface;
     }
 
     internal sealed class Reflection
     {
-        // Sinlgeton pattern 4 from : http://csharpindepth.com/articles/general/singleton.aspx
+        // Singleton pattern 4 from : http://csharpindepth.com/articles/general/singleton.aspx
         private static readonly Reflection instance = new Reflection();
         // Explicit static constructor to tell C# compiler
         // not to mark type as beforefieldinit
@@ -87,11 +92,34 @@ namespace NPoco.fastJSON
         private SafeDictionary<string, Dictionary<string, myPropInfo>> _propertycache = new SafeDictionary<string, Dictionary<string, myPropInfo>>();
         private SafeDictionary<Type, Type[]> _genericTypes = new SafeDictionary<Type, Type[]>();
         private SafeDictionary<Type, Type> _genericTypeDef = new SafeDictionary<Type, Type>();
+        private static SafeDictionary<short, OpCode> _opCodes;
+
+        private static bool TryGetOpCode(short code, out OpCode opCode)
+        {
+            if (_opCodes != null)
+                return _opCodes.TryGetValue(code, out opCode);
+            var dict = new SafeDictionary<short, OpCode>();
+            foreach (var fi in typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                if (!typeof(OpCode).IsAssignableFrom(fi.FieldType)) continue;
+                var innerOpCode = (OpCode)fi.GetValue(null);
+                if (innerOpCode.OpCodeType != OpCodeType.Nternal)
+                    dict.Add(innerOpCode.Value, innerOpCode);
+            }
+            _opCodes = dict;
+            return _opCodes.TryGetValue(code, out opCode);
+        }
+
+        #region bjson custom types
+        internal UnicodeEncoding unicode = new UnicodeEncoding();
+        internal UTF8Encoding utf8 = new UTF8Encoding();
+        #endregion
 
         #region json custom types
         // JSON custom
         internal SafeDictionary<Type, Serialize> _customSerializer = new SafeDictionary<Type, Serialize>();
         internal SafeDictionary<Type, Deserialize> _customDeserializer = new SafeDictionary<Type, Deserialize>();
+
         internal object CreateCustom(string v, Type type)
         {
             Deserialize d;
@@ -106,7 +134,7 @@ namespace NPoco.fastJSON
                 _customSerializer.Add(type, serializer);
                 _customDeserializer.Add(type, deserializer);
                 // reset property cache
-                Reflection.Instance.ResetPropertyCache();
+                Instance.ResetPropertyCache();
             }
         }
 
@@ -145,7 +173,7 @@ namespace NPoco.fastJSON
             }
         }
 
-        public Dictionary<string, myPropInfo> Getproperties(Type type, string typename, bool customType)
+        public Dictionary<string, myPropInfo> Getproperties(Type type, string typename, bool ShowReadOnlyProperties)
         {
             Dictionary<string, myPropInfo> sd = null;
             if (_propertycache.TryGetValue(typename, out sd))
@@ -155,31 +183,61 @@ namespace NPoco.fastJSON
             else
             {
                 sd = new Dictionary<string, myPropInfo>();
-                PropertyInfo[] pr = type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+                var bf = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
+                PropertyInfo[] pr = type.GetProperties(bf);
                 foreach (PropertyInfo p in pr)
                 {
-                    if (p.GetIndexParameters().Length > 0)
-                    {// Property is an indexer
+                    if (p.GetIndexParameters().Length > 0)// Property is an indexer
                         continue;
-                    }
-                    myPropInfo d = CreateMyProp(p.PropertyType, p.Name, customType);
-                    d.setter = Reflection.CreateSetMethod(type, p);
+
+                    myPropInfo d = CreateMyProp(p.PropertyType, p.Name);
+                    d.setter = Reflection.CreateSetMethod(type, p, ShowReadOnlyProperties);
                     if (d.setter != null)
                         d.CanWrite = true;
                     d.getter = Reflection.CreateGetMethod(type, p);
-                    sd.Add(p.Name.ToLower(), d);
+#if !NET35
+                    var att = p.GetCustomAttributes(true);
+                    foreach (var at in att)
+                    {
+                        if (at is DataMemberAttribute)
+                        {
+                            var dm = (DataMemberAttribute)at;
+                            if (dm.Name != "")
+                                d.memberName = dm.Name;
+                        }
+                    }
+                    if (d.memberName != null)
+                        sd.Add(d.memberName, d);
+                    else
+#endif
+                        sd.Add(p.Name.ToLower(), d);
                 }
-                FieldInfo[] fi = type.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+                FieldInfo[] fi = type.GetFields(bf);
                 foreach (FieldInfo f in fi)
                 {
-                    myPropInfo d = CreateMyProp(f.FieldType, f.Name, customType);
+                    myPropInfo d = CreateMyProp(f.FieldType, f.Name);
                     if (f.IsLiteral == false)
                     {
                         d.setter = Reflection.CreateSetField(type, f);
                         if (d.setter != null)
                             d.CanWrite = true;
                         d.getter = Reflection.CreateGetField(type, f);
-                        sd.Add(f.Name.ToLower(), d);
+#if !NET35
+                        var att = f.GetCustomAttributes(true);
+                        foreach (var at in att)
+                        {
+                            if (at is DataMemberAttribute)
+                            {
+                                var dm = (DataMemberAttribute)at;
+                                if (dm.Name != "")
+                                    d.memberName = dm.Name;
+                            }
+                        }
+                        if (d.memberName != null)
+                            sd.Add(d.memberName, d);
+                        else
+#endif
+                            sd.Add(f.Name.ToLower(), d);
                     }
                 }
 
@@ -188,7 +246,7 @@ namespace NPoco.fastJSON
             }
         }
 
-        private myPropInfo CreateMyProp(Type t, string name, bool customType)
+        private myPropInfo CreateMyProp(Type t, string name)
         {
             myPropInfo d = new myPropInfo();
             myPropInfoType d_type = myPropInfoType.Unknown;
@@ -212,24 +270,24 @@ namespace NPoco.fastJSON
             }
             else if (t.Name.Contains("Dictionary"))
             {
-                d.GenericTypes = Reflection.Instance.GetGenericArguments(t);// t.GetGenericArguments();
+                d.GenericTypes = Reflection.Instance.GetGenericArguments(t);
                 if (d.GenericTypes.Length > 0 && d.GenericTypes[0] == typeof(string))
                     d_type = myPropInfoType.StringKeyDictionary;
                 else
                     d_type = myPropInfoType.Dictionary;
             }
-
-            else if (t == typeof(Hashtable)) d_type = myPropInfoType.Hashtable;
 #if !DNXCORE50
+            else if (t == typeof(Hashtable)) d_type = myPropInfoType.Hashtable;
             else if (t == typeof(DataSet)) d_type = myPropInfoType.DataSet;
             else if (t == typeof(DataTable)) d_type = myPropInfoType.DataTable;
 #endif
-            else if (customType)
+            else if (IsTypeRegistered(t))
                 d_type = myPropInfoType.Custom;
 
             if (t.GetTypeInfo().IsValueType && !t.GetTypeInfo().IsPrimitive && !t.GetTypeInfo().IsEnum && t != typeof(decimal))
                 d.IsStruct = true;
 
+            d.IsInterface = t.GetTypeInfo().IsInterface;
             d.IsClass = t.GetTypeInfo().IsClass;
             d.IsValueType = t.GetTypeInfo().IsValueType;
             if (t.GetTypeInfo().IsGenericType)
@@ -249,7 +307,7 @@ namespace NPoco.fastJSON
         private Type GetChangeType(Type conversionType)
         {
             if (conversionType.GetTypeInfo().IsGenericType && conversionType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
-                return Reflection.Instance.GetGenericArguments(conversionType)[0];// conversionType.GetGenericArguments()[0];
+                return Reflection.Instance.GetGenericArguments(conversionType)[0];
 
             return conversionType;
         }
@@ -301,7 +359,7 @@ namespace NPoco.fastJSON
                 {
                     if (objtype.GetTypeInfo().IsClass)
                     {
-                        DynamicMethod dynMethod = new DynamicMethod("_", objtype, null);
+                        DynamicMethod dynMethod = new DynamicMethod("_", objtype, null, true);
                         ILGenerator ilGen = dynMethod.GetILGenerator();
                         ilGen.Emit(OpCodes.Newobj, objtype.GetConstructor(Type.EmptyTypes));
                         ilGen.Emit(OpCodes.Ret);
@@ -310,7 +368,7 @@ namespace NPoco.fastJSON
                     }
                     else // structs
                     {
-                        DynamicMethod dynMethod = new DynamicMethod("_", typeof(object), null);
+                        DynamicMethod dynMethod = new DynamicMethod("_", typeof(object), null, true);
                         ILGenerator ilGen = dynMethod.GetILGenerator();
                         var lv = ilGen.DeclareLocal(objtype);
                         ilGen.Emit(OpCodes.Ldloca_S, lv);
@@ -369,17 +427,66 @@ namespace NPoco.fastJSON
             }
             return (GenericSetter)dynamicSet.CreateDelegate(typeof(GenericSetter));
         }
-
-        internal static GenericSetter CreateSetMethod(Type type, PropertyInfo propertyInfo)
+#if !DNXCORE50
+        internal static FieldInfo GetGetterBackingField(PropertyInfo autoProperty)
         {
-            MethodInfo setMethod = propertyInfo.GetSetMethod();
+            var getMethod = autoProperty.GetGetMethod();
+            // Restrict operation to auto properties to avoid risking errors if a getter does not contain exactly one field read instruction (such as with calculated properties).
+            if (!getMethod.IsDefined(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), false)) return null;
+
+            var byteCode = getMethod.GetMethodBody()?.GetILAsByteArray() ?? new byte[0];
+            int pos = 0;
+            // Find the first LdFld instruction and parse its operand to a FieldInfo object.
+            while (pos < byteCode.Length)
+            {
+                // Read and parse the OpCode (it can be 1 or 2 bytes in size).
+                byte code = byteCode[pos++];
+                if (!(TryGetOpCode(code, out var opCode) || pos < byteCode.Length && TryGetOpCode((short)(code * 0x100 + byteCode[pos++]), out opCode)))
+                    throw new NotSupportedException("Unknown IL code detected.");
+                // If it is a LdFld, read its operand, parse it to a FieldInfo and return it.
+                if (opCode == OpCodes.Ldfld && opCode.OperandType == OperandType.InlineField && pos + sizeof(int) <= byteCode.Length)
+                {
+                    return getMethod.Module.ResolveMember(BitConverter.ToInt32(byteCode, pos), getMethod.DeclaringType?.GetGenericArguments(), null) as FieldInfo;
+                }
+                // Otherwise, set the current position to the start of the next instruction, if any (we need to know how much bytes are used by operands).
+                pos += opCode.OperandType == OperandType.InlineNone
+                            ? 0
+                            : opCode.OperandType == OperandType.ShortInlineBrTarget ||
+                              opCode.OperandType == OperandType.ShortInlineI ||
+                              opCode.OperandType == OperandType.ShortInlineVar
+                                ? 1
+                                : opCode.OperandType == OperandType.InlineVar
+                                    ? 2
+                                    : opCode.OperandType == OperandType.InlineI8 ||
+                                      opCode.OperandType == OperandType.InlineR
+                                        ? 8
+                                        : opCode.OperandType == OperandType.InlineSwitch
+                                            ? 4 * (BitConverter.ToInt32(byteCode, pos) + 1)
+                                            : 4;
+            }
+            return null;
+        }
+#endif
+
+        internal static GenericSetter CreateSetMethod(Type type, PropertyInfo propertyInfo, bool ShowReadOnlyProperties)
+        {
+            MethodInfo setMethod = propertyInfo.GetSetMethod(ShowReadOnlyProperties);
             if (setMethod == null)
+            {
+                if (!ShowReadOnlyProperties) return null;
+                // If the property has no setter and it is an auto property, try and create a setter for its backing field instead 
+#if !DNXCORE50
+                var fld = GetGetterBackingField(propertyInfo);
+                return fld != null ? CreateSetField(type, fld) : null;
+#else
                 return null;
+#endif
+            }
 
             Type[] arguments = new Type[2];
             arguments[0] = arguments[1] = typeof(object);
 
-            DynamicMethod setter = new DynamicMethod("_", typeof(object), arguments);
+            DynamicMethod setter = new DynamicMethod("_", typeof(object), arguments, !setMethod.IsPublic);
             ILGenerator il = setter.GetILGenerator();
 
             if (!type.GetTypeInfo().IsClass) // structs
@@ -500,13 +607,16 @@ namespace NPoco.fastJSON
             return (GenericGetter)getter.CreateDelegate(typeof(GenericGetter));
         }
 
-        internal Getters[] GetGetters(Type type, bool ShowReadOnlyProperties, List<Type> IgnoreAttributes)//JSONParameters param)
+        internal Getters[] GetGetters(Type type, bool ShowReadOnlyProperties, List<Type> IgnoreAttributes)
         {
             Getters[] val = null;
             if (_getterscache.TryGetValue(type, out val))
                 return val;
 
-            PropertyInfo[] props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+            var bf = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
+            //if (ShowReadOnlyProperties)
+            //    bf |= BindingFlags.NonPublic;
+            PropertyInfo[] props = type.GetProperties(bf);
             List<Getters> getters = new List<Getters>();
             foreach (PropertyInfo p in props)
             {
@@ -514,7 +624,8 @@ namespace NPoco.fastJSON
                 {// Property is an indexer
                     continue;
                 }
-                if (!p.CanWrite && ShowReadOnlyProperties == false) continue;
+                if (!p.CanWrite && (ShowReadOnlyProperties == false))//|| isAnonymous == false))
+                    continue;
                 if (IgnoreAttributes != null)
                 {
                     bool found = false;
@@ -529,12 +640,27 @@ namespace NPoco.fastJSON
                     if (found)
                         continue;
                 }
+                string mName = null;
+#if !NET35
+                var att = p.GetCustomAttributes(true);
+                foreach (var at in att)
+                {
+                    if (at is DataMemberAttribute)
+                    {
+                        var dm = (DataMemberAttribute)at;
+                        if (dm.Name != "")
+                        {
+                            mName = dm.Name;
+                        }
+                    }
+                }
+#endif
                 GenericGetter g = CreateGetMethod(type, p);
                 if (g != null)
-                    getters.Add(new Getters { Getter = g, Name = p.Name, lcName = p.Name.ToLower() });
+                    getters.Add(new Getters { Getter = g, Name = p.Name, lcName = p.Name.ToLower(), memberName = mName });
             }
 
-            FieldInfo[] fi = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static);
+            FieldInfo[] fi = type.GetFields(bf);
             foreach (var f in fi)
             {
                 if (IgnoreAttributes != null)
@@ -551,11 +677,26 @@ namespace NPoco.fastJSON
                     if (found)
                         continue;
                 }
+                string mName = null;
+#if !NET35
+                var att = f.GetCustomAttributes(true);
+                foreach (var at in att)
+                {
+                    if (at is DataMemberAttribute)
+                    {
+                        var dm = (DataMemberAttribute)at;
+                        if (dm.Name != "")
+                        {
+                            mName = dm.Name;
+                        }
+                    }
+                }
+#endif
                 if (f.IsLiteral == false)
                 {
                     GenericGetter g = CreateGetField(type, f);
                     if (g != null)
-                        getters.Add(new Getters { Getter = g, Name = f.Name, lcName = f.Name.ToLower() });
+                        getters.Add(new Getters { Getter = g, Name = f.Name, lcName = f.Name.ToLower(), memberName = mName });
                 }
             }
             val = getters.ToArray();
@@ -563,7 +704,23 @@ namespace NPoco.fastJSON
             return val;
         }
 
-        #endregion
+        //private static bool IsAnonymousType(Type type)
+        //{
+        //    // may break in the future if compiler defined names change...
+        //    const string CS_ANONYMOUS_PREFIX = "<>f__AnonymousType";
+        //    const string VB_ANONYMOUS_PREFIX = "VB$AnonymousType";
+
+        //    if (type == null)
+        //        throw new ArgumentNullException("type");
+
+        //    if (type.Name.StartsWith(CS_ANONYMOUS_PREFIX, StringComparison.Ordinal) || type.Name.StartsWith(VB_ANONYMOUS_PREFIX, StringComparison.Ordinal))
+        //    {
+        //        return type.IsDefined(typeof(CompilerGeneratedAttribute), false);
+        //    }
+
+        //    return false;
+        //}
+#endregion
 
         internal void ResetPropertyCache()
         {

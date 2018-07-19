@@ -1,12 +1,13 @@
 ﻿#if !NET35
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 
 namespace NPoco.fastJSON
 {
-    internal class DynamicJson : DynamicObject
+    internal class DynamicJson : DynamicObject, IEnumerable
     {
         private IDictionary<string, object> _dictionary { get; set; }
         private List<object> _list { get; set; }
@@ -72,6 +73,14 @@ namespace NPoco.fastJSON
             }
 
             return _dictionary.ContainsKey(binder.Name);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            foreach(var o in _list)
+            {
+                yield return new DynamicJson(o as IDictionary<string, object>);
+            }
         }
     }
 }

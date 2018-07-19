@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NPoco;
 using NPoco.Expressions;
+using NPoco.fastJSON;
 using NPoco.Linq;
 using NPoco.Tests.Common;
 using NPoco.Tests.NewMapper.Models;
@@ -559,7 +559,9 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         [Test]
         public void Test28()
         {
-            var data = Database.Fetch<Test28Class>("select 3 Id, 'Name' Name, null, 'dyn' Dynamic__Value1, 'dict' Dict__Value2, null npoco_Nest1__Dict2, 'dictnested' Value3, null npoco_Dict2__Value4, 'my string' S, 5 I, null npoco, 'oh my' DictHell__Key1__Dict2__Key2__S, 99 DictInt__ints").Single();
+            var data = Database.Fetch<Test28Class>("select 3 Id, 'Name' Name, null, 'dyn' Dynamic__Value1, 'dict' Dict__Value2, null npoco_Nest1__Dict2," +
+                                                   " 'dictnested' Value3, null npoco_Dict2__Value4, 'my string' S, 5 I, null npoco, 'oh my' DictHell__Key1__Dict2__Key2__S, 99 DictInt__ints," +
+                                                   " 'z' NestMe__Nested__Nest3__Z, 'dictsupernesed' NestMe__Nested__Dict4__MyKey__S").Single();
             Assert.AreEqual(3, data.Id);
             Assert.AreEqual("Name", data.Name);
             Assert.AreEqual("dyn", data.Dynamic.Value1);
@@ -569,6 +571,8 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             Assert.AreEqual(5, data.Dict2["Value4"].I);
             Assert.AreEqual(99, data.DictInt["ints"]);
             Assert.AreEqual("oh my", data.DictHell["Key1"].Dict2["Key2"].S);
+            Assert.AreEqual("z", data.NestMe.Nested.Nest3.Z);
+            Assert.AreEqual("dictsupernesed", data.NestMe.Nested.Dict4["MyKey"].S);
         }
 
         public class Test28Class
@@ -581,16 +585,25 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             public Dictionary<string, Nest2> Dict2 { get; set; }
             public Dictionary<string, Test28Class> DictHell { get; set; }
             public Nest Nest1 { get; set; } = new Nest();
+            public Nest2 NestMe { get; set; }
 
             public class Nest2
             {
                 public string S { get; set; }
                 public int I { get; set; }
+                public Nest Nested { get; set; }
             }
 
             public class Nest
             {
+                public Nest3 Nest3 { get; set; }
                 public Dictionary<string, object> Dict2 { get; set; }
+                public Dictionary<string, Nest2> Dict4 { get; set; }
+            }
+
+            public class Nest3
+            {
+                public string Z { get; set; }
             }
         }
 
@@ -654,6 +667,27 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
 
             Assert.AreEqual(1, users.Count);
             Assert.AreEqual(2, users[0].UserId);
+        }
+
+        [Test]
+        public void Test35()
+        {
+            var data = new Result35.ResultData() {Name = "Bob", Age = 66};
+            var result = Database.Single<Result35>("select @0 as Data", JSON.ToJSON(new[] {data}));
+            Assert.AreEqual(data.Name, result.Data[0].Name);
+            Assert.AreEqual(data.Age, result.Data[0].Age);
+        }
+
+        public class Result35
+        {
+            [SerializedColumn]
+            public ResultData[] Data { get; set; }
+
+            public class ResultData
+            {
+                public string Name { get; set; }
+                public int Age { get; set; }
+            }
         }
     }
 

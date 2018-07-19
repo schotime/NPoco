@@ -25,22 +25,25 @@ namespace NPoco.fastJSON
             Number,
             True,
             False,
-            Null
+            Null//, 
+            //Key
         }
 
         readonly string json;
         readonly StringBuilder s = new StringBuilder(); // used for inner string parsing " \"\r\n\u1234\'\t " 
         Token lookAheadToken = Token.None;
         int index;
+        bool allownonquotedkey = false;
 
-        internal JsonParser(string json)
+        internal JsonParser(string json, bool AllowNonQuotedKeys)
         {
+            this.allownonquotedkey = AllowNonQuotedKeys;
             this.json = json;
         }
 
         public object Decode()
         {
-            return ParseValue();
+            return ParseValue(false);
         }
 
         private Dictionary<string, object> ParseObject()
@@ -65,16 +68,17 @@ namespace NPoco.fastJSON
                     default:
                         {
                             // name
-                            string name = ParseString();
+                            string name = ParseString(false);
 
+                            var n = NextToken();
                             // :
-                            if (NextToken() != Token.Colon)
+                            if (n != Token.Colon)
                             {
                                 throw new Exception("Expected colon at index " + index);
                             }
 
                             // value
-                            object value = ParseValue();
+                            object value = ParseValue(true);
 
                             table[name] = value;
                         }
@@ -101,13 +105,13 @@ namespace NPoco.fastJSON
                         return array;
 
                     default:
-                        array.Add(ParseValue());
+                        array.Add(ParseValue(false));
                         break;
                 }
             }
         }
 
-        private object ParseValue()
+        private object ParseValue(bool val)
         {
             switch (LookAhead())
             {
@@ -115,7 +119,7 @@ namespace NPoco.fastJSON
                     return ParseNumber();
 
                 case Token.String:
-                    return ParseString();
+                    return ParseString(val);
 
                 case Token.Curly_Open:
                     return ParseObject();
@@ -139,93 +143,108 @@ namespace NPoco.fastJSON
             throw new Exception("Unrecognized token at index" + index);
         }
 
-        private string ParseString()
+        private string ParseString(bool val)
         {
             ConsumeToken(); // "
 
             s.Length = 0;
-
+            bool instr = val;
             int runIndex = -1;
-
-            while (index < json.Length)
+            int l = json.Length;
+            //fixed (char* p = json)
+            string p = json;
             {
-                var c = json[index++];
-
-                if (c == '"')
+                while (index < l)
                 {
+                    var c = p[index++];
+                    if (c == '"')
+                        instr = true;
+
+                    if (c == '"' || (allownonquotedkey && (c == ':' || c == ' ' || c == '\t'  ) && instr == false))
+                    {
+                        int len = 1;
+                        if (allownonquotedkey && c != '"' && instr == false)
+                        {
+                            index--;
+                            //index--;
+                            len = 0;
+                            //runIndex--;
+                        }
+
+                        if (runIndex != -1)
+                        {
+                            if (s.Length == 0)
+                                return json.Substring(runIndex, index - runIndex - len);
+
+                            s.Append(json, runIndex, index - runIndex - 1);
+                        }
+                        return s.ToString();
+                    }
+
+                    if (c != '\\')
+                    {
+                        if (runIndex == -1)
+                            runIndex = index - 1;
+
+                        continue;
+                    }
+
+                    if (index == l) break;
+
                     if (runIndex != -1)
                     {
-                        if (s.Length == 0)
-                            return json.Substring(runIndex, index - runIndex - 1);
-
                         s.Append(json, runIndex, index - runIndex - 1);
+                        runIndex = -1;
                     }
-                    return s.ToString();
-                }
 
-                if (c != '\\')
-                {
-                    if (runIndex == -1)
-                        runIndex = index - 1;
+                    switch (p[index++])
+                    {
+                        case '"':
+                            s.Append('"');
+                            break;
 
-                    continue;
-                }
+                        case '\\':
+                            s.Append('\\');
+                            break;
 
-                if (index == json.Length) break;
+                        case '/':
+                            s.Append('/');
+                            break;
 
-                if (runIndex != -1)
-                {
-                    s.Append(json, runIndex, index - runIndex - 1);
-                    runIndex = -1;
-                }
+                        case 'b':
+                            s.Append('\b');
+                            break;
 
-                switch (json[index++])
-                {
-                    case '"':
-                        s.Append('"');
-                        break;
+                        case 'f':
+                            s.Append('\f');
+                            break;
 
-                    case '\\':
-                        s.Append('\\');
-                        break;
+                        case 'n':
+                            s.Append('\n');
+                            break;
 
-                    case '/':
-                        s.Append('/');
-                        break;
+                        case 'r':
+                            s.Append('\r');
+                            break;
 
-                    case 'b':
-                        s.Append('\b');
-                        break;
+                        case 't':
+                            s.Append('\t');
+                            break;
 
-                    case 'f':
-                        s.Append('\f');
-                        break;
+                        case 'u':
+                            {
+                                int remainingLength = l - index;
+                                if (remainingLength < 4) break;
 
-                    case 'n':
-                        s.Append('\n');
-                        break;
+                                // parse the 32 bit hex into an integer codepoint
+                                uint codePoint = ParseUnicode(p[index], p[index + 1], p[index + 2], p[index + 3]);
+                                s.Append((char)codePoint);
 
-                    case 'r':
-                        s.Append('\r');
-                        break;
-
-                    case 't':
-                        s.Append('\t');
-                        break;
-
-                    case 'u':
-                        {
-                            int remainingLength = json.Length - index;
-                            if (remainingLength < 4) break;
-
-                            // parse the 32 bit hex into an integer codepoint
-                            uint codePoint = ParseUnicode(json[index], json[index + 1], json[index + 2], json[index + 3]);
-                            s.Append((char)codePoint);
-
-                            // skip 4 chars
-                            index += 4;
-                        }
-                        break;
+                                // skip 4 chars
+                                index += 4;
+                            }
+                            break;
+                    }
                 }
             }
 
@@ -303,8 +322,13 @@ namespace NPoco.fastJSON
                 string s = json.Substring(startIndex, index - startIndex);
                 return double.Parse(s, NumberFormatInfo.InvariantInfo);
             }
-            long num;
-            return JSON.CreateLong(out num, json, startIndex, index - startIndex);
+            if (index - startIndex < 20 && json[startIndex] != '-')
+                return JSON.CreateLong(json, startIndex, index - startIndex);
+            else
+            {
+                string s = json.Substring(startIndex, index - startIndex);
+                return decimal.Parse(s, NumberFormatInfo.InvariantInfo);
+            }
         }
 
         private Token LookAhead()
@@ -337,6 +361,17 @@ namespace NPoco.fastJSON
             {
                 c = json[index];
 
+                if (c == '/' && json[index + 1] == '/') // c++ style single line comments
+                {
+                    index++;
+                    index++;
+                    do
+                    {
+                        c = json[index];
+                        if (c == '\r' || c == '\n') break; // read till end of line
+                    }
+                    while (++index < json.Length);
+                }
                 if (c > ' ') break;
                 if (c != ' ' && c != '\t' && c != '\n' && c != '\r') break;
 
@@ -423,7 +458,13 @@ namespace NPoco.fastJSON
                     }
                     break;
             }
-            throw new Exception("Could not find token at index " + --index);
+            if (allownonquotedkey)
+            {
+                index--;
+                return Token.String;
+            }
+            else
+                throw new Exception("Could not find token at index " + --index);
         }
     }
 }
