@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-#if !SILVERLIGHT
+#if !DNXCORE50
 using System.Data;
 #endif
 using System.Globalization;
