@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-#if !SILVERLIGHT
+#if !DNXCORE50
 using System.Data;
 #endif
 using System.Globalization;
@@ -972,11 +972,7 @@ namespace NPoco.fastJSON
         private object CreateEnum(Type pt, object v)
         {
             // FEATURE : optimize create enum
-#if !SILVERLIGHT
             return Enum.Parse(pt, v.ToString(), true);
-#else
-            return Enum.Parse(pt, v, true);
-#endif
         }
 
         private Guid CreateGuid(string s)

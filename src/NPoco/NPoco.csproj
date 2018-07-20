@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>An extremely easy to use Micro-ORM supporting Sql Server, MySQL, PostgreSQL, Oracle, Sqlite, SqlCE. Originally Schotime's PetaPoco branch.</Description>
-    <VersionPrefix>3.9.1</VersionPrefix>
+    <Description>An extremely easy to use Micro-ORM supporting Sql Server, MySQL, PostgreSQL, Oracle, Sqlite, SqlCE.</Description>
     <TargetFrameworks>net35;net45;net40;netstandard1.3;netstandard2.0</TargetFrameworks>
     <AssemblyName>NPoco</AssemblyName>
     <PackageId>NPoco</PackageId>
+    <Version>4.0.0-alpha-1</Version>
     <Authors>Adam Schröder</Authors>
     <PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
     <PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
@@ -87,7 +87,6 @@
 
   <PropertyGroup>
     <FrameworkPathOverride Condition="'$(TargetFramework)' == 'net35'">C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v3.5\Profile\Client</FrameworkPathOverride>
-    <Version>3.9.4</Version>
   </PropertyGroup>
 
 </Project>
