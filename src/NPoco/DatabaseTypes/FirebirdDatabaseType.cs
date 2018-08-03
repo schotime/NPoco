@@ -21,12 +21,12 @@ namespace NPoco.DatabaseTypes
 
         public override string EscapeTableName(string tableName)
         {
-            return tableName;
+            return  $"\"{tableName}\"";
         }
 
         public override string EscapeSqlIdentifier(string str)
         {
-            return str;
+            return $"\"{str}\"";
         }
 
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
