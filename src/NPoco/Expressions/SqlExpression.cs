@@ -1512,6 +1512,9 @@ namespace NPoco.Expressions
                 case "ToLower":
                     statement = string.Format("lower({0})", expression);
                     break;
+                case "Trim":
+                    statement = TrimStatement(expression);
+                    break;
                 case "StartsWith":
                     statement = CreateLikeStatement(expression, CreateParam(EscapeParam(args[0]) + "%"));
                     break;
@@ -1537,6 +1540,11 @@ namespace NPoco.Expressions
             }
 
             return new PartialSqlString(statement);
+        }
+
+        protected virtual string TrimStatement(PartialSqlString expression)
+        {
+            return string.Format("trim({0})", expression);
         }
 
         protected virtual string CreateLikeStatement(PartialSqlString expression, string param)
