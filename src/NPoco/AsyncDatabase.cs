@@ -8,6 +8,8 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
+using NPoco.Extensions;
+using NPoco.Linq;
 
 namespace NPoco
 {
@@ -98,6 +100,46 @@ namespace NPoco
             }
         }
 
+        public async Task<int> InsertBatchAsync<T>(IEnumerable<T> pocos, BatchOptions options = null)
+        {
+            options = options ?? new BatchOptions();
+            var result = 0;
+
+            try
+            {
+                OpenSharedConnectionInternal();
+
+                var pd = PocoDataFactory.ForType(typeof(T));
+
+                foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
+                {
+                    var preparedInserts = batchedPocos.Select(x => InsertStatements.PrepareInsertSql(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, x)).ToArray();
+
+                    var sql = new Sql();
+                    foreach (var preparedInsertSql in preparedInserts)
+                    {
+                        sql.Append(preparedInsertSql.Sql + options.StatementSeperator, preparedInsertSql.Rawvalues.ToArray());
+                    }
+
+                    using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
+                    {
+                        result += await ExecuteNonQueryHelperAsync(cmd);
+                    }
+                }
+            }
+            catch (Exception x)
+            {
+                OnExceptionInternal(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+
+            return result;
+        }
+
         public Task<int> UpdateAsync<T>(T poco, Expression<Func<T, object>> fields)
         {
             var expression = DatabaseType.ExpressionVisitor<T>(this, PocoDataFactory.ForType(typeof(T)));
@@ -129,6 +171,54 @@ namespace NPoco
                 async (sql, args, next) => next(await ExecuteAsync(sql, args).ConfigureAwait(false)), TaskAsyncHelper.FromResult(0));
         }
 
+        public async Task<int> UpdateBatchAsync<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null)
+        {
+            options = options ?? new BatchOptions();
+            int result = 0;
+
+            try
+            {
+                OpenSharedConnectionInternal();
+
+                var pd = PocoDataFactory.ForType(typeof(T));
+
+                foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
+                {
+                    var preparedUpdates = batchedPocos.Select(x => UpdateStatements.PrepareUpdate(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, x.Poco, null, x.Snapshot?.UpdatedColumns())).ToArray();
+
+                    var sql = new Sql();
+                    foreach (var preparedUpdate in preparedUpdates)
+                    {
+                        if (preparedUpdate.Sql != null)
+                        {
+                            sql.Append(preparedUpdate.Sql + options.StatementSeperator, preparedUpdate.Rawvalues.ToArray());
+                        }
+                    }
+
+                    using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
+                    {
+                        result += await ExecuteNonQueryHelperAsync(cmd);
+                    }
+                }
+            }
+            catch (Exception x)
+            {
+                OnExceptionInternal(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+
+            return result;
+        }
+
+        public IAsyncUpdateQueryProvider<T> UpdateManyAsync<T>()
+        {
+            return new AsyncUpdateQueryProvider<T>(this);
+        }
+
         public Task<int> DeleteAsync(object poco)
         {
             var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
@@ -143,6 +233,11 @@ namespace NPoco
         public virtual Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
             return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, ExecuteAsync, TaskAsyncHelper.FromResult(0));
+        }
+
+        public IAsyncDeleteQueryProvider<T> DeleteManyAsync<T>()
+        {
+            return new AsyncDeleteQueryProvider<T>(this);
         }
 
         public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql)
@@ -195,6 +290,11 @@ namespace NPoco
         public async Task<List<T>> FetchAsync<T>(Sql sql)
         {
             return (await QueryAsync<T>(sql).ConfigureAwait(false)).ToList();
+        }
+
+        public IAsyncQueryProviderWithIncludes<T> QueryAsync<T>()
+        {
+            return new AsyncQueryProvider<T>(this);
         }
 
         public Task<IEnumerable<T>> QueryAsync<T>(string sql, params object[] args)

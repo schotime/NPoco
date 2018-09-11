@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -154,6 +155,21 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             var verify = Database.SingleOrDefaultById<UserIntVersionDecorated>(InMemoryUsers[1].UserId);
 
             Assert.AreEqual(200, verify.Age);
+        }
+
+        [Test]
+        public void UpdateBatchTest()
+        {
+            var users = InMemoryUsers.Select(x => UpdateBatch.For(x, Database.StartSnapshot(x))).Select(x => { x.Poco.Age = 30; return x; });
+            var updated = Database.UpdateBatch(users, new BatchOptions() { BatchSize = 10 });
+            var result = Database.Query<UserDecorated>().ToList();
+
+            Assert.AreEqual(15, result.Count);
+            foreach (var u in result)
+            {
+                Assert.AreEqual(30, u.Age);
+            }
+            Assert.AreEqual(14, updated);
         }
     }
 }

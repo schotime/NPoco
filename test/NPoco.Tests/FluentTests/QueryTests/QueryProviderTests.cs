@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using NPoco.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -32,6 +33,8 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public void AnyQuery()
         {
             var userRecordsExist = Database.Query<User>().Any();
+            IAsyncDatabase db = Database;
+            
             Assert.AreEqual(true, userRecordsExist);
         }
 
@@ -41,7 +44,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var userRecordsExist = Database.Query<User>().Any(x => x.UserId == 1);
             Assert.AreEqual(true, userRecordsExist);
         }
-
+        
         [Test]
         public void AnyQueryWithLimit()
         {

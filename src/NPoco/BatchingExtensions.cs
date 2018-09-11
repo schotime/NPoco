@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace NPoco
+namespace NPoco.Extensions
 {
     public static class BatchingExtensions
     {

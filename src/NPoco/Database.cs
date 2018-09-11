@@ -20,6 +20,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using NPoco.Expressions;
+using NPoco.Extensions;
 using NPoco.Linq;
 #if !DNXCORE50
 using System.Configuration;
@@ -1321,16 +1322,16 @@ namespace NPoco
         {
             var index = 0;
             var pd = PocoDataFactory.ForType(typeof(T));
-            var primaryKeyValuePairs = GetPrimaryKeyValues(pd, pd.TableInfo.PrimaryKey, poco, true);
-            return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
+            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, poco, true);
+            return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
         }
 
         public bool Exists<T>(object primaryKey)
         {
             var index = 0;
             var pd = PocoDataFactory.ForType(typeof (T));
-            var primaryKeyValuePairs = GetPrimaryKeyValues(pd, pd.TableInfo.PrimaryKey, primaryKey, false);
-            return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
+            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKey, false);
+            return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
         }
 
         public T SingleById<T>(object primaryKey)
@@ -1349,8 +1350,8 @@ namespace NPoco
         {
             var index = 0;
             var pd = PocoDataFactory.ForType(typeof (T));
-            var primaryKeyValuePairs = GetPrimaryKeyValues(pd, pd.TableInfo.PrimaryKey, primaryKey, primaryKey is T);
-            var sql = AutoSelectHelper.AddSelectClause(this, typeof(T), string.Format("WHERE {0}", BuildPrimaryKeySql(primaryKeyValuePairs, ref index)));
+            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKey, primaryKey is T);
+            var sql = AutoSelectHelper.AddSelectClause(this, typeof(T), string.Format("WHERE {0}", BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index)));
             var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
             return new Sql(true, sql, args);
         }
@@ -1483,9 +1484,10 @@ namespace NPoco
             }
         }
 
-        public void InsertBatch<T>(IEnumerable<T> pocos, BatchOptions options = null)
+        public int InsertBatch<T>(IEnumerable<T> pocos, BatchOptions options = null)
         {
             options = options ?? new BatchOptions();
+            var result = 0;
 
             try
             {
@@ -1505,7 +1507,7 @@ namespace NPoco
 
                     using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
                     {
-                        ExecuteNonQueryHelper(cmd);
+                        result += ExecuteNonQueryHelper(cmd);
                     }
                 }
             }
@@ -1518,6 +1520,8 @@ namespace NPoco
             {
                 CloseSharedConnectionInternal();
             }
+
+            return result;
         }
 
         public void InsertBulk<T>(IEnumerable<T> pocos)
@@ -1548,6 +1552,49 @@ namespace NPoco
             return UpdateImp(tableName, primaryKeyName, poco, primaryKeyValue, columns, (sql, args, next) => next(Execute(sql, args)), 0);
         }
 
+        public int UpdateBatch<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null)
+        {
+            options = options ?? new BatchOptions();
+            int result = 0;
+
+            try
+            {
+                OpenSharedConnectionInternal();
+
+                var pd = PocoDataFactory.ForType(typeof(T));
+
+                foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
+                {
+                    var preparedUpdates = batchedPocos.Select(x => UpdateStatements.PrepareUpdate(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, x.Poco, null, x.Snapshot?.UpdatedColumns())).ToArray();
+
+                    var sql = new Sql();
+                    foreach (var preparedUpdate in preparedUpdates)
+                    {
+                        if (preparedUpdate.Sql != null)
+                        {
+                            sql.Append(preparedUpdate.Sql + options.StatementSeperator, preparedUpdate.Rawvalues.ToArray());
+                        }
+                    }
+
+                    using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
+                    {
+                        result += ExecuteNonQueryHelper(cmd);
+                    }
+                }
+            }
+            catch (Exception x)
+            {
+                OnExceptionInternal(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+
+            return result;
+        }
+
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
         private TRet UpdateImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
         {
@@ -1557,93 +1604,29 @@ namespace NPoco
             if (columns != null && !columns.Any())
                 return defaultId;
 
-            var sb = new StringBuilder();
-            var index = 0;
-            var rawvalues = new List<object>();
             var pd = PocoDataFactory.ForObject(poco, primaryKeyName, true);
-            string versionName = null;
-            object versionValue = null;
-            VersionColumnType versionColumnType = VersionColumnType.Number;
-
-            var primaryKeyValuePairs = GetPrimaryKeyValues(pd, primaryKeyName, primaryKeyValue ?? poco, primaryKeyValue == null);
-
-            foreach (var pocoColumn in pd.Columns.Values)
-            {
-                // Don't update the primary key, but grab the value if we don't have it
-                if (primaryKeyValuePairs.ContainsKey(pocoColumn.ColumnName))
-                { 
-                    if (primaryKeyValue == null)
-                         primaryKeyValuePairs[pocoColumn.ColumnName] = this.ProcessMapper(pocoColumn, pocoColumn.GetValue(poco));
-                    continue;
-                }
-
-                // Dont update result only columns
-                if (pocoColumn.ResultColumn
-                    || (pocoColumn.ComputedColumn && (pocoColumn.ComputedColumnType == ComputedColumnType.Always || pocoColumn.ComputedColumnType == ComputedColumnType.ComputedOnUpdate)))
-                {
-                    continue;
-                }
-
-                if (!pocoColumn.VersionColumn && columns != null && !columns.Contains(pocoColumn.ColumnName, StringComparer.OrdinalIgnoreCase))
-                    continue;
-
-                object value = pocoColumn.GetColumnValue(pd, poco, this.ProcessMapper);
-
-                if (pocoColumn.VersionColumn)
-                {
-                    versionName = pocoColumn.ColumnName;
-                    versionValue = value;
-                    if (pocoColumn.VersionColumnType == VersionColumnType.Number)
-                    {
-                        versionColumnType = VersionColumnType.Number;
-                        value = Convert.ToInt64(value) + 1;
-                    }
-                    else if (pocoColumn.VersionColumnType == VersionColumnType.RowVersion)
-                    {
-                        versionColumnType = VersionColumnType.RowVersion;
-                        continue;
-                    }
-                }
-
-                // Build the sql
-                if (index > 0)
-                    sb.Append(", ");
-                sb.AppendFormat("{0} = @{1}", _dbType.EscapeSqlIdentifier(pocoColumn.ColumnName), index++);
-
-                rawvalues.Add(value);
-            }
-
-            if (columns != null && columns.Any() && sb.Length == 0)
+            var preparedStatement = UpdateStatements.PrepareUpdate(this, pd, tableName, primaryKeyName, poco, primaryKeyValue, columns);
+            if (preparedStatement.Sql == null)
                 return defaultId;
 
-            var sql = string.Format("UPDATE {0} SET {1} WHERE {2}", _dbType.EscapeTableName(tableName), sb, BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
-
-            rawvalues.AddRange(primaryKeyValuePairs.Select(keyValue => keyValue.Value));
-
-            if (!string.IsNullOrEmpty(versionName))
+            var result = executeFunc(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray(), (id) =>
             {
-                sql += string.Format(" AND {0} = @{1}", _dbType.EscapeSqlIdentifier(versionName), index++);
-                rawvalues.Add(versionValue);
-            }
-
-            var result = executeFunc(sql, rawvalues.ToArray(), (id) =>
-            {
-                if (id == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
+                if (id == 0 && !string.IsNullOrEmpty(preparedStatement.VersionName) && VersionException == VersionExceptionHandling.Exception)
                 {
 #if DNXCORE50
-                    throw new Exception(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", primaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), versionValue));
+                    throw new Exception(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", preparedStatement.PrimaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), preparedStatement.VersionValue));
 #else
-                    throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", primaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), versionValue));
+                    throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", preparedStatement.PrimaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), preparedStatement.VersionValue));
 #endif
                 }
 
                 // Set Version
-                if (!string.IsNullOrEmpty(versionName) && versionColumnType == VersionColumnType.Number)
+                if (!string.IsNullOrEmpty(preparedStatement.VersionName) && preparedStatement.VersionColumnType == VersionColumnType.Number)
                 {
                     PocoColumn pc;
-                    if (pd.Columns.TryGetValue(versionName, out pc))
+                    if (preparedStatement.PocoData.Columns.TryGetValue(preparedStatement.VersionName, out pc))
                     {
-                        pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(versionValue) + 1, pc.MemberInfoData.MemberType));
+                        pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(preparedStatement.VersionValue) + 1, pc.MemberInfoData.MemberType));
                     }
                 }
 
@@ -1653,14 +1636,15 @@ namespace NPoco
             return result;
         }
 
-        private string BuildPrimaryKeySql(Dictionary<string, object> primaryKeyValuePair, ref int index)
+       
+        internal static string BuildPrimaryKeySql(Database database, Dictionary<string, object> primaryKeyValuePair, ref int index)
         {
             var tempIndex = index;
             index += primaryKeyValuePair.Count;
-            return string.Join(" AND ", primaryKeyValuePair.Select((x, i) => x.Value == null || x.Value == DBNull.Value ? string.Format("{0} IS NULL", _dbType.EscapeSqlIdentifier(x.Key)) : string.Format("{0} = @{1}", _dbType.EscapeSqlIdentifier(x.Key), tempIndex + i)).ToArray());
+            return string.Join(" AND ", primaryKeyValuePair.Select((x, i) => x.Value == null || x.Value == DBNull.Value ? string.Format("{0} IS NULL", database.DatabaseType.EscapeSqlIdentifier(x.Key)) : string.Format("{0} = @{1}", database.DatabaseType.EscapeSqlIdentifier(x.Key), tempIndex + i)).ToArray());
         }
 
-        private Dictionary<string, object> GetPrimaryKeyValues(PocoData pocoData, string primaryKeyName, object primaryKeyValueOrPoco, bool isPoco)
+        internal static Dictionary<string, object> GetPrimaryKeyValues(Database database, PocoData pocoData, string primaryKeyName, object primaryKeyValueOrPoco, bool isPoco)
         {
             Dictionary<string, object> primaryKeyValues;
 
@@ -1679,19 +1663,19 @@ namespace NPoco
             }
             else
             {
-                primaryKeyValues = ProcessMapper(pocoData, multiplePrimaryKeysNames.ToDictionary(x => x, x => pocoData.Columns[x].GetValue(primaryKeyValueOrPoco), StringComparer.OrdinalIgnoreCase));
+                primaryKeyValues = ProcessMapper(database, pocoData, multiplePrimaryKeysNames.ToDictionary(x => x, x => pocoData.Columns[x].GetValue(primaryKeyValueOrPoco), StringComparer.OrdinalIgnoreCase));
             }
 
             return primaryKeyValues;
         }
 
-        private Dictionary<string, object> ProcessMapper(PocoData pd, Dictionary<string, object> primaryKeyValuePairs)
+        internal static Dictionary<string, object> ProcessMapper(Database database, PocoData pd, Dictionary<string, object> primaryKeyValuePairs)
         {
             var keys = primaryKeyValuePairs.Keys.ToArray();
             foreach (var primaryKeyValuePair in keys)
             {
                 var col = pd.Columns[primaryKeyValuePair];
-                primaryKeyValuePairs[primaryKeyValuePair] = this.ProcessMapper(col, primaryKeyValuePairs[primaryKeyValuePair]);
+                primaryKeyValuePairs[primaryKeyValuePair] = database.ProcessMapper(col, primaryKeyValuePairs[primaryKeyValuePair]);
             }
             return primaryKeyValuePairs;
         }
@@ -1774,11 +1758,11 @@ namespace NPoco
                 return defaultRet;
 
             var pd = poco != null ? PocoDataFactory.ForObject(poco, primaryKeyName, true) : null;
-            var primaryKeyValuePairs = GetPrimaryKeyValues(pd, primaryKeyName, primaryKeyValue ?? poco, primaryKeyValue == null);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, primaryKeyName, primaryKeyValue ?? poco, primaryKeyValue == null);
 
             // Do it
             var index = 0;
-            var sql = string.Format("DELETE FROM {0} WHERE {1}", _dbType.EscapeTableName(tableName), BuildPrimaryKeySql(primaryKeyValuePairs, ref index));
+            var sql = string.Format("DELETE FROM {0} WHERE {1}", _dbType.EscapeTableName(tableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index));
             return executeFunc(sql, primaryKeyValuePairs.Select(x => x.Value).ToArray());
         }
 

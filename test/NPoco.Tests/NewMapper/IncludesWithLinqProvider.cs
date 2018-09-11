@@ -68,9 +68,9 @@ namespace NPoco.Tests.NewMapper
         public async Task IncludeManyAsync()
         {
             var results = await Database
-                .Query<One>()
+                .QueryAsync<One>()
                 .IncludeMany(x => x.Items)
-                .ToListAsync();
+                .ToList();
 
             Assert.AreEqual(15, results.Count);
         }
