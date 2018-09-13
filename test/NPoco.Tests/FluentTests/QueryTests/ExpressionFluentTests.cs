@@ -82,6 +82,48 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchByExpressionWithTrim()
+        {
+            var originalName = InMemoryUsers[0].Name;
+            InMemoryUsers[0].Name = "   " + InMemoryUsers[0].Name + "   ";
+            Database.Update(InMemoryUsers[0], x => x.Name);
+
+            var users = Database.Query<UserDecorated>().Where(x => x.Name.Trim() == originalName).ToList();
+            Assert.AreEqual(1, users.Count);
+
+            InMemoryUsers[0].Name = originalName;
+            Database.Update(InMemoryUsers[0], x => x.Name);
+        }
+
+        [Test]
+        public void FetchByExpressionWithTrimStart()
+        {
+            var originalName = InMemoryUsers[0].Name;
+            InMemoryUsers[0].Name = "   " + InMemoryUsers[0].Name;
+            Database.Update(InMemoryUsers[0], x => x.Name);
+
+            var users = Database.Query<UserDecorated>().Where(x => x.Name.TrimStart() == originalName).ToList();
+            Assert.AreEqual(1, users.Count);
+
+            InMemoryUsers[0].Name = originalName;
+            Database.Update(InMemoryUsers[0], x => x.Name);
+        }
+
+        [Test]
+        public void FetchByExpressionWithTrimEnd()
+        {
+            var originalName = InMemoryUsers[0].Name;
+            InMemoryUsers[0].Name = InMemoryUsers[0].Name + "   ";
+            Database.Update(InMemoryUsers[0], x => x.Name);
+
+            var users = Database.Query<UserDecorated>().Where(x => x.Name.TrimEnd() == originalName).ToList();
+            Assert.AreEqual(1, users.Count);
+
+            InMemoryUsers[0].Name = originalName;
+            Database.Update(InMemoryUsers[0], x => x.Name);
+        }
+
+        [Test]
         public void FetchByExpressionAndSubstringAndUpper()
         {
             var users = Database.Query<UserDecorated>().Where(x => x.Name.ToUpper().Substring(0, 4) == "NAME").ToList();
