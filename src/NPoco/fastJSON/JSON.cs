@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-#if !SILVERLIGHT
+#if !DNXCORE50
 using System.Data;
 #endif
 using System.Globalization;
 using System.IO;
 using System.Collections.Specialized;
-using NPoco;
 using System.Reflection;
+using NPoco;
 
 namespace NPoco.fastJSON
 {
@@ -67,9 +67,17 @@ namespace NPoco.fastJSON
         /// </summary>
         public bool UseValuesOfEnums = false;
         /// <summary>
-        /// Ignore attributes to check for (default : XmlIgnoreAttribute)
+        /// Ignore attributes to check for (default : XmlIgnoreAttribute, NonSerialized)
         /// </summary>
-        public List<Type> IgnoreAttributes = new List<Type> { typeof(System.Xml.Serialization.XmlIgnoreAttribute) };
+
+        public List<Type> IgnoreAttributes = new List<Type>
+        {
+            typeof(System.Xml.Serialization.XmlIgnoreAttribute),
+#if !DNXCORE50
+            typeof(NonSerializedAttribute)
+#endif
+        };
+
         /// <summary>
         /// If you have parametric and no default constructor for you classes (default = False)
         /// 
@@ -85,13 +93,21 @@ namespace NPoco.fastJSON
         /// </summary>
         public byte SerializerMaxDepth = 20;
         /// <summary>
-        /// Inline circular or already seen objects instead of replacement with $i (default = False) 
+        /// Inline circular or already seen objects instead of replacement with $i (default = false) 
         /// </summary>
         public bool InlineCircularReferences = false;
         /// <summary>
         /// Save property/field names as lowercase (default = false)
         /// </summary>
         public bool SerializeToLowerCaseNames = false;
+        /// <summary>
+        /// Formatter indent spaces (default = 3)
+        /// </summary>
+        public byte FormatterIndentSpaces = 3;
+        /// <summary>
+        /// TESTING - allow non quoted keys in the json like javascript (default = false)
+        /// </summary>
+        public bool AllowNonQuotedKeys = false;
 
         public void FixValues()
         {
@@ -102,6 +118,33 @@ namespace NPoco.fastJSON
             }
             if (EnableAnonymousTypes)
                 ShowReadOnlyProperties = true;
+        }
+
+        internal JSONParameters MakeCopy()
+        {
+            return new JSONParameters
+            {
+                AllowNonQuotedKeys = AllowNonQuotedKeys,
+                DateTimeMilliseconds = DateTimeMilliseconds,
+                EnableAnonymousTypes = EnableAnonymousTypes,
+                FormatterIndentSpaces = FormatterIndentSpaces,
+                IgnoreAttributes = new List<Type>(IgnoreAttributes),
+                //IgnoreCaseOnDeserialize = IgnoreCaseOnDeserialize,
+                InlineCircularReferences = InlineCircularReferences,
+                KVStyleStringDictionary = KVStyleStringDictionary,
+                ParametricConstructorOverride = ParametricConstructorOverride,
+                SerializeNullValues = SerializeNullValues,
+                SerializerMaxDepth = SerializerMaxDepth,
+                SerializeToLowerCaseNames = SerializeToLowerCaseNames,
+                ShowReadOnlyProperties = ShowReadOnlyProperties,
+                UseEscapedUnicode = UseEscapedUnicode,
+                UseExtensions = UseExtensions,
+                UseFastGuid = UseFastGuid,
+                UseOptimizedDatasetSchema = UseOptimizedDatasetSchema,
+                UseUTCDateTime = UseUTCDateTime,
+                UseValuesOfEnums = UseValuesOfEnums,
+                UsingGlobalTypes = UsingGlobalTypes
+            };
         }
     }
 
@@ -115,13 +158,24 @@ namespace NPoco.fastJSON
         /// Create a formatted json string (beautified) from an object
         /// </summary>
         /// <param name="obj"></param>
+        /// <returns></returns>
+        public static string ToNiceJSON(object obj)
+        {
+            string s = ToJSON(obj, Parameters); // use default params
+
+            return Beautify(s);
+        }
+        /// <summary>
+        /// Create a formatted json string (beautified) from an object
+        /// </summary>
+        /// <param name="obj"></param>
         /// <param name="param"></param>
         /// <returns></returns>
         public static string ToNiceJSON(object obj, JSONParameters param)
         {
             string s = ToJSON(obj, param);
 
-            return Beautify(s);
+            return Beautify(s, param.FormatterIndentSpaces);
         }
         /// <summary>
         /// Create a json representation for an object
@@ -130,7 +184,7 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static string ToJSON(object obj)
         {
-            return ToJSON(obj, JSON.Parameters);
+            return ToJSON(obj, Parameters);
         }
         /// <summary>
         /// Create a json representation for an object with parameter override on this call
@@ -141,6 +195,7 @@ namespace NPoco.fastJSON
         public static string ToJSON(object obj, JSONParameters param)
         {
             param.FixValues();
+            param = param.MakeCopy();
             Type t = null;
 
             if (obj == null)
@@ -162,9 +217,9 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static object Parse(string json)
         {
-            return new JsonParser(json).Decode();
+            return new JsonParser(json, Parameters.AllowNonQuotedKeys).Decode();
         }
-#if net4
+#if !NET35
         /// <summary>
         /// Create a .net4 dynamic object from the json string
         /// </summary>
@@ -226,6 +281,17 @@ namespace NPoco.fastJSON
             return new deserializer(Parameters).ToObject(json, type);
         }
         /// <summary>
+        /// Create an object of type from the json with parameter override on this call
+        /// </summary>
+        /// <param name="json"></param>
+        /// <param name="type"></param>
+        /// <param name="par"></param>
+        /// <returns></returns>
+        public static object ToObject(string json, Type type, JSONParameters par)
+        {
+            return new deserializer(par).ToObject(json, type);
+        }
+        /// <summary>
         /// Fill a given object with the json represenation
         /// </summary>
         /// <param name="input"></param>
@@ -233,7 +299,7 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static object FillObject(object input, string json)
         {
-            Dictionary<string, object> ht = new JsonParser(json).Decode() as Dictionary<string, object>;
+            Dictionary<string, object> ht = new JsonParser(json, Parameters.AllowNonQuotedKeys).Decode() as Dictionary<string, object>;
             if (ht == null) return null;
             return new deserializer(Parameters).ParseDictionary(ht, null, input.GetType(), input);
         }
@@ -264,7 +330,19 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static string Beautify(string input)
         {
-            return Formatter.PrettyPrint(input);
+            var i = new string(' ', JSON.Parameters.FormatterIndentSpaces);
+            return Formatter.PrettyPrint(input, i);
+        }
+        /// <summary>
+        /// Create a human readable string from the json with specified indent spaces
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="spaces"></param>
+        /// <returns></returns>
+        public static string Beautify(string input, byte spaces)
+        {
+            var i = new string(' ', spaces);
+            return Formatter.PrettyPrint(input, i);
         }
         /// <summary>
         /// Register custom type handlers for your own types not natively handled by fastJSON
@@ -284,9 +362,9 @@ namespace NPoco.fastJSON
             Reflection.Instance.ClearReflectionCache();
         }
 
-        internal static long CreateLong(out long num, string s, int index, int count)
+        internal static long CreateLong(string s, int index, int count)
         {
-            num = 0;
+            long num = 0;
             bool neg = false;
             for (int x = 0; x < count; x++, index++)
             {
@@ -312,7 +390,8 @@ namespace NPoco.fastJSON
     {
         public deserializer(JSONParameters param)
         {
-            _params = param;
+            param.FixValues();
+            _params = param.MakeCopy();
         }
 
         private JSONParameters _params;
@@ -347,16 +426,15 @@ namespace NPoco.fastJSON
 
         public object ToObject(string json, Type type)
         {
-            //_params = Parameters;
-            _params.FixValues();
+            //_params.FixValues();
             Type t = null;
             if (type != null && type.GetTypeInfo().IsGenericType)
                 t = Reflection.Instance.GetGenericTypeDefinition(type);
-            if (t == typeof(Dictionary<,>) || t == typeof(List<>))
-                _params.UsingGlobalTypes = false;
             _usingglobals = _params.UsingGlobalTypes;
+            if (t == typeof(Dictionary<,>) || t == typeof(List<>))
+                _usingglobals = false;
 
-            object o = new JsonParser(json).Decode();
+            object o = new JsonParser(json, _params.AllowNonQuotedKeys).Decode();
             if (o == null)
                 return null;
 #if !DNXCORE50
@@ -378,10 +456,24 @@ namespace NPoco.fastJSON
                     return RootDictionary(o, type);
                 else if (type != null && t == typeof(List<>)) // deserialize to generic list
                     return RootList(o, type);
+                else if (type != null && type.IsArray)
+                    return RootArray(o, type);
                 else if (type == typeof(Hashtable))
                     return RootHashTable((List<object>)o);
-                else
-                    return (o as List<object>).ToArray();
+                else if (type == null)
+                {
+                    List<object> l = (List<object>)o;
+                    if (l.Count > 0 && l[0].GetType() == typeof(Dictionary<string, object>))
+                    {
+                        Dictionary<string, object> globals = new Dictionary<string, object>();
+                        List<object> op = new List<object>();
+                        // try to get $types 
+                        foreach (var i in l)
+                            op.Add(ParseDictionary((Dictionary<string, object>)i, globals, null, null));
+                        return op;
+                    }
+                    return l.ToArray();
+                }
             }
             else if (type != null && o.GetType() != type)
                 return ChangeType(o, type);
@@ -413,11 +505,21 @@ namespace NPoco.fastJSON
         private object ChangeType(object value, Type conversionType)
         {
             if (conversionType == typeof(int))
-                return (int)((long)value);
-
+            {
+                string s = value as string;
+                if (s == null)
+                    return (int)((long)value);
+                else
+                    return CreateInteger(s, 0, s.Length);
+            }
             else if (conversionType == typeof(long))
-                return (long)value;
-
+            {
+                string s = value as string;
+                if (s == null)
+                    return (long)value;
+                else
+                    return JSON.CreateLong(s, 0, s.Length);
+            }
             else if (conversionType == typeof(string))
                 return (string)value;
 
@@ -427,6 +529,9 @@ namespace NPoco.fastJSON
             else if (conversionType == typeof(DateTime))
                 return CreateDateTime((string)value);
 
+            else if (conversionType == typeof(DateTimeOffset))
+                return CreateDateTimeOffset((string)value);
+
             else if (Reflection.Instance.IsTypeRegistered(conversionType))
                 return Reflection.Instance.CreateCustom((string)value, conversionType);
 
@@ -434,9 +539,7 @@ namespace NPoco.fastJSON
             if (IsNullable(conversionType))
             {
                 if (value == null)
-                {
                     return value;
-                }
                 conversionType = UnderlyingTypeOf(conversionType);
             }
 
@@ -444,7 +547,84 @@ namespace NPoco.fastJSON
             if (conversionType == typeof(Guid))
                 return CreateGuid((string)value);
 
+            // 2016-04-02 - Enrico Padovani - proper conversion of byte[] back from string
+            if (conversionType == typeof(byte[]))
+                return Convert.FromBase64String((string)value);
+
+            if (conversionType == typeof(TimeSpan))
+                return new TimeSpan((long)value);
+
             return Convert.ChangeType(value, conversionType, CultureInfo.InvariantCulture);
+        }
+
+        private object CreateDateTimeOffset(string value)
+        {
+            //                   0123456789012345678 9012 9/3 0/4  1/5
+            // datetime format = yyyy-MM-ddTHH:mm:ss .nnn  _   +   00:00
+
+            // ISO8601 roundtrip formats have 7 digits for ticks, and no space before the '+'
+            // datetime format = yyyy-MM-ddTHH:mm:ss .nnnnnnn  +   00:00  
+            // datetime format = yyyy-MM-ddTHH:mm:ss .nnnnnnn  Z  
+
+            int year;
+            int month;
+            int day;
+            int hour;
+            int min;
+            int sec;
+            int ms = 0;
+            int usTicks = 0; // ticks for xxx.x microseconds
+            int th = 0;
+            int tm = 0;
+
+            year = CreateInteger(value, 0, 4);
+            month = CreateInteger(value, 5, 2);
+            day = CreateInteger(value, 8, 2);
+            hour = CreateInteger(value, 11, 2);
+            min = CreateInteger(value, 14, 2);
+            sec = CreateInteger(value, 17, 2);
+
+            int p = 20;
+
+            if (value.Length > 21 && value[19] == '.')
+            {
+                ms = CreateInteger(value, p, 3);
+                p = 23;
+
+                // handle 7 digit case
+                if (value.Length > 25 && char.IsDigit(value[p]))
+                {
+                    usTicks = CreateInteger(value, p, 4);
+                    p = 27;
+                }
+            }
+
+            if (value[p] == 'Z')
+                // UTC
+                return CreateDateTimeOffset(year, month, day, hour, min, sec, ms, usTicks, TimeSpan.Zero);
+
+            if (value[p] == ' ')
+                ++p;
+
+            // +00:00
+            th = CreateInteger(value, p + 1, 2);
+            tm = CreateInteger(value, p + 1 + 2 + 1, 2);
+
+            if (value[p] == '-')
+                th = -th;
+
+            return CreateDateTimeOffset(year, month, day, hour, min, sec, ms, usTicks, new TimeSpan(th, tm, 0));
+        }
+
+        private static DateTimeOffset CreateDateTimeOffset(
+            int year, int month, int day, int hour, int min, int sec, int milli, int extraTicks, TimeSpan offset)
+        {
+            var dt = new DateTimeOffset(year, month, day, hour, min, sec, milli, offset);
+
+            if (extraTicks > 0)
+                dt += TimeSpan.FromTicks(extraTicks);
+
+            return dt;
         }
 
         private bool IsNullable(Type t)
@@ -463,18 +643,35 @@ namespace NPoco.fastJSON
         {
             Type[] gtypes = Reflection.Instance.GetGenericArguments(type);
             IList o = (IList)Reflection.Instance.FastCreateInstance(type);
+            DoParseList(parse, gtypes[0], o);
+            return o;
+        }
+
+        private void DoParseList(object parse, Type it, IList o)
+        {
+            Dictionary<string, object> globals = new Dictionary<string, object>();
             foreach (var k in (IList)parse)
             {
                 _usingglobals = false;
                 object v = k;
                 if (k is Dictionary<string, object>)
-                    v = ParseDictionary(k as Dictionary<string, object>, null, gtypes[0], null);
+                    v = ParseDictionary(k as Dictionary<string, object>, globals, it, null);
                 else
-                    v = ChangeType(k, gtypes[0]);
+                    v = ChangeType(k, it);
 
                 o.Add(v);
             }
-            return o;
+        }
+
+        private object RootArray(object parse, Type type)
+        {
+            Type it = type.GetElementType();
+            IList o = (IList)Reflection.Instance.FastCreateInstance(typeof(List<>).MakeGenericType(it));
+            DoParseList(parse, it, o);
+            var array = Array.CreateInstance(it, o.Count);
+            o.CopyTo(array, 0);
+
+            return array;
         }
 
         private object RootDictionary(object parse, Type type)
@@ -487,6 +684,8 @@ namespace NPoco.fastJSON
                 t1 = gtypes[0];
                 t2 = gtypes[1];
             }
+
+            var arraytype = t2.GetElementType();
             if (parse is Dictionary<string, object>)
             {
                 IDictionary o = (IDictionary)Reflection.Instance.FastCreateInstance(type);
@@ -496,11 +695,14 @@ namespace NPoco.fastJSON
                     object v;
                     object k = ChangeType(kv.Key, t1);
 
-                    if (kv.Value is Dictionary<string, object>)
+                    if (t2.Name.StartsWith("Dictionary")) // deserialize a dictionary
+                        v = RootDictionary(kv.Value, t2);
+
+                    else if (kv.Value is Dictionary<string, object>)
                         v = ParseDictionary(kv.Value as Dictionary<string, object>, null, t2, null);
 
-                    else if (t2.IsArray)
-                        v = CreateArray((List<object>)kv.Value, t2, t2.GetElementType(), null);
+                    else if (t2.IsArray && t2 != typeof(byte[]))
+                        v = CreateArray((List<object>)kv.Value, t2, arraytype, null);
 
                     else if (kv.Value is IList)
                         v = CreateGenericList((List<object>)kv.Value, t2, t1, null);
@@ -537,15 +739,18 @@ namespace NPoco.fastJSON
             if (d.TryGetValue("$types", out tn))
             {
                 _usingglobals = true;
-                globaltypes = new Dictionary<string, object>();
+                if (globaltypes == null)
+                    globaltypes = new Dictionary<string, object>();
                 foreach (var kv in (Dictionary<string, object>)tn)
                 {
                     globaltypes.Add((string)kv.Value, kv.Key);
                 }
             }
+            if (globaltypes != null)
+                _usingglobals = true;
 
             bool found = d.TryGetValue("$type", out tn);
-#if !SILVERLIGHT
+#if !DNXCORE50
             if (found == false && type == typeof(System.Object))
             {
                 return d;   // CreateDataset(d, globaltypes);
@@ -584,34 +789,48 @@ namespace NPoco.fastJSON
                 _cirrev.Add(circount, o);
             }
 
-            Dictionary<string, myPropInfo> props = Reflection.Instance.Getproperties(type, typename, Reflection.Instance.IsTypeRegistered(type));
+            Dictionary<string, myPropInfo> props = Reflection.Instance.Getproperties(type, typename, _params.ShowReadOnlyProperties);
             foreach (var kv in d)
             {
                 var n = kv.Key;
                 var v = kv.Value;
-                string name = n.ToLower();
+
+                string name = n;//.ToLower();
                 if (name == "$map")
                 {
                     ProcessMap(o, props, (Dictionary<string, object>)d[name]);
                     continue;
                 }
                 myPropInfo pi;
-                if (props.TryGetValue(name, out pi) == false)
-                    continue;
+                if (props.TryGetValue(name.ToLower(), out pi) == false)
+                    if (props.TryGetValue(name, out pi) == false)
+                        continue;
+
                 if (pi.CanWrite)
                 {
-                    //object v = d[n];
-
                     if (v != null)
                     {
                         object oset = null;
 
                         switch (pi.Type)
                         {
-                            case myPropInfoType.Int: oset = (int)((long)v); break;
-                            case myPropInfoType.Long: oset = (long)v; break;
-                            case myPropInfoType.String: oset = (string)v; break;
-                            case myPropInfoType.Bool: oset = (bool)v; break;
+                            case myPropInfoType.Int: oset = (int)AutoConv(v); break;
+                            case myPropInfoType.Long: oset = AutoConv(v); break;
+                            case myPropInfoType.String: oset = v.ToString(); break;
+                            case myPropInfoType.Bool:
+                                oset = false;
+                                if (v is bool)
+                                    oset = (bool)v;
+                                else if (v is long)
+                                    oset = (long)v > 0 ? true : false;
+                                else if (v is string)
+                                {
+                                    var s = (string)v;
+                                    s = s.ToLower();
+                                    if (s == "1" || s == "true" || s == "yes" || s == "on")
+                                        oset = true;
+                                }
+                                break;
                             case myPropInfoType.DateTime: oset = CreateDateTime((string)v); break;
                             case myPropInfoType.Enum: oset = CreateEnum(pi.pt, v); break;
                             case myPropInfoType.Guid: oset = CreateGuid((string)v); break;
@@ -625,9 +844,8 @@ namespace NPoco.fastJSON
 #if !DNXCORE50
                             case myPropInfoType.DataSet: oset = CreateDataset((Dictionary<string, object>)v, globaltypes); break;
                             case myPropInfoType.DataTable: oset = CreateDataTable((Dictionary<string, object>)v, globaltypes); break;
-#endif
                             case myPropInfoType.Hashtable: // same case as Dictionary
-
+#endif
                             case myPropInfoType.Dictionary: oset = CreateDictionary((List<object>)v, pi.pt, pi.GenericTypes, globaltypes); break;
                             case myPropInfoType.StringKeyDictionary: oset = CreateStringKeyDictionary((Dictionary<string, object>)v, pi.pt, pi.GenericTypes, globaltypes); break;
                             case myPropInfoType.NameValue: oset = CreateNV((Dictionary<string, object>)v); break;
@@ -638,7 +856,7 @@ namespace NPoco.fastJSON
                                     if (pi.IsGenericType && pi.IsValueType == false && v is List<object>)
                                         oset = CreateGenericList((List<object>)v, pi.pt, pi.bt, globaltypes);
 
-                                    else if ((pi.IsClass || pi.IsStruct) && v is Dictionary<string, object>)
+                                    else if ((pi.IsClass || pi.IsStruct || pi.IsInterface) && v is Dictionary<string, object>)
                                         oset = ParseDictionary((Dictionary<string, object>)v, globaltypes, pi.pt, pi.getter(o));
 
                                     else if (v is List<object>)
@@ -658,6 +876,19 @@ namespace NPoco.fastJSON
                 }
             }
             return o;
+        }
+
+        private long AutoConv(object value)
+        {
+            if (value is string)
+            {
+                string s = (string)value;
+                return CreateLong(s, 0, s.Length);
+            }
+            else if (value is long)
+                return (long)value;
+            else
+                return Convert.ToInt64(value);
         }
 
         private StringDictionary CreateSD(Dictionary<string, object> d)
@@ -692,6 +923,29 @@ namespace NPoco.fastJSON
             }
         }
 
+        private long CreateLong(string s, int index, int count)
+        {
+            long num = 0;
+            bool neg = false;
+            for (int x = 0; x < count; x++, index++)
+            {
+                char cc = s[index];
+
+                if (cc == '-')
+                    neg = true;
+                else if (cc == '+')
+                    neg = false;
+                else
+                {
+                    num *= 10;
+                    num += (int)(cc - '0');
+                }
+            }
+            if (neg) num = -num;
+
+            return num;
+        }
+
         private int CreateInteger(string s, int index, int count)
         {
             int num = 0;
@@ -718,11 +972,7 @@ namespace NPoco.fastJSON
         private object CreateEnum(Type pt, object v)
         {
             // FEATURE : optimize create enum
-#if !SILVERLIGHT
-            return Enum.Parse(pt, v.ToString());
-#else
-            return Enum.Parse(pt, v, true);
-#endif
+            return Enum.Parse(pt, v.ToString(), true);
         }
 
         private Guid CreateGuid(string s)
@@ -735,6 +985,9 @@ namespace NPoco.fastJSON
 
         private DateTime CreateDateTime(string value)
         {
+            if (value.Length < 19)
+                return DateTime.MinValue;
+
             bool utc = false;
             //                   0123456789012345678 9012 9/3
             // datetime format = yyyy-MM-ddTHH:mm:ss .nnn  Z
@@ -758,18 +1011,10 @@ namespace NPoco.fastJSON
             if (value[value.Length - 1] == 'Z')
                 utc = true;
 
-            if (utc == false)
-            {
+            if (_params.UseUTCDateTime == false && utc == false)
                 return new DateTime(year, month, day, hour, min, sec, ms);
-            }
             else
-            {
-                if (_params.UseUTCDateTime == true)
-                    return new DateTime(year, month, day, hour, min, sec, ms, DateTimeKind.Utc).ToLocalTime();
-                else
-                    return new DateTime(year, month, day, hour, min, sec, ms, DateTimeKind.Utc);
-            }
-                
+                return new DateTime(year, month, day, hour, min, sec, ms, DateTimeKind.Utc).ToLocalTime();
         }
 
         private object CreateArray(List<object> data, Type pt, Type bt, Dictionary<string, object> globalTypes)
@@ -778,6 +1023,7 @@ namespace NPoco.fastJSON
                 bt = typeof(object);
 
             Array col = Array.CreateInstance(bt, data.Count);
+            var arraytype = bt.GetElementType();
             // create an array of objects
             for (int i = 0; i < data.Count; i++)
             {
@@ -789,7 +1035,7 @@ namespace NPoco.fastJSON
                 if (ob is IDictionary)
                     col.SetValue(ParseDictionary((Dictionary<string, object>)ob, globalTypes, bt, null), i);
                 else if (ob is ICollection)
-                    col.SetValue(CreateArray((List<object>)ob, bt, bt.GetElementType(), globalTypes), i);
+                    col.SetValue(CreateArray((List<object>)ob, bt, arraytype, globalTypes), i);
                 else
                     col.SetValue(ChangeType(ob, bt), i);
             }
@@ -799,36 +1045,44 @@ namespace NPoco.fastJSON
 
         private object CreateGenericList(List<object> data, Type pt, Type bt, Dictionary<string, object> globalTypes)
         {
-            IList col = (IList)Reflection.Instance.FastCreateInstance(pt);
-            // create an array of objects
-            foreach (object ob in data)
+            if (pt != typeof(object))
             {
-                if (ob is IDictionary)
-                    col.Add(ParseDictionary((Dictionary<string, object>)ob, globalTypes, bt, null));
-
-                else if (ob is List<object>)
+                IList col = (IList)Reflection.Instance.FastCreateInstance(pt);
+                var it = pt.GetGenericArguments()[0];
+                // create an array of objects
+                foreach (object ob in data)
                 {
-                    if (bt.GetTypeInfo().IsGenericType)
-                        col.Add((List<object>)ob);//).ToArray());
+                    if (ob is IDictionary)
+                        col.Add(ParseDictionary((Dictionary<string, object>)ob, globalTypes, it, null));
+
+                    else if (ob is List<object>)
+                    {
+                        if (bt.GetTypeInfo().IsGenericType)
+                            col.Add((List<object>)ob);//).ToArray());
+                        else
+                            col.Add(((List<object>)ob).ToArray());
+                    }
                     else
-                        col.Add(((List<object>)ob).ToArray());
+                        col.Add(ChangeType(ob, it));
                 }
-                else
-                    col.Add(ChangeType(ob, bt));
+                return col;
             }
-            return col;
+            return data;
         }
 
         private object CreateStringKeyDictionary(Dictionary<string, object> reader, Type pt, Type[] types, Dictionary<string, object> globalTypes)
         {
             var col = (IDictionary)Reflection.Instance.FastCreateInstance(pt);
-            Type t1 = null;
+            Type arraytype = null;
             Type t2 = null;
             if (types != null)
-            {
-                t1 = types[0];
                 t2 = types[1];
-            }
+
+            Type generictype = null;
+            var ga = t2.GetGenericArguments();
+            if (ga.Length > 0)
+                generictype = ga[0];
+            arraytype = t2.GetElementType();
 
             foreach (KeyValuePair<string, object> values in reader)
             {
@@ -843,10 +1097,10 @@ namespace NPoco.fastJSON
                     if (values.Value is Array)
                         val = values.Value;
                     else
-                        val = CreateArray((List<object>)values.Value, t2, t2.GetElementType(), globalTypes);
+                        val = CreateArray((List<object>)values.Value, t2, arraytype, globalTypes);
                 }
                 else if (values.Value is IList)
-                    val = CreateGenericList((List<object>)values.Value, t2, t1, globalTypes);
+                    val = CreateGenericList((List<object>)values.Value, t2, generictype, globalTypes);
 
                 else
                     val = ChangeType(values.Value, t2);
@@ -878,7 +1132,9 @@ namespace NPoco.fastJSON
                 else
                     key = ChangeType(key, t1);
 
-                if (val is Dictionary<string, object>)
+                if (typeof(IDictionary).IsAssignableFrom(t2))
+                    val = RootDictionary(val, t2);
+                else if (val is Dictionary<string, object>)
                     val = ParseDictionary((Dictionary<string, object>)val, globalTypes, t2, null);
                 else
                     val = ChangeType(val, t2);
@@ -938,6 +1194,7 @@ namespace NPoco.fastJSON
             dt.BeginLoadData();
             List<int> guidcols = new List<int>();
             List<int> datecol = new List<int>();
+            List<int> bytearraycol = new List<int>();
 
             foreach (DataColumn c in dt.Columns)
             {
@@ -945,6 +1202,8 @@ namespace NPoco.fastJSON
                     guidcols.Add(c.Ordinal);
                 if (_params.UseUTCDateTime && (c.DataType == typeof(DateTime) || c.DataType == typeof(DateTime?)))
                     datecol.Add(c.Ordinal);
+                if (c.DataType == typeof(byte[]))
+                    bytearraycol.Add(c.Ordinal);
             }
 
             foreach (List<object> row in rows)
@@ -956,6 +1215,12 @@ namespace NPoco.fastJSON
                     string s = (string)v[i];
                     if (s != null && s.Length < 36)
                         v[i] = new Guid(Convert.FromBase64String(s));
+                }
+                foreach (int i in bytearraycol)
+                {
+                    string s = (string)v[i];
+                    if (s != null)
+                        v[i] = Convert.FromBase64String(s);
                 }
                 if (_params.UseUTCDateTime)
                 {

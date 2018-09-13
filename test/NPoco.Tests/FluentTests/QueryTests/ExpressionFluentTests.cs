@@ -124,6 +124,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchByExpressionAndTrim()
+        {
+            var users = Database.Query<UserDecorated>().Where(x => x.Name.Trim() == "   name1   ".Trim()).ToList();
+            Assert.AreEqual(1, users.Count);
+        }
+
+        [Test]
         public void FetchByExpressionAndSelectWithSubstring()
         {
             var users = Database.Query<UserDecorated>().ProjectTo(x => new {Name = x.Name.Substring(0, 2)}).ToList();

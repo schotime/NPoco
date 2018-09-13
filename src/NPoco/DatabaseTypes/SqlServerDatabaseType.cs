@@ -5,6 +5,7 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text.RegularExpressions;
+using NPoco.Expressions;
 
 namespace NPoco.DatabaseTypes
 {
@@ -102,6 +103,11 @@ namespace NPoco.DatabaseTypes
                 return new SqlParameter("__bytes", SqlDbType.VarBinary, -1) { Value = DBNull.Value };
             }
             return base.ProcessDefaultMappings(pocoColumn, value);
+        }
+
+        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
+        {
+            return new SqlServerExpression<T>(db, pocoData, prefixTableName);
         }
     }
 }
