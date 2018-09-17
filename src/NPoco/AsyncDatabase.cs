@@ -108,12 +108,15 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-
-                var pd = PocoDataFactory.ForType(typeof(T));
+                PocoData pd = null;
 
                 foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
                 {
-                    var preparedInserts = batchedPocos.Select(x => InsertStatements.PrepareInsertSql(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, x)).ToArray();
+                    var preparedInserts = batchedPocos.Select(x =>
+                    {
+                        if (pd == null) pd = PocoDataFactory.ForType(x.GetType());
+                        return InsertStatements.PrepareInsertSql(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, x);
+                    }).ToArray();
 
                     var sql = new Sql();
                     foreach (var preparedInsertSql in preparedInserts)
@@ -179,12 +182,15 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-
-                var pd = PocoDataFactory.ForType(typeof(T));
+                PocoData pd = null;
 
                 foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
                 {
-                    var preparedUpdates = batchedPocos.Select(x => UpdateStatements.PrepareUpdate(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, x.Poco, null, x.Snapshot?.UpdatedColumns())).ToArray();
+                    var preparedUpdates = batchedPocos.Select(x =>
+                    {
+                        if (pd == null) pd = PocoDataFactory.ForType(x.GetType());
+                        return UpdateStatements.PrepareUpdate(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, x.Poco, null, x.Snapshot?.UpdatedColumns());
+                    }).ToArray();
 
                     var sql = new Sql();
                     foreach (var preparedUpdate in preparedUpdates)

@@ -2,10 +2,10 @@
 
   <PropertyGroup>
     <Description>An extremely easy to use Micro-ORM supporting Sql Server, MySQL, PostgreSQL, Oracle, Sqlite, SqlCE.</Description>
-    <TargetFrameworks>net35;net45;net40;netstandard1.3;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net35;net461;net40;netstandard1.3;netstandard2.0</TargetFrameworks>
     <AssemblyName>NPoco</AssemblyName>
     <PackageId>NPoco</PackageId>
-    <Version>4.0.0-alpha-2</Version>
+    <Version>4.0.0-alpha-7</Version>
     <Authors>Adam Schröder</Authors>
     <PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
     <PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
@@ -20,7 +20,7 @@
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
   </PropertyGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
     <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Runtime.Serialization" />
