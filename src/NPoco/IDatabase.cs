@@ -95,6 +95,11 @@ namespace NPoco
         /// Delete POCO from table by convention or configuration
         /// </summary>        
         System.Threading.Tasks.Task<int> DeleteAsync(object poco);
+        /// <summary>
+        /// Performs an insert or an update in the table by convention or configuration
+        /// depending on whether the POCO already exists. (i.e. an upsert/merge)
+        /// </summary>        
+        System.Threading.Tasks.Task SaveAsync<T>(T poco);
 #endif
         /// <summary>
         /// Insert POCO's into database using SqlBulkCopy for SqlServer (other DB's currently fall back to looping each row)

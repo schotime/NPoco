@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
 #if !DNXCORE50
@@ -16,10 +15,11 @@ using NPoco.Tests.NewMapper.Models;
 
 namespace NPoco.Tests.Common
 {
-    public class BaseDBFuentTest : BaseDBTest
+    public class BaseDBFluentTest : BaseDBTest
     {
         public List<User> InMemoryUsers { get; set; }
         public List<ExtraUserInfo> InMemoryExtraUserInfos { get; set; }
+        public List<CompositeObjectDecorated> InMemoryCompositeObjects { get; set; }
         public List<House> InMemoryHouses { get; set; }
 
         private static string ToLowerIf(string s, bool clause)
@@ -126,6 +126,7 @@ namespace NPoco.Tests.Common
         {
             InMemoryUsers = new List<User>();
             InMemoryExtraUserInfos = new List<ExtraUserInfo>();
+            InMemoryCompositeObjects = new List<CompositeObjectDecorated>();
             InMemoryHouses = new List<House>();
 
             for (var i = 0; i < 5; i++)
@@ -146,6 +147,8 @@ namespace NPoco.Tests.Common
 
             for (var i = 0; i < 15; i++)
             {
+                var pos = i + 1;
+
                 var user = new User
                 {
                     Name = "Name" + (i + 1),
@@ -193,6 +196,17 @@ namespace NPoco.Tests.Common
                     };
                     Database.Insert(many);
                 }
+
+                var composite = new CompositeObjectDecorated
+                {
+                    Key1ID = pos,
+                    Key2ID = i + 2,
+                    Key3ID = i + 4,
+                    TextData = "This is some text data.",
+                    DateEntered = DateTime.Now
+                };
+                Database.Insert(composite);
+                InMemoryCompositeObjects.Add(composite);
             }
         }
 

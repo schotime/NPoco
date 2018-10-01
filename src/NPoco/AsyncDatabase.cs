@@ -4,7 +4,6 @@ using System.Linq.Expressions;
 using NPoco.Expressions;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
@@ -355,6 +354,20 @@ namespace NPoco
             finally
             {
                 CloseSharedConnectionInternal();
+            }
+        }
+
+        // Insert new record or Update existing record
+        public async Task SaveAsync<T>(T poco)
+        {
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
+            if (IsNew(poco))
+            {
+                await InsertAsync(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco);
+            }
+            else
+            {
+                await UpdateAsync(poco);
             }
         }
 

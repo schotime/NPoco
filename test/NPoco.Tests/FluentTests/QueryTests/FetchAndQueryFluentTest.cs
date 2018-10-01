@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace NPoco.Tests.FluentTests.QueryTests
 {
     [TestFixture]
-    public class FetchAndQueryFluentTest : BaseDBFuentTest
+    public class FetchAndQueryFluentTest : BaseDBFluentTest
     {
         [Test]
         public void FetchAll()

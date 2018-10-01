@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace NPoco.Tests.Async
 {
     [TestFixture]
-    public class QueryAsyncTests : BaseDBFuentTest
+    public class QueryAsyncTests : BaseDBFluentTest
     {
         [Test]
         public async Task QueryAsync()

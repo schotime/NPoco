@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace NPoco.Tests.FluentTests.QueryTests
 {
     [TestFixture]
-    public class AdvancedFetchFluentTest : BaseDBFuentTest
+    public class AdvancedFetchFluentTest : BaseDBFluentTest
     {
         [Test]
         public void FetchWithComplexObjectFilledAsExpected()

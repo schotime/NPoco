@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace NPoco.Tests.FluentTests.QueryTests
 {
-    public class NullableTests : BaseDBFuentTest
+    public class NullableTests : BaseDBFluentTest
     {
         private string escapedAgeIdentifier;
 

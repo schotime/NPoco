@@ -5,7 +5,8 @@ using NUnit.Framework;
 
 namespace NPoco.Tests.Async
 {
-    public class UpdateAsyncTests : BaseDBFuentTest
+    [TestFixture]
+    public class UpdateAsyncTests : BaseDBFluentTest
     {
         [Test]
         public async Task UpdatePrimaryKeyObject()

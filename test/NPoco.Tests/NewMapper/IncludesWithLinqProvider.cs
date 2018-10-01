@@ -6,7 +6,7 @@ using NUnit.Framework;
 
 namespace NPoco.Tests.NewMapper
 {
-    public class IncludesWithLinqProvider : BaseDBFuentTest
+    public class IncludesWithLinqProvider : BaseDBFluentTest
     {
         [Test]
         public void Test1()
