@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <Description>Provides an implementation to use Json.NET as the serializer for serialized columns</Description>
-    <VersionPrefix>3.5.0</VersionPrefix>
-    <TargetFrameworks>net35;net45;net40;netstandard1.3</TargetFrameworks>
+    <VersionPrefix>4.0.0-alpha</VersionPrefix>
+    <TargetFrameworks>net35;net45;net40;netstandard1.3;netstandard2.0</TargetFrameworks>
     <AssemblyName>NPoco.JsonNet</AssemblyName>
     <PackageId>NPoco.JsonNet</PackageId>
     <PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
