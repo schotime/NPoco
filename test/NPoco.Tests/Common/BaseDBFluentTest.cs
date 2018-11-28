@@ -16,7 +16,7 @@ using NPoco.Tests.NewMapper.Models;
 
 namespace NPoco.Tests.Common
 {
-    public class BaseDBFuentTest : BaseDBTest
+    public class BaseDBFluentTest : BaseDBTest
     {
         public List<User> InMemoryUsers { get; set; }
         public List<ExtraUserInfo> InMemoryExtraUserInfos { get; set; }

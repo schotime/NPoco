@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace NPoco.Tests.FluentTests.QueryTests
 {
     [TestFixture]
-    public class ConverterFluentTest : BaseDBFuentTest
+    public class ConverterFluentTest : BaseDBFluentTest
     {
         [Test]
         public void DateIsOfKindUtcWithSmartConventions()

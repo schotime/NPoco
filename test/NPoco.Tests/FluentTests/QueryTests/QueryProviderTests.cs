@@ -9,7 +9,7 @@ using NUnit.Framework;
 namespace NPoco.Tests.FluentTests.QueryTests
 {
     [TestFixture]
-    public class QueryProviderTests : BaseDBFuentTest
+    public class QueryProviderTests : BaseDBFluentTest
     {
         [Test]
         public void QueryAllData()
