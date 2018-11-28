@@ -100,7 +100,11 @@ namespace NPoco
             return target;
         }
 
-        public virtual object ChangeType(object val) { return Convert.ChangeType(val, MemberInfoData.MemberType); }
+        public virtual object ChangeType(object val)
+        {
+            var type = Nullable.GetUnderlyingType(MemberInfoData.MemberType) ?? MemberInfoData.MemberType;
+            return Convert.ChangeType(val, type);
+        }
 
         public object GetColumnValue(PocoData pd, object target, Func<PocoColumn, object, object> callback = null)
         {
