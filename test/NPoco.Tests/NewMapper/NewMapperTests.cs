@@ -238,23 +238,23 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
                 .UsingAlias("TEST")
                 .Include(x => x.CreatedBy, "CREATEDBY")
                 .Where(x => x.Id.In(new[] { 2, 3 }))
-                .Where("CREATEDBY.Id in (@list)", new { list = new[] { 1, 3 } })
+                .WhereSql("CREATEDBY.Id in (@list)", new { list = new[] { 1, 3 } })
                 .ToList();
 
             Database.Query<RecursionUser>()
                 .UsingAlias("TEST1")
                 .Include(x => x.CreatedBy)
                 .Where(x => x.Id.In(new[] { 2, 3 }))
-                .Where("RU4.Id in (@list)", new { list = new[] { 1, 3 } })
+                .WhereSql("RU4.Id in (@list)", new { list = new[] { 1, 3 } })
                 .ToList();
 
             Database.Query<RecursionUser>()
-                .Where(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z => z)), new { list = new[] { 1, 3 } }))
+                .WhereSql(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z => z)), new { list = new[] { 1, 3 } }))
                 .ToList();
 
             Database.Query<RecursionUser>()
                 .Include(x => x.CreatedBy)
-                .Where(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z => z.CreatedBy)), new { list = new[] { 1, 3 } }))
+                .WhereSql(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z => z.CreatedBy)), new { list = new[] { 1, 3 } }))
                 .ToList();
 
             Database.Query<RecursionUser>()
@@ -647,7 +647,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         public void Test33()
         {
             var users = Database.Query<UserDecorated>()
-                .Where(x=> new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new {list = new[] {2}}))
+                .WhereSql(x=> new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new {list = new[] {2}}))
                 .Where(x => x.UserId.In(new[] { 1, 2 }))
                 .OrderBy(x => x.UserId)
                 .ToList();
@@ -661,7 +661,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         {
             var users = Database.Query<UserDecorated>()
                 .Where(x => x.UserId.In(new[] { 2 }))
-                .Where(x => new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new { list = new[] { 1, 2 } }))
+                .WhereSql(x => new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new { list = new[] { 1, 2 } }))
                 .OrderBy(x => x.UserId)
                 .ToList();
 
@@ -721,7 +721,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
     {
         public static IQueryProvider<RecursionUser> IncludeSecurity(this IQueryProvider<RecursionUser> query)
         {
-            return query.Where(x => new Sql(string.Format("exists (select 1 from {1} where Id = {0}.Id)", x.DatabaseType.EscapeTableName(x.GetAliasFor(z => z.CreatedBy)), x.GetPocoDataFor<RecursionUser>().TableInfo.TableName)));
+            return query.WhereSql(x => new Sql(string.Format("exists (select 1 from {1} where Id = {0}.Id)", x.DatabaseType.EscapeTableName(x.GetAliasFor(z => z.CreatedBy)), x.GetPocoDataFor<RecursionUser>().TableInfo.TableName)));
         }
     }
 }

@@ -86,9 +86,9 @@ namespace NPoco.Linq
     public interface IQueryProvider<T> : IQueryResultProvider<T>
     {
         IQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
-        IQueryProvider<T> Where(string sql, params object[] args);
-        IQueryProvider<T> Where(Sql sql);
-        IQueryProvider<T> Where(Func<QueryContext<T>, Sql> queryBuilder);
+        IQueryProvider<T> WhereSql(string sql, params object[] args);
+        IQueryProvider<T> WhereSql(Sql sql);
+        IQueryProvider<T> WhereSql(Func<QueryContext<T>, Sql> queryBuilder);
         IQueryProvider<T> OrderBy(Expression<Func<T, object>> column);
         IQueryProvider<T> OrderByDescending(Expression<Func<T, object>> column);
         IQueryProvider<T> ThenBy(Expression<Func<T, object>> column);
@@ -101,9 +101,9 @@ namespace NPoco.Linq
     public interface IAsyncQueryProvider<T> : IAsyncQueryResultProvider<T>
     {
         IAsyncQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
-        IAsyncQueryProvider<T> Where(string sql, params object[] args);
-        IAsyncQueryProvider<T> Where(Sql sql);
-        IAsyncQueryProvider<T> Where(Func<QueryContext<T>, Sql> queryBuilder);
+        IAsyncQueryProvider<T> WhereSql(string sql, params object[] args);
+        IAsyncQueryProvider<T> WhereSql(Sql sql);
+        IAsyncQueryProvider<T> WhereSql(Func<QueryContext<T>, Sql> queryBuilder);
         IAsyncQueryProvider<T> OrderBy(Expression<Func<T, object>> column);
         IAsyncQueryProvider<T> OrderByDescending(Expression<Func<T, object>> column);
         IAsyncQueryProvider<T> ThenBy(Expression<Func<T, object>> column);
@@ -334,22 +334,22 @@ namespace NPoco.Linq
             return this;
         }
 
-        public IAsyncQueryProvider<T> Where(string sql, params object[] args)
+        public IAsyncQueryProvider<T> WhereSql(string sql, params object[] args)
         {
             _sqlExpression = _sqlExpression.Where(sql, args);
             return this;
         }
 
-        public IAsyncQueryProvider<T> Where(Sql sql)
+        public IAsyncQueryProvider<T> WhereSql(Sql sql)
         {
             _sqlExpression = _sqlExpression.Where(sql.SQL, sql.Arguments);
             return this;
         }
 
-        public IAsyncQueryProvider<T> Where(Func<QueryContext<T>, Sql> queryBuilder)
+        public IAsyncQueryProvider<T> WhereSql(Func<QueryContext<T>, Sql> queryBuilder)
         {
             var sql = queryBuilder(new QueryContext<T>(_database, _pocoData, _joinSqlExpressions));
-            return Where(sql);
+            return WhereSql(sql);
         }
 
         public IAsyncQueryProvider<T> Limit(int rows)
@@ -722,19 +722,19 @@ namespace NPoco.Linq
             return (IQueryProvider<T>)base.Where(whereExpression);
         }
 
-        public new IQueryProvider<T> Where(string sql, params object[] args)
+        public new IQueryProvider<T> WhereSql(string sql, params object[] args)
         {
-            return (IQueryProvider<T>)base.Where(sql, args);
+            return (IQueryProvider<T>)base.WhereSql(sql, args);
         }
 
-        public new IQueryProvider<T> Where(Sql sql)
+        public new IQueryProvider<T> WhereSql(Sql sql)
         {
-            return (IQueryProvider<T>)base.Where(sql);
+            return (IQueryProvider<T>)base.WhereSql(sql);
         }
 
-        public new IQueryProvider<T> Where(Func<QueryContext<T>, Sql> queryBuilder)
+        public new IQueryProvider<T> WhereSql(Func<QueryContext<T>, Sql> queryBuilder)
         {
-            return (IQueryProvider<T>)base.Where(queryBuilder);
+            return (IQueryProvider<T>)base.WhereSql(queryBuilder);
         }
 
         public new IQueryProvider<T> OrderBy(Expression<Func<T, object>> column)
