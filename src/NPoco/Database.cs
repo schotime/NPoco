@@ -500,6 +500,7 @@ namespace NPoco
             if (value == null)
             {
                 p.Value = DBNull.Value;
+                p.DbType = DbType.String; // Sql CE wants a type
                 return;
             }
 
