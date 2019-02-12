@@ -9,6 +9,8 @@ namespace NPoco
 {
     public class Sql
     {
+        public bool ReuseParameters { get; set; }
+
         public Sql()
         { }
 
@@ -110,7 +112,7 @@ namespace NPoco
                 if (sb.Length > 0)
                     sb.Append("\n");
 
-                var sql = ParameterHelper.ProcessParams(_sql, _args, args);
+                var sql = ParameterHelper.ProcessParams(_sql, _args, args, ReuseParameters);
 
                 if (Is(lhs, "WHERE ") && Is(this, "WHERE "))
                     sql = "AND " + sql.Substring(6);

@@ -13,7 +13,7 @@ namespace NPoco
         // Helper to handle named parameters from object properties
         public static Regex rxParamsPrefix = new Regex(@"(?<!@)@\w+", RegexOptions.Compiled);
 
-        public static string ProcessParams(string sql, object[] args_src, List<object> args_dest)
+        public static string ProcessParams(string sql, object[] args_src, List<object> args_dest, bool reuseParameters = false)
         {
             var parameters = new Dictionary<string, string>();
             return rxParamsPrefix.Replace(sql, m =>
@@ -22,12 +22,12 @@ namespace NPoco
                 if (parameters.TryGetValue(m.Value, out item))
                     return item;
 
-                item = parameters[m.Value] = ProcessParam(ref sql, m.Value, args_src, args_dest);
+                item = parameters[m.Value] = ProcessParam(ref sql, m.Value, args_src, args_dest, reuseParameters);
                 return item;
             });
         }
         
-        public static string ProcessParam(ref string sql, string rawParam, object[] args_src, List<object> args_dest)
+        private static string ProcessParam(ref string sql, string rawParam, object[] args_src, List<object> args_dest, bool reuseParameters)
         {
             string param = rawParam.Substring(1);
 
@@ -113,6 +113,13 @@ namespace NPoco
             }
             else
             {
+                if (reuseParameters)
+                {
+                    var indexOfExistingValue = args_dest.IndexOf(arg_val);
+                    if (indexOfExistingValue >= 0)
+                        return "@" + indexOfExistingValue;
+                }
+
                 args_dest.Add(arg_val);
                 return "@" + (args_dest.Count - 1).ToString();
             }
