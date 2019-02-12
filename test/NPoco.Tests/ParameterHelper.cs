@@ -106,5 +106,17 @@ namespace NPoco.Tests
 
             Assert.AreEqual(expectedSql, resultSql);
         }
+
+        [Test]
+        public void RewriteTheSameParameters()
+        {
+            var sql = "SELECT * FROM test WHERE testID in (@0, @1, @2, @3, @4)";
+
+            var args = new List<object>();
+            var resultSql = ParameterHelper.ProcessParams(sql, new object[] { 1, 2, 1, 1, 2 }, args, true);
+
+            Assert.AreEqual(2, args.Count);
+            Assert.AreEqual(resultSql, "SELECT * FROM test WHERE testID in (@0, @1, @0, @0, @1)");
+        }
     }
 }
