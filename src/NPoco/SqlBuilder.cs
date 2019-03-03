@@ -30,11 +30,11 @@ namespace NPoco
                 this.postfix = postfix;
             }
 
-            public string ResolveClauses(List<object> finalParams)
+            public string ResolveClauses(List<object> finalParams, bool reuseParameters)
             {
                 foreach (var item in this)
                 {
-                    item.ResolvedSql = ParameterHelper.ProcessParams(item.Sql, item.Parameters.ToArray(), finalParams);
+                    item.ResolvedSql = ParameterHelper.ProcessParams(item.Sql, item.Parameters.ToArray(), finalParams, reuseParameters);
                 }
                 return prefix + string.Join(joiner, this.Select(c => c.ResolvedSql).ToArray()) + postfix;
             }
@@ -51,8 +51,8 @@ namespace NPoco
 
             public Template(SqlBuilder builder, string sql, params object[] parameters)
             {
-                this.sql = ParameterHelper.ProcessParams(sql, parameters, finalParams);
                 this.builder = builder;
+                this.sql = ParameterHelper.ProcessParams(sql, parameters, finalParams, builder.ReuseParameters);
             }
 
             static Regex regex = new Regex(@"(\/\*\*[^*/]+\*\*\/)", RegexOptions.Compiled | RegexOptions.Multiline);
@@ -64,7 +64,7 @@ namespace NPoco
                     rawSql = sql;
                     foreach (var pair in builder.data)
                     {
-                        rawSql = rawSql.Replace("/**" + pair.Key + "**/", pair.Value.ResolveClauses(finalParams));
+                        rawSql = rawSql.Replace("/**" + pair.Key + "**/", pair.Value.ResolveClauses(finalParams, builder.ReuseParameters));
                     }
 
                     ReplaceDefaults();
@@ -131,6 +131,8 @@ namespace NPoco
             public string RawSql { get { ResolveSql(); return rawSql; } }
             public object[] Parameters { get { ResolveSql(); return finalParams.ToArray(); } }
         }
+
+        public bool ReuseParameters { get; set; }
 
         /// <summary>
         /// Initialises the SqlBuilder
