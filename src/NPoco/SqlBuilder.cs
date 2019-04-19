@@ -157,6 +157,15 @@ namespace NPoco
             return new Template(this, sql, parameters);
         }
 
+        /// <summary>
+        /// Adds a new SQL clause.  Also internally used by all other methods like Select, Where, Order, ...
+        /// </summary>
+        /// <param name="name">lower case name of the clause (eg select, where, ...) </param>
+        /// <param name="sql"></param>
+        /// <param name="parameters">for the sql string</param>
+        /// <param name="joiner">The string which will be used to join multiple parts of the same clause. Remember to add whitespace before and after.</param>
+        /// <param name="prefix"></param>
+        /// <param name="postfix"></param>
         public void AddClause(string name, string sql, object[] parameters, string joiner, string prefix, string postfix)
         {
             Clauses clauses;
