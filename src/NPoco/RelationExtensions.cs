@@ -70,8 +70,8 @@ namespace NPoco
 
             var prev = (T)onetomanycurrent;
             onetomanycurrent = main; 
-
-            bool nullMany = sub == null || (subIdFunc != null && subIdFunc(sub).Equals(GetDefault(subIdFunc(sub).GetType())));
+            // In case of a left Join, check if properties inside sub Object are null 
+            bool nullMany = sub.GetType().GetProperties()[0].GetValue(sub,null) == null || (subIdFunc != null && subIdFunc(sub).Equals(GetDefault(subIdFunc(sub).GetType())));
             property1.SetValue((T) onetomanycurrent, nullMany ? new List<TSub>() : new List<TSub> {sub}, null);
 
             return prev;
