@@ -1,4 +1,4 @@
-/* NPoco 3.0 - A Tiny ORMish thing for your POCO's.
+/* NPoco 4.0 - A Tiny ORMish thing for your POCO's.
  * Copyright 2011-2015. All Rights Reserved.
  *
  * Apache License 2.0 - http://www.apache.org/licenses/LICENSE-2.0
@@ -527,7 +527,7 @@ namespace NPoco
                 if (strValue == null)
                 {
                     p.Size = 0;
-                    p.Value = String.Empty;
+                    p.Value = DBNull.Value;
                 }
                 else
                 {
@@ -544,10 +544,10 @@ namespace NPoco
             else if (t == typeof(AnsiString))
             {
                 var ansistrValue = value as AnsiString;
-                if (ansistrValue == null)
+                if (ansistrValue?.Value == null)
                 {
                     p.Size = 0;
-                    p.Value = String.Empty;
+                    p.Value = DBNull.Value;
                     p.DbType = DbType.AnsiString;
                 }
                 else
