@@ -129,7 +129,7 @@ namespace NPoco.Linq
         IQueryProviderWithIncludes<T> UsingAlias(string empty);
     }
 
-    public class AsyncQueryProvider<T> : IAsyncQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>
+    public class AsyncQueryProvider<T> : IAsyncQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>, INeedDatabase
     {
         protected readonly Database _database;
         protected SqlExpression<T> _sqlExpression;
@@ -456,6 +456,15 @@ namespace NPoco.Linq
             return _database.QueryImp<dynamic>(null, null, null, sql);
         }
 #endif
+        IDatabase INeedDatabase.GetDatabase()
+        {
+            return _database;
+        }
+    }
+
+    public interface INeedDatabase
+    {
+        IDatabase GetDatabase();
     }
 
     public class QueryProvider<T> : AsyncQueryProvider<T>, IQueryProviderWithIncludes<T>
