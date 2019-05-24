@@ -8,7 +8,7 @@
     <PackageId>NPoco.JsonNet</PackageId>
     <PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
     <PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
-    <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <PackageLicense>http://www.apache.org/licenses/LICENSE-2.0</PackageLicense>
     <PackageTargetFallback Condition=" '$(TargetFramework)' == 'netstandard1.3' ">$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
