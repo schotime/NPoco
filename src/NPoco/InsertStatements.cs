@@ -49,8 +49,8 @@ namespace NPoco
                         continue;
                     }
 
-                    names.Add(database.DatabaseType.EscapeSqlIdentifier(pocoColumn.ColumnName));
-                    values.Add(string.Format("@{0}", index++));
+                    //names.Add(database.DatabaseType.EscapeSqlIdentifier(pocoColumn.ColumnName));
+                    //values.Add(string.Format("@{0}", index++));
 
                     object val;
                     if (pocoColumn.ReferenceType == ReferenceType.Foreign)
@@ -70,7 +70,14 @@ namespace NPoco
                         versionName = pocoColumn.ColumnName;
                     }
 
-                    rawvalues.Add(val);
+                     
+                    
+                    if (val != null)
+                    {
+                        names.Add(database.DatabaseType.EscapeSqlIdentifier(pocoColumn.ColumnName));
+                        values.Add(string.Format("@{0}", index++));
+                        rawvalues.Add(val);
+                    }
                 }
 
                 var sql = string.Empty;

@@ -42,29 +42,31 @@ namespace NPoco
                         continue;
 
                     object value = pocoColumn.GetColumnValue(pd, poco, database.ProcessMapper);
-
-                    if (pocoColumn.VersionColumn)
+                    if (value != null)
                     {
-                        versionName = pocoColumn.ColumnName;
-                        versionValue = value;
-                        if (pocoColumn.VersionColumnType == VersionColumnType.Number)
+                        if (pocoColumn.VersionColumn)
                         {
-                            versionColumnType = VersionColumnType.Number;
-                            value = Convert.ToInt64(value) + 1;
+                            versionName = pocoColumn.ColumnName;
+                            versionValue = value;
+                            if (pocoColumn.VersionColumnType == VersionColumnType.Number)
+                            {
+                                versionColumnType = VersionColumnType.Number;
+                                value = Convert.ToInt64(value) + 1;
+                            }
+                            else if (pocoColumn.VersionColumnType == VersionColumnType.RowVersion)
+                            {
+                                versionColumnType = VersionColumnType.RowVersion;
+                                continue;
+                            }
                         }
-                        else if (pocoColumn.VersionColumnType == VersionColumnType.RowVersion)
-                        {
-                            versionColumnType = VersionColumnType.RowVersion;
-                            continue;
-                        }
+
+                        // Build the sql
+                        if (index > 0)
+                            sb.Append(", ");
+                        sb.AppendFormat("{0} = @{1}", database.DatabaseType.EscapeSqlIdentifier(pocoColumn.ColumnName), index++);
+
+                        rawvalues.Add(value);
                     }
-
-                    // Build the sql
-                    if (index > 0)
-                        sb.Append(", ");
-                    sb.AppendFormat("{0} = @{1}", database.DatabaseType.EscapeSqlIdentifier(pocoColumn.ColumnName), index++);
-
-                    rawvalues.Add(value);
                 }
 
                 if (sb.Length == 0)
