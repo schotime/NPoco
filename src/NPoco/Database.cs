@@ -942,12 +942,12 @@ namespace NPoco
         }
 
         // Return an enumerable collection of pocos
-        public IEnumerable<T> Query<T>(string sql, params object[] args)
+        public virtual IEnumerable<T> Query<T>(string sql, params object[] args)
         {
             return Query<T>(new Sql(sql, args));
         }
 
-        public IEnumerable<T> Query<T>(Sql Sql)
+        public virtual IEnumerable<T> Query<T>(Sql Sql)
         {
             return Query(default(T), Sql);
         }
@@ -1057,7 +1057,7 @@ namespace NPoco
             }
         }
 
-        public IQueryProviderWithIncludes<T> Query<T>()
+        public virtual IQueryProviderWithIncludes<T> Query<T>()
         {
             return new QueryProvider<T>(this);
         }
@@ -1077,12 +1077,12 @@ namespace NPoco
             return Query(type, Sql).ToList();
         }
 
-        public IEnumerable<object> Query(Type type, string sql, params object[] args)
+        public virtual IEnumerable<object> Query(Type type, string sql, params object[] args)
         {
             return Query(type, new Sql(sql, args));
         }
 
-        public IEnumerable<object> Query(Type type, Sql Sql)
+        public virtual IEnumerable<object> Query(Type type, Sql Sql)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
