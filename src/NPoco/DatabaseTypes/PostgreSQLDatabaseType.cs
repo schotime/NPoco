@@ -1,3 +1,4 @@
+using NPoco.Expressions;
 using System.Data;
 using System.Data.Common;
 
@@ -52,6 +53,11 @@ namespace NPoco.DatabaseTypes
         public override string GetParameterPrefix(string connectionString)
         {
             return "@p";
+        }
+
+        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
+        {
+            return new PostgreSQLExpression<T>(db, pocoData, prefixTableName);
         }
 
         public override string GetProviderName()

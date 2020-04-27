@@ -22,7 +22,6 @@ namespace NPoco.Expressions
         }
 
 
-#if !NETSTANDARD1_3
         protected override string GetDateTimeSql(string memberName, object m)
         {
             //  http://www.firebirdsql.org/refdocs/langrefupd21.html
@@ -30,8 +29,8 @@ namespace NPoco.Expressions
             switch (memberName)
             {
                 case "Year": sql = string.Format("EXTRACT(YEAR FROM {0})", m); break;
-                case "Day": sql = string.Format("EXTRACT(MONTH FROM {0})", m); break;
-                case "Month": sql = string.Format("EXTRACT(DAY FROM {0})", m); break;
+                case "Month": sql = string.Format("EXTRACT(MONTH FROM {0})", m); break;
+                case "Day": sql = string.Format("EXTRACT(DAY FROM {0})", m); break;
                 case "Hour": sql = string.Format("EXTRACT(HOUR FROM {0})", m); break;
                 case "Minute": sql = string.Format("EXTRACT(MINUTE FROM {0})", m); break;
                 case "Second": sql = string.Format("EXTRACT(SECOND FROM {0})", m); break;
@@ -39,9 +38,7 @@ namespace NPoco.Expressions
                 default: throw new NotSupportedException("Not Supported " + memberName);
             }
             return sql;
-
-
         }
-#endif
+
     }
 }

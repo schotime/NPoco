@@ -502,59 +502,45 @@ namespace NPoco.Expressions
             return selectsql;
         }
 
-        private string WhereExpression
-        {
-            get
-            {
+        private string WhereExpression {
+            get {
                 return whereExpression;
             }
-            set
-            {
+            set {
                 whereExpression = value;
             }
         }
 
-        private string GroupByExpression
-        {
-            get
-            {
+        private string GroupByExpression {
+            get {
                 return groupBy;
             }
-            set
-            {
+            set {
                 groupBy = value;
             }
         }
 
-        private string HavingExpression
-        {
-            get
-            {
+        private string HavingExpression {
+            get {
                 return havingExpression;
             }
-            set
-            {
+            set {
                 havingExpression = value;
             }
         }
 
 
-        private string OrderByExpression
-        {
-            get
-            {
+        private string OrderByExpression {
+            get {
                 return orderBy;
             }
-            set
-            {
+            set {
                 orderBy = value;
             }
         }
 
-        protected virtual string LimitExpression
-        {
-            get
-            {
+        protected virtual string LimitExpression {
+            get {
                 if (!Skip.HasValue) return "";
                 string rows;
                 if (Rows.HasValue)
@@ -572,14 +558,11 @@ namespace NPoco.Expressions
         private int? Rows { get; set; }
         private int? Skip { get; set; }
 
-        protected internal PocoData ModelDef
-        {
-            get
-            {
+        protected internal PocoData ModelDef {
+            get {
                 return _pocoData;
             }
-            set
-            {
+            set {
                 _pocoData = value;
             }
         }
@@ -946,8 +929,7 @@ namespace NPoco.Expressions
                 {
                     foreach (var member in pocoMember.PocoMemberChildren.Where(x => x.PocoColumn != null))
                     {
-                        generalMembers.Add(new GeneralMember()
-                        {
+                        generalMembers.Add(new GeneralMember() {
                             EntityType = pocoMember.MemberInfoData.MemberType,
                             PocoColumn = member.PocoColumn,
                             PocoColumns = new[] { member.PocoColumn }
@@ -965,8 +947,7 @@ namespace NPoco.Expressions
                                           : "")
                                      + _databaseType.EscapeSqlIdentifier(pocoColumn.ColumnName);
 
-                generalMembers.Add(new GeneralMember()
-                {
+                generalMembers.Add(new GeneralMember() {
                     EntityType = type,
                     PocoColumn = pocoColumn,
                     PocoColumns = pocoColumns
@@ -980,8 +961,7 @@ namespace NPoco.Expressions
 
                 return new MemberAccessString(pocoColumn, pocoColumns, columnName, type);
             }
-#if !NETSTANDARD1_3
-            if (m.Member.ReflectedType == typeof(DateTime) || m.Member.ReflectedType == typeof(DateTime?))
+            if (m.Member.DeclaringType == typeof(DateTime) || m.Member.DeclaringType == typeof(DateTime?))
             {
                 var m1 = m.Expression as MemberExpression;
                 if (m1 != null)
@@ -1003,22 +983,20 @@ namespace NPoco.Expressions
                     }
                 }
             }
-#endif
 
             var memberExp = Expression.Convert(m, typeof(object));
             var lambda = Expression.Lambda<Func<object>>(memberExp);
             var getter = lambda.Compile();
             return getter();
         }
-#if !NETSTANDARD1_3
         protected virtual string GetDateTimeSql(string memberName, object m)
         {
             string sql = null;
             switch (memberName)
             {
                 case "Year": sql = string.Format("DATEPART(YEAR,{0})", m); break;
-                case "Day": sql = string.Format("DATEPART(MONTH,{0})", m); break;
-                case "Month": sql = string.Format("DATEPART(DAY,{0})", m); break;
+                case "Month": sql = string.Format("DATEPART(MONTH,{0})", m); break;
+                case "Day": sql = string.Format("DATEPART(DAY,{0})", m); break;
                 case "Hour": sql = string.Format("DATEPART(HOUR,{0})", m); break;
                 case "Minute": sql = string.Format("DATEPART(MINUTE,{0})", m); break;
                 case "Second": sql = string.Format("DATEPART(SECOND,{0})", m); break;
@@ -1027,24 +1005,6 @@ namespace NPoco.Expressions
             }
             return sql;
         }
-        //PostgreSQL
-        //  https://www.postgresql.org/docs/9.1/static/functions-datetime.html
-        //case SqlFunction.Year: return CreateFunction("EXTRACT(YEAR FROM TIMESTAMP {0})", args);
-        //  case SqlFunction.Month: return CreateFunction("EXTRACT(MONTH FROM TIMESTAMP {0})", args);
-        //  case SqlFunction.Day: return CreateFunction("EXTRACT(DAY FROM TIMESTAMP {0})", args);
-        //  case SqlFunction.Hour: return CreateFunction("EXTRACT(HOUR FROM TIMESTAMP {0})", args);
-        //  case SqlFunction.Minute: return CreateFunction("EXTRACT(MINUTE FROM TIMESTAMP {0})", args);
-        //  case SqlFunction.Second: return CreateFunction("EXTRACT(SECOND FROM TIMESTAMP {0})", args);
-
-        //Oracle
-        // http://blog.csdn.net/gccr/article/details/1802740
-        //case SqlFunction.Year: return CreateFunction("EXTRACT(YEAR FROM TIMESTAMP {0})", args);
-        //       case SqlFunction.Month: return CreateFunction("EXTRACT(MONTH FROM TIMESTAMP {0})", args);
-        //       case SqlFunction.Day: return CreateFunction("EXTRACT(DAY FROM TIMESTAMP {0})", args);
-        //       case SqlFunction.Hour: return CreateFunction("EXTRACT(HOUR FROM TIMESTAMP {0})", args);
-        //       case SqlFunction.Minute: return CreateFunction("EXTRACT(MINUTE FROM TIMESTAMP {0})", args);
-        //       case SqlFunction.Second: return CreateFunction("EXTRACT(SECOND FROM TIMESTAMP {0})", args);
-#endif
 
         private Type GetCorrectType(MemberExpression m)
         {
@@ -1077,8 +1037,7 @@ namespace NPoco.Expressions
                 {
                     if (exprs[i] is MemberAccessString)
                     {
-                        selectMembers.Add(new SelectMember()
-                        {
+                        selectMembers.Add(new SelectMember() {
                             EntityType = ((MemberAccessString)exprs[i]).Type,
                             PocoColumn = ((MemberAccessString)exprs[i]).PocoColumn,
                             PocoColumns = ((MemberAccessString)exprs[i]).PocoColumns,
@@ -1455,8 +1414,7 @@ namespace NPoco.Expressions
             var cols = fields ?? _pocoData.QueryColumns.Select(x => new SelectMember { PocoColumn = x.Value, EntityType = _pocoData.Type, PocoColumns = new[] { x.Value } });
             return string.Format("SELECT {0}{1} \nFROM {2}",
                 (distinct ? "DISTINCT " : ""),
-                    string.Join(", ", cols.Select(x =>
-                    {
+                    string.Join(", ", cols.Select(x => {
                         if (x.SelectSql == null)
                             return (PrefixFieldWithTableName
                                 ? _databaseType.EscapeTableName(_pocoData.TableInfo.AutoAlias) + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + _databaseType.EscapeSqlIdentifier(x.PocoColumns.Last().MemberInfoKey)

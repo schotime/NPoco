@@ -1,3 +1,4 @@
+using NPoco.Expressions;
 using System;
 using System.Data;
 using System.Data.Common;
@@ -68,6 +69,10 @@ namespace NPoco.DatabaseTypes
                 default:
                     return "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;";
             }
+        }
+        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
+        {
+            return new SQLiteExpression<T>(db, pocoData, prefixTableName);
         }
 
         public override string GetProviderName()
