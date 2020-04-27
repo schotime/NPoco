@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 namespace NPoco.Tests.Async
 {
-    public class BaseDbFluentTestsWithNoData : BaseDBFuentTest
+    public class BaseDbFluentTestsWithNoData : BaseDBFluentTest
     {
         protected override void InsertData()
         {

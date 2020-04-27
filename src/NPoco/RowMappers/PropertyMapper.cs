@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Reflection;
 
 namespace NPoco.RowMappers
 {
@@ -86,7 +87,7 @@ namespace NPoco.RowMappers
                 if (memberInfoType.IsAClass() || pocoMember.IsDynamic)
                 {
                     var children = PocoDataBuilder.IsDictionaryType(memberInfoType)
-                        ? CreateDynamicDictionaryPocoMembers(groupedName.SubItems, pocoData)
+                        ? CreateDynamicDictionaryPocoMembers(groupedName.SubItems, pocoData, memberInfoType)
                         : pocoMember.PocoMemberChildren;
 
                     var subPlans = groupedName.SubItems.SelectMany(x => BuildMapPlans(x, dataReader, pocoData, children)).ToArray();
@@ -149,16 +150,32 @@ namespace NPoco.RowMappers
             return false;
         }
 
-        private static List<PocoMember> CreateDynamicDictionaryPocoMembers(IEnumerable<GroupResult<PosName>> subItems, PocoData pocoData)
+        private static List<PocoMember> CreateDynamicDictionaryPocoMembers(IEnumerable<GroupResult<PosName>> subItems, PocoData pocoData, Type type)
         {
-            return subItems.Select(x => new DynamicPocoMember(pocoData.Mapper)
+            var isDict = type != typeof(object);
+            var dataType = isDict ? type.GetGenericArguments().Last() : type;
+            
+            return subItems.Select(x =>
             {
-                MemberInfoData = new MemberInfoData(x.Item, typeof(object), typeof(IDictionary<string, object>)),
-                PocoColumn = new ExpandoColumn
+                var member = new DynamicPocoMember
                 {
-                    ColumnName = x.Item
+                    MemberInfoData = new MemberInfoData(x.Item, dataType, type),
+                    PocoColumn = new ExpandoColumn
+                    {
+                        ColumnName = x.Item
+                    }
+                };
+
+                if (isDict)
+                {
+                    var pocoDataBuilder = new PocoDataBuilder(dataType, pocoData.Mapper);
+                    member.PocoMemberChildren = pocoDataBuilder.GetPocoMembers(pocoDataBuilder.GetColumnInfos(dataType), new List<MemberInfo>()).Select(plan => plan(pocoData.TableInfo)).ToList();
+                    member.SetDynamicMemberAccessor(new FastCreate(dataType, pocoData.Mapper));
                 }
-            }).Cast<PocoMember>().ToList();
+
+                return (PocoMember)member;
+
+            }).ToList();
         }
     }
 }

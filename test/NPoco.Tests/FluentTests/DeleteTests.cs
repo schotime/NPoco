@@ -4,7 +4,7 @@ using NUnit.Framework;
 namespace NPoco.Tests.FluentTests
 {
     [TestFixture]
-    public class DeleteTests : BaseDBFuentTest
+    public class DeleteTests : BaseDBFluentTest
     {
         [Test]
         public void TestDelete()

@@ -27,7 +27,9 @@ namespace NPoco.Tests.Common
             var configuration = new ConfigurationBuilder()
                 .AddJsonFile("config.json")
                 .Build();
-            
+
+            //DatabaseFactory.ColumnSerializer = new JsonNetColumnSerializer();
+
             var testDBType = Convert.ToInt32(configuration.GetSection("TestDBType").Value);
             switch (testDBType)
             {

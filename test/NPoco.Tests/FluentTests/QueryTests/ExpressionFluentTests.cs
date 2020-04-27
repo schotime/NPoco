@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace NPoco.Tests.FluentTests.QueryTests
 {
     [TestFixture]
-    public class ExpressionFluentTests : BaseDBFuentTest
+    public class ExpressionFluentTests : BaseDBFluentTest
     {
         [Test]
         public void FetchByExpressionAdvanced()
@@ -79,6 +79,48 @@ namespace NPoco.Tests.FluentTests.QueryTests
         {
             var users = Database.Query<UserDecorated>().Where(x => x.Name.Substring(0, 4) == "Name").ToList();
             Assert.AreEqual(15, users.Count);
+        }
+
+        [Test]
+        public void FetchByExpressionWithTrim()
+        {
+            var originalName = InMemoryUsers[0].Name;
+            InMemoryUsers[0].Name = "   " + InMemoryUsers[0].Name + "   ";
+            Database.Update(InMemoryUsers[0], x => x.Name);
+
+            var users = Database.Query<UserDecorated>().Where(x => x.Name.Trim() == originalName).ToList();
+            Assert.AreEqual(1, users.Count);
+
+            InMemoryUsers[0].Name = originalName;
+            Database.Update(InMemoryUsers[0], x => x.Name);
+        }
+
+        [Test]
+        public void FetchByExpressionWithTrimStart()
+        {
+            var originalName = InMemoryUsers[0].Name;
+            InMemoryUsers[0].Name = "   " + InMemoryUsers[0].Name;
+            Database.Update(InMemoryUsers[0], x => x.Name);
+
+            var users = Database.Query<UserDecorated>().Where(x => x.Name.TrimStart() == originalName).ToList();
+            Assert.AreEqual(1, users.Count);
+
+            InMemoryUsers[0].Name = originalName;
+            Database.Update(InMemoryUsers[0], x => x.Name);
+        }
+
+        [Test]
+        public void FetchByExpressionWithTrimEnd()
+        {
+            var originalName = InMemoryUsers[0].Name;
+            InMemoryUsers[0].Name = InMemoryUsers[0].Name + "   ";
+            Database.Update(InMemoryUsers[0], x => x.Name);
+
+            var users = Database.Query<UserDecorated>().Where(x => x.Name.TrimEnd() == originalName).ToList();
+            Assert.AreEqual(1, users.Count);
+
+            InMemoryUsers[0].Name = originalName;
+            Database.Update(InMemoryUsers[0], x => x.Name);
         }
 
         [Test]

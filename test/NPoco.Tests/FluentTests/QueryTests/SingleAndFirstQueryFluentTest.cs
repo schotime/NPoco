@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace NPoco.Tests.FluentTests.QueryTests
 {
     [TestFixture]
-    public class SingleAndFirstQueryFluentTest : BaseDBFuentTest
+    public class SingleAndFirstQueryFluentTest : BaseDBFluentTest
     {
         [Test]
         public void SingleOrDefaultById()

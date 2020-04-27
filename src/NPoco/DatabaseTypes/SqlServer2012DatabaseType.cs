@@ -1,10 +1,16 @@
 ﻿using System;
+using System.Data.SqlClient;
 using System.Linq;
 
 namespace NPoco.DatabaseTypes
 {
     public class SqlServer2012DatabaseType : SqlServer2008DatabaseType
     {
+        public static Database Create(string connectionString)
+        {
+            return new Database(connectionString, SqlServer2012, SqlClientFactory.Instance);
+        }
+
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
             if (!parts.sql.ToLower().Contains("order by"))

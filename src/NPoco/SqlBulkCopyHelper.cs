@@ -22,22 +22,22 @@ namespace NPoco
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
             {
-                var table = BuildBulkInsertDataTable(db, list, bulkCopy);
+                var table = BuildBulkInsertDataTable(db, list, bulkCopy, sqlBulkCopyOptions);
                 bulkCopy.WriteToServer(table);
             }
         }
-#if NET45
+#if NET45 || NETSTANDARD20
         public static async System.Threading.Tasks.Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
             {
-                var table = BuildBulkInsertDataTable(db, list, bulkCopy);
+                var table = BuildBulkInsertDataTable(db, list, bulkCopy, sqlBulkCopyOptions);
                 await bulkCopy.WriteToServerAsync(table).ConfigureAwait(false);
             }
         }
 #endif
 
-        private static DataTable BuildBulkInsertDataTable<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopy bulkCopy)
+        private static DataTable BuildBulkInsertDataTable<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopy bulkCopy, SqlBulkCopyOptions sqlBulkCopyOptions)
         {
             var pocoData = db.PocoDataFactory.ForType(typeof (T));
 
@@ -45,9 +45,19 @@ namespace NPoco
             bulkCopy.DestinationTableName = pocoData.TableInfo.TableName;
 
             var table = new DataTable();
-            var cols = pocoData.Columns.Where(x => !x.Value.ResultColumn && !x.Value.ComputedColumn
-                                                   && !(pocoData.TableInfo.AutoIncrement && x.Value.ColumnName.Equals(pocoData.TableInfo.PrimaryKey,
-                                                         StringComparison.OrdinalIgnoreCase))).ToList();
+            var cols = pocoData.Columns.Where(x =>
+            {
+                if (x.Value.ResultColumn) return false;
+                if (x.Value.ComputedColumn) return false;
+                if (x.Value.ColumnName.Equals(pocoData.TableInfo.PrimaryKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (sqlBulkCopyOptions == SqlBulkCopyOptions.KeepIdentity)
+                        return true;
+
+                    return pocoData.TableInfo.AutoIncrement == false;
+                }
+                return true;
+            }).ToList();
 
             foreach (var col in cols)
             {

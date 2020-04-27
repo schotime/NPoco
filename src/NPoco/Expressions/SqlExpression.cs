@@ -1585,6 +1585,15 @@ namespace NPoco.Expressions
                     var length = (args.Count > 1) ? Int32.Parse(args[1].ToString()) : -1;
                     statement = SubstringStatement(expression, startIndex, length);
                     break;
+                case "Trim":
+                    statement = CreateTrimStatement(expression, true, true);
+                    break;
+                case "TrimStart":
+                    statement = CreateTrimStatement(expression, true, false);
+                    break;
+                case "TrimEnd":
+                    statement = CreateTrimStatement(expression, false, true);
+                    break;
                 case "Equals":
                     statement = string.Format("({0} = {1})", expression, CreateParam(args[0]));
                     break;
@@ -1601,6 +1610,16 @@ namespace NPoco.Expressions
         protected virtual string CreateLikeStatement(PartialSqlString expression, string param)
         {
             return string.Format("upper({0}) like {1} escape '{2}'", expression, param, EscapeChar);
+        }
+
+        protected virtual string CreateTrimStatement(PartialSqlString expression, bool start, bool end)
+        {
+            var result = expression.ToString();
+
+            if (end) result = string.Format("rtrim({0})", result);
+            if (start) result = string.Format("ltrim({0})", result);
+
+            return result;
         }
 
         protected virtual string EscapeParam(object par)

@@ -16,7 +16,7 @@ using NPoco.Tests.NewMapper.Models;
 
 namespace NPoco.Tests.Common
 {
-    public class BaseDBFuentTest : BaseDBTest
+    public class BaseDBFluentTest : BaseDBTest
     {
         public List<User> InMemoryUsers { get; set; }
         public List<ExtraUserInfo> InMemoryExtraUserInfos { get; set; }
@@ -32,6 +32,7 @@ namespace NPoco.Tests.Common
         {
             var types = new[] { typeof(User), typeof(ExtraUserInfo), typeof(UserWithExtraInfo), typeof(Usersss), typeof(House), typeof(Supervisor) };
             var dbFactory = new DatabaseFactory();
+            //DatabaseFactory.ColumnSerializer = new JsonNetColumnSerializer();
             var config = FluentMappingConfiguration.Scan(s =>
             {
                 s.Assembly(typeof(User).GetTypeInfo().Assembly);

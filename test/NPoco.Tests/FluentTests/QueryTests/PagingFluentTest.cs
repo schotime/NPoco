@@ -4,7 +4,7 @@ using NUnit.Framework;
 namespace NPoco.Tests.FluentTests.QueryTests
 {
     [TestFixture]
-    public class PagingFluentTest : BaseDBFuentTest
+    public class PagingFluentTest : BaseDBFluentTest
     {
         [Test]
         public void Page()

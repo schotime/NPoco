@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NPoco;
 using NPoco.Expressions;
+using NPoco.fastJSON;
 using NPoco.Linq;
 using NPoco.Tests.Common;
 using NPoco.Tests.NewMapper.Models;
@@ -238,23 +238,23 @@ select 5 OneId,'Name5' Name, null Items__Value, null Items__Currency /*poco_dual
                 .UsingAlias("TEST")
                 .Include(x => x.CreatedBy, "CREATEDBY")
                 .Where(x => x.Id.In(new[] { 2, 3 }))
-                .Where("CREATEDBY.Id in (@list)", new { list = new[] { 1, 3 } })
+                .WhereSql("CREATEDBY.Id in (@list)", new { list = new[] { 1, 3 } })
                 .ToList();
 
             Database.Query<RecursionUser>()
                 .UsingAlias("TEST1")
                 .Include(x => x.CreatedBy)
                 .Where(x => x.Id.In(new[] { 2, 3 }))
-                .Where("RU4.Id in (@list)", new { list = new[] { 1, 3 } })
+                .WhereSql("RU4.Id in (@list)", new { list = new[] { 1, 3 } })
                 .ToList();
 
             Database.Query<RecursionUser>()
-                .Where(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z => z)), new { list = new[] { 1, 3 } }))
+                .WhereSql(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z => z)), new { list = new[] { 1, 3 } }))
                 .ToList();
 
             Database.Query<RecursionUser>()
                 .Include(x => x.CreatedBy)
-                .Where(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z => z.CreatedBy)), new { list = new[] { 1, 3 } }))
+                .WhereSql(x => new Sql(string.Format("{0}.Id in (@list)", x.GetAliasFor(z => z.CreatedBy)), new { list = new[] { 1, 3 } }))
                 .ToList();
 
             Database.Query<RecursionUser>()
@@ -559,11 +559,20 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         [Test]
         public void Test28()
         {
-            var data = Database.Fetch<Test28Class>("select 3 Id, 'Name' Name, null, 'dyn' Dynamic__Value1, 'dict' Dict__Value2").Single();
+            var data = Database.Fetch<Test28Class>("select 3 Id, 'Name' Name, null, 'dyn' Dynamic__Value1, 'dict' Dict__Value2, null npoco_Nest1__Dict2," +
+                                                   " 'dictnested' Value3, null npoco_Dict2__Value4, 'my string' S, 5 I, null npoco, 'oh my' DictHell__Key1__Dict2__Key2__S, 99 DictInt__ints," +
+                                                   " 'z' NestMe__Nested__Nest3__Z, 'dictsupernesed' NestMe__Nested__Dict4__MyKey__S").Single();
             Assert.AreEqual(3, data.Id);
             Assert.AreEqual("Name", data.Name);
             Assert.AreEqual("dyn", data.Dynamic.Value1);
             Assert.AreEqual("dict", data.Dict["Value2"]);
+            Assert.AreEqual("dictnested", data.Nest1.Dict2["Value3"]);
+            Assert.AreEqual("my string", data.Dict2["Value4"].S);
+            Assert.AreEqual(5, data.Dict2["Value4"].I);
+            Assert.AreEqual(99, data.DictInt["ints"]);
+            Assert.AreEqual("oh my", data.DictHell["Key1"].Dict2["Key2"].S);
+            Assert.AreEqual("z", data.NestMe.Nested.Nest3.Z);
+            Assert.AreEqual("dictsupernesed", data.NestMe.Nested.Dict4["MyKey"].S);
         }
 
         public class Test28Class
@@ -572,6 +581,30 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             public string Name { get; set; }
             public dynamic Dynamic { get; set; }
             public Dictionary<string, object> Dict { get; set; }
+            public Dictionary<string, int> DictInt { get; set; }
+            public Dictionary<string, Nest2> Dict2 { get; set; }
+            public Dictionary<string, Test28Class> DictHell { get; set; }
+            public Nest Nest1 { get; set; } = new Nest();
+            public Nest2 NestMe { get; set; }
+
+            public class Nest2
+            {
+                public string S { get; set; }
+                public int I { get; set; }
+                public Nest Nested { get; set; }
+            }
+
+            public class Nest
+            {
+                public Nest3 Nest3 { get; set; }
+                public Dictionary<string, object> Dict2 { get; set; }
+                public Dictionary<string, Nest2> Dict4 { get; set; }
+            }
+
+            public class Nest3
+            {
+                public string Z { get; set; }
+            }
         }
 
         [Test]
@@ -614,7 +647,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         public void Test33()
         {
             var users = Database.Query<UserDecorated>()
-                .Where(x=> new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new {list = new[] {2}}))
+                .WhereSql(x=> new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new {list = new[] {2}}))
                 .Where(x => x.UserId.In(new[] { 1, 2 }))
                 .OrderBy(x => x.UserId)
                 .ToList();
@@ -628,12 +661,33 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         {
             var users = Database.Query<UserDecorated>()
                 .Where(x => x.UserId.In(new[] { 2 }))
-                .Where(x => new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new { list = new[] { 1, 2 } }))
+                .WhereSql(x => new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new { list = new[] { 1, 2 } }))
                 .OrderBy(x => x.UserId)
                 .ToList();
 
             Assert.AreEqual(1, users.Count);
             Assert.AreEqual(2, users[0].UserId);
+        }
+
+        [Test]
+        public void Test35()
+        {
+            var data = new Result35.ResultData() {Name = "Bob", Age = 66};
+            var result = Database.Single<Result35>("select @0 as Data", JSON.ToJSON(new[] {data}));
+            Assert.AreEqual(data.Name, result.Data[0].Name);
+            Assert.AreEqual(data.Age, result.Data[0].Age);
+        }
+
+        public class Result35
+        {
+            [SerializedColumn]
+            public ResultData[] Data { get; set; }
+
+            public class ResultData
+            {
+                public string Name { get; set; }
+                public int Age { get; set; }
+            }
         }
     }
 
@@ -667,7 +721,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
     {
         public static IQueryProvider<RecursionUser> IncludeSecurity(this IQueryProvider<RecursionUser> query)
         {
-            return query.Where(x => new Sql(string.Format("exists (select 1 from {1} where Id = {0}.Id)", x.DatabaseType.EscapeTableName(x.GetAliasFor(z => z.CreatedBy)), x.GetPocoDataFor<RecursionUser>().TableInfo.TableName)));
+            return query.WhereSql(x => new Sql(string.Format("exists (select 1 from {1} where Id = {0}.Id)", x.DatabaseType.EscapeTableName(x.GetAliasFor(z => z.CreatedBy)), x.GetPocoDataFor<RecursionUser>().TableInfo.TableName)));
         }
     }
 }
