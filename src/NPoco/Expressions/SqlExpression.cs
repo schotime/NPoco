@@ -902,6 +902,29 @@ namespace NPoco.Expressions
                 m = m.Expression as MemberExpression;
             }
 
+            if (m.Member.DeclaringType == typeof(DateTime) || m.Member.DeclaringType == typeof(DateTime?))
+            {
+                var m1 = m.Expression as MemberExpression;
+                if (m1 != null)
+                {
+                    var p = Expression.Convert(m1, typeof(object));
+                    if (p.NodeType == ExpressionType.Convert)
+                    {
+                        var pp = m1.Expression as ParameterExpression;
+                        if (pp == null)
+                        {
+                            m1 = m1.Expression as MemberExpression;
+                            if (m1 != null) { pp = m1.Expression as ParameterExpression; }
+                        }
+                        if (pp != null)
+                        {
+                            if (m.Member.Name == "Value") return Visit(m1);
+                            return new PartialSqlString(GetDateTimeSql(m.Member.Name, Visit(m1)));
+                        }
+                    }
+                }
+            }
+
             if (m.Expression != null
                 && (m.Expression.NodeType == ExpressionType.Parameter
                     || m.Expression.NodeType == ExpressionType.Convert
@@ -960,28 +983,6 @@ namespace NPoco.Expressions
                     return new EnumMemberAccess(pocoColumn, pocoColumns, columnName, type);
 
                 return new MemberAccessString(pocoColumn, pocoColumns, columnName, type);
-            }
-            if (m.Member.DeclaringType == typeof(DateTime) || m.Member.DeclaringType == typeof(DateTime?))
-            {
-                var m1 = m.Expression as MemberExpression;
-                if (m1 != null)
-                {
-                    var p = Expression.Convert(m1, typeof(object));
-                    if (p.NodeType == ExpressionType.Convert)
-                    {
-                        var pp = m1.Expression as ParameterExpression;
-                        if (pp == null)
-                        {
-                            m1 = m1.Expression as MemberExpression;
-                            if (m1 != null) { pp = m1.Expression as ParameterExpression; }
-                        }
-                        if (pp != null)
-                        {
-                            if (m.Member.Name == "Value") return Visit(m1);
-                            return new PartialSqlString(GetDateTimeSql(m.Member.Name, Visit(m1)));
-                        }
-                    }
-                }
             }
 
             var memberExp = Expression.Convert(m, typeof(object));

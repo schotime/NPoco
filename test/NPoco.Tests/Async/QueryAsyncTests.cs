@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -13,6 +14,10 @@ namespace NPoco.Tests.Async
             var users = await Database.Query<User>().Where(x => x.UserId == 1).ToListAsync();
             Assert.AreEqual(1, users.Count);
             Assert.AreEqual(1, users[0].UserId);
+            var dt = new DateTime(1969, 1, 1);
+            var users2 = await Database.Query<User>().Where(x => x.DateOfBirth.Year == dt.Year).ToListAsync();
+            Assert.AreEqual(1, users2.Count);
+            //System.Diagnostics.Trace.WriteLine(users2.Count);
         }
 
         [Test]
