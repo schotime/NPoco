@@ -17,48 +17,120 @@ namespace NPoco
             return new Cache<TKey, TValue>();
         }
 
-        readonly Dictionary<TKey, TValue> _map = new Dictionary<TKey, TValue>();
-        readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
-        
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+        private readonly ReaderWriterLockSlim _slimLock = new ReaderWriterLockSlim();
+        private readonly Dictionary<TKey, TValue> _map = new Dictionary<TKey, TValue>();
+        private readonly Dictionary<TKey, AntiDupLockSlim> _lockDict = new Dictionary<TKey, AntiDupLockSlim>();
+        class AntiDupLockSlim : ReaderWriterLockSlim { public int UseCount; }
+
+
         public int Count => _map.Count;
+
+        // test 
+        // private readonly static Cache<int, int> cache = new Cache<int, int>();
+        //private static List<int> Build(int count)
+        //{
+        //    List<int> list = new List<int>();
+        //    for (int i = 0; i < 100; i++)
+        //    {
+        //        for (int j = 0; j < count; j++)
+        //        {
+        //            list.Add(i);
+        //        }
+        //    }
+        //    return list;
+        //}
+        // main test method :
+        //var list=Build(8);
+        //var stopwatch = Stopwatch.StartNew();
+        //Parallel.ForEach(list, new ParallelOptions() { MaxDegreeOfParallelism = 8 }, (j) => {
+        //    cache.Get(j, () => {
+        //        Thread.Sleep(1);
+        //        return j;
+        //    });
+        //});
+        //stopwatch.Stop();
+        //Console.Write(" " + stopwatch.ElapsedMilliseconds.ToString().PadRight(4));
+
 
         public TValue Get(TKey key, Func<TValue> factory)
         {
-            // Check cache
-            _lock.EnterReadLock();
+            if (object.Equals(key, null)) { return factory(); }
+
             TValue val;
+            _lock.EnterReadLock();
             try
             {
                 if (_map.TryGetValue(key, out val))
                     return val;
             }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
+            finally { _lock.ExitReadLock(); }
 
-            // Cache it
-            _lock.EnterWriteLock();
+            AntiDupLockSlim slim;
+            _slimLock.EnterUpgradeableReadLock();
             try
             {
-                // Check again
-                if (_map.TryGetValue(key, out val))
-                    return val;
+                _lock.EnterReadLock();
+                try
+                {
+                    if (_map.TryGetValue(key, out val))
+                        return val;
+                }
+                finally { _lock.ExitReadLock(); }
 
-                // Create it
+                _slimLock.EnterWriteLock();
+                try
+                {
+                    if (_lockDict.TryGetValue(key, out slim) == false)
+                    {
+                        slim = new AntiDupLockSlim();
+                        _lockDict[key] = slim;
+                    }
+                    slim.UseCount++;
+                }
+                finally { _slimLock.ExitWriteLock(); }
+            }
+            finally { _slimLock.ExitUpgradeableReadLock(); }
+
+
+            slim.EnterWriteLock();
+            try
+            {
+                _lock.EnterReadLock();
+                try
+                {
+                    if (_map.TryGetValue(key, out val))
+                        return val;
+                }
+                finally { _lock.ExitReadLock(); }
+
                 val = factory();
-
-                // Store it
-                _map.Add(key, val);
-
-                // Done
+                _lock.EnterWriteLock();
+                try
+                {
+                    _map[key] = val;
+                }
+                finally { _lock.ExitWriteLock(); }
                 return val;
             }
             finally
             {
-                _lock.ExitWriteLock();
+                slim.ExitWriteLock();
+                _slimLock.EnterWriteLock();
+                try
+                {
+                    slim.UseCount--;
+                    if (slim.UseCount == 0)
+                    {
+                        _lockDict.Remove(key);
+                        slim.Dispose();
+                    }
+                }
+                finally { _slimLock.ExitWriteLock(); }
             }
         }
+
+
 
         public bool AddIfNotExists(TKey key, TValue value)
         {
