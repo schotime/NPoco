@@ -1,13 +1,9 @@
-/* NPoco 4.0 - A Tiny ORMish thing for your POCO's.
- * Copyright 2011-2015. All Rights Reserved.
+/* NPoco 5.0 - A Tiny ORMish thing for your POCO's.
+ * Copyright 2011-2020. All Rights Reserved.
  *
  * Apache License 2.0 - http://www.apache.org/licenses/LICENSE-2.0
  *
  * Originally created by Brad Robinson (@toptensoftware)
- *
- * Special thanks to Rob Conery (@robconery) for original inspiration (ie:Massive) and for
- * use of Subsonic's T4 templates, Rob Sullivan (@DataChomp) for hard core DBA advice
- * and Adam Schroder (@schotime) for lots of suggestions, improvements and Oracle support
  */
 
 using System;
@@ -1985,7 +1981,7 @@ namespace NPoco
         internal int ExecuteNonQueryHelper(DbCommand cmd)
         {
             DoPreExecute(cmd);
-            var result = cmd.ExecuteNonQuery();
+            var result = ExecutionHook(() => cmd.ExecuteNonQuery());
             OnExecutedCommandInternal(cmd);
             return result;
         }
@@ -1993,17 +1989,27 @@ namespace NPoco
         internal object ExecuteScalarHelper(DbCommand cmd)
         {
             DoPreExecute(cmd);
-            object r = cmd.ExecuteScalar();
+            var result = ExecutionHook(() => cmd.ExecuteScalar());
             OnExecutedCommandInternal(cmd);
-            return r;
+            return result;
         }
 
         internal DbDataReader ExecuteReaderHelper(DbCommand cmd)
         {
             DoPreExecute(cmd);
-            DbDataReader r = cmd.ExecuteReader();
+            var result = ExecutionHook(() => cmd.ExecuteReader());
             OnExecutedCommandInternal(cmd);
-            return r;
+            return result;
+        }
+
+        protected virtual T ExecutionHook<T>(Func<T> action)
+        {
+            return action();
+        }
+
+        protected virtual async ValueTask<T> ExecutionHookAsync<T>(Func<Task<T>> action)
+        {
+            return await action();
         }
 
         int IDatabaseHelpers.ExecuteNonQueryHelper(DbCommand cmd) => ExecuteNonQueryHelper(cmd);

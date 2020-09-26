@@ -466,7 +466,7 @@ namespace NPoco
         internal async Task<int> ExecuteNonQueryHelperAsync(DbCommand cmd)
         {
             DoPreExecute(cmd);
-            var result = await _dbType.ExecuteNonQueryAsync(this, cmd);
+            var result = await ExecutionHookAsync(() => _dbType.ExecuteNonQueryAsync(this, cmd));
             OnExecutedCommandInternal(cmd);
             return result;
         }
@@ -474,7 +474,7 @@ namespace NPoco
         internal async Task<object> ExecuteScalarHelperAsync(DbCommand cmd)
         {
             DoPreExecute(cmd);
-            var result = await _dbType.ExecuteScalarAsync(this, cmd);
+            var result = await ExecutionHookAsync(() => _dbType.ExecuteScalarAsync(this, cmd));
             OnExecutedCommandInternal(cmd);
             return result;
         }
@@ -482,7 +482,7 @@ namespace NPoco
         internal async Task<DbDataReader> ExecuteReaderHelperAsync(DbCommand cmd)
         {
             DoPreExecute(cmd);
-            var reader = await _dbType.ExecuteReaderAsync(this, cmd);
+            var reader = await ExecutionHookAsync(() => _dbType.ExecuteReaderAsync(this, cmd));
             OnExecutedCommandInternal(cmd);
             return reader;
         }
