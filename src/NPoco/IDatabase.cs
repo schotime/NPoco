@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using NPoco.Linq;
+using System.Threading.Tasks;
 
 namespace NPoco
 {
-    public interface IDatabase : IDisposable, IDatabaseQuery, IDatabaseConfig
+    public interface IDatabase : IDatabaseQuery, IDatabaseConfig
     {
         /// <summary>
         /// Insert POCO into the table, primary key and autoincrement specified

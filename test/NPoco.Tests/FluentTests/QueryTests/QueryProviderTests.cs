@@ -341,14 +341,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
 
         private static void SetCurrentCulture(CultureInfo culture)
         {
-#if NET35 || NET40 || NET45 || NET451 || NET452 || NET462 || DNX451 || DNX452
-            // In the .NET Framework 4.5.2 and earlier versions, the CurrentCulture property is read-only
-            Thread.CurrentThread.CurrentCulture = culture;
-#else
-            // Starting with the .NET Framework 4.6, the CurrentCulture property is read-write
-            // and Core does not have Thread.CurrentThread?
             CultureInfo.CurrentCulture = culture;
-#endif
         }
 
         [Test]
@@ -610,7 +603,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
 
 //Module Module1
 //    Sub Main()
-//        Dim Db = New Database("asdf", "System.Data.SqlClient")
+//        Dim Db = New Database("asdf", "Microsoft.Data.SqlClient")
 //        Dim exp = New DefaultSqlExpression (Of User)(Db)
 //        Dim whered = exp.Where(Function(item) (item.Name = "Test"))
 //        Console.WriteLine(whered.Context.ToSelectStatement())

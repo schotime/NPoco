@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Threading.Tasks;
 
 namespace NPoco.DatabaseTypes
 {
@@ -35,8 +36,7 @@ namespace NPoco.DatabaseTypes
             return -1;
         }
 
-#if !NET35 && !NET40
-        public override async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {
@@ -47,7 +47,6 @@ namespace NPoco.DatabaseTypes
             await db.ExecuteNonQueryHelperAsync(cmd);
             return TaskAsyncHelper.FromResult<object>(-1);
         }
-#endif
 
         public override string GetParameterPrefix(string connectionString)
         {

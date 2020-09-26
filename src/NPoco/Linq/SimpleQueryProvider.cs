@@ -3,19 +3,16 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-#if !NET35 && !NET40
 using System.Threading.Tasks;
-#endif
 using NPoco.Expressions;
 
 namespace NPoco.Linq
 {
     public interface IAsyncQueryResultProvider<T>
     {
-#if !NET35 && !NET40
         Task<List<T>> ToList();
         Task<T[]> ToArray();
-        Task<IEnumerable<T>> ToEnumerable();
+        Task<IAsyncEnumerable<T>> ToEnumerable();
         Task<T> FirstOrDefault();
         Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression);
         Task<T> First();
@@ -32,7 +29,6 @@ namespace NPoco.Linq
         Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
         Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
         Task<List<T>> Distinct();
-#endif
     }
 
     public interface IQueryResultProvider<T>
@@ -52,18 +48,15 @@ namespace NPoco.Linq
         List<T> ToList();
         T[] ToArray();
         IEnumerable<T> ToEnumerable();
-#if !NET35
         List<dynamic> ToDynamicList();
         IEnumerable<dynamic> ToDynamicEnumerable();
-#endif
         Page<T> ToPage(int page, int pageSize);
         List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T> Distinct();
-#if !NET35 && !NET40
         Task<List<T>> ToListAsync();
         Task<T[]> ToArrayAsync();
-        Task<IEnumerable<T>> ToEnumerableAsync();
+        Task<IAsyncEnumerable<T>> ToEnumerableAsync();
         Task<T> FirstOrDefaultAsync();
         Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression);
         Task<T> FirstAsync();
@@ -80,7 +73,6 @@ namespace NPoco.Linq
         Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression);
         Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression);
         Task<List<T>> DistinctAsync();
-#endif
     }
 
     public interface IQueryProvider<T> : IQueryResultProvider<T>
@@ -203,18 +195,17 @@ namespace NPoco.Linq
             return this;
         }
 
-#if !NET35 && !NET40
         public async Task<List<T>> ToList()
         {
-            return (await ToEnumerable().ConfigureAwait(false)).ToList();
+            return await (await ToEnumerable().ConfigureAwait(false)).ToListAsync();
         }
 
         public async Task<T[]> ToArray()
         {
-            return (await ToEnumerable().ConfigureAwait(false)).ToArray();
+            return await (await ToEnumerable().ConfigureAwait(false)).ToArrayAsync();
         }
 
-        public Task<IEnumerable<T>> ToEnumerable()
+        public Task<IAsyncEnumerable<T>> ToEnumerable()
         {
             return _database.QueryAsync(default(T), _listExpression, null, BuildSql());
         }
@@ -227,7 +218,7 @@ namespace NPoco.Linq
         public async Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression)
         {
             AddWhere(whereExpression);
-            return (await ToEnumerable().ConfigureAwait(false)).FirstOrDefault();
+            return await (await ToEnumerable()).FirstOrDefaultAsync();
         }
 
         public Task<T> First()
@@ -238,7 +229,7 @@ namespace NPoco.Linq
         public async Task<T> First(Expression<Func<T, bool>> whereExpression)
         {
             AddWhere(null);
-            return (await ToEnumerable().ConfigureAwait(false)).First();
+            return await (await ToEnumerable()).FirstAsync();
         }
 
         public Task<T> SingleOrDefault()
@@ -249,7 +240,7 @@ namespace NPoco.Linq
         public async Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression)
         {
             AddWhere(whereExpression);
-            return (await ToEnumerable().ConfigureAwait(false)).SingleOrDefault();
+            return await (await ToEnumerable().ConfigureAwait(false)).SingleOrDefaultAsync();
         }
 
         public Task<T> Single()
@@ -260,7 +251,7 @@ namespace NPoco.Linq
         public async Task<T> Single(Expression<Func<T, bool>> whereExpression)
         {
             AddWhere(whereExpression);
-            return (await ToEnumerable().ConfigureAwait(false)).Single();
+            return await (await ToEnumerable().ConfigureAwait(false)).SingleAsync();
         }
 
         public Task<int> Count()
@@ -313,20 +304,19 @@ namespace NPoco.Linq
         public async Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
-            return (await _database.QueryAsync<T>(sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
+            return await (await _database.QueryAsync<T>(sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToListAsync();
         }
 
         public async Task<List<T>> Distinct()
         {
-            return (await _database.QueryAsync<T>(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params))).ToList();
+            return await (await _database.QueryAsync<T>(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params))).ToListAsync();
         }
 
         public async Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, true);
-            return (await _database.QueryAsync<T>(sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToList();
+            return await (await _database.QueryAsync<T>(sql).ConfigureAwait(false)).Select(projectionExpression.Compile()).ToListAsync();
         }
-#endif
 
         public IAsyncQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression)
         {
@@ -444,7 +434,6 @@ namespace NPoco.Linq
             return this;
         }
 
-#if !NET35
         public List<dynamic> ToDynamicList()
         {
             return ToDynamicEnumerable().ToList();
@@ -455,7 +444,7 @@ namespace NPoco.Linq
             var sql = BuildSql();
             return _database.QueryImp<dynamic>(null, null, null, sql);
         }
-#endif
+
         IDatabase INeedDatabase.GetDatabase()
         {
             return _database;
@@ -609,7 +598,6 @@ namespace NPoco.Linq
         }
 #pragma warning restore CS0109
 
-#if !NET35 && !NET40
         public Task<List<T>> ToListAsync()
         {
             return base.ToList();
@@ -620,7 +608,7 @@ namespace NPoco.Linq
             return base.ToArray();
         }
 
-        public Task<IEnumerable<T>> ToEnumerableAsync()
+        public Task<IAsyncEnumerable<T>> ToEnumerableAsync()
         {
             return base.ToEnumerable();
         }
@@ -704,7 +692,6 @@ namespace NPoco.Linq
         {
             return base.Distinct();
         }
-#endif
         
         public new IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left)
         {

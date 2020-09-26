@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using NPoco.DatabaseTypes;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -38,12 +38,9 @@ namespace NPoco.Tests
                 case 7: // Postgres
                     Assert.Fail("Database platform not supported for unit testing");
                     return;
-#if !DNXCORE50
                 case 8: // Firebird
                     TestDatabase = new FirebirdDatabase();
                     break;
-#endif
-
                 default:
                     Assert.Fail("Unknown database platform specified: " + testDBType);
                     return;
@@ -221,7 +218,7 @@ namespace NPoco.Tests
             Assert.IsNull(db.Connection);
 
             db.Dispose();
-            Assert.IsNull(db.Connection);
+            Assert.IsNull(db.Connection); 
         }
 
         [Test]

@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
-#if !DNXCORE50
 using FirebirdSql.Data.FirebirdClient;
-#endif
 using NPoco.DatabaseTypes;
 using NPoco.FluentMappings;
 using NPoco.Tests.FluentMappings;
@@ -63,7 +61,7 @@ namespace NPoco.Tests.Common
                 case 3: // SQL Server
                     var dataSource = configuration.GetSection("TestDbDataSource").Value;
                     TestDatabase = new SQLLocalDatabase(dataSource);
-                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new SqlServer2008DatabaseType()));
+                    Database = dbFactory.Build(new Database(TestDatabase.Connection, new NPoco.DatabaseTypes.SqlServer2008DatabaseType()));
                     break;
 
                 case 4: // SQL CE
@@ -72,15 +70,12 @@ namespace NPoco.Tests.Common
                 case 7: // Postgres
                     Assert.Fail("Database platform not supported for unit testing");
                     return;
-#if !DNXCORE50
                 case 8: // Firebird
                     TestDatabase = new FirebirdDatabase();
                     var db = new Database(TestDatabase.Connection, new FirebirdDatabaseType());
                     db.Mappers.Insert(0, new FirebirdDefaultMapper());
                     Database = dbFactory.Build(db);
                     break;
-#endif
-
                 default:
                     Assert.Fail("Unknown database platform specified");
                     return;

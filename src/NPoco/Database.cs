@@ -19,12 +19,10 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using NPoco.Expressions;
 using NPoco.Extensions;
 using NPoco.Linq;
-#if !DNXCORE50
-using System.Configuration;
-#endif
 
 namespace NPoco
 {
@@ -66,55 +64,6 @@ namespace NPoco
             //}
         }
 
-#if !DNXCORE50 && !NETSTANDARD2_0
-        public Database(string connectionString, string providerName)
-            : this(connectionString, providerName, DefaultEnableAutoSelect)
-        { }
-
-        public Database(string connectionString, string providerName, IsolationLevel isolationLevel)
-            : this(connectionString, providerName, isolationLevel, DefaultEnableAutoSelect)
-        { }
-
-        public Database(string connectionString, string providerName, bool enableAutoSelect)
-            : this(connectionString, providerName, null, enableAutoSelect)
-        { }
-
-        public Database(string connectionString, string providerName, IsolationLevel? isolationLevel, bool enableAutoSelect)
-        {
-            EnableAutoSelect = enableAutoSelect;
-            KeepConnectionAlive = false;
-
-            _connectionString = connectionString;
-            _factory = DbProviderFactories.GetFactory(providerName);
-            var dbTypeName = (_factory == null ? _sharedConnection.GetType() : _factory.GetType()).Name;
-            _dbType = DatabaseType.Resolve(dbTypeName, providerName);
-            _providerName = providerName;
-            _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
-            _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
-        }
-
-        public Database(string connectionString, DatabaseType dbType)
-            : this(connectionString, dbType, null, DefaultEnableAutoSelect)
-        { }
-
-        public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel)
-            : this(connectionString, dbType, isolationLevel,  DefaultEnableAutoSelect)
-        { }
-
-        public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel, bool enableAutoSelect)
-        {
-            EnableAutoSelect = enableAutoSelect;
-            KeepConnectionAlive = false;
-
-            _connectionString = connectionString;
-            _dbType = dbType;
-            _providerName = _dbType.GetProviderName();
-            _factory = DbProviderFactories.GetFactory(_dbType.GetProviderName());
-            _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
-            _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
-        }
-#endif
-
         public Database(string connectionString, DatabaseType databaseType, DbProviderFactory provider)
             : this(connectionString, databaseType, provider, null, DefaultEnableAutoSelect)
         { }
@@ -131,52 +80,6 @@ namespace NPoco
             _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
-
-#if !DNXCORE50 && !NETSTANDARD2_0
-        public Database(string connectionStringName)
-            : this(connectionStringName, DefaultEnableAutoSelect)
-        { }
-
-        public Database(string connectionStringName, IsolationLevel isolationLevel)
-            : this(connectionStringName, isolationLevel, DefaultEnableAutoSelect)
-        { }
-
-        public Database(string connectionStringName, bool enableAutoSelect)
-            : this(connectionStringName, (IsolationLevel?) null, enableAutoSelect)
-        { }
-
-        public Database(string connectionStringName, IsolationLevel? isolationLevel,  bool enableAutoSelect)
-        {
-            EnableAutoSelect = enableAutoSelect;
-            KeepConnectionAlive = false;
-
-            // Use first?
-            if (connectionStringName == "") connectionStringName = ConfigurationManager.ConnectionStrings[0].Name;
-
-            // Work out connection string and provider name
-            var providerName = "System.Data.SqlClient";
-            if (ConfigurationManager.ConnectionStrings[connectionStringName] != null)
-            {
-                if (!string.IsNullOrEmpty(ConfigurationManager.ConnectionStrings[connectionStringName].ProviderName))
-                {
-                    providerName = ConfigurationManager.ConnectionStrings[connectionStringName].ProviderName;
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException("Can't find a connection string with the name '" + connectionStringName + "'");
-            }
-
-            // Store factory and connection string
-            _connectionString = ConfigurationManager.ConnectionStrings[connectionStringName].ConnectionString;
-            _providerName = providerName;
-
-            _factory = DbProviderFactories.GetFactory(_providerName);
-            _dbType = DatabaseType.Resolve(_factory.GetType().Name, _providerName);
-            _isolationLevel = isolationLevel.HasValue ? isolationLevel.Value : _dbType.GetDefaultTransactionIsolationLevel();
-            _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
-        }
-#endif
 
         private readonly DatabaseType _dbType;
         public DatabaseType DatabaseType { get { return _dbType; } }
@@ -952,6 +855,111 @@ namespace NPoco
             return Query(default(T), Sql);
         }
 
+        private async IAsyncEnumerable<T> ReadAsync<T>(Type type, object instance, DbDataReader r, DbCommand cmd)
+        {
+            try
+            {
+                using (cmd)
+                {
+                    using (r)
+                    {
+                        var pd = PocoDataFactory.ForType(type);
+                        var factory = new MappingFactory(pd, r);
+                        while (true)
+                        {
+                            T poco;
+                            try
+                            {
+                                if (!await r.ReadAsync()) yield break;
+                                poco = (T)factory.Map(r, instance);
+                            }
+                            catch (Exception x)
+                            {
+                                OnExceptionInternal(x);
+                                throw;
+                            }
+
+                            yield return poco;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
+        private async IAsyncEnumerable<T> ReadOneToManyAsync<T>(T instance, DbDataReader r, DbCommand cmd, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc)
+        {
+            Func<T, IList> listFunc = null;
+            PocoMember pocoMember = null;
+            PocoMember foreignMember = null;
+
+            try
+            {
+                using (cmd)
+                {
+                    using (r)
+                    {
+                        var pocoData = PocoDataFactory.ForType(typeof(T));
+                        if (listExpression != null)
+                        {
+                            idFunc = idFunc ?? (x => pocoData.GetPrimaryKeyValues(x));
+                            listFunc = listExpression.Compile();
+                            var key = PocoColumn.GenerateKey(MemberChainHelper.GetMembers(listExpression));
+                            pocoMember = pocoData.Members.FirstOrDefault(x => x.Name == key);
+                            foreignMember = pocoMember != null ? pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName && x.ReferenceType == ReferenceType.Foreign) : null;
+                        }
+
+                        var factory = new MappingFactory(pocoData, r);
+                        object prevPoco = null;
+
+                        while (true)
+                        {
+                            T poco;
+                            try
+                            {
+                                if (!await r.ReadAsync()) break;
+                                poco = (T)factory.Map(r, instance);
+                            }
+                            catch (Exception x)
+                            {
+                                OnExceptionInternal(x);
+                                throw;
+                            }
+
+                            if (prevPoco != null)
+                            {
+                                if (listFunc != null
+                                    && pocoMember != null
+                                    && idFunc(poco).SequenceEqual(idFunc((T)prevPoco)))
+                                {
+                                    OneToManyHelper.SetListValue(listFunc, pocoMember, prevPoco, poco);
+                                    continue;
+                                }
+
+                                OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
+                                yield return (T)prevPoco;
+                            }
+
+                            prevPoco = poco;
+                        }
+
+                        if (prevPoco != null)
+                        {
+                            OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
+                            yield return (T)prevPoco;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
         private IEnumerable<T> Read<T>(Type type, object instance, DbDataReader r, DbCommand cmd)
         {
             try
@@ -1580,31 +1588,31 @@ namespace NPoco
 
                     var sql = new Sql();
                     foreach (var preparedUpdate in preparedUpdates)
-                    {
+            {
                         if (preparedUpdate.Sql != null)
                         {
                             sql.Append(preparedUpdate.Sql + options.StatementSeperator, preparedUpdate.Rawvalues.ToArray());
-                        }
+                }
                     }
 
                     using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
-                    {
+                {
                         result += ExecuteNonQueryHelper(cmd);
-                    }
+                }
                 }
             }
             catch (Exception x)
-            {
+                {
                 OnExceptionInternal(x);
                 throw;
-            }
+                    }
             finally
-            {
+                    {
                 CloseSharedConnectionInternal();
-            }
+                    }
 
             return result;
-        }
+            }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
         private TRet UpdateImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
@@ -1623,12 +1631,8 @@ namespace NPoco
             var result = executeFunc(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray(), (id) =>
             {
                 if (id == 0 && !string.IsNullOrEmpty(preparedStatement.VersionName) && VersionException == VersionExceptionHandling.Exception)
-                {
-#if DNXCORE50
-                    throw new Exception(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", preparedStatement.PrimaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), preparedStatement.VersionValue));
-#else
+            {
                     throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", preparedStatement.PrimaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), preparedStatement.VersionValue));
-#endif
                 }
 
                 // Set Version
@@ -1806,12 +1810,11 @@ namespace NPoco
         /// <summary>Checks if a poco represents a new record.</summary>
         public bool IsNew<T>(T poco)
         {
-#if !NET35
             if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
             {
                 return true;
             }
-#endif
+
             var pd = PocoDataFactory.ForType(poco.GetType());
             object pk;
             PocoColumn pc;
@@ -2009,13 +2012,11 @@ namespace NPoco
 
         DbDataReader IDatabaseHelpers.ExecuteReaderHelper(DbCommand cmd) => ExecuteReaderHelper(cmd);
 
-#if !NET35 && !NET40
-        System.Threading.Tasks.Task<int> IDatabaseHelpers.ExecuteNonQueryHelperAsync(DbCommand cmd) => ExecuteNonQueryHelperAsync(cmd);
+        Task<int> IDatabaseHelpers.ExecuteNonQueryHelperAsync(DbCommand cmd) => ExecuteNonQueryHelperAsync(cmd);
 
-        System.Threading.Tasks.Task<object> IDatabaseHelpers.ExecuteScalarHelperAsync(DbCommand cmd) => ExecuteScalarHelperAsync(cmd);
+        Task<object> IDatabaseHelpers.ExecuteScalarHelperAsync(DbCommand cmd) => ExecuteScalarHelperAsync(cmd);
 
-        System.Threading.Tasks.Task<DbDataReader> IDatabaseHelpers.ExecuteReaderHelperAsync(DbCommand cmd) => ExecuteReaderHelperAsync(cmd);
-#endif
+        Task<DbDataReader> IDatabaseHelpers.ExecuteReaderHelperAsync(DbCommand cmd) => ExecuteReaderHelperAsync(cmd);
 
         public static bool IsEnum(MemberInfoData memberInfo)
         {

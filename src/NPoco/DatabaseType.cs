@@ -7,24 +7,25 @@ using System.Linq;
 using NPoco.DatabaseTypes;
 using NPoco.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace NPoco
 {
     /// <summary>
     /// Base class for DatabaseType handlers - provides default/common handling for different database engines
     /// </summary>
-    public abstract class DatabaseType
+    public abstract partial class DatabaseType
     {
         // Helper Properties
-        public static DatabaseType SqlServer2012 { get { return Singleton<SqlServer2012DatabaseType>.Instance; } }
-        public static DatabaseType SqlServer2008 { get { return Singleton<SqlServer2008DatabaseType>.Instance; } }
-        public static DatabaseType SqlServer2005 { get { return Singleton<SqlServerDatabaseType>.Instance; } }
+        public static DatabaseType SqlServer2012 { get { return DynamicDatabaseType.MakeSqlServerType("SqlServerDatabaseType"); } }
+        public static DatabaseType SqlServer2008 { get { return DynamicDatabaseType.MakeSqlServerType("SqlServer2008DatabaseType"); } }
+        public static DatabaseType SqlServer2005 { get { return DynamicDatabaseType.MakeSqlServerType("SqlServerDatabaseType"); } }
         public static DatabaseType PostgreSQL { get { return Singleton<PostgreSQLDatabaseType>.Instance; } }
         public static DatabaseType Oracle { get { return Singleton<OracleDatabaseType>.Instance; } }
         public static DatabaseType OracleManaged { get { return Singleton<OracleManagedDatabaseType>.Instance; } }
         public static DatabaseType MySQL { get { return Singleton<MySqlDatabaseType>.Instance; } }
         public static DatabaseType SQLite { get { return Singleton<SQLiteDatabaseType>.Instance; } }
-        public static DatabaseType SQLCe { get { return Singleton<SqlServerCEDatabaseType>.Instance; } }
+        public static DatabaseType SQLCe { get { return DynamicDatabaseType.MakeSqlServerType("SqlServerCEDatabaseType"); } }
         public static DatabaseType Firebird { get { return Singleton<FirebirdDatabaseType>.Instance; } }
 
         readonly Dictionary<Type, DbType> typeMap;
@@ -223,13 +224,12 @@ namespace NPoco
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return db.ExecuteScalarHelper(cmd);
         }
-#if !NET35 && !NET40
-        public virtual async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+
+        public virtual async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
             return await db.ExecuteScalarHelperAsync(cmd);
         }
-#endif
 
         public virtual void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
         {
@@ -251,7 +251,7 @@ namespace NPoco
             if (typeName.StartsWith("MySql"))
                 return Singleton<MySqlDatabaseType>.Instance;
             if (typeName.StartsWith("SqlCe"))
-                return Singleton<SqlServerCEDatabaseType>.Instance;
+                return DynamicDatabaseType.MakeSqlServerType("SqlServerCEDatabaseType");
             if (typeName.StartsWith("Npgsql") || typeName.StartsWith("PgSql"))
                 return Singleton<PostgreSQLDatabaseType>.Instance;
             if (typeName.StartsWith("OracleManaged"))
@@ -261,7 +261,7 @@ namespace NPoco
             if (typeName.StartsWith("SQLite"))
                 return Singleton<SQLiteDatabaseType>.Instance;
             if (typeName.StartsWith("SqlConnection"))
-                return Singleton<SqlServerDatabaseType>.Instance;
+                return DynamicDatabaseType.MakeSqlServerType("SqlServerDatabaseType");
             if (typeName.StartsWith("Fb") || typeName.StartsWith("Firebird"))
                 return Singleton<FirebirdDatabaseType>.Instance;
 
@@ -271,7 +271,7 @@ namespace NPoco
                 if (providerName.IndexOf("MySql", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<MySqlDatabaseType>.Instance;
                 if (providerName.IndexOf("SqlServerCe", StringComparison.OrdinalIgnoreCase) >= 0)
-                    return Singleton<SqlServerCEDatabaseType>.Instance;
+                    return DynamicDatabaseType.MakeSqlServerType("SqlServerCEDatabaseType");
                 if (providerName.IndexOf("pgsql", StringComparison.OrdinalIgnoreCase) >= 0)
                     return Singleton<PostgreSQLDatabaseType>.Instance;
                 if (providerName.IndexOf("Oracle.DataAccess", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -285,7 +285,7 @@ namespace NPoco
             }
 
             // Assume SQL Server
-            return Singleton<SqlServerDatabaseType>.Instance;
+            return DynamicDatabaseType.MakeSqlServerType("SqlServerDatabaseType");
         }
 
         public virtual string GetDefaultInsertSql(string tableName, string primaryKeyName, bool useOutputClause, string[] names, string[] parameters)
@@ -334,25 +334,23 @@ namespace NPoco
 
         public virtual string GetProviderName()
         {
-            return "System.Data.SqlClient";
+            return "Microsoft.Data.SqlClient";
         }
 
-#if !NET35 && !NET40
-        public virtual System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(Database database, DbCommand cmd)
+        public virtual Task<int> ExecuteNonQueryAsync(Database database, DbCommand cmd)
         {
             return cmd.ExecuteNonQueryAsync();
         }
 
-        public virtual System.Threading.Tasks.Task<object> ExecuteScalarAsync(Database database, DbCommand cmd)
+        public virtual Task<object> ExecuteScalarAsync(Database database, DbCommand cmd)
         {
             return cmd.ExecuteScalarAsync();
         }
 
-        public virtual System.Threading.Tasks.Task<DbDataReader> ExecuteReaderAsync(Database database, DbCommand cmd)
+        public virtual Task<DbDataReader> ExecuteReaderAsync(Database database, DbCommand cmd)
         {
             return cmd.ExecuteReaderAsync();
         }
-#endif
 
         public virtual object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
         {

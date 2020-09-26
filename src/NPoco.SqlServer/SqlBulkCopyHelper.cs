@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Linq;
 
 namespace NPoco
 {
-#if !DNXCORE50
     public class SqlBulkCopyHelper
     {
         public static Func<DbConnection, SqlConnection> SqlConnectionResolver = dbConn => (SqlConnection)dbConn;
@@ -26,7 +25,7 @@ namespace NPoco
                 bulkCopy.WriteToServer(table);
             }
         }
-#if NET45 || NETSTANDARD20
+
         public static async System.Threading.Tasks.Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
@@ -35,7 +34,7 @@ namespace NPoco
                 await bulkCopy.WriteToServerAsync(table).ConfigureAwait(false);
             }
         }
-#endif
+
 
         private static DataTable BuildBulkInsertDataTable<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopy bulkCopy, SqlBulkCopyOptions sqlBulkCopyOptions)
         {
@@ -97,5 +96,4 @@ namespace NPoco
             return table;
         }
     }
-#endif
-    }
+}

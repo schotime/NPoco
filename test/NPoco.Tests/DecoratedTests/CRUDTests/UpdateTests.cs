@@ -103,7 +103,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Database.Update(poco1);
 
             poco2.Age = 200;
-
+            
             Assert.Throws<DBConcurrencyException>(() => Database.Update(poco2));
         }
 
@@ -168,7 +168,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             foreach (var u in result)
             {
                 Assert.AreEqual(30, u.Age);
-            }
+    }
             Assert.AreEqual(14, updated);
         }
     }

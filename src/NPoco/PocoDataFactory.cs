@@ -95,7 +95,6 @@ namespace NPoco
         public static PocoData ForObjectStatic(object o, string primaryKeyName, bool autoIncrement, Func<Type, PocoData> fallback)
         {
             var t = o.GetType();
-#if !NET35
             if (t == typeof (System.Dynamic.ExpandoObject) || t == typeof (PocoExpando))
             {
                 var pd = new PocoData
@@ -122,16 +121,13 @@ namespace NPoco
                 return pd;
             }
             else
-#endif
                 return fallback(t);
         }
 
         public static void Guard(Type type)
         {
-#if !NET35
             if (type == typeof(System.Dynamic.ExpandoObject) || type == typeof(PocoExpando))
                 throw new InvalidOperationException("Can't use dynamic types with this method");
-#endif
         }
 
     }

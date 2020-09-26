@@ -4,13 +4,11 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq.Expressions;
 using NPoco.Linq;
-#if !NET35 && !NET40
 using System.Threading.Tasks;
-#endif
 
 namespace NPoco
 {
-    public interface IDatabaseQuery : IAsyncDatabase
+    public interface IDatabaseQuery : IAsyncDatabase, IDisposable
     {
         /// <summary>
         /// Builds a paged query from a non-paged query

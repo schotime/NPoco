@@ -54,13 +54,8 @@ namespace NPoco
 
         public static bool IsDynamic(this MemberInfo member)
         {
-#if !NET35
             return member.GetCustomAttributes(typeof(DynamicAttribute), true).Any();
-#else
-            return false;
-#endif
         }
-
 
         public static bool IsField(this MemberInfo member)
         {
@@ -150,23 +145,13 @@ namespace NPoco
 
         public static IEnumerable<Attribute> GetCustomAttributes(MemberInfo memberInfo)
         {
-#if NET35 || NET40
-            var attrs = Attribute.GetCustomAttributes(memberInfo);
-#else
             var attrs = memberInfo.GetCustomAttributes();
-#endif
-
             return attrs;
         }
 
         public static IEnumerable<Attribute> GetCustomAttributes(MemberInfo memberInfo, Type type)
         {
-#if NET35 || NET40
-            var attrs = Attribute.GetCustomAttributes(memberInfo, type);
-#else
             var attrs = memberInfo.GetCustomAttributes(type);
-#endif
-
             return attrs;
         }
     }

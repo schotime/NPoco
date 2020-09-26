@@ -28,12 +28,10 @@ namespace NPoco.FluentMappings
             _scannerSettings.Assemblies.Add(assembly);
         }
 
-#if !DNXCORE50
         public void TheCallingAssembly()
         {
             _scannerSettings.TheCallingAssembly = true;
         }
-#endif
 
         public void IncludeTypes(Func<Type, bool> typeIncludes)
         {

@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-#if NET35
-using System.Linq;
-#endif
 
 namespace NPoco
 {
@@ -134,41 +131,25 @@ namespace NPoco
 
         public Sql OrderBy(params object[] columns)
         {
-#if NET35
-            Append("ORDER BY " + string.Join(",", columns.Select(x => x.ToString()).ToArray()));
-#else
             Append("ORDER BY " + string.Join(", ", columns));
-#endif
             return this;
         }
 
         public Sql Select(params object[] columns)
         {
-#if NET35
-            Append("SELECT " + string.Join(", ", columns.Select(x => x.ToString()).ToArray()));
-#else
             Append("SELECT " + string.Join(", ", columns));
-#endif
             return this;
         }
 
         public Sql From(params object[] tables)
         {
-#if NET35
-            Append("FROM " + string.Join(", ", tables.Select(x => x.ToString()).ToArray()));
-#else
             Append("FROM " + string.Join(", ", tables));
-#endif
             return this;
         }
 
         public Sql GroupBy(params object[] columns)
         {
-#if NET35
-            Append("GROUP BY " + string.Join(", ", columns.Select(x => x.ToString()).ToArray()));
-#else
             Append("GROUP BY " + string.Join(", ", columns));
-#endif
             return this;
         }
 

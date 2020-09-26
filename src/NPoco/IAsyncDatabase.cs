@@ -3,15 +3,12 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq.Expressions;
 using NPoco.Linq;
-#if !NET35 && !NET40
 using System.Threading.Tasks;
-#endif
 
 namespace NPoco
 {
     public interface IAsyncDatabase : IBaseDatabase
     {
-#if !NET35 && !NET40
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
         /// Get an object of type T by primary key value
@@ -67,13 +64,13 @@ namespace NPoco
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// Caution: This query will only be executed once you start iterating the result
         /// </summary>
-        Task<IEnumerable<T>> QueryAsync<T>(string sql, params object[] args);
+        Task<IAsyncEnumerable<T>> QueryAsync<T>(string sql, params object[] args);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// Caution: This query will only be executed once you start iterating the result
         /// </summary>
-        Task<IEnumerable<T>> QueryAsync<T>(Sql sql);
+        Task<IAsyncEnumerable<T>> QueryAsync<T>(Sql sql);
 
         /// <summary>
         /// Entry point for LINQ queries
@@ -199,6 +196,5 @@ namespace NPoco
         /// Generate a delete statement using a Fluent syntax. Remember to call Execute.
         /// </summary>
         IAsyncDeleteQueryProvider<T> DeleteManyAsync<T>();
-#endif
     }
 }

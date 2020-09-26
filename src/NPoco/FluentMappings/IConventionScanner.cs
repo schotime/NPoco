@@ -9,9 +9,7 @@ namespace NPoco.FluentMappings
         void OverrideMappingsWith(params IMap[] maps);
 
         void Assembly(Assembly assembly);
-#if !DNXCORE50
         void TheCallingAssembly();
-#endif
         void IncludeTypes(Func<Type, bool> includeTypes);
 
         void TablesNamed(Func<Type, string> tableFunc);

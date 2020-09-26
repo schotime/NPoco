@@ -12,9 +12,7 @@ namespace NPoco
 
         public MapperCollection()
         {
-#if !NET35
             Factories.Add(typeof(object), x => new PocoExpando());
-#endif
             Factories.Add(typeof(IDictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
             Factories.Add(typeof(Dictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
         }
