@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace NPoco
 {
-    public interface IDatabaseQuery : IAsyncDatabase, IDisposable
+    public interface IDatabaseQuery : IAsyncQueryDatabase
     {
         /// <summary>
         /// Builds a paged query from a non-paged query

@@ -99,6 +99,24 @@ namespace NPoco
             }
         }
 
+        public async Task InsertBulkAsync<T>(IEnumerable<T> pocos)
+        {
+            try
+            {
+                OpenSharedConnectionInternal();
+                await _dbType.InsertBulkAsync(this, pocos);
+            }
+            catch (Exception x)
+            {
+                OnExceptionInternal(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
         public async Task<int> InsertBatchAsync<T>(IEnumerable<T> pocos, BatchOptions options = null)
         {
             options = options ?? new BatchOptions();

@@ -1,8 +1,10 @@
 using Microsoft.Data.SqlClient;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Threading.Tasks;
+using NPoco.SqlServer;
 
 namespace NPoco.DatabaseTypes
 {
@@ -70,6 +72,16 @@ namespace NPoco.DatabaseTypes
                 return null;
 
             return base.LookupDbType(type, name);
+        }
+
+        public override void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
+        {
+            SqlBulkCopyHelper.BulkInsert(db, pocos);
+        }
+
+        public override Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos)
+        {
+            return SqlBulkCopyHelper.BulkInsertAsync(db, pocos);
         }
 
         public override string GetProviderName()

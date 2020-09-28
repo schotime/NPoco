@@ -2,9 +2,10 @@
 using NPoco.SqlServer;
 using System;
 using System.Threading.Tasks;
+using NPoco.DatabaseTypes;
 
 // ReSharper disable once CheckNamespace
-namespace NPoco.DatabaseTypes
+namespace NPoco.SqlServer
 {
     public class SqlServerDatabase : Database
     {

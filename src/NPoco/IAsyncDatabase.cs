@@ -7,7 +7,80 @@ using System.Threading.Tasks;
 
 namespace NPoco
 {
-    public interface IAsyncDatabase : IBaseDatabase
+    public interface IAsyncDatabase : IAsyncQueryDatabase
+    {
+        /// <summary>
+        /// Executes the provided sql and parameters and casts the result to T
+        /// </summary>
+        Task<T> ExecuteScalarAsync<T>(string sql, params object[] args);
+
+        /// <summary>
+        /// Executes the provided sql and parameters and casts the result to T
+        /// </summary>
+        Task<T> ExecuteScalarAsync<T>(Sql sql);
+
+        /// <summary>
+        /// Executes the provided sql and parameters
+        /// </summary>
+        Task<int> ExecuteAsync(string sql, params object[] args);
+
+        /// <summary>
+        /// Executes the provided sql and parameters
+        /// </summary>
+        Task<int> ExecuteAsync(Sql sql);
+
+        /// <summary>
+        /// Insert POCO into the table by convention or configuration
+        /// </summary>        
+        Task<object> InsertAsync<T>(T poco);
+
+        /// <summary>
+        /// Insert POCO's into database using SqlBulkCopy for SqlServer (other DB's currently fall back to looping each row)
+        /// </summary>  
+        Task InsertBulkAsync<T>(IEnumerable<T> pocos);
+
+        /// <summary>
+        /// Insert POCO's into database by concatenating sql using the provided batch options
+        /// </summary>  
+        Task<int> InsertBatchAsync<T>(IEnumerable<T> pocos, BatchOptions options = null);
+
+        /// <summary>
+        /// Update POCO in the table by convention or configuration
+        /// </summary>        
+        Task<int> UpdateAsync(object poco);
+
+        /// <summary>
+        /// Update POCO in the table by convention or configuration specifying which columns to update
+        /// </summary>        
+        Task<int> UpdateAsync(object poco, IEnumerable<string> columns);
+
+        /// <summary>
+        /// Update POCO in the table by convention or configuration specifying which columns to update
+        /// </summary>  
+        Task<int> UpdateAsync<T>(T poco, Expression<Func<T, object>> fields);
+
+        /// <summary>
+        /// Update POCO's into database by concatenating sql using the provided batch options
+        /// </summary>  
+        Task<int> UpdateBatchAsync<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null);
+
+        /// <summary>
+        /// Delete POCO from table by convention or configuration
+        /// </summary>        
+        Task<int> DeleteAsync(object poco);
+
+        /// <summary>
+        /// Generate an update statement using a Fluent syntax. Remember to call Execute.
+        /// </summary>
+        IAsyncUpdateQueryProvider<T> UpdateManyAsync<T>();
+
+        /// <summary>
+        /// Generate a delete statement using a Fluent syntax. Remember to call Execute.
+        /// </summary>
+        IAsyncDeleteQueryProvider<T> DeleteManyAsync<T>();
+    }
+
+    public interface IAsyncQueryDatabase : IBaseDatabase
     {
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
@@ -131,70 +204,5 @@ namespace NPoco
         /// The sql provided will be converted so that only the results for the skip and take values specified will be returned.
         /// </summary>
         Task<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql);
-
-        /// <summary>
-        /// Executes the provided sql and parameters and casts the result to T
-        /// </summary>
-        Task<T> ExecuteScalarAsync<T>(string sql, params object[] args);
-
-        /// <summary>
-        /// Executes the provided sql and parameters and casts the result to T
-        /// </summary>
-        Task<T> ExecuteScalarAsync<T>(Sql sql);
-
-        /// <summary>
-        /// Executes the provided sql and parameters
-        /// </summary>
-        Task<int> ExecuteAsync(string sql, params object[] args);
-
-        /// <summary>
-        /// Executes the provided sql and parameters
-        /// </summary>
-        Task<int> ExecuteAsync(Sql sql);
-
-        /// <summary>
-        /// Insert POCO into the table by convention or configuration
-        /// </summary>        
-        Task<object> InsertAsync<T>(T poco);
-
-        /// <summary>
-        /// Insert POCO's into database by concatenating sql using the provided batch options
-        /// </summary>  
-        Task<int> InsertBatchAsync<T>(IEnumerable<T> pocos, BatchOptions options = null);
-
-        /// <summary>
-        /// Update POCO in the table by convention or configuration
-        /// </summary>        
-        Task<int> UpdateAsync(object poco);
-
-        /// <summary>
-        /// Update POCO in the table by convention or configuration specifying which columns to update
-        /// </summary>        
-        Task<int> UpdateAsync(object poco, IEnumerable<string> columns);
-
-        /// <summary>
-        /// Update POCO in the table by convention or configuration specifying which columns to update
-        /// </summary>  
-        Task<int> UpdateAsync<T>(T poco, Expression<Func<T, object>> fields);
-
-        /// <summary>
-        /// Update POCO's into database by concatenating sql using the provided batch options
-        /// </summary>  
-        Task<int> UpdateBatchAsync<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null);
-
-        /// <summary>
-        /// Delete POCO from table by convention or configuration
-        /// </summary>        
-        Task<int> DeleteAsync(object poco);
-
-        /// <summary>
-        /// Generate an update statement using a Fluent syntax. Remember to call Execute.
-        /// </summary>
-        IAsyncUpdateQueryProvider<T> UpdateManyAsync<T>();
-
-        /// <summary>
-        /// Generate a delete statement using a Fluent syntax. Remember to call Execute.
-        /// </summary>
-        IAsyncDeleteQueryProvider<T> DeleteManyAsync<T>();
     }
 }

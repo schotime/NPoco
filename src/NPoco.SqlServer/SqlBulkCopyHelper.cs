@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using Microsoft.Data.SqlClient;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
 
-namespace NPoco
+namespace NPoco.SqlServer
 {
     public class SqlBulkCopyHelper
     {
@@ -26,12 +27,17 @@ namespace NPoco
             }
         }
 
-        public static async System.Threading.Tasks.Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions)
+        public static Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list)
+        {
+            return BulkInsertAsync(db, list, SqlBulkCopyOptions.Default);
+        }
+
+        public static async Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
             {
                 var table = BuildBulkInsertDataTable(db, list, bulkCopy, sqlBulkCopyOptions);
-                await bulkCopy.WriteToServerAsync(table).ConfigureAwait(false);
+                await bulkCopy.WriteToServerAsync(table);
             }
         }
 

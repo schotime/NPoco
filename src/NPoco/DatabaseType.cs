@@ -239,6 +239,14 @@ namespace NPoco
             }
         }
 
+        public virtual async Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos)
+        {
+            foreach (var poco in pocos)
+            {
+                await db.InsertAsync(poco);
+            }
+        }
+
         /// <summary>
         /// Look at the type and provider name being used and instantiate a suitable DatabaseType instance.
         /// </summary>

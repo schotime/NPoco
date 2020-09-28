@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Data.SqlClient;
-using NPoco.SqlServer;
 using Polly;
 using Polly.Retry;
 
-namespace NPoco.DatabaseTypes
+namespace NPoco.SqlServer
 {
     public class DefaultPollyPolicy : IPollyPolicy
     {
