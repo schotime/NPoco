@@ -4,7 +4,6 @@ using System;
 using System.Threading.Tasks;
 using NPoco.DatabaseTypes;
 
-// ReSharper disable once CheckNamespace
 namespace NPoco.SqlServer
 {
     public class SqlServerDatabase : Database
@@ -12,7 +11,7 @@ namespace NPoco.SqlServer
         private readonly IPollyPolicy _pollyPolicy;
 
         public SqlServerDatabase(string connectionString, IPollyPolicy pollyPolicy = null) 
-            : this(connectionString, new SqlServer2012DatabaseType(), pollyPolicy)
+            : this(connectionString, Singleton<SqlServer2012DatabaseType>.Instance, pollyPolicy)
         {
         }
 
