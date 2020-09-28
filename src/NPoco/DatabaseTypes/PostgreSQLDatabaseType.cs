@@ -45,7 +45,7 @@ namespace NPoco.DatabaseTypes
             }
 
             await db.ExecuteNonQueryHelperAsync(cmd);
-            return TaskAsyncHelper.FromResult<object>(-1);
+            return -1;
         }
 
         public override string GetParameterPrefix(string connectionString)

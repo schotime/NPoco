@@ -86,7 +86,7 @@ namespace NPoco.DatabaseTypes
             }
 
             await db.ExecuteNonQueryHelperAsync(cmd);
-            return TaskAsyncHelper.FromResult<object>(-1);
+            return -1;
         }
 
         public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)

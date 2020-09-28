@@ -1584,31 +1584,31 @@ namespace NPoco
 
                     var sql = new Sql();
                     foreach (var preparedUpdate in preparedUpdates)
-            {
+                    {
                         if (preparedUpdate.Sql != null)
                         {
                             sql.Append(preparedUpdate.Sql + options.StatementSeperator, preparedUpdate.Rawvalues.ToArray());
-                }
+                        }
                     }
 
                     using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
-                {
+                    {
                         result += ExecuteNonQueryHelper(cmd);
-                }
+                    }
                 }
             }
             catch (Exception x)
-                {
+            {
                 OnExceptionInternal(x);
                 throw;
-                    }
+            }
             finally
-                    {
+            {
                 CloseSharedConnectionInternal();
-                    }
+            }
 
             return result;
-            }
+        }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
         private TRet UpdateImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
@@ -1627,7 +1627,7 @@ namespace NPoco
             var result = executeFunc(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray(), (id) =>
             {
                 if (id == 0 && !string.IsNullOrEmpty(preparedStatement.VersionName) && VersionException == VersionExceptionHandling.Exception)
-            {
+                {
                     throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", preparedStatement.PrimaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), preparedStatement.VersionValue));
                 }
 

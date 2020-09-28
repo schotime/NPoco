@@ -15,8 +15,8 @@ namespace NPoco.SqlServer
         public static IEnumerable<TimeSpan> RetryTimes { get; set; } = new[]
         {
             TimeSpan.FromSeconds(1),
-            TimeSpan.FromSeconds(2),
-            TimeSpan.FromSeconds(3)
+            TimeSpan.FromSeconds(3),
+            TimeSpan.FromSeconds(5)
         };
 
         private static readonly AsyncRetryPolicy RetryPolicyAsyncImp = Policy

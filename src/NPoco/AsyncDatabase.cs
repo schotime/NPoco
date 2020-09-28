@@ -188,7 +188,7 @@ namespace NPoco
         public virtual Task<int> UpdateAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
             return UpdateImp (tableName, primaryKeyName, poco, primaryKeyValue, columns,
-                async (sql, args, next) => next(await ExecuteAsync(sql, args)), TaskAsyncHelper.FromResult(0));
+                async (sql, args, next) => next(await ExecuteAsync(sql, args)), Task.FromResult(0));
         }
 
         public async Task<int> UpdateBatchAsync<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null)
@@ -255,7 +255,7 @@ namespace NPoco
 
         public virtual Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
-            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, ExecuteAsync, TaskAsyncHelper.FromResult(0));
+            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, ExecuteAsync, Task.FromResult(0));
         }
 
         public IAsyncDeleteQueryProvider<T> DeleteManyAsync<T>()
@@ -263,14 +263,14 @@ namespace NPoco
             return new AsyncDeleteQueryProvider<T>(this);
         }
 
-        public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql)
+        public ValueTask<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql)
         {
             return PageAsync<T>(page, itemsPerPage, sql.SQL, sql.Arguments);
         }
 
-        public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
+        public ValueTask<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
-            return PageImp<T, Task<Page<T>>>(page, itemsPerPage, sql, args,
+            return PageImp<T, ValueTask<Page<T>>>(page, itemsPerPage, sql, args,
                 async (paged, thesql) =>
                 {
                     paged.Items = await (await QueryAsync<T>(thesql)).ToListAsync();
@@ -278,39 +278,39 @@ namespace NPoco
                 });
         }
 
-        public Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
+        public ValueTask<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
             return SkipTakeAsync<T>((page - 1) * itemsPerPage, itemsPerPage, sql, args);
         }
 
-        public Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, Sql sql)
+        public ValueTask<List<T>> FetchAsync<T>(long page, long itemsPerPage, Sql sql)
         {
             return SkipTakeAsync<T>((page - 1) * itemsPerPage, itemsPerPage, sql.SQL, sql.Arguments);
         }
 
-        public Task<List<T>> SkipTakeAsync<T>(long skip, long take, string sql, params object[] args)
+        public ValueTask<List<T>> SkipTakeAsync<T>(long skip, long take, string sql, params object[] args)
         {
             string sqlCount, sqlPage;
             BuildPageQueries<T>(skip, take, sql, ref args, out sqlCount, out sqlPage);
             return FetchAsync<T>(sqlPage, args);
         }
 
-        public Task<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql)
+        public ValueTask<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql)
         {
             return SkipTakeAsync<T>(skip, take, sql.SQL, sql.Arguments);
         }
 
-        public Task<List<T>> FetchAsync<T>()
+        public ValueTask<List<T>> FetchAsync<T>()
         {
             return FetchAsync<T>("");
         }
 
-        public async Task<List<T>> FetchAsync<T>(string sql, params object[] args)
+        public async ValueTask<List<T>> FetchAsync<T>(string sql, params object[] args)
         {
             return await (await QueryAsync<T>(sql, args)).ToListAsync();
         }
 
-        public async Task<List<T>> FetchAsync<T>(Sql sql)
+        public async ValueTask<List<T>> FetchAsync<T>(Sql sql)
         {
             return await (await QueryAsync<T>(sql)).ToListAsync();
         }
@@ -362,54 +362,54 @@ namespace NPoco
             }
         }
 
-        public async Task<T> SingleAsync<T>(string sql, params object[] args)
+        public async ValueTask<T> SingleAsync<T>(string sql, params object[] args)
         {
             return await (await QueryAsync<T>(sql, args)).SingleAsync();
         }
 
-        public async Task<T> SingleAsync<T>(Sql sql)
+        public async ValueTask<T> SingleAsync<T>(Sql sql)
         {
             return await (await QueryAsync<T>(sql)).SingleAsync();
         }
 
-        public async Task<T> SingleOrDefaultAsync<T>(string sql, params object[] args)
+        public async ValueTask<T> SingleOrDefaultAsync<T>(string sql, params object[] args)
         {
             return await (await QueryAsync<T>(sql, args)).SingleOrDefaultAsync();
         }
 
-        public async Task<T> SingleOrDefaultAsync<T>(Sql sql)
+        public async ValueTask<T> SingleOrDefaultAsync<T>(Sql sql)
         {
             return await (await QueryAsync<T>(sql)).SingleOrDefaultAsync();
         }
 
-        public async Task<T> SingleByIdAsync<T>(object primaryKey)
+        public async ValueTask<T> SingleByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
             return await (await QueryAsync<T>(sql)).SingleAsync();
         }
 
-        public async Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey)
+        public async ValueTask<T> SingleOrDefaultByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
             return await (await QueryAsync<T>(sql)).SingleOrDefaultAsync();
         }
 
-        public async Task<T> FirstAsync<T>(string sql, params object[] args)
+        public async ValueTask<T> FirstAsync<T>(string sql, params object[] args)
         {
             return await (await QueryAsync<T>(sql, args)).FirstAsync();
         }
 
-        public async Task<T> FirstAsync<T>(Sql sql)
+        public async ValueTask<T> FirstAsync<T>(Sql sql)
         {
             return await (await QueryAsync<T>(sql)).FirstAsync();
         }
 
-        public async Task<T> FirstOrDefaultAsync<T>(string sql, params object[] args)
+        public async ValueTask<T> FirstOrDefaultAsync<T>(string sql, params object[] args)
         {
             return await (await QueryAsync<T>(sql, args)).FirstOrDefaultAsync();
         }
 
-        public async Task<T> FirstOrDefaultAsync<T>(Sql sql)
+        public async ValueTask<T> FirstOrDefaultAsync<T>(Sql sql)
         {
             return await (await QueryAsync<T>(sql)).FirstOrDefaultAsync();
         }
@@ -462,7 +462,7 @@ namespace NPoco
                     object val = await ExecuteScalarHelperAsync(cmd);
 
                     if (val == null || val == DBNull.Value)
-                        return await TaskAsyncHelper.FromResult(default(T));
+                        return default(T);
 
                     Type t = typeof(T);
                     Type u = Nullable.GetUnderlyingType(t);
@@ -503,16 +503,6 @@ namespace NPoco
             var reader = await ExecutionHookAsync(() => _dbType.ExecuteReaderAsync(this, cmd));
             OnExecutedCommandInternal(cmd);
             return reader;
-        }
-    }
-
-    public class TaskAsyncHelper
-    {
-        public static Task<T> FromResult<T>(T value)
-        {
-            var tcs = new TaskCompletionSource<T>();
-            tcs.SetResult(value);
-            return tcs.Task;
         }
     }
 }
