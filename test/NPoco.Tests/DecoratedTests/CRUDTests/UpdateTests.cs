@@ -16,7 +16,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.IsNotNull(poco);
 
             poco.Age = InMemoryUsers[1].Age + 100;
-            poco.Savings = (Decimal)1234.23;
+            poco.Savings = (Decimal) 1234.23;
             Database.Update(poco);
 
             var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
@@ -35,7 +35,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.IsNotNull(poco);
 
             poco.Age = InMemoryUsers[1].Age + 100;
-            poco.Savings = (Decimal)1234.23;
+            poco.Savings = (Decimal) 1234.23;
             Database.Update(poco, InMemoryUsers[2].UserId);
 
             var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[2].UserId);
@@ -81,8 +81,8 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.IsNotNull(poco);
 
             poco.Age = poco.Age + 100;
-            poco.Savings = (Decimal)1234.23;
-            Database.Update(poco, x=>x.Age);
+            poco.Savings = (Decimal) 1234.23;
+            Database.Update(poco, x => x.Age);
 
             var verify = Database.SingleOrDefaultById<UserDecorated>(1);
             Assert.IsNotNull(verify);
@@ -98,12 +98,12 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         {
             var poco1 = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
             var poco2 = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
-            
+
             poco1.Age = 100;
             Database.Update(poco1);
 
             poco2.Age = 200;
-            
+
             Assert.Throws<DBConcurrencyException>(() => Database.Update(poco2));
         }
 
@@ -111,7 +111,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         public void UpdatePrimaryKeyNoVersionConcurrencyException()
         {
             var poco1 = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
-            
+
             poco1.Age = 100;
             Database.Update(poco1);
 
@@ -168,8 +168,25 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             foreach (var u in result)
             {
                 Assert.AreEqual(30, u.Age);
-    }
+            }
+
             Assert.AreEqual(14, updated);
+        }
+
+        [Test]
+        public void UpdateRecordUsingTuples()
+        {
+            var poco = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            Assert.IsNotNull(poco);
+
+            var record = (2, "Timmy", InMemoryUsers[1].UserId);
+            Database.Execute("update Users set name = @Item2, age = @Item1 where userid = @Item3", record);
+
+            var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            Assert.IsNotNull(verify);
+
+            Assert.AreEqual(record.Item2, verify.Name);
+            Assert.AreEqual(record.Item3, verify.Age);
         }
     }
 }

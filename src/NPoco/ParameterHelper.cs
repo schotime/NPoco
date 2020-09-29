@@ -65,10 +65,19 @@ namespace NPoco
                         }
                     }
 
-                    var pi = o.GetType().GetProperty(param);
+                    var type = o.GetType();
+                    var pi = type.GetProperty(param);
                     if (pi != null)
                     {
                         arg_val = pi.GetValue(o, null);
+                        found = true;
+                        break;
+                    }
+
+                    var fi =  type.GetField(param);
+                    if (fi != null)
+                    {
+                        arg_val = fi.GetValue(o);
                         found = true;
                         break;
                     }
