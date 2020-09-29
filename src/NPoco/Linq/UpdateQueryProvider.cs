@@ -92,7 +92,7 @@ namespace NPoco.Linq
         public async Task<int> Execute(T obj)
         {
             var updateStatement = _sqlExpression.Context.ToUpdateStatement(obj, _excludeDefaults, _onlyFields);
-            return await _database.ExecuteAsync(updateStatement, _sqlExpression.Context.Params);
+            return await _database.ExecuteAsync(updateStatement, _sqlExpression.Context.Params).ConfigureAwait(false);
         }
     }
 }

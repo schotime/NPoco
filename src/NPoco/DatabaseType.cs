@@ -228,7 +228,7 @@ namespace NPoco
         public virtual async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
-            return await db.ExecuteScalarHelperAsync(cmd);
+            return await db.ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
         }
 
         public virtual void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
@@ -243,7 +243,7 @@ namespace NPoco
         {
             foreach (var poco in pocos)
             {
-                await db.InsertAsync(poco);
+                await db.InsertAsync(poco).ConfigureAwait(false);
             }
         }
 

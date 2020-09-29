@@ -22,8 +22,8 @@ namespace NPoco.DatabaseTypes
 
         public override async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
-            await db.ExecuteNonQueryHelperAsync(cmd);
-            return await db.ExecuteScalarAsync<object>("SELECT @@@IDENTITY AS NewID;");
+            await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+            return await db.ExecuteScalarAsync<object>("SELECT @@@IDENTITY AS NewID;").ConfigureAwait(false);
         }
 
         public override IsolationLevel GetDefaultTransactionIsolationLevel()

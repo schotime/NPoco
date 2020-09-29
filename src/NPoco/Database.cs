@@ -866,7 +866,7 @@ namespace NPoco
                             T poco;
                             try
                             {
-                                if (!await r.ReadAsync()) yield break;
+                                if (!await r.ReadAsync().ConfigureAwait(false)) yield break;
                                 poco = (T)factory.Map(r, instance);
                             }
                             catch (Exception x)
@@ -916,7 +916,7 @@ namespace NPoco
                             T poco;
                             try
                             {
-                                if (!await r.ReadAsync()) break;
+                                if (!await r.ReadAsync().ConfigureAwait(false)) break;
                                 poco = (T)factory.Map(r, instance);
                             }
                             catch (Exception x)
@@ -2009,7 +2009,7 @@ namespace NPoco
 
         protected virtual async Task<T> ExecutionHookAsync<T>(Func<Task<T>> action)
         {
-            return await action();
+            return await action().ConfigureAwait(false);
         }
 
         int IDatabaseHelpers.ExecuteNonQueryHelper(DbCommand cmd) => ExecuteNonQueryHelper(cmd);

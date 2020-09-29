@@ -71,11 +71,11 @@ namespace NPoco.DatabaseTypes
             if (primaryKeyName != null)
             {
                 var param = AdjustSqlInsertCommandText(cmd, primaryKeyName);
-                await db.ExecuteNonQueryHelperAsync(cmd);
+                await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
                 return param.Value;
             }
 
-            await db.ExecuteNonQueryHelperAsync(cmd);
+            await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
             return -1;
         }
 

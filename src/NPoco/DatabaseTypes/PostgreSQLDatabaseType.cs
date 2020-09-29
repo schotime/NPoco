@@ -41,10 +41,10 @@ namespace NPoco.DatabaseTypes
             if (primaryKeyName != null)
             {
                 AdjustSqlInsertCommandText(cmd, primaryKeyName);
-                return await db.ExecuteScalarHelperAsync(cmd);
+                return await db.ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
             }
 
-            await db.ExecuteNonQueryHelperAsync(cmd);
+            await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
             return -1;
         }
 

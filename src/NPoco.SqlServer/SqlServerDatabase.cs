@@ -35,10 +35,10 @@ namespace NPoco.SqlServer
         {
             if (_pollyPolicy?.AsyncRetryPolicy != null)
             {
-                return await _pollyPolicy.AsyncRetryPolicy.ExecuteAsync(action);
+                return await _pollyPolicy.AsyncRetryPolicy.ExecuteAsync(action).ConfigureAwait(false);
             }
 
-            return await base.ExecutionHookAsync(action);
+            return await base.ExecutionHookAsync(action).ConfigureAwait(false);
         }
     }
 }

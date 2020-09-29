@@ -37,7 +37,7 @@ namespace NPoco.SqlServer
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
             {
                 var table = BuildBulkInsertDataTable(db, list, bulkCopy, sqlBulkCopyOptions);
-                await bulkCopy.WriteToServerAsync(table);
+                await bulkCopy.WriteToServerAsync(table).ConfigureAwait(false);
             }
         }
 
