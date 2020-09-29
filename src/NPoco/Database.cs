@@ -2007,7 +2007,7 @@ namespace NPoco
             return action();
         }
 
-        protected virtual async ValueTask<T> ExecutionHookAsync<T>(Func<Task<T>> action)
+        protected virtual async Task<T> ExecutionHookAsync<T>(Func<Task<T>> action)
         {
             return await action();
         }

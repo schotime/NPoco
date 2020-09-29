@@ -31,7 +31,7 @@ namespace NPoco.SqlServer
             return base.ExecutionHook(action);
         }
 
-        protected override async ValueTask<T> ExecutionHookAsync<T>(Func<Task<T>> action)
+        protected override async Task<T> ExecutionHookAsync<T>(Func<Task<T>> action)
         {
             if (_pollyPolicy?.AsyncRetryPolicy != null)
             {

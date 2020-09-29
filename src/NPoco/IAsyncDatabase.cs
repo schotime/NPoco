@@ -30,6 +30,12 @@ namespace NPoco
         Task<int> ExecuteAsync(Sql sql);
 
         /// <summary>
+        /// Performs an SQL Insert using the table name, primary key and POCO
+        /// </summary>
+        /// <returns>The auto allocated primary key of the new record</returns>
+        Task<object> InsertAsync(string tableName, string primaryKeyName, object poco);
+        
+        /// <summary>
         /// Insert POCO into the table by convention or configuration
         /// </summary>        
         Task<object> InsertAsync<T>(T poco);
