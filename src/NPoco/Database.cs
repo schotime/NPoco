@@ -1760,10 +1760,10 @@ namespace NPoco
 
         public virtual int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
-            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, Execute, 0);
+            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, (x, y, next) => next(Execute(x, y)), 0);
         }
 
-        private TRet DeleteImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, Func<string, object[], TRet> executeFunc, TRet defaultRet)
+        private TRet DeleteImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultRet)
         {
             if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue)))
                 return defaultRet;
@@ -1774,7 +1774,34 @@ namespace NPoco
             // Do it
             var index = 0;
             var sql = string.Format("DELETE FROM {0} WHERE {1}", _dbType.EscapeTableName(tableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index));
-            return executeFunc(sql, primaryKeyValuePairs.Select(x => x.Value).ToArray());
+            var rawValues = primaryKeyValuePairs.Select(x => x.Value).ToList();
+
+            var versionColumn = pd?.AllColumns.SingleOrDefault(x => x.VersionColumn);
+            string versionName = null;
+            object versionValue = null;
+            if (versionColumn != null)
+            {
+                versionName = versionColumn.ColumnName;
+                versionValue = versionColumn.GetColumnValue(pd, poco, this.ProcessMapper);
+
+                if (!string.IsNullOrEmpty(versionName))
+                {
+                    sql += $" AND {DatabaseType.EscapeSqlIdentifier(versionName)} = @{index++}";
+                    rawValues.Add(versionValue);
+                }
+            }
+            
+            var result = executeFunc(sql, rawValues.ToArray(), id =>
+            {
+                if (id == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
+                {
+                    throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", primaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), versionValue));
+                }
+
+                return id;
+            });
+
+            return result;
         }
 
         public int Delete(object poco)

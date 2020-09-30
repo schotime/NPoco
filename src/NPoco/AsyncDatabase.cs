@@ -255,7 +255,7 @@ namespace NPoco
 
         public virtual Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
-            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, ExecuteAsync, Task.FromResult(0));
+            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, async (x, y, next) => next(await ExecuteAsync(x, y).ConfigureAwait(false)), Task.FromResult(0));
         }
 
         public IAsyncDeleteQueryProvider<T> DeleteManyAsync<T>()
