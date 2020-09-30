@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NPoco.Expressions;
+using System;
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
@@ -8,6 +9,11 @@ namespace NPoco.DatabaseTypes
 {
     public class OracleDatabaseType : DatabaseType
     {
+        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
+        {
+            return new OracleExpression<T>(db, pocoData, prefixTableName);
+        }
+
         public override string GetParameterPrefix(string connectionString)
         {
             return ":";

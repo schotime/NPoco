@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -440,7 +441,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public void QueryWithProjectionAndMethod()
         {
             var users = Database.Query<User>()
-                .ProjectTo(x => new ProjectUser2 { Age = x.Age, Date = x.DateOfBirth.ToString("yyyy-MM-dd") });
+                .ProjectTo(x => new ProjectUser2 { Age = x.Age, Date = x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("yyyy-MM-dd") : "" });
 
             Assert.AreEqual(21, users[0].Age);
             Assert.AreEqual("1969-01-01", users[0].Date);
@@ -569,6 +570,21 @@ namespace NPoco.Tests.FluentTests.QueryTests
         {
             var ex = Database.Query<Supervisor>().Include(i => i.House).ToList();
             Assert.NotNull(ex[1].House);
+        }
+
+        [Test]
+        public void QueryWithDateTimeYear()
+        {
+            var dt = new DateTime(1969, 1, 1);
+            var users2 = Database.Query<User>().Where(x => x.DateOfBirth.Value.Year == dt.Year).ToList();
+            Assert.AreEqual(1, users2.Count);
+        }
+
+        [Test]
+        public void QueryWithDateTimeNullable()
+        {
+            var users2 = Database.Query<User>().Where(x => x.DateOfBirth.HasValue).ToList();
+            Assert.AreEqual(15, users2.Count);
         }
 
         //[Test]

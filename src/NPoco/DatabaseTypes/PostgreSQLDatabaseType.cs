@@ -1,3 +1,4 @@
+using NPoco.Expressions;
 using System.Data;
 using System.Data.Common;
 using System.Threading.Tasks;
@@ -6,6 +7,11 @@ namespace NPoco.DatabaseTypes
 {
     public class PostgreSQLDatabaseType : DatabaseType
     {
+        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
+        {
+            return new PostgreSQLExpression<T>(db, pocoData, prefixTableName);
+        }
+
         public override object MapParameterValue(object value)
         {
             // Don't map bools to ints in PostgreSQL

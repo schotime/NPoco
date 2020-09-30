@@ -919,6 +919,32 @@ namespace NPoco.Expressions
                 m = m.Expression as MemberExpression;
             }
 
+            if (m.Member.DeclaringType == typeof(DateTime) || m.Member.DeclaringType == typeof(DateTime?))
+            {
+                if (m.Expression is MemberExpression m1)
+                {
+                    var p = Expression.Convert(m1, typeof(object));
+                    if (p.NodeType == ExpressionType.Convert)
+                    {
+                        var pp = m1.Expression as ParameterExpression;
+                        if (pp == null)
+                        {
+                            m1 = m1.Expression as MemberExpression;
+                            if (m1 != null)
+                            {
+                                pp = m1.Expression as ParameterExpression;
+                            }
+                        }
+                        if (pp != null)
+                        {
+                            if (m.Member.Name == "Value") 
+                                return Visit(m1);
+                            return new PartialSqlString(GetDateTimeSql(m.Member.Name, Visit(m1)));
+                        }
+                    }
+                }
+            }
+
             if (m.Expression != null
                 && (m.Expression.NodeType == ExpressionType.Parameter
                     || m.Expression.NodeType == ExpressionType.Convert
@@ -1579,6 +1605,22 @@ namespace NPoco.Expressions
                 return string.Format("substring({0},{1},{2})", columnName, CreateParam(startIndex), CreateParam(length));
             else
                 return string.Format("substring({0},{1},8000)", columnName, CreateParam(startIndex));
+        }
+
+        protected virtual string GetDateTimeSql(string memberName, object m)
+        {
+            string sql;
+            switch (memberName)
+            {
+                case "Year": sql = $"DATEPART(YEAR,{m})"; break;
+                case "Month": sql = $"DATEPART(MONTH,{m})"; break;
+                case "Day": sql = $"DATEPART(DAY,{m})"; break;
+                case "Hour": sql = $"DATEPART(HOUR,{m})"; break;
+                case "Minute": sql = $"DATEPART(MINUTE,{m})"; break;
+                case "Second": sql = $"DATEPART(SECOND,{m})"; break;
+                default: throw new NotSupportedException("Not Supported " + memberName);
+            }
+            return sql;
         }
     }
 
