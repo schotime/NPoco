@@ -99,12 +99,12 @@ namespace NPoco
             }
         }
 
-        public async Task InsertBulkAsync<T>(IEnumerable<T> pocos)
+        public async Task InsertBulkAsync<T>(IEnumerable<T> pocos, InsertBulkOptions options = null)
         {
             try
             {
                 OpenSharedConnectionInternal();
-                await _dbType.InsertBulkAsync(this, pocos).ConfigureAwait(false);
+                await _dbType.InsertBulkAsync(this, pocos, options).ConfigureAwait(false);
             }
             catch (Exception x)
             {

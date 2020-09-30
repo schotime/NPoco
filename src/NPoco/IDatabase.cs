@@ -26,7 +26,7 @@ namespace NPoco
         /// <summary>
         /// Insert POCO's into database using SqlBulkCopy for SqlServer (other DB's currently fall back to looping each row)
         /// </summary>        
-        void InsertBulk<T>(IEnumerable<T> pocos);
+        void InsertBulk<T>(IEnumerable<T> pocos, InsertBulkOptions options = null);
 
         /// <summary>
         /// Insert POCO's into database by concatenating sql using the provided batch options

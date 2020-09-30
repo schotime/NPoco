@@ -1536,12 +1536,12 @@ namespace NPoco
             return result;
         }
 
-        public void InsertBulk<T>(IEnumerable<T> pocos)
+        public void InsertBulk<T>(IEnumerable<T> pocos, InsertBulkOptions options = null)
         {
             try
             {
                 OpenSharedConnectionInternal();
-                _dbType.InsertBulk(this, pocos);
+                _dbType.InsertBulk(this, pocos, options);
             }
             catch (Exception x)
             {

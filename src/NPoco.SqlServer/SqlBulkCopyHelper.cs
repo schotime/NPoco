@@ -13,41 +13,44 @@ namespace NPoco.SqlServer
         public static Func<DbConnection, SqlConnection> SqlConnectionResolver = dbConn => (SqlConnection)dbConn;
         public static Func<DbTransaction, SqlTransaction> SqlTransactionResolver = dbTran => (SqlTransaction)dbTran;
 
-        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list)
+        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list, InsertBulkOptions insertBulkOptions)
         {
-            BulkInsert(db, list, SqlBulkCopyOptions.Default);
+            BulkInsert(db, list, SqlBulkCopyOptions.Default, insertBulkOptions);
         }
 
-        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions)
+        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions insertBulkOptions)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
             {
-                var table = BuildBulkInsertDataTable(db, list, bulkCopy, sqlBulkCopyOptions);
+                var table = BuildBulkInsertDataTable(db, list, bulkCopy, sqlBulkCopyOptions, insertBulkOptions);
                 bulkCopy.WriteToServer(table);
             }
         }
 
-        public static Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list)
+        public static Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, InsertBulkOptions sqlBulkCopyOptions)
         {
-            return BulkInsertAsync(db, list, SqlBulkCopyOptions.Default);
+            return BulkInsertAsync(db, list, SqlBulkCopyOptions.Default, sqlBulkCopyOptions);
         }
 
-        public static async Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions)
+        public static async Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions insertBulkOptions)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
             {
-                var table = BuildBulkInsertDataTable(db, list, bulkCopy, sqlBulkCopyOptions);
+                var table = BuildBulkInsertDataTable(db, list, bulkCopy, sqlBulkCopyOptions, insertBulkOptions);
                 await bulkCopy.WriteToServerAsync(table).ConfigureAwait(false);
             }
         }
 
 
-        private static DataTable BuildBulkInsertDataTable<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopy bulkCopy, SqlBulkCopyOptions sqlBulkCopyOptions)
+        private static DataTable BuildBulkInsertDataTable<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopy bulkCopy, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions insertBulkOptions)
         {
             var pocoData = db.PocoDataFactory.ForType(typeof (T));
 
             bulkCopy.BatchSize = 4096;
             bulkCopy.DestinationTableName = pocoData.TableInfo.TableName;
+
+            if (insertBulkOptions?.BulkCopyTimeout != null)
+                bulkCopy.BulkCopyTimeout = insertBulkOptions.BulkCopyTimeout.Value; 
 
             var table = new DataTable();
             var cols = pocoData.Columns.Where(x =>

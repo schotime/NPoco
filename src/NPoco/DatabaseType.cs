@@ -231,7 +231,7 @@ namespace NPoco
             return await db.ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
         }
 
-        public virtual void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
+        public virtual void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
         {
             foreach (var poco in pocos)
             {
@@ -239,7 +239,7 @@ namespace NPoco
             }
         }
 
-        public virtual async Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos)
+        public virtual async Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
         {
             foreach (var poco in pocos)
             {

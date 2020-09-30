@@ -74,14 +74,14 @@ namespace NPoco.DatabaseTypes
             return base.LookupDbType(type, name);
         }
 
-        public override void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
+        public override void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
         {
-            SqlBulkCopyHelper.BulkInsert(db, pocos);
+            SqlBulkCopyHelper.BulkInsert(db, pocos, options);
         }
 
-        public override Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos)
+        public override Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
         {
-            return SqlBulkCopyHelper.BulkInsertAsync(db, pocos);
+            return SqlBulkCopyHelper.BulkInsertAsync(db, pocos, options);
         }
 
         public override string GetProviderName()
