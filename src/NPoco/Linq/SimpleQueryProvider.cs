@@ -108,6 +108,7 @@ namespace NPoco.Linq
     public interface IAsyncQueryProviderWithIncludes<T> : IAsyncQueryProvider<T>
     {
         IAsyncQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left);
+        IAsyncQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left) where T2 : class;
         IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class;
         IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left) where T2 : class;
         IAsyncQueryProviderWithIncludes<T> UsingAlias(string empty);
@@ -116,6 +117,7 @@ namespace NPoco.Linq
     public interface IQueryProviderWithIncludes<T> : IQueryProvider<T>
     {
         IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left);
+        IQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left) where T2 : class;
         IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class;
         IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left) where T2 : class;
         IQueryProviderWithIncludes<T> UsingAlias(string empty);
@@ -165,6 +167,22 @@ namespace NPoco.Linq
         {
             _listExpression = expression;
             return QueryProviderWithIncludes(expression, null, joinType);
+        }
+        
+        public IAsyncQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left) where T2 : class
+        {
+            var oneToOneMembers = _database.PocoDataFactory.ForType(typeof(T))
+                .Members.Where(x => (x.ReferenceType == ReferenceType.OneToOne || x.ReferenceType == ReferenceType.Foreign)
+                                    && x.MemberInfoData.MemberType == typeof(T2));
+
+            foreach (var o2oMember in oneToOneMembers)
+            {
+                var entityParam = Expression.Parameter(typeof(T), "entity");
+                var joinProperty = Expression.Lambda<Func<T, T2>>(Expression.PropertyOrField(entityParam, o2oMember.Name), entityParam);
+                Include(joinProperty, joinType);
+            }
+
+            return this;
         }
 
         public IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class
@@ -696,6 +714,11 @@ namespace NPoco.Linq
         public new IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left)
         {
             return (IQueryProvider<T>)base.IncludeMany(expression, joinType);
+        }
+
+        public new IQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left) where T2 : class
+        {
+            return (IQueryProviderWithIncludes<T>)base.Include<T2>(joinType);
         }
 
         public new IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class

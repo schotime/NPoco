@@ -443,6 +443,19 @@ select 22 Money__Value /*poco_dual*/");
             Assert.AreEqual("1 Road Street, Suburb", data[1].Address);
         }
 
+        [Test]
+        public void Test22_2()
+        {
+            var data = Database.Query<MyUserDec>()
+                .Include<HouseDecorated>()
+                .ProjectTo(x => x.House)
+                .ToList();
+
+            Assert.AreEqual(15, data.Count);
+            Assert.AreEqual(2, data[1].HouseId);
+            Assert.AreEqual("1 Road Street, Suburb", data[1].Address);
+        }
+
         [TableName("Users"), PrimaryKey("UserId")]
         public class MyUserDec
         {
