@@ -16,8 +16,9 @@ namespace NPoco.Expressions
         {
             var param = par.ToString().ToUpper();
             param = param
-                .Replace("\\", EscapeChar + EscapeChar)
-                .Replace("_", EscapeChar + "_");
+                .Replace("\\", EscapeChar)
+                .Replace("_", "\\_")
+                .Replace("%", "\\%");
             return param;
         }
     }
