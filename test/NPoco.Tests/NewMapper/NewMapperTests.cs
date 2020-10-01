@@ -467,6 +467,29 @@ select 22 Money__Value /*poco_dual*/");
         }
 
         [Test]
+        public void Test22_3()
+        {
+            var result = Database.Single<Ticket>("SELECT '8440F7B5-F1A6-E911-8100-005056833617' as [TID], '3686a4b6-75a6-e911-8e46-5cc5d488af58' as [OID], '3686a4b6-75a6-e911-8e46-5cc5d488af58' as [Order__OID], 'the desc' as [Order__Description] /*poco_dual*/");
+            Assert.AreEqual("the desc", result.Order.Description);
+            Assert.AreEqual("8440F7B5-F1A6-E911-8100-005056833617", result.TID);
+        }
+
+        public class Ticket
+        {
+            public Guid TID { get; set; }
+            public Guid? OID { get; set; }
+            [ComputedColumn]
+            [Reference(ReferenceType.OneToOne, ColumnName = "OID", ReferenceMemberName = "OID")]
+            public Order Order { get; set; }
+        }
+
+        public class Order
+        {
+            public Guid OID { get; set; }
+            public string Description { get; set; }
+        }
+
+        [Test]
         public void Test23()
         {
             Database.Mappers.ClearFactories(typeof(ContentBase));
