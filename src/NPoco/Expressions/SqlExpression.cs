@@ -444,12 +444,9 @@ namespace NPoco.Expressions
                     continue;
 
                 if (Context.UpdateFields.Count > 0 && !Context.UpdateFields.Contains(fieldDef.Value.MemberInfoData.Name)) continue; // added
-                object value = fieldDef.Value.GetColumnValue(_pocoData, item, (pocoColumn, val) => ProcessMapperExtensions.ProcessMapper(_database, pocoColumn, val));
-                if (_database.Mappers != null)
-                {
-                    value = _database.Mappers.FindAndExecute(x => x.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfoData.MemberInfo), value);
-                }
-
+                
+                object value = fieldDef.Value.GetColumnValue(_pocoData, item, (pocoColumn, val) => _database.ProcessMapper(pocoColumn, val));
+                
                 if (excludeDefaults && (value == null || value.Equals(MappingHelper.GetDefault(value.GetType())))) continue; //GetDefaultValue?
 
                 if (setFields.Length > 0)

@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Reflection;
+using Newtonsoft.Json;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -187,6 +190,61 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
 
             Assert.AreEqual(record.Item2, verify.Name);
             Assert.AreEqual(record.Item3, verify.Age);
+        }
+
+        [Test]
+        public void UpdateManyWithMapper()
+        {
+            var updateData = new UserModel()
+            {
+                Id = 1,
+                Suggestion = new Dictionary<string, object>()
+                {
+                    {"test", 2}
+                }
+            };
+
+            var myMapper = new MyMapper();
+            Database.Mappers.Add(myMapper);
+
+            Database.UpdateMany<UserModel>()
+                .Where(x => x.Id == 1)
+                .OnlyFields(x => new { x.Suggestion })
+                .Execute(updateData);
+
+            Database.Mappers.Remove(myMapper);
+
+            var user = Database.Single<(int, string)>("select userid, name from users where userid = 1");
+
+            Assert.AreEqual(JsonConvert.SerializeObject(updateData.Suggestion), user.Item2);
+        }
+
+        [TableName("Users")]
+        [PrimaryKey("UserId")]
+        public class UserModel
+        {
+            [Column("userid")]
+            public int Id { get; set; }
+            [Column("name")]
+            [ColumnType(typeof(string))]
+            public IDictionary<string, object> Suggestion { get; set; }
+        }
+
+        public class MyMapper : DefaultMapper
+        {
+            public override Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo)
+            {
+                if ((destType == typeof(string)) && (sourceMemberInfo.GetMemberInfoType() == typeof(IDictionary<string, object>)))
+                {
+                    return src =>
+                    {
+                        var data = src as IDictionary<string, object>;
+                        return data == null || data.Count <= 0 ? null : JsonConvert.SerializeObject(data);
+                    };
+                }
+
+                return base.GetToDbConverter(destType, sourceMemberInfo);
+            }
         }
     }
 }
