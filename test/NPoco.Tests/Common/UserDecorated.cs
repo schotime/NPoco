@@ -182,4 +182,16 @@ namespace NPoco.Tests.Common
          [Column("Age")]
          public int? Age { get; set; }
      }
+
+     public class UserAliasNested
+     {
+         [ComplexMapping]
+         public Nested N { get; set; }
+
+         public class Nested
+         {
+             [Alias("A")]
+             public string Aliased { get; set; }
+         }
+     }
 }

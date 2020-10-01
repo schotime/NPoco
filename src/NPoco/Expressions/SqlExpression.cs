@@ -1425,9 +1425,17 @@ namespace NPoco.Expressions
                     string.Join(", ", cols.Select(x =>
                     {
                         if (x.SelectSql == null)
+                        {
+                            var pocoColumn = x.PocoColumns.Last();
                             return (PrefixFieldWithTableName
-                                ? _databaseType.EscapeTableName(_pocoData.TableInfo.AutoAlias) + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + _databaseType.EscapeSqlIdentifier(x.PocoColumns.Last().MemberInfoKey)
+                                ? _databaseType.EscapeTableName(_pocoData.TableInfo.AutoAlias) 
+                                  + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) 
+                                  + " as " + (string.IsNullOrWhiteSpace(pocoColumn.ColumnAlias) 
+                                      ? _databaseType.EscapeSqlIdentifier(pocoColumn.MemberInfoKey) 
+                                      : _databaseType.EscapeSqlIdentifier(pocoColumn.ColumnAlias))
                                 : _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName));
+                        }
+
                         return x.SelectSql;
                     }).ToArray()),
                     _databaseType.EscapeTableName(_pocoData.TableInfo.TableName) + (PrefixFieldWithTableName ? " " + _databaseType.EscapeTableName(_pocoData.TableInfo.AutoAlias) : string.Empty));
