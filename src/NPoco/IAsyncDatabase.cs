@@ -84,6 +84,16 @@ namespace NPoco
         /// Generate a delete statement using a Fluent syntax. Remember to call Execute.
         /// </summary>
         IAsyncDeleteQueryProvider<T> DeleteManyAsync<T>();
+        
+        /// <summary>
+        /// Determines whether the POCO already exists
+        /// </summary>
+        Task<bool> IsNewAsync<T>(T poco);
+       
+        /// <summary>
+        /// Performs an insert or an update depending on whether the POCO already exists. (i.e. an upsert/merge)
+        /// </summary>      
+        Task SaveAsync<T>(T poco);
     }
 
     public interface IAsyncQueryDatabase : IBaseDatabase
@@ -177,7 +187,7 @@ namespace NPoco
         /// Extra metadata in the Page class will also be returned.
         /// Note: This will perform two queries. One for the paged results and one for the count of all results.
         /// </summary>
-        ValueTask<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args);
+        Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
@@ -185,7 +195,7 @@ namespace NPoco
         /// Extra metadata in the Page class will also be returned.
         /// Note: This will perform two queries. One for the paged results and one for the count of all results.
         /// </summary>
-        ValueTask<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql);
+        Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 

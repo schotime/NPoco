@@ -1192,15 +1192,11 @@ namespace NPoco
 
         public Page<T> Page<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
-            return PageImp<T, Page<T>>(page, itemsPerPage, sql, args, (paged, thesql) =>
-            {
-                paged.Items =  Query<T>(thesql).ToList();
-                return paged;
-            });
+            return PageImpAsync<T>(page, itemsPerPage, sql, args, true).RunSync();
         }
 
         // Actual implementation of the multi-poco paging
-        protected TRet PageImp<T, TRet>(long page, long itemsPerPage, string sql, object[] args, Func<Page<T>, Sql, TRet> executeQueryFunc)
+        private async Task<Page<T>> PageImpAsync<T>(long page, long itemsPerPage, string sql, object[] args, bool sync)
         {
             if (page <= 0 || itemsPerPage <= 0)
             {
@@ -1228,7 +1224,11 @@ namespace NPoco
             OneTimeCommandTimeout = saveTimeout;
 
             // Get the records
-            return executeQueryFunc(result, new Sql(sqlPage, args));
+            result.Items = sync
+                ? Fetch<T>(new Sql(sqlPage, args))
+                : await FetchAsync<T>(new Sql(sqlPage, args));
+
+            return result;
         }
 
         public TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args)); }
@@ -1327,20 +1327,9 @@ namespace NPoco
             }
         }
 
-        private bool PocoExists<T>(T poco)
-        {
-            var index = 0;
-            var pd = PocoDataFactory.ForType(typeof(T));
-            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, poco, true);
-            return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
-        }
-
         public bool Exists<T>(object primaryKey)
         {
-            var index = 0;
-            var pd = PocoDataFactory.ForType(typeof (T));
-            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKey, false);
-            return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
+            return ExistsAsync<T>(primaryKey, true).RunSync();
         }
 
         public T SingleById<T>(object primaryKey)
@@ -1448,92 +1437,12 @@ namespace NPoco
         public virtual object Insert<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
             var pd = PocoDataFactory.ForObject(poco, primaryKeyName, autoIncrement);
-            return InsertImp(pd, tableName, primaryKeyName, autoIncrement, poco);
-        }
-
-        private object InsertImp<T>(PocoData pocoData, string tableName, string primaryKeyName, bool autoIncrement, T poco)
-        {
-            if (!OnInsertingInternal(new InsertContext(poco, tableName, autoIncrement, primaryKeyName)))
-                return 0;
-
-            try
-            {
-                OpenSharedConnectionInternal();
-
-                var preparedInsert = InsertStatements.PrepareInsertSql(this, pocoData, tableName, primaryKeyName, autoIncrement, poco);
-
-                using (var cmd = CreateCommand(_sharedConnection, preparedInsert.Sql, preparedInsert.Rawvalues.ToArray()))
-                {
-                    // Assign the Version column
-                    InsertStatements.AssignVersion(poco, preparedInsert);
-
-                    object id;
-                    if (!autoIncrement)
-                    {
-                        ExecuteNonQueryHelper(cmd);
-                        id = InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, preparedInsert);
-                    }
-                    else
-                    {
-                        id = _dbType.ExecuteInsert(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray());
-                        InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
-                    }
-
-                    return id;
-                }
-            }
-            catch (Exception x)
-            {
-                OnExceptionInternal(x);
-                throw;
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
-            }
+            return InsertAsyncImp(pd, tableName, primaryKeyName, autoIncrement, poco, true).RunSync();
         }
 
         public int InsertBatch<T>(IEnumerable<T> pocos, BatchOptions options = null)
         {
-            options = options ?? new BatchOptions();
-            var result = 0;
-
-            try
-            {
-                OpenSharedConnectionInternal();
-                PocoData pd = null;
-
-                foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
-                {
-                    var preparedInserts = batchedPocos.Select(x =>
-                    {
-                        if (pd == null) pd = PocoDataFactory.ForType(x.GetType());
-                        return InsertStatements.PrepareInsertSql(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, pd.TableInfo.AutoIncrement, x);
-                    }).ToArray();
-
-                    var sql = new Sql();
-                    foreach (var preparedInsertSql in preparedInserts)
-                    {
-                        sql.Append(preparedInsertSql.Sql + options.StatementSeperator, preparedInsertSql.Rawvalues.ToArray());
-                    }
-
-                    using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
-                    {
-                        result += ExecuteNonQueryHelper(cmd);
-                    }
-                }
-            }
-            catch (Exception x)
-            {
-                OnExceptionInternal(x);
-                throw;
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
-            }
-
-            return result;
+            return InsertBatchAsyncImp(pocos, options, true).RunSync();
         }
 
         public void InsertBulk<T>(IEnumerable<T> pocos, InsertBulkOptions options = null)
@@ -1561,88 +1470,47 @@ namespace NPoco
 
         public virtual int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            return UpdateImp(tableName, primaryKeyName, poco, primaryKeyValue, columns, (sql, args, next) => next(Execute(sql, args)), 0);
+            return UpdateImpAsync(tableName, primaryKeyName, poco, primaryKeyValue, columns, true).RunSync();
         }
 
         public int UpdateBatch<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null)
         {
-            options = options ?? new BatchOptions();
-            int result = 0;
-
-            try
-            {
-                OpenSharedConnectionInternal();
-                PocoData pd = null;
-
-                foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
-                {
-                    var preparedUpdates = batchedPocos.Select(x =>
-                    {
-                        if (pd == null) pd = PocoDataFactory.ForType(x.Poco.GetType());
-                        return UpdateStatements.PrepareUpdate(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, x.Poco, null, x.Snapshot?.UpdatedColumns());
-                    }).ToArray();
-
-                    var sql = new Sql();
-                    foreach (var preparedUpdate in preparedUpdates)
-                    {
-                        if (preparedUpdate.Sql != null)
-                        {
-                            sql.Append(preparedUpdate.Sql + options.StatementSeperator, preparedUpdate.Rawvalues.ToArray());
-                        }
-                    }
-
-                    using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
-                    {
-                        result += ExecuteNonQueryHelper(cmd);
-                    }
-                }
-            }
-            catch (Exception x)
-            {
-                OnExceptionInternal(x);
-                throw;
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
-            }
-
-            return result;
+            return UpdateBatchAsyncImp(pocos, options, true).RunSync();
         }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
-        private TRet UpdateImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultId)
+        private async Task<int> UpdateImpAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns, bool sync)
         {
             if (!OnUpdatingInternal(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns)))
-                return defaultId;
+                return 0;
 
             if (columns != null && !columns.Any())
-                return defaultId;
+                return 0;
 
             var pd = PocoDataFactory.ForObject(poco, primaryKeyName, true);
             var preparedStatement = UpdateStatements.PrepareUpdate(this, pd, tableName, primaryKeyName, poco, primaryKeyValue, columns);
             if (preparedStatement.Sql == null)
-                return defaultId;
+                return 0;
 
-            var result = executeFunc(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray(), (id) =>
+            var result = sync
+                ? Execute(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray())
+                : await ExecuteAsync(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray()).ConfigureAwait(false);
+
+            if (result == 0 && !string.IsNullOrEmpty(preparedStatement.VersionName) && VersionException == VersionExceptionHandling.Exception)
             {
-                if (id == 0 && !string.IsNullOrEmpty(preparedStatement.VersionName) && VersionException == VersionExceptionHandling.Exception)
-                {
-                    throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", preparedStatement.PrimaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), preparedStatement.VersionValue));
-                }
+                throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName,
+                    string.Join(",", preparedStatement.PrimaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), preparedStatement.VersionValue));
+            }
 
-                // Set Version
-                if (!string.IsNullOrEmpty(preparedStatement.VersionName) && preparedStatement.VersionColumnType == VersionColumnType.Number)
+            // Set Version
+            if (!string.IsNullOrEmpty(preparedStatement.VersionName) && preparedStatement.VersionColumnType == VersionColumnType.Number)
+            {
+                PocoColumn pc;
+                if (preparedStatement.PocoData.Columns.TryGetValue(preparedStatement.VersionName, out pc))
                 {
-                    PocoColumn pc;
-                    if (preparedStatement.PocoData.Columns.TryGetValue(preparedStatement.VersionName, out pc))
-                    {
-                        pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(preparedStatement.VersionValue) + 1, pc.MemberInfoData.MemberType));
-                    }
+                    pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(preparedStatement.VersionValue) + 1, pc.MemberInfoData.MemberType));
                 }
-
-                return id;
-            });
+            }
 
             return result;
         }
@@ -1760,13 +1628,13 @@ namespace NPoco
 
         public virtual int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
-            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, (x, y, next) => next(Execute(x, y)), 0);
+            return DeleteImpAsync(tableName, primaryKeyName, poco, primaryKeyValue, true).RunSync();
         }
 
-        private TRet DeleteImp<TRet>(string tableName, string primaryKeyName, object poco, object primaryKeyValue, Func<string, object[], Func<int, int>, TRet> executeFunc, TRet defaultRet)
+        private async Task<int> DeleteImpAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue, bool sync)
         {
             if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue)))
-                return defaultRet;
+                return 0;
 
             var pd = poco != null ? PocoDataFactory.ForObject(poco, primaryKeyName, true) : null;
             var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, primaryKeyName, primaryKeyValue ?? poco, primaryKeyValue == null);
@@ -1790,16 +1658,16 @@ namespace NPoco
                     rawValues.Add(versionValue);
                 }
             }
-            
-            var result = executeFunc(sql, rawValues.ToArray(), id =>
-            {
-                if (id == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
-                {
-                    throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName, string.Join(",", primaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), versionValue));
-                }
 
-                return id;
-            });
+            var result = sync
+                ? Execute(sql, rawValues.ToArray())
+                : await ExecuteAsync(sql, rawValues.ToArray());
+
+            if (result == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
+            {
+                throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName,
+                    string.Join(",", primaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), versionValue));
+            }
 
             return result;
         }
@@ -1833,6 +1701,11 @@ namespace NPoco
         /// <summary>Checks if a poco represents a new record.</summary>
         public bool IsNew<T>(T poco)
         {
+            return IsNewAsync(poco, true).RunSync();
+        }
+
+        private async Task<bool> IsNewAsync<T>(T poco, bool sync) 
+        {
             if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
             {
                 return true;
@@ -1848,7 +1721,9 @@ namespace NPoco
             }
             else if (pd.TableInfo.PrimaryKey.Contains(","))
             {
-                return !PocoExists(poco);
+                return sync 
+                    ? !PocoExistsAsync(poco, true).RunSync() 
+                    : !await PocoExistsAsync(poco, false).ConfigureAwait(false);
             }
             else
             {
@@ -1861,7 +1736,11 @@ namespace NPoco
                 return true;
 
             if (!pd.TableInfo.AutoIncrement)
-                return !Exists<T>(pk);
+            {
+                return sync
+                    ? !ExistsAsync<T>(pk, true).RunSync()
+                    : !await ExistsAsync<T>(pk, false).ConfigureAwait(false);
+            }
 
             var type = pk.GetType();
 

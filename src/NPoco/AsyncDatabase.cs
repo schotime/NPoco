@@ -54,10 +54,10 @@ namespace NPoco
         public virtual Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
             var pd = PocoDataFactory.ForObject(poco, primaryKeyName, autoIncrement);
-            return InsertAsyncImp(pd, tableName, primaryKeyName, autoIncrement, poco);
+            return InsertAsyncImp(pd, tableName, primaryKeyName, autoIncrement, poco, false);
         }
 
-        private async Task<object> InsertAsyncImp<T>(PocoData pocoData, string tableName, string primaryKeyName, bool autoIncrement, T poco)
+        private async Task<object> InsertAsyncImp<T>(PocoData pocoData, string tableName, string primaryKeyName, bool autoIncrement, T poco, bool sync)
         {
             if (!OnInsertingInternal(new InsertContext(poco, tableName, autoIncrement, primaryKeyName)))
                 return 0;
@@ -76,12 +76,18 @@ namespace NPoco
                     object id;
                     if (!autoIncrement)
                     {
-                        await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+                        _ = sync
+                            ? ExecuteNonQueryHelper(cmd)
+                            : await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+
                         id = InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, preparedInsert);
                     }
                     else
                     {
-                        id = await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray()).ConfigureAwait(false);
+                        id = sync 
+                            ? _dbType.ExecuteInsert(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray())
+                            : await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray()).ConfigureAwait(false);
+                        
                         InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
                     }
 
@@ -117,7 +123,12 @@ namespace NPoco
             }
         }
 
-        public async Task<int> InsertBatchAsync<T>(IEnumerable<T> pocos, BatchOptions options = null)
+        public Task<int> InsertBatchAsync<T>(IEnumerable<T> pocos, BatchOptions options = null)
+        {
+            return InsertBatchAsyncImp(pocos, options, false);
+        }
+
+        private async Task<int> InsertBatchAsyncImp<T>(IEnumerable<T> pocos, BatchOptions options, bool sync)
         {
             options = options ?? new BatchOptions();
             var result = 0;
@@ -143,7 +154,9 @@ namespace NPoco
 
                     using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
                     {
-                        result += await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+                        result += sync
+                            ? ExecuteNonQueryHelper(cmd)
+                            : await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
                     }
                 }
             }
@@ -187,11 +200,15 @@ namespace NPoco
 
         public virtual Task<int> UpdateAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            return UpdateImp (tableName, primaryKeyName, poco, primaryKeyValue, columns,
-                async (sql, args, next) => next(await ExecuteAsync(sql, args).ConfigureAwait(false)), Task.FromResult(0));
+            return UpdateImpAsync(tableName, primaryKeyName, poco, primaryKeyValue, columns, false);
         }
 
-        public async Task<int> UpdateBatchAsync<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null)
+        public Task<int> UpdateBatchAsync<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null)
+        {
+            return UpdateBatchAsyncImp(pocos, options, false);
+        }
+
+        private async Task<int> UpdateBatchAsyncImp<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options, bool sync)
         {
             options = options ?? new BatchOptions();
             int result = 0;
@@ -205,7 +222,7 @@ namespace NPoco
                 {
                     var preparedUpdates = batchedPocos.Select(x =>
                     {
-                        if (pd == null) pd = PocoDataFactory.ForType(x.GetType());
+                        if (pd == null) pd = PocoDataFactory.ForType(x.Poco.GetType());
                         return UpdateStatements.PrepareUpdate(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, x.Poco, null, x.Snapshot?.UpdatedColumns());
                     }).ToArray();
 
@@ -220,7 +237,9 @@ namespace NPoco
 
                     using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
                     {
-                        result += await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+                        result += sync
+                            ? ExecuteNonQueryHelper(cmd)
+                            : await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
                     }
                 }
             }
@@ -255,7 +274,7 @@ namespace NPoco
 
         public virtual Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
-            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, async (x, y, next) => next(await ExecuteAsync(x, y).ConfigureAwait(false)), Task.FromResult(0));
+            return DeleteImpAsync(tableName, primaryKeyName, poco, primaryKeyValue, false);
         }
 
         public IAsyncDeleteQueryProvider<T> DeleteManyAsync<T>()
@@ -263,19 +282,14 @@ namespace NPoco
             return new AsyncDeleteQueryProvider<T>(this);
         }
 
-        public ValueTask<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql)
+        public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, Sql sql)
         {
             return PageAsync<T>(page, itemsPerPage, sql.SQL, sql.Arguments);
         }
 
-        public ValueTask<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
+        public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
-            return PageImp<T, ValueTask<Page<T>>>(page, itemsPerPage, sql, args,
-                async (paged, thesql) =>
-                {
-                    paged.Items = await (await QueryAsync<T>(thesql).ConfigureAwait(false)).ToListAsync().ConfigureAwait(false);
-                    return paged;
-                });
+            return PageImpAsync<T>(page, itemsPerPage, sql, args, false);
         }
 
         public ValueTask<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
@@ -298,6 +312,51 @@ namespace NPoco
         public ValueTask<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql)
         {
             return SkipTakeAsync<T>(skip, take, sql.SQL, sql.Arguments);
+        }
+
+        /// <summary>Checks if a poco represents a new record.</summary>
+        public Task<bool> IsNewAsync<T>(T poco)
+        {
+            return IsNewAsync(poco, false);
+        }
+
+        public async Task SaveAsync<T>(T poco)
+        {
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
+            if (await IsNewAsync(poco))
+            {
+                await InsertAsync(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco).ConfigureAwait(false);
+            }
+            else
+            {
+                await UpdateAsync(tableInfo.TableName, tableInfo.PrimaryKey, poco, null, null).ConfigureAwait(false);
+            }
+        }
+
+        private async Task<bool> PocoExistsAsync<T>(T poco, bool sync)
+        {
+            var index = 0;
+            var pd = PocoDataFactory.ForType(typeof(T));
+            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, poco, true);
+            var sql = string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index));
+            var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
+            var result = sync 
+                ? ExecuteScalar<int>(sql, args)
+                : await ExecuteScalarAsync<int>(sql, args);
+            return result > 0;
+        }
+
+        private async Task<bool> ExistsAsync<T>(object primaryKey, bool sync)
+        {
+            var index = 0;
+            var pd = PocoDataFactory.ForType(typeof(T));
+            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKey, false);
+            var sql = string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index));
+            var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
+            var result = sync 
+                ? ExecuteScalar<int>(sql, args)
+                : await ExecuteScalarAsync<int>(sql, args).ConfigureAwait(false);
+            return result > 0;
         }
 
         public ValueTask<List<T>> FetchAsync<T>()
