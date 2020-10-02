@@ -730,9 +730,6 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         public void Test36()
         {
             var result = Database.Single<Result36>("select 'Test' Data, 'Test2' Data1 /*poco_dual*/");
-
-            Database.Insert(result);
-
             Assert.AreEqual("Test", result.GetData());
             Assert.AreEqual(null, result.GetData1());
         }

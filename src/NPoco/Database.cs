@@ -1096,19 +1096,9 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-                var cmd = CreateCommand(_sharedConnection, sql, args);
-                DbDataReader r;
-                try
-                {
-                    r = ExecuteDataReader(cmd);
-                }
-                catch
-                {
-                    cmd.Dispose();
-                    throw;
-                }
-
-                var read = Read<object>(type, null, r, cmd);
+                using var cmd = CreateCommand(_sharedConnection, sql, args);
+                var reader = ExecuteDataReader(cmd, true).RunSync();
+                var read = Read<object>(type, null, reader, cmd);
                 foreach (var item in read)
                 {
                     yield return item;
@@ -1130,24 +1120,13 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-                var cmd = CreateCommand(_sharedConnection, sql, args);
-                DbDataReader r;
-                try
-                {
-                    r = ExecuteDataReader(cmd);
-                }
-                catch
-                {
-                    cmd.Dispose();
-                    throw;
-                }
-
-                var read = listExpression != null ? ReadOneToMany(instance, r, cmd, listExpression, idFunc) : Read<T>(typeof(T), instance, r, cmd);
+                using var cmd = CreateCommand(_sharedConnection, sql, args);
+                var reader = ExecuteDataReader(cmd, true).RunSync();
+                var read = listExpression != null ? ReadOneToMany(instance, reader, cmd, listExpression, idFunc) : Read<T>(typeof(T), instance, reader, cmd);
                 foreach (var item in read)
                 {
                     yield return item;
                 }
-
             }
             finally
             {
@@ -1155,12 +1134,12 @@ namespace NPoco
             }
         }
 
-        private DbDataReader ExecuteDataReader(DbCommand cmd)
+        private async Task<DbDataReader> ExecuteDataReader(DbCommand cmd, bool sync)
         {
             DbDataReader r;
             try
             {
-                r = ExecuteReaderHelper(cmd);
+                r = sync ? ExecuteReaderHelper(cmd) : await ExecuteReaderHelperAsync(cmd).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -1231,24 +1210,24 @@ namespace NPoco
             return result;
         }
 
-        public TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args)); }
-        public TRet FetchMultiple<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, T3, DontMap, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, new Sql(sql, args)); }
-        public TRet FetchMultiple<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, string sql, params object[] args) { return FetchMultiple<T1, T2, T3, T4, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, new Sql(sql, args)); }
-        public TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, Sql sql) { return FetchMultiple<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, sql); }
-        public TRet FetchMultiple<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, Sql sql) { return FetchMultiple<T1, T2, T3, DontMap, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, sql); }
-        public TRet FetchMultiple<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, Sql sql) { return FetchMultiple<T1, T2, T3, T4, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, sql); }
+        public TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args) { return FetchMultipleImp<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args), true).RunSync(); }
+        public TRet FetchMultiple<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, string sql, params object[] args) { return FetchMultipleImp<T1, T2, T3, DontMap, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, new Sql(sql, args), true).RunSync(); }
+        public TRet FetchMultiple<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, string sql, params object[] args) { return FetchMultipleImp<T1, T2, T3, T4, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, new Sql(sql, args), true).RunSync(); }
+        public TRet FetchMultiple<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, Sql sql) { return FetchMultipleImp<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, sql, true).RunSync(); }
+        public TRet FetchMultiple<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, Sql sql) { return FetchMultipleImp<T1, T2, T3, DontMap, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, sql, true).RunSync(); }
+        public TRet FetchMultiple<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, Sql sql) { return FetchMultipleImp<T1, T2, T3, T4, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, sql, true).RunSync(); }
 
-        public Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(string sql, params object[] args) { return FetchMultiple<T1, T2, DontMap, DontMap, Tuple<List<T1>, List<T2>>>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, Tuple<List<T1>, List<T2>>>((y, z) => new Tuple<List<T1>, List<T2>>(y, z)), new Sql(sql, args)); }
-        public Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(string sql, params object[] args) { return FetchMultiple<T1, T2, T3, DontMap, Tuple<List<T1>, List<T2>, List<T3>>>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, Tuple<List<T1>, List<T2>, List<T3>>>((x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>>(x, y, z)), new Sql(sql, args)); }
-        public Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(string sql, params object[] args) { return FetchMultiple<T1, T2, T3, T4, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>((w, x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>, List<T4>>(w, x, y, z)), new Sql(sql, args)); }
-        public Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(Sql sql) { return FetchMultiple<T1, T2, DontMap, DontMap, Tuple<List<T1>, List<T2>>>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, Tuple<List<T1>, List<T2>>>((y, z) => new Tuple<List<T1>, List<T2>>(y, z)), sql); }
-        public Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql) { return FetchMultiple<T1, T2, T3, DontMap, Tuple<List<T1>, List<T2>, List<T3>>>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, Tuple<List<T1>, List<T2>, List<T3>>>((x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>>(x, y, z)), sql); }
-        public Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql) { return FetchMultiple<T1, T2, T3, T4, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, Tuple<List<T1>, List<T2>, List<T3>, List<T4>>>((w, x, y, z) => new Tuple<List<T1>, List<T2>, List<T3>, List<T4>>(w, x, y, z)), sql); }
+        public (List<T1>, List<T2>) FetchMultiple<T1, T2>(string sql, params object[] args) { return FetchMultipleImp<T1, T2, DontMap, DontMap, (List<T1>, List<T2>)>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, (List<T1>, List<T2>)>((y, z) => (y, z)), new Sql(sql, args), true).RunSync(); }
+        public (List<T1>, List<T2>, List<T3>) FetchMultiple<T1, T2, T3>(string sql, params object[] args) { return FetchMultipleImp<T1, T2, T3, DontMap, (List<T1>, List<T2>, List<T3>)>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, (List<T1>, List<T2>, List<T3>)>((x, y, z) => (x, y, z)), new Sql(sql, args), true).RunSync(); }
+        public (List<T1>, List<T2>, List<T3>, List<T4>) FetchMultiple<T1, T2, T3, T4>(string sql, params object[] args) { return FetchMultipleImp<T1, T2, T3, T4, (List<T1>, List<T2>, List<T3>, List<T4>)>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, (List<T1>, List<T2>, List<T3>, List<T4>)>((w, x, y, z) => (w, x, y, z)), new Sql(sql, args), true).RunSync(); }
+        public (List<T1>, List<T2>) FetchMultiple<T1, T2>(Sql sql) { return FetchMultipleImp<T1, T2, DontMap, DontMap, (List<T1>, List<T2>)>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, (List<T1>, List<T2>)>((y, z) => (y, z)), sql, true).RunSync(); }
+        public (List<T1>, List<T2>, List<T3>) FetchMultiple<T1, T2, T3>(Sql sql) { return FetchMultipleImp<T1, T2, T3, DontMap, (List<T1>, List<T2>, List<T3>)>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, (List<T1>, List<T2>, List<T3>)>((x, y, z) => (x, y, z)), sql, true).RunSync(); }
+        public (List<T1>, List<T2>, List<T3>, List<T4>) FetchMultiple<T1, T2, T3, T4>(Sql sql) { return FetchMultipleImp<T1, T2, T3, T4, (List<T1>, List<T2>, List<T3>, List<T4>)>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, (List<T1>, List<T2>, List<T3>, List<T4>)>((w, x, y, z) => (w, x, y, z)), sql, true).RunSync(); }
 
         public class DontMap { }
 
         // Actual implementation of the multi query
-        private TRet FetchMultiple<T1, T2, T3, T4, TRet>(Type[] types, object cb, Sql Sql)
+        private async Task<TRet> FetchMultipleImp<T1, T2, T3, T4, TRet>(Type[] types, object cb, Sql Sql, bool sync)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -1256,70 +1235,66 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                using var cmd = CreateCommand(_sharedConnection, sql, args);
+                using var r = sync ? ExecuteDataReader(cmd, true).RunSync() : await ExecuteDataReader(cmd, false).ConfigureAwait(false);
+                
+                var typeIndex = 1;
+                var list1 = new List<T1>();
+                var list2 = types.Length > 1 ? new List<T2>() : null;
+                var list3 = types.Length > 2 ? new List<T3>() : null;
+                var list4 = types.Length > 3 ? new List<T4>() : null;
+                do
                 {
-                    var r = ExecuteDataReader(cmd);
-                    using (r)
+                    if (typeIndex > types.Length)
+                        break;
+
+                    var pd = PocoDataFactory.ForType(types[typeIndex - 1]);
+                    var factory = new MappingFactory(pd, r);
+
+                    while (true)
                     {
-                        var typeIndex = 1;
-                        var list1 = new List<T1>();
-                        var list2 = types.Length > 1 ? new List<T2>() : null;
-                        var list3 = types.Length > 2 ? new List<T3>() : null;
-                        var list4 = types.Length > 3 ? new List<T4>() : null;
-                        do
+                        try
                         {
-                            if (typeIndex > types.Length)
+                            if (sync ? !r.Read() : !await r.ReadAsync().ConfigureAwait(false))
                                 break;
 
-                            var pd = PocoDataFactory.ForType(types[typeIndex - 1]);
-                            var factory = new MappingFactory(pd, r);
-
-                            while (true)
+                            switch (typeIndex)
                             {
-                                try
-                                {
-                                    if (!r.Read())
-                                        break;
-
-                                    switch (typeIndex)
-                                    {
-                                        case 1:
-                                            list1.Add((T1) factory.Map(r, default(T1)));
-                                            break;
-                                        case 2:
-                                            list2.Add((T2) factory.Map(r, default(T2)));
-                                            break;
-                                        case 3:
-                                            list3.Add((T3) factory.Map(r, default(T3)));
-                                            break;
-                                        case 4:
-                                            list4.Add((T4) factory.Map(r, default(T4)));
-                                            break;
-                                    }
-                                }
-                                catch (Exception x)
-                                {
-                                    OnExceptionInternal(x);
-                                    throw;
-                                }
+                                case 1:
+                                    list1.Add((T1) factory.Map(r, default(T1)));
+                                    break;
+                                case 2:
+                                    list2.Add((T2) factory.Map(r, default(T2)));
+                                    break;
+                                case 3:
+                                    list3.Add((T3) factory.Map(r, default(T3)));
+                                    break;
+                                case 4:
+                                    list4.Add((T4) factory.Map(r, default(T4)));
+                                    break;
                             }
-
-                            typeIndex++;
-                        } while (r.NextResult());
-
-                        switch (types.Length)
-                        {
-                            case 2:
-                                return ((Func<List<T1>, List<T2>, TRet>) cb)(list1, list2);
-                            case 3:
-                                return ((Func<List<T1>, List<T2>, List<T3>, TRet>) cb)(list1, list2, list3);
-                            case 4:
-                                return ((Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet>) cb)(list1, list2, list3, list4);
                         }
-
-                        return default(TRet);
+                        catch (Exception x)
+                        {
+                            OnExceptionInternal(x);
+                            throw;
+                        }
                     }
+
+                    typeIndex++;
+                } while (sync ? r.NextResult() : await r.NextResultAsync().ConfigureAwait(false));
+
+                switch (types.Length)
+                {
+                    case 2:
+                        return ((Func<List<T1>, List<T2>, TRet>) cb)(list1, list2);
+                    case 3:
+                        return ((Func<List<T1>, List<T2>, List<T3>, TRet>) cb)(list1, list2, list3);
+                    case 4:
+                        return ((Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet>) cb)(list1, list2, list3, list4);
                 }
+
+                return default(TRet);
             }
             finally
             {
@@ -1475,7 +1450,7 @@ namespace NPoco
 
         public int UpdateBatch<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null)
         {
-            return UpdateBatchAsyncImp(pocos, options, true).RunSync();
+            return UpdateBatchAsyncImp<T>(pocos, options, true).RunSync();
         }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco

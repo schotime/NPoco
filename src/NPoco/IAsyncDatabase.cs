@@ -220,5 +220,71 @@ namespace NPoco
         /// The sql provided will be converted so that only the results for the skip and take values specified will be returned.
         /// </summary>
         ValueTask<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one object.
+        /// In this method you must provide how you will take the results and combine them
+        /// </summary>
+        Task<TRet> FetchMultipleAsync<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one object.
+        /// In this method you must provide how you will take the results and combine them
+        /// </summary>
+        Task<TRet> FetchMultipleAsync<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, string sql, params object[] args);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one object.
+        /// In this method you must provide how you will take the results and combine them
+        /// </summary>
+        Task<TRet> FetchMultipleAsync<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, string sql, params object[] args);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one object.
+        /// In this method you must provide how you will take the results and combine them
+        /// </summary>
+        Task<TRet> FetchMultipleAsync<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, Sql sql);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one object.
+        /// In this method you must provide how you will take the results and combine them
+        /// </summary>
+        Task<TRet> FetchMultipleAsync<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, Sql sql);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one object.
+        /// In this method you must provide how you will take the results and combine them
+        /// </summary>
+        Task<TRet> FetchMultipleAsync<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, Sql sql);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one Tuple.
+        /// </summary>
+        Task<(List<T1>, List<T2>)> FetchMultipleAsync<T1, T2>(string sql, params object[] args);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one Tuple.
+        /// </summary>
+        Task<(List<T1>, List<T2>, List<T3>)> FetchMultipleAsync<T1, T2, T3>(string sql, params object[] args);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one Tuple.
+        /// </summary>
+        Task<(List<T1>, List<T2>, List<T3>, List<T4>)> FetchMultipleAsync<T1, T2, T3, T4>(string sql, params object[] args);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one Tuple.
+        /// </summary>
+        Task<(List<T1>, List<T2>)> FetchMultipleAsync<T1, T2>(Sql sql);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one Tuple.
+        /// </summary>
+        Task<(List<T1>, List<T2>, List<T3>)> FetchMultipleAsync<T1, T2, T3>(Sql sql);
+
+        /// <summary>
+        /// Fetches multiple result sets into the one Tuple.
+        /// </summary>
+        Task<(List<T1>, List<T2>, List<T3>, List<T4>)> FetchMultipleAsync<T1, T2, T3, T4>(Sql sql);
     }
 }
