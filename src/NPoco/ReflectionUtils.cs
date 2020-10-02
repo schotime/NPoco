@@ -22,6 +22,14 @@ namespace NPoco
             return GetFieldsAndProperties(type);
         }
 
+        public static List<MemberInfo> GetPrivatePropertiesForClasses(Type type)
+        {
+            if (type.GetTypeInfo().IsValueType || type == typeof(string) || type == typeof(byte[]) || type == typeof(Dictionary<string, object>) || type.IsArray)
+                return new List<MemberInfo>();
+
+            return GetFieldsAndProperties(type, BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+
         public static List<MemberInfo> GetFieldsAndProperties(Type type)
         {
             return GetFieldsAndProperties(type, BindingFlags.Instance | BindingFlags.Public);
@@ -31,7 +39,7 @@ namespace NPoco
         {
             List<MemberInfo> targetMembers = new List<MemberInfo>();
 
-            targetMembers.AddRange(type.GetFields(bindingAttr).Where(x=>!x.IsInitOnly).ToArray());
+            targetMembers.AddRange(type.GetFields(bindingAttr).Where(x => !x.IsInitOnly).ToArray());
             targetMembers.AddRange(type.GetProperties(bindingAttr));
 
             return targetMembers;

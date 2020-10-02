@@ -725,6 +725,28 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
                 public int Age { get; set; }
             }
         }
+
+        [Test]
+        public void Test36()
+        {
+            var result = Database.Single<Result36>("select 'Test' Data, 'Test2' Data1 /*poco_dual*/");
+
+            Database.Insert(result);
+
+            Assert.AreEqual("Test", result.GetData());
+            Assert.AreEqual(null, result.GetData1());
+        }
+
+        public class Result36
+        {
+            [Column]
+            private string Data { get; set; }
+
+            private string Data1 { get; set; }
+
+            public string GetData() => Data;
+            public string GetData1() => Data1;
+        }
     }
 
     public class NoPrimaryKey

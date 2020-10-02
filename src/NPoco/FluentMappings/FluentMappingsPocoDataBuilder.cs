@@ -65,6 +65,15 @@ namespace NPoco.FluentMappings
             };
         }
 
+        protected override bool ShouldIncludePrivateColumn(MemberInfo mi, Type type)
+        {
+            if (_mappings.Config.ContainsKey(type) 
+                && _mappings.Config[type].ColumnConfiguration.ContainsKey(mi.Name))
+                return true;
+            
+            return base.ShouldIncludePrivateColumn(mi, type);
+        }
+
         protected override ColumnInfo GetColumnInfo(MemberInfo mi, Type type)
         {
             if (!_mappings.Config.ContainsKey(type))

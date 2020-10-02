@@ -47,11 +47,16 @@ namespace NPoco
             return this;
         }
 
+        protected virtual bool ShouldIncludePrivateColumn(MemberInfo mi, Type t) => mi.GetCustomAttribute<ColumnAttribute>() != null;
+
         public ColumnInfo[] GetColumnInfos(Type type)
         {
             return ReflectionUtils.GetFieldsAndPropertiesForClasses(type)
                 .Where(x => !IsDictionaryType(x.DeclaringType))
-                .Select(x => GetColumnInfo(x, type)).ToArray();
+                .Concat(ReflectionUtils.GetPrivatePropertiesForClasses(type)
+                    .Where(x => ShouldIncludePrivateColumn(x, type)))
+                .Select(x => GetColumnInfo(x, type))
+                .ToArray();
         }
 
         public static bool IsDictionaryType(Type type)
