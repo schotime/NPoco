@@ -335,28 +335,30 @@ namespace NPoco
 
         private async Task<bool> PocoExistsAsync<T>(T poco, bool sync)
         {
-            var index = 0;
-            var pd = PocoDataFactory.ForType(typeof(T));
-            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, poco, true);
-            var sql = string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index));
-            var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
+            var sql = GetExistsSql<T>(poco, true);
             var result = sync 
-                ? ExecuteScalar<int>(sql, args)
-                : await ExecuteScalarAsync<int>(sql, args);
+                ? ExecuteScalar<int>(sql)
+                : await ExecuteScalarAsync<int>(sql);
             return result > 0;
         }
 
         private async Task<bool> ExistsAsync<T>(object primaryKey, bool sync)
         {
+            var sql = GetExistsSql<T>(primaryKey, false);
+            var result = sync 
+                ? ExecuteScalar<int>(sql)
+                : await ExecuteScalarAsync<int>(sql).ConfigureAwait(false);
+            return result > 0;
+        }
+
+        private Sql GetExistsSql<T>(object primaryKeyorPoco, bool isPoco)
+        {
             var index = 0;
             var pd = PocoDataFactory.ForType(typeof(T));
-            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKey, false);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKeyorPoco, isPoco);
             var sql = string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index));
             var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
-            var result = sync 
-                ? ExecuteScalar<int>(sql, args)
-                : await ExecuteScalarAsync<int>(sql, args).ConfigureAwait(false);
-            return result > 0;
+            return new Sql(sql, args);
         }
 
         public ValueTask<List<T>> FetchAsync<T>()
