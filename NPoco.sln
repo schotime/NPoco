@@ -18,7 +18,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NPoco.Tests", "test\NPoco.T
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NPoco.JsonNet", "src\NPoco.JsonNet\NPoco.JsonNet.csproj", "{8DCCBC0A-36D4-4F3C-9B16-39B23AAFD726}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco.SqlServer", "src\NPoco.SqlServer\NPoco.SqlServer.csproj", "{15554441-8CF4-4B7B-A6D3-914463BFFF42}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NPoco.SqlServer", "src\NPoco.SqlServer\NPoco.SqlServer.csproj", "{15554441-8CF4-4B7B-A6D3-914463BFFF42}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

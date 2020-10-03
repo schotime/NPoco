@@ -31,7 +31,12 @@ namespace NPoco.RowMappers
             var cols = Enumerable.Range(0, dataReader.FieldCount)
                 .Select(x => new PosName { Pos = x, Name = dataReader.GetName(x) })
                 .Where(x => !string.Equals("poco_rn", x.Name))
-                .ToList();
+                .ToArray();
+
+            if (pocoData.IsQueryGenerated)
+            {
+                return cols;
+            }
 
             if (cols.Any(x => x.Name.StartsWith(PropertyMapperNameConvention.SplitPrefix, StringComparison.OrdinalIgnoreCase)))
             {

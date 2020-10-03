@@ -219,6 +219,12 @@ namespace NPoco.Tests.Common
             ";
             cmd.ExecuteNonQuery();
 
+            cmd.CommandText = "CREATE TABLE Parent (ParentId int NOT NULL PRIMARY KEY, Id int NOT NULL)";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = "CREATE TABLE Child (ChildId int NOT NULL PRIMARY KEY, ParentId int NOT NULL, CONSTRAINT fk FOREIGN KEY (ParentId) REFERENCES Parent(ParentId))";
+            cmd.ExecuteNonQuery();
+
+
             //            Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
             //            var dt = conn.GetSchema("Tables");
             //            foreach (DataRow row in dt.Rows)

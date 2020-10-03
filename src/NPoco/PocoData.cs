@@ -19,6 +19,9 @@ namespace NPoco
         public List<PocoMember> Members { get; protected internal set; }
         public List<PocoColumn> AllColumns { get; protected internal set; }
 
+        // This is used on a per query basis, if we have cache PocoData then this will need to change.
+        public bool IsQueryGenerated { get; set; }
+
         public PocoData()
         {
         }

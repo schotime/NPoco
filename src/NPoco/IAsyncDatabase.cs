@@ -153,13 +153,13 @@ namespace NPoco
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// Caution: This query will only be executed once you start iterating the result
         /// </summary>
-        Task<IAsyncEnumerable<T>> QueryAsync<T>(string sql, params object[] args);
+        IAsyncEnumerable<T> QueryAsync<T>(string sql, params object[] args);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// Caution: This query will only be executed once you start iterating the result
         /// </summary>
-        Task<IAsyncEnumerable<T>> QueryAsync<T>(Sql sql);
+        IAsyncEnumerable<T> QueryAsync<T>(Sql sql);
 
         /// <summary>
         /// Entry point for LINQ queries

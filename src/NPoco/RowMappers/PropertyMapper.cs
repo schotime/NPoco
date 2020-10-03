@@ -74,7 +74,8 @@ namespace NPoco.RowMappers
         private IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, DbDataReader dataReader, PocoData pocoData, List<PocoMember> pocoMembers)
         {
             // find pocomember by property name
-            var pocoMember = pocoMembers.FirstOrDefault(x => IsEqual(groupedName.Item, x.Name) || IsEqual(groupedName.Item, x.PocoColumn?.ColumnAlias));
+            var pocoMember = pocoMembers.FirstOrDefault(x => IsEqual(groupedName.Item, x.Name) 
+                                                          || IsEqual(groupedName.Item, x.PocoColumn?.ColumnAlias));
 
             if (pocoMember == null)
             {

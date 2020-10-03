@@ -368,12 +368,12 @@ namespace NPoco
 
         public async ValueTask<List<T>> FetchAsync<T>(string sql, params object[] args)
         {
-            return await (await QueryAsync<T>(sql, args).ConfigureAwait(false)).ToListAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql, args).ToListAsync().ConfigureAwait(false);
         }
 
         public async ValueTask<List<T>> FetchAsync<T>(Sql sql)
         {
-            return await (await QueryAsync<T>(sql).ConfigureAwait(false)).ToListAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql).ToListAsync().ConfigureAwait(false);
         }
 
         public Task<TRet> FetchMultipleAsync<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args) { return FetchMultipleImp<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args), false); }
@@ -395,18 +395,20 @@ namespace NPoco
             return new AsyncQueryProvider<T>(this);
         }
 
-        public Task<IAsyncEnumerable<T>> QueryAsync<T>(string sql, params object[] args)
+        public IAsyncEnumerable<T> QueryAsync<T>(string sql, params object[] args)
         {
             return QueryAsync<T>(new Sql(sql, args));
         }
 
-        public Task<IAsyncEnumerable<T>> QueryAsync<T>(Sql sql)
+        public IAsyncEnumerable<T> QueryAsync<T>(Sql sql)
         {
             return QueryAsync(default(T), null, null, sql);
         }
 
-        internal async Task<IAsyncEnumerable<T>> QueryAsync<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql)
+        internal async IAsyncEnumerable<T> QueryAsync<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql, PocoData pocoData = null)
         {
+            pocoData ??= PocoDataFactory.ForType(typeof(T));
+
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
@@ -416,66 +418,69 @@ namespace NPoco
             {
                 OpenSharedConnectionInternal();
                 using var cmd = CreateCommand(_sharedConnection, sql, args); 
-                var reader = await ExecuteDataReader(cmd, false).ConfigureAwait(false);
-                return (listExpression != null ? ReadOneToManyAsync(instance, reader, cmd, listExpression, idFunc) : ReadAsync<T>(typeof(T), instance, reader, cmd));
+                using var reader = await ExecuteDataReader(cmd, false).ConfigureAwait(false);
+                var read = (listExpression != null ? ReadOneToManyAsync(instance, reader, listExpression, idFunc, pocoData) : ReadAsync<T>(instance, reader, pocoData));
+                await foreach (var item in read)
+                {
+                    yield return item;
+                }
             }
-            catch
+            finally
             {
                 CloseSharedConnectionInternal();
-                throw;
             }
         }
 
         public async ValueTask<T> SingleAsync<T>(string sql, params object[] args)
         {
-            return await (await QueryAsync<T>(sql, args).ConfigureAwait(false)).SingleAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql, args).SingleAsync().ConfigureAwait(false);
         }
 
         public async ValueTask<T> SingleAsync<T>(Sql sql)
         {
-            return await (await QueryAsync<T>(sql).ConfigureAwait(false)).SingleAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql).SingleAsync().ConfigureAwait(false);
         }
 
         public async ValueTask<T> SingleOrDefaultAsync<T>(string sql, params object[] args)
         {
-            return await (await QueryAsync<T>(sql, args).ConfigureAwait(false)).SingleOrDefaultAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql, args).SingleOrDefaultAsync().ConfigureAwait(false);
         }
 
         public async ValueTask<T> SingleOrDefaultAsync<T>(Sql sql)
         {
-            return await (await QueryAsync<T>(sql).ConfigureAwait(false)).SingleOrDefaultAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql).SingleOrDefaultAsync().ConfigureAwait(false);
         }
 
         public async ValueTask<T> SingleByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
-            return await (await QueryAsync<T>(sql).ConfigureAwait(false)).SingleAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql).SingleAsync().ConfigureAwait(false);
         }
 
         public async ValueTask<T> SingleOrDefaultByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
-            return await (await QueryAsync<T>(sql).ConfigureAwait(false)).SingleOrDefaultAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql).SingleOrDefaultAsync().ConfigureAwait(false);
         }
 
         public async ValueTask<T> FirstAsync<T>(string sql, params object[] args)
         {
-            return await (await QueryAsync<T>(sql, args).ConfigureAwait(false)).FirstAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql).FirstAsync().ConfigureAwait(false);
         }
 
         public async ValueTask<T> FirstAsync<T>(Sql sql)
         {
-            return await (await QueryAsync<T>(sql).ConfigureAwait(false)).FirstAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql).FirstAsync().ConfigureAwait(false);
         }
 
         public async ValueTask<T> FirstOrDefaultAsync<T>(string sql, params object[] args)
         {
-            return await (await QueryAsync<T>(sql, args).ConfigureAwait(false)).FirstOrDefaultAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql).FirstOrDefaultAsync().ConfigureAwait(false);
         }
 
         public async ValueTask<T> FirstOrDefaultAsync<T>(Sql sql)
         {
-            return await (await QueryAsync<T>(sql).ConfigureAwait(false)).FirstOrDefaultAsync().ConfigureAwait(false);
+            return await QueryAsync<T>(sql).FirstOrDefaultAsync().ConfigureAwait(false);
         }
 
         public Task<int> ExecuteAsync(string sql, params object[] args)

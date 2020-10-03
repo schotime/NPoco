@@ -851,213 +851,157 @@ namespace NPoco
             return Query(default(T), Sql);
         }
 
-        private async IAsyncEnumerable<T> ReadAsync<T>(Type type, object instance, DbDataReader r, DbCommand cmd)
+        private async IAsyncEnumerable<T> ReadAsync<T>(object instance, DbDataReader r, PocoData pd)
         {
-            try
+            var factory = new MappingFactory(pd, r);
+            while (true)
             {
-                using (cmd)
+                T poco;
+                try
                 {
-                    using (r)
-                    {
-                        var pd = PocoDataFactory.ForType(type);
-                        var factory = new MappingFactory(pd, r);
-                        while (true)
-                        {
-                            T poco;
-                            try
-                            {
-                                if (!await r.ReadAsync().ConfigureAwait(false)) yield break;
-                                poco = (T)factory.Map(r, instance);
-                            }
-                            catch (Exception x)
-                            {
-                                OnExceptionInternal(x);
-                                throw;
-                            }
-
-                            yield return poco;
-                        }
-                    }
+                    if (!await r.ReadAsync().ConfigureAwait(false)) yield break;
+                    poco = (T)factory.Map(r, instance);
                 }
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
+                catch (Exception x)
+                {
+                    OnExceptionInternal(x);
+                    throw;
+                }
+
+                yield return poco;
             }
         }
 
-        private async IAsyncEnumerable<T> ReadOneToManyAsync<T>(T instance, DbDataReader r, DbCommand cmd, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc)
+        private async IAsyncEnumerable<T> ReadOneToManyAsync<T>(T instance, DbDataReader r, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, PocoData pocoData)
         {
             Func<T, IList> listFunc = null;
             PocoMember pocoMember = null;
             PocoMember foreignMember = null;
 
-            try
+            if (listExpression != null)
             {
-                using (cmd)
-                {
-                    using (r)
-                    {
-                        var pocoData = PocoDataFactory.ForType(typeof(T));
-                        if (listExpression != null)
-                        {
-                            idFunc = idFunc ?? (x => pocoData.GetPrimaryKeyValues(x));
-                            listFunc = listExpression.Compile();
-                            var key = PocoColumn.GenerateKey(MemberChainHelper.GetMembers(listExpression));
-                            pocoMember = pocoData.Members.FirstOrDefault(x => x.Name == key);
-                            foreignMember = pocoMember != null ? pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName && x.ReferenceType == ReferenceType.Foreign) : null;
-                        }
-
-                        var factory = new MappingFactory(pocoData, r);
-                        object prevPoco = null;
-
-                        while (true)
-                        {
-                            T poco;
-                            try
-                            {
-                                if (!await r.ReadAsync().ConfigureAwait(false)) break;
-                                poco = (T)factory.Map(r, instance);
-                            }
-                            catch (Exception x)
-                            {
-                                OnExceptionInternal(x);
-                                throw;
-                            }
-
-                            if (prevPoco != null)
-                            {
-                                if (listFunc != null
-                                    && pocoMember != null
-                                    && idFunc(poco).SequenceEqual(idFunc((T)prevPoco)))
-                                {
-                                    OneToManyHelper.SetListValue(listFunc, pocoMember, prevPoco, poco);
-                                    continue;
-                                }
-
-                                OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
-                                yield return (T)prevPoco;
-                            }
-
-                            prevPoco = poco;
-                        }
-
-                        if (prevPoco != null)
-                        {
-                            OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
-                            yield return (T)prevPoco;
-                        }
-                    }
-                }
+                idFunc = idFunc ?? (x => pocoData.GetPrimaryKeyValues(x));
+                listFunc = listExpression.Compile();
+                var key = PocoColumn.GenerateKey(MemberChainHelper.GetMembers(listExpression));
+                pocoMember = pocoData.Members.FirstOrDefault(x => x.Name == key);
+                foreignMember = pocoMember != null ? pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName && x.ReferenceType == ReferenceType.Foreign) : null;
             }
-            finally
+
+            var factory = new MappingFactory(pocoData, r);
+            object prevPoco = null;
+
+            while (true)
             {
-                CloseSharedConnectionInternal();
+                T poco;
+                try
+                {
+                    if (!await r.ReadAsync().ConfigureAwait(false)) break;
+                    poco = (T)factory.Map(r, instance);
+                }
+                catch (Exception x)
+                {
+                    OnExceptionInternal(x);
+                    throw;
+                }
+
+                if (prevPoco != null)
+                {
+                    if (listFunc != null
+                        && pocoMember != null
+                        && idFunc(poco).SequenceEqual(idFunc((T)prevPoco)))
+                    {
+                        OneToManyHelper.SetListValue(listFunc, pocoMember, prevPoco, poco);
+                        continue;
+                    }
+
+                    OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
+                    yield return (T)prevPoco;
+                }
+
+                prevPoco = poco;
+            }
+
+            if (prevPoco != null)
+            {
+                OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
+                yield return (T)prevPoco;
             }
         }
 
-        private IEnumerable<T> Read<T>(Type type, object instance, DbDataReader r, DbCommand cmd)
+        private IEnumerable<T> Read<T>(object instance, DbDataReader r, PocoData pd)
         {
-            try
+            var factory = new MappingFactory(pd, r);
+            while (true)
             {
-                using (cmd)
+                T poco;
+                try
                 {
-                    using (r)
-                    {
-                        var pd = PocoDataFactory.ForType(type);
-                        var factory = new MappingFactory(pd, r);
-                        while (true)
-                        {
-                            T poco;
-                            try
-                            {
-                                if (!r.Read()) yield break;
-                                poco = (T)factory.Map(r, instance);
-                            }
-                            catch (Exception x)
-                            {
-                                OnExceptionInternal(x);
-                                throw;
-                            }
-
-                            yield return poco;
-                        }
-                    }
+                    if (!r.Read()) yield break;
+                    poco = (T)factory.Map(r, instance);
                 }
-            }
-            finally
-            {
-                CloseSharedConnectionInternal();
+                catch (Exception x)
+                {
+                    OnExceptionInternal(x);
+                    throw;
+                }
+
+                yield return poco;
             }
         }
 
-        private IEnumerable<T> ReadOneToMany<T>(T instance, DbDataReader r, DbCommand cmd, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc)
+        private IEnumerable<T> ReadOneToMany<T>(T instance, DbDataReader r, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, PocoData pocoData)
         {
             Func<T, IList> listFunc = null;
             PocoMember pocoMember = null;
             PocoMember foreignMember = null;
 
-            try
+            if (listExpression != null)
             {
-                using (cmd)
-                {
-                    using (r)
-                    {
-                        var pocoData = PocoDataFactory.ForType(typeof(T));
-                        if (listExpression != null)
-                        {
-                            idFunc = idFunc ?? (x => pocoData.GetPrimaryKeyValues(x));
-                            listFunc = listExpression.Compile();
-                            var key = PocoColumn.GenerateKey(MemberChainHelper.GetMembers(listExpression));
-                            pocoMember = pocoData.Members.FirstOrDefault(x => x.Name == key);
-                            foreignMember = pocoMember != null ? pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName && x.ReferenceType == ReferenceType.Foreign) : null;
-                        }
-
-                        var factory = new MappingFactory(pocoData, r);
-                        object prevPoco = null;
-
-                        while (true)
-                        {
-                            T poco;
-                            try
-                            {
-                                if (!r.Read()) break;
-                                poco = (T)factory.Map(r, instance);
-                            }
-                            catch (Exception x)
-                            {
-                                OnExceptionInternal(x);
-                                throw;
-                            }
-
-                            if (prevPoco != null)
-                            {
-                                if (listFunc != null
-                                    && pocoMember != null
-                                    && idFunc(poco).SequenceEqual(idFunc((T)prevPoco)))
-                                {
-                                    OneToManyHelper.SetListValue(listFunc, pocoMember, prevPoco, poco);
-                                    continue;
-                                }
-
-                                OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
-                                yield return (T)prevPoco;
-                            }
-
-                            prevPoco = poco;
-                        }
-
-                        if (prevPoco != null)
-                        {
-                            OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
-                            yield return (T)prevPoco;
-                        }
-                    }
-                }
+                idFunc = idFunc ?? (x => pocoData.GetPrimaryKeyValues(x));
+                listFunc = listExpression.Compile();
+                var key = PocoColumn.GenerateKey(MemberChainHelper.GetMembers(listExpression));
+                pocoMember = pocoData.Members.FirstOrDefault(x => x.Name == key);
+                foreignMember = pocoMember != null ? pocoMember.PocoMemberChildren.FirstOrDefault(x => x.Name == pocoMember.ReferenceMemberName && x.ReferenceType == ReferenceType.Foreign) : null;
             }
-            finally
+
+            var factory = new MappingFactory(pocoData, r);
+            object prevPoco = null;
+
+            while (true)
             {
-                CloseSharedConnectionInternal();
+                T poco;
+                try
+                {
+                    if (!r.Read()) break;
+                    poco = (T)factory.Map(r, instance);
+                }
+                catch (Exception x)
+                {
+                    OnExceptionInternal(x);
+                    throw;
+                }
+
+                if (prevPoco != null)
+                {
+                    if (listFunc != null
+                        && pocoMember != null
+                        && idFunc(poco).SequenceEqual(idFunc((T)prevPoco)))
+                    {
+                        OneToManyHelper.SetListValue(listFunc, pocoMember, prevPoco, poco);
+                        continue;
+                    }
+
+                    OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
+                    yield return (T)prevPoco;
+                }
+
+                prevPoco = poco;
+            }
+
+            if (prevPoco != null)
+            {
+                OneToManyHelper.SetForeignList(listFunc, foreignMember, prevPoco);
+                yield return (T)prevPoco;
             }
         }
 
@@ -1097,8 +1041,8 @@ namespace NPoco
             {
                 OpenSharedConnectionInternal();
                 using var cmd = CreateCommand(_sharedConnection, sql, args);
-                var reader = ExecuteDataReader(cmd, true).RunSync();
-                var read = Read<object>(type, null, reader, cmd);
+                using var reader = ExecuteDataReader(cmd, true).RunSync();
+                var read = Read<object>(null, reader, PocoDataFactory.ForType(type));
                 foreach (var item in read)
                 {
                     yield return item;
@@ -1110,8 +1054,10 @@ namespace NPoco
             }
         }
 
-        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql)
+        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql, PocoData pocoData = null)
         {
+            pocoData ??= PocoDataFactory.ForType(typeof(T));
+
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
@@ -1121,8 +1067,8 @@ namespace NPoco
             {
                 OpenSharedConnectionInternal();
                 using var cmd = CreateCommand(_sharedConnection, sql, args);
-                var reader = ExecuteDataReader(cmd, true).RunSync();
-                var read = listExpression != null ? ReadOneToMany(instance, reader, cmd, listExpression, idFunc) : Read<T>(typeof(T), instance, reader, cmd);
+                using var reader = ExecuteDataReader(cmd, true).RunSync();
+                var read = listExpression != null ? ReadOneToMany(instance, reader, listExpression, idFunc, pocoData) : Read<T>(instance, reader, pocoData);
                 foreach (var item in read)
                 {
                     yield return item;
