@@ -32,5 +32,29 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             Assert.AreEqual(children[1].Parent.ParentId, 2);
             Assert.AreEqual(children[1].Parent.Id, 22);
         }
+
+        [Test]
+        public void TestOneToOneWithIdAndRefObject()
+        {
+            var userDec = Database.Query<MyUserDec>()
+                .Include(x => x.House)
+                .Where(x => x.UserId == 2)
+                .Single();
+
+            Assert.AreEqual(userDec.UserId, 2);
+            Assert.AreEqual(userDec.HouseId, 2);
+            Assert.AreEqual(userDec.House.HouseId, 2);
+            Assert.AreEqual(userDec.House.Address, "1 Road Street, Suburb");
+        }
+
+        [TableName("Users"), PrimaryKey("UserId")]
+        public class MyUserDec
+        {
+            public int UserId { get; set; }
+            public int HouseId { get; set; }
+
+            [Reference(ReferenceType.OneToOne, ColumnName = "HouseId", ReferenceMemberName = "HouseId")]
+            public HouseDecorated House { get; set; }
+        }
     }
 }
