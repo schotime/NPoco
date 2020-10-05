@@ -252,7 +252,7 @@ namespace NPoco.Linq
 
         public Task<T> First(Expression<Func<T, bool>> whereExpression)
         {
-            AddWhere(null);
+            AddWhere(whereExpression);
             return ToEnumerable().FirstAsync().AsTask();
         }
 
