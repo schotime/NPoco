@@ -102,52 +102,52 @@ namespace NPoco
         /// Fetch the only row of type T using the sql and parameters specified
         /// Get an object of type T by primary key value
         /// </summary>
-        ValueTask<T> SingleAsync<T>(string sql, params object[] args);
+        Task<T> SingleAsync<T>(string sql, params object[] args);
 
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
         /// </summary>
-        ValueTask<T> SingleAsync<T>(Sql sql);
+        Task<T> SingleAsync<T>(Sql sql);
 
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
         /// </summary>
-        ValueTask<T> SingleOrDefaultAsync<T>(string sql, params object[] args);
+        Task<T> SingleOrDefaultAsync<T>(string sql, params object[] args);
 
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
         /// </summary>
-        ValueTask<T> SingleOrDefaultAsync<T>(Sql sql);
+        Task<T> SingleOrDefaultAsync<T>(Sql sql);
 
         /// <summary>
         /// Get an object of type T by primary key value
         /// </summary>
-        ValueTask<T> SingleByIdAsync<T>(object primaryKey);
+        Task<T> SingleByIdAsync<T>(object primaryKey);
 
         /// <summary>
         /// Get an object of type T by primary key value
         /// </summary>
-        ValueTask<T> SingleOrDefaultByIdAsync<T>(object primaryKey);
+        Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey);
 
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified
         /// </summary>
-        ValueTask<T> FirstAsync<T>(string sql, params object[] args);
+        Task<T> FirstAsync<T>(string sql, params object[] args);
 
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified
         /// </summary>
-        ValueTask<T> FirstAsync<T>(Sql sql);
+        Task<T> FirstAsync<T>(Sql sql);
 
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified
         /// </summary>
-        ValueTask<T> FirstOrDefaultAsync<T>(string sql, params object[] args);
+        Task<T> FirstOrDefaultAsync<T>(string sql, params object[] args);
 
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified
         /// </summary>
-        ValueTask<T> FirstOrDefaultAsync<T>(Sql sql);
+        Task<T> FirstOrDefaultAsync<T>(Sql sql);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
@@ -169,17 +169,17 @@ namespace NPoco
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// </summary>
-        ValueTask<List<T>> FetchAsync<T>(string sql, params object[] args);
+        Task<List<T>> FetchAsync<T>(string sql, params object[] args);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// </summary>
-        ValueTask<List<T>> FetchAsync<T>(Sql sql);
+        Task<List<T>> FetchAsync<T>(Sql sql);
 
         /// <summary>
         /// Fetch all objects of type T from the database. 
         /// </summary>
-        ValueTask<List<T>> FetchAsync<T>();
+        Task<List<T>> FetchAsync<T>();
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
@@ -201,25 +201,25 @@ namespace NPoco
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the page and itemsPerPage values specified will be returned.
         /// </summary>
-        ValueTask<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args);
+        Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the page and itemsPerPage values specified will be returned.
         /// </summary>
-        ValueTask<List<T>> FetchAsync<T>(long page, long itemsPerPage, Sql sql);
+        Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, Sql sql);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the skip and take values specified will be returned.
         /// </summary>
-        ValueTask<List<T>> SkipTakeAsync<T>(long skip, long take, string sql, params object[] args);
+        Task<List<T>> SkipTakeAsync<T>(long skip, long take, string sql, params object[] args);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the skip and take values specified will be returned.
         /// </summary>
-        ValueTask<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql);
+        Task<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql);
 
         /// <summary>
         /// Fetches multiple result sets into the one object.

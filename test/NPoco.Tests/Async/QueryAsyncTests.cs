@@ -50,5 +50,16 @@ namespace NPoco.Tests.Async
             Assert.AreEqual(15, users.Count);
             Assert.AreEqual(6, houses.Count);
         }
+
+        [Test]
+        public async Task QueryAsyncSql()
+        {
+            var i = 1;
+            var userCount = Database.QueryAsync<User>("select * from users");
+            await foreach (var item in userCount)
+            {
+                Assert.AreEqual(item.UserId, i++);
+            }
+        }
     }
 }

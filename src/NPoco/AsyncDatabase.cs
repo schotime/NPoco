@@ -292,24 +292,24 @@ namespace NPoco
             return PageImpAsync<T>(page, itemsPerPage, sql, args, false);
         }
 
-        public ValueTask<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
+        public Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
             return SkipTakeAsync<T>((page - 1) * itemsPerPage, itemsPerPage, sql, args);
         }
 
-        public ValueTask<List<T>> FetchAsync<T>(long page, long itemsPerPage, Sql sql)
+        public Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, Sql sql)
         {
             return SkipTakeAsync<T>((page - 1) * itemsPerPage, itemsPerPage, sql.SQL, sql.Arguments);
         }
 
-        public ValueTask<List<T>> SkipTakeAsync<T>(long skip, long take, string sql, params object[] args)
+        public Task<List<T>> SkipTakeAsync<T>(long skip, long take, string sql, params object[] args)
         {
             string sqlCount, sqlPage;
             BuildPageQueries<T>(skip, take, sql, ref args, out sqlCount, out sqlPage);
             return FetchAsync<T>(sqlPage, args);
         }
 
-        public ValueTask<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql)
+        public Task<List<T>> SkipTakeAsync<T>(long skip, long take, Sql sql)
         {
             return SkipTakeAsync<T>(skip, take, sql.SQL, sql.Arguments);
         }
@@ -361,17 +361,17 @@ namespace NPoco
             return new Sql(sql, args);
         }
 
-        public ValueTask<List<T>> FetchAsync<T>()
+        public Task<List<T>> FetchAsync<T>()
         {
             return FetchAsync<T>("");
         }
 
-        public async ValueTask<List<T>> FetchAsync<T>(string sql, params object[] args)
+        public async Task<List<T>> FetchAsync<T>(string sql, params object[] args)
         {
             return await QueryAsync<T>(sql, args).ToListAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<List<T>> FetchAsync<T>(Sql sql)
+        public async Task<List<T>> FetchAsync<T>(Sql sql)
         {
             return await QueryAsync<T>(sql).ToListAsync().ConfigureAwait(false);
         }
@@ -431,54 +431,54 @@ namespace NPoco
             }
         }
 
-        public async ValueTask<T> SingleAsync<T>(string sql, params object[] args)
+        public async Task<T> SingleAsync<T>(string sql, params object[] args)
         {
             return await QueryAsync<T>(sql, args).SingleAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<T> SingleAsync<T>(Sql sql)
+        public async Task<T> SingleAsync<T>(Sql sql)
         {
             return await QueryAsync<T>(sql).SingleAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<T> SingleOrDefaultAsync<T>(string sql, params object[] args)
+        public async Task<T> SingleOrDefaultAsync<T>(string sql, params object[] args)
         {
             return await QueryAsync<T>(sql, args).SingleOrDefaultAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<T> SingleOrDefaultAsync<T>(Sql sql)
+        public async Task<T> SingleOrDefaultAsync<T>(Sql sql)
         {
             return await QueryAsync<T>(sql).SingleOrDefaultAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<T> SingleByIdAsync<T>(object primaryKey)
+        public async Task<T> SingleByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
             return await QueryAsync<T>(sql).SingleAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<T> SingleOrDefaultByIdAsync<T>(object primaryKey)
+        public async Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
             return await QueryAsync<T>(sql).SingleOrDefaultAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<T> FirstAsync<T>(string sql, params object[] args)
+        public async Task<T> FirstAsync<T>(string sql, params object[] args)
         {
             return await QueryAsync<T>(sql).FirstAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<T> FirstAsync<T>(Sql sql)
+        public async Task<T> FirstAsync<T>(Sql sql)
         {
             return await QueryAsync<T>(sql).FirstAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<T> FirstOrDefaultAsync<T>(string sql, params object[] args)
+        public async Task<T> FirstOrDefaultAsync<T>(string sql, params object[] args)
         {
             return await QueryAsync<T>(sql).FirstOrDefaultAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<T> FirstOrDefaultAsync<T>(Sql sql)
+        public async Task<T> FirstOrDefaultAsync<T>(Sql sql)
         {
             return await QueryAsync<T>(sql).FirstOrDefaultAsync().ConfigureAwait(false);
         }

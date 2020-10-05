@@ -10,25 +10,25 @@ namespace NPoco.Linq
 {
     public interface IAsyncQueryResultProvider<T>
     {
-        ValueTask<List<T>> ToList();
-        ValueTask<T[]> ToArray();
+        Task<List<T>> ToList();
+        Task<T[]> ToArray();
         IAsyncEnumerable<T> ToEnumerable();
-        ValueTask<T> FirstOrDefault();
-        ValueTask<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression);
-        ValueTask<T> First();
-        ValueTask<T> First(Expression<Func<T, bool>> whereExpression);
-        ValueTask<T> SingleOrDefault();
-        ValueTask<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression);
-        ValueTask<T> Single();
-        ValueTask<T> Single(Expression<Func<T, bool>> whereExpression);
-        ValueTask<int> Count();
-        ValueTask<int> Count(Expression<Func<T, bool>> whereExpression);
-        ValueTask<bool> Any();
-        ValueTask<bool> Any(Expression<Func<T, bool>> whereExpression);
-        ValueTask<Page<T>> ToPage(int page, int pageSize);
-        ValueTask<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
-        ValueTask<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
-        ValueTask<List<T>> Distinct();
+        Task<T> FirstOrDefault();
+        Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression);
+        Task<T> First();
+        Task<T> First(Expression<Func<T, bool>> whereExpression);
+        Task<T> SingleOrDefault();
+        Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression);
+        Task<T> Single();
+        Task<T> Single(Expression<Func<T, bool>> whereExpression);
+        Task<int> Count();
+        Task<int> Count(Expression<Func<T, bool>> whereExpression);
+        Task<bool> Any();
+        Task<bool> Any(Expression<Func<T, bool>> whereExpression);
+        Task<Page<T>> ToPage(int page, int pageSize);
+        Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
+        Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
+        Task<List<T>> Distinct();
     }
 
     public interface IQueryResultProvider<T>
@@ -54,25 +54,25 @@ namespace NPoco.Linq
         List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T> Distinct();
-        ValueTask<List<T>> ToListAsync();
-        ValueTask<T[]> ToArrayAsync();
+        Task<List<T>> ToListAsync();
+        Task<T[]> ToArrayAsync();
         IAsyncEnumerable<T> ToEnumerableAsync();
-        ValueTask<T> FirstOrDefaultAsync();
-        ValueTask<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression);
-        ValueTask<T> FirstAsync();
-        ValueTask<T> FirstAsync(Expression<Func<T, bool>> whereExpression);
-        ValueTask<T> SingleOrDefaultAsync();
-        ValueTask<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression);
-        ValueTask<T> SingleAsync();
-        ValueTask<T> SingleAsync(Expression<Func<T, bool>> whereExpression);
-        ValueTask<int> CountAsync();
-        ValueTask<int> CountAsync(Expression<Func<T, bool>> whereExpression);
-        ValueTask<bool> AnyAsync();
-        ValueTask<bool> AnyAsync(Expression<Func<T, bool>> whereExpression);
-        ValueTask<Page<T>> ToPageAsync(int page, int pageSize);
-        ValueTask<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression);
-        ValueTask<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression);
-        ValueTask<List<T>> DistinctAsync();
+        Task<T> FirstOrDefaultAsync();
+        Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression);
+        Task<T> FirstAsync();
+        Task<T> FirstAsync(Expression<Func<T, bool>> whereExpression);
+        Task<T> SingleOrDefaultAsync();
+        Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression);
+        Task<T> SingleAsync();
+        Task<T> SingleAsync(Expression<Func<T, bool>> whereExpression);
+        Task<int> CountAsync();
+        Task<int> CountAsync(Expression<Func<T, bool>> whereExpression);
+        Task<bool> AnyAsync();
+        Task<bool> AnyAsync(Expression<Func<T, bool>> whereExpression);
+        Task<Page<T>> ToPageAsync(int page, int pageSize);
+        Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression);
+        Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression);
+        Task<List<T>> DistinctAsync();
     }
 
     public interface IQueryProvider<T> : IQueryResultProvider<T>
@@ -214,12 +214,12 @@ namespace NPoco.Linq
             return this;
         }
 
-        public async ValueTask<List<T>> ToList()
+        public async Task<List<T>> ToList()
         {
             return await ToEnumerable().ToListAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<T[]> ToArray()
+        public async Task<T[]> ToArray()
         {
             return await ToEnumerable().ToArrayAsync().ConfigureAwait(false);
         }
@@ -234,73 +234,73 @@ namespace NPoco.Linq
             return _database.QueryAsync<T>(default, _listExpression, null, sql, _pocoData);
         }
 
-        public ValueTask<T> FirstOrDefault()
+        public Task<T> FirstOrDefault()
         {
             return FirstOrDefault(null);
         }
 
-        public async ValueTask<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression)
+        public async Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression)
         {
             AddWhere(whereExpression);
             return await ToEnumerable().FirstOrDefaultAsync().ConfigureAwait(false);
         }
 
-        public ValueTask<T> First()
+        public Task<T> First()
         {
             return First(null);
         }
 
-        public async ValueTask<T> First(Expression<Func<T, bool>> whereExpression)
+        public async Task<T> First(Expression<Func<T, bool>> whereExpression)
         {
             AddWhere(null);
             return await ToEnumerable().FirstAsync().ConfigureAwait(false);
         }
 
-        public ValueTask<T> SingleOrDefault()
+        public Task<T> SingleOrDefault()
         {
             return SingleOrDefault(null);
         }
 
-        public async ValueTask<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression)
+        public async Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression)
         {
             AddWhere(whereExpression);
             return await ToEnumerable().SingleOrDefaultAsync().ConfigureAwait(false);
         }
 
-        public ValueTask<T> Single()
+        public Task<T> Single()
         {
             return Single(null);
         }
 
-        public async ValueTask<T> Single(Expression<Func<T, bool>> whereExpression)
+        public async Task<T> Single(Expression<Func<T, bool>> whereExpression)
         {
             AddWhere(whereExpression);
             return await ToEnumerable().SingleAsync().ConfigureAwait(false);
         }
 
-        public ValueTask<int> Count()
+        public Task<int> Count()
         {
             return Count(null);
         }
 
-        public async ValueTask<int> Count(Expression<Func<T, bool>> whereExpression)
+        public async Task<int> Count(Expression<Func<T, bool>> whereExpression)
         {
             AddWhere(whereExpression);
             var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true, false);
             return await _database.ExecuteScalarAsync<int>(sql).ConfigureAwait(false);
         }
 
-        public ValueTask<bool> Any()
+        public Task<bool> Any()
         {
             return Any(null);
         }
 
-        public async ValueTask<bool> Any(Expression<Func<T, bool>> whereExpression)
+        public async Task<bool> Any(Expression<Func<T, bool>> whereExpression)
         {
             return (await Count(whereExpression).ConfigureAwait(false)) > 0;
         }
 
-        public async ValueTask<Page<T>> ToPage(int page, int pageSize)
+        public async Task<Page<T>> ToPage(int page, int pageSize)
         {
             int offset = (page - 1) * pageSize;
 
@@ -325,18 +325,18 @@ namespace NPoco.Linq
             return result;
         }
 
-        public async ValueTask<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression)
+        public async Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
             return await ExecuteQueryAsync(sql).Select(projectionExpression.Compile()).ToListAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<List<T>> Distinct()
+        public async Task<List<T>> Distinct()
         {
             return await ExecuteQueryAsync(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params)).ToListAsync().ConfigureAwait(false);
         }
 
-        public async ValueTask<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
+        public async Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, true);
             return await ExecuteQueryAsync(sql).Select(projectionExpression.Compile()).ToListAsync().ConfigureAwait(false);
@@ -620,12 +620,12 @@ namespace NPoco.Linq
         }
 #pragma warning restore CS0109
 
-        public ValueTask<List<T>> ToListAsync()
+        public Task<List<T>> ToListAsync()
         {
             return base.ToList();
         }
 
-        public ValueTask<T[]> ToArrayAsync()
+        public Task<T[]> ToArrayAsync()
         {
             return base.ToArray();
         }
@@ -635,82 +635,82 @@ namespace NPoco.Linq
             return base.ToEnumerable();
         }
 
-        public ValueTask<T> FirstOrDefaultAsync()
+        public Task<T> FirstOrDefaultAsync()
         {
             return base.FirstOrDefault();
         }
 
-        public ValueTask<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression)
         {
             return base.FirstOrDefault(whereExpression);
         }
 
-        public ValueTask<T> FirstAsync()
+        public Task<T> FirstAsync()
         {
             return base.First();
         }
 
-        public ValueTask<T> FirstAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<T> FirstAsync(Expression<Func<T, bool>> whereExpression)
         {
             return base.First(whereExpression);
         }
 
-        public ValueTask<T> SingleOrDefaultAsync()
+        public Task<T> SingleOrDefaultAsync()
         {
             return base.SingleOrDefault();
         }
 
-        public ValueTask<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression)
         {
             return base.SingleOrDefault(whereExpression);
         }
 
-        public ValueTask<T> SingleAsync()
+        public Task<T> SingleAsync()
         {
             return base.Single();
         }
 
-        public ValueTask<T> SingleAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<T> SingleAsync(Expression<Func<T, bool>> whereExpression)
         {
             return base.Single(whereExpression);
         }
 
-        public ValueTask<int> CountAsync()
+        public Task<int> CountAsync()
         {
             return base.Count();
         }
 
-        public ValueTask<int> CountAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<int> CountAsync(Expression<Func<T, bool>> whereExpression)
         {
             return base.Count(whereExpression);
         }
 
-        public ValueTask<bool> AnyAsync()
+        public Task<bool> AnyAsync()
         {
             return base.Any();
         }
 
-        public ValueTask<bool> AnyAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<bool> AnyAsync(Expression<Func<T, bool>> whereExpression)
         {
             return base.Any(whereExpression);
         }
 
-        public ValueTask<Page<T>> ToPageAsync(int page, int pageSize)
+        public Task<Page<T>> ToPageAsync(int page, int pageSize)
         {
             return base.ToPage(page, pageSize);
         }
 
-        public ValueTask<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression)
+        public Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             return base.ProjectTo(projectionExpression);
         }
 
-        public ValueTask<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression)
+        public Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             return base.Distinct(projectionExpression);
         }
 
-        public ValueTask<List<T>> DistinctAsync()
+        public Task<List<T>> DistinctAsync()
         {
             return base.Distinct();
         }
