@@ -9,7 +9,6 @@
 	<Authors>Adam Schröder</Authors>
 	<PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
 	<PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
-    <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>8.0</LangVersion>
   </PropertyGroup>
 
