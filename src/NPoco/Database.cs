@@ -39,7 +39,7 @@ namespace NPoco
         public Database(DbConnection connection, DatabaseType dbType)
             : this(connection, dbType, null, DefaultEnableAutoSelect)
         { }
-        
+
         public Database(DbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel)
             : this(connection, dbType, isolationLevel, DefaultEnableAutoSelect)
         { }
@@ -98,7 +98,7 @@ namespace NPoco
         { }
 
         public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel)
-            : this(connectionString, dbType, isolationLevel,  DefaultEnableAutoSelect)
+            : this(connectionString, dbType, isolationLevel, DefaultEnableAutoSelect)
         { }
 
         public Database(string connectionString, DatabaseType dbType, IsolationLevel? isolationLevel, bool enableAutoSelect)
@@ -142,10 +142,10 @@ namespace NPoco
         { }
 
         public Database(string connectionStringName, bool enableAutoSelect)
-            : this(connectionStringName, (IsolationLevel?) null, enableAutoSelect)
+            : this(connectionStringName, (IsolationLevel?)null, enableAutoSelect)
         { }
 
-        public Database(string connectionStringName, IsolationLevel? isolationLevel,  bool enableAutoSelect)
+        public Database(string connectionStringName, IsolationLevel? isolationLevel, bool enableAutoSelect)
         {
             EnableAutoSelect = enableAutoSelect;
             KeepConnectionAlive = false;
@@ -491,106 +491,18 @@ namespace NPoco
             var p = cmd.CreateParameter();
             p.ParameterName = string.Format("{0}{1}", _paramPrefix, cmd.Parameters.Count);
 
-            SetParameterValue(p, value);
-            
+            ParameterHelper.SetParameterValue(_dbType, p, value);
+
             cmd.Parameters.Add(p);
         }
 
-        private void SetParameterValue(DbParameter p, object value)
-        {
-            if (value == null)
-            {
-                p.Value = DBNull.Value;
-                return;
-            }
-
-            // Give the database type first crack at converting to DB required type
-            value = _dbType.MapParameterValue(value);
-
-            var dbtypeSet = false;
-            var t = value.GetType();
-            var underlyingT = Nullable.GetUnderlyingType(t);
-            if (t.GetTypeInfo().IsEnum || (underlyingT != null && underlyingT.GetTypeInfo().IsEnum))        // PostgreSQL .NET driver wont cast enum to int
-            {
-                p.Value = (int)value;
-            }
-            else if (t == typeof(Guid))
-            {
-                p.Value = value;
-                p.DbType = DbType.Guid;
-                p.Size = 40;
-                dbtypeSet = true;
-            }
-            else if (t == typeof(string))
-            {
-                var strValue = value as string;
-                if (strValue == null)
-                {
-                    p.Size = 0;
-                    p.Value = DBNull.Value;
-                }
-                else
-                {
-                    // out of memory exception occurs if trying to save more than 4000 characters to SQL Server CE NText column. Set before attempting to set Size, or Size will always max out at 4000
-                    if (strValue.Length + 1 > 4000 && p.GetType().Name == "SqlCeParameter")
-                    {
-                        p.GetType().GetProperty("SqlDbType").SetValue(p, SqlDbType.NText, null);
-                    }
-
-                    p.Size = Math.Max(strValue.Length + 1, 4000); // Help query plan caching by using common size
-                    p.Value = value;
-                }
-            }
-            else if (t == typeof(AnsiString))
-            {
-                var ansistrValue = value as AnsiString;
-                if (ansistrValue?.Value == null)
-                {
-                    p.Size = 0;
-                    p.Value = DBNull.Value;
-                    p.DbType = DbType.AnsiString;
-                }
-                else
-                {
-                    // Thanks @DataChomp for pointing out the SQL Server indexing performance hit of using wrong string type on varchar
-                    p.Size = Math.Max(ansistrValue.Value.Length + 1, 4000);
-                    p.Value = ansistrValue.Value;
-                    p.DbType = DbType.AnsiString;
-                }
-                dbtypeSet = true;
-            }
-            else if (value.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
-            {
-                p.GetType().GetProperty("UdtTypeName").SetValue(p, "geography", null); //geography is the equivalent SQL Server Type
-                p.Value = value;
-            }
-
-            else if (value.GetType().Name == "SqlGeometry") //SqlGeometry is a CLR Type
-            {
-                p.GetType().GetProperty("UdtTypeName").SetValue(p, "geometry", null); //geography is the equivalent SQL Server Type
-                p.Value = value;
-            }
-            else
-            {
-                p.Value = value;
-            }
-
-            if (!dbtypeSet)
-            {
-                var dbType = _dbType.LookupDbType(p.Value.GetTheType(), p.ParameterName);
-                if (dbType.HasValue)
-                {
-                    p.DbType = dbType.Value;
-                }
-            }
-        }
 
         // Create a command
         private DbCommand CreateCommand(DbConnection connection, string sql, params object[] args)
         {
             return CreateCommand(connection, CommandType.Text, sql, args);
         }
-        
+
         public virtual DbCommand CreateCommand(DbConnection connection, CommandType commandType, string sql, params object[] args)
         {
             if (commandType == CommandType.StoredProcedure)
@@ -606,7 +518,7 @@ namespace NPoco
             // Create the command and add parameters
             DbCommand cmd = connection.CreateCommand();
             cmd.Connection = connection;
-            cmd.CommandText = sql;            
+            cmd.CommandText = sql;
             cmd.Transaction = _transaction;
 
             foreach (var item in args)
@@ -730,7 +642,7 @@ namespace NPoco
             var result = OnDeleting(deleteContext);
             return result && Interceptors.OfType<IDataInterceptor>().All(x => x.OnDeleting(this, deleteContext));
         }
-        
+
         public DbCommand CreateStoredProcedureCommand(DbConnection connection, string name, params object[] args)
         {
             DbCommand cmd = connection.CreateCommand();
@@ -749,13 +661,13 @@ namespace NPoco
                 else
                 {
                     var props = args[0].GetType().GetProperties().Select(x => new { x.Name, Value = x.GetValue(args[0], null) }).ToList();
-                    foreach(var item in props)
+                    foreach (var item in props)
                     {
                         DbParameter param = cmd.CreateParameter();
                         param.ParameterName = item.Name;
 
-                        SetParameterValue(param, item.Value);
-                        
+                        ParameterHelper.SetParameterValue(_dbType, param, item.Value);
+
                         cmd.Parameters.Add(param);
                     }
                 }
@@ -809,7 +721,7 @@ namespace NPoco
         {
             return ExecuteScalar<T>(new Sql(sql, args));
         }
-        
+
         public T ExecuteScalar<T>(Sql Sql)
         {
             return ExecuteScalar<T>(Sql.SQL, CommandType.Text, Sql.Arguments);
@@ -1121,7 +1033,7 @@ namespace NPoco
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
-            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, typeof (T), sql);
+            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
 
             try
             {
@@ -1190,7 +1102,7 @@ namespace NPoco
         {
             return PageImp<T, Page<T>>(page, itemsPerPage, sql, args, (paged, thesql) =>
             {
-                paged.Items =  Query<T>(thesql).ToList();
+                paged.Items = Query<T>(thesql).ToList();
                 return paged;
             });
         }
@@ -1280,16 +1192,16 @@ namespace NPoco
                                     switch (typeIndex)
                                     {
                                         case 1:
-                                            list1.Add((T1) factory.Map(r, default(T1)));
+                                            list1.Add((T1)factory.Map(r, default(T1)));
                                             break;
                                         case 2:
-                                            list2.Add((T2) factory.Map(r, default(T2)));
+                                            list2.Add((T2)factory.Map(r, default(T2)));
                                             break;
                                         case 3:
-                                            list3.Add((T3) factory.Map(r, default(T3)));
+                                            list3.Add((T3)factory.Map(r, default(T3)));
                                             break;
                                         case 4:
-                                            list4.Add((T4) factory.Map(r, default(T4)));
+                                            list4.Add((T4)factory.Map(r, default(T4)));
                                             break;
                                     }
                                 }
@@ -1306,11 +1218,11 @@ namespace NPoco
                         switch (types.Length)
                         {
                             case 2:
-                                return ((Func<List<T1>, List<T2>, TRet>) cb)(list1, list2);
+                                return ((Func<List<T1>, List<T2>, TRet>)cb)(list1, list2);
                             case 3:
-                                return ((Func<List<T1>, List<T2>, List<T3>, TRet>) cb)(list1, list2, list3);
+                                return ((Func<List<T1>, List<T2>, List<T3>, TRet>)cb)(list1, list2, list3);
                             case 4:
-                                return ((Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet>) cb)(list1, list2, list3, list4);
+                                return ((Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet>)cb)(list1, list2, list3, list4);
                         }
 
                         return default(TRet);
@@ -1334,7 +1246,7 @@ namespace NPoco
         public bool Exists<T>(object primaryKey)
         {
             var index = 0;
-            var pd = PocoDataFactory.ForType(typeof (T));
+            var pd = PocoDataFactory.ForType(typeof(T));
             var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKey, false);
             return ExecuteScalar<int>(string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index)), primaryKeyValuePairs.Select(x => x.Value).ToArray()) > 0;
         }
@@ -1354,7 +1266,7 @@ namespace NPoco
         private Sql GenerateSingleByIdSql<T>(object primaryKey)
         {
             var index = 0;
-            var pd = PocoDataFactory.ForType(typeof (T));
+            var pd = PocoDataFactory.ForType(typeof(T));
             var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKey, primaryKey is T);
             var sql = AutoSelectHelper.AddSelectClause(this, typeof(T), string.Format("WHERE {0}", BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index)));
             var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
@@ -1647,7 +1559,7 @@ namespace NPoco
             return result;
         }
 
-       
+
         internal static string BuildPrimaryKeySql(Database database, Dictionary<string, object> primaryKeyValuePair, ref int index)
         {
             var tempIndex = index;
@@ -1715,8 +1627,8 @@ namespace NPoco
         {
             var expression = DatabaseType.ExpressionVisitor<T>(this, PocoDataFactory.ForType(typeof(T)));
             expression = expression.Select(fields);
-            var columnNames = ((ISqlExpression) expression).SelectMembers.Select(x => x.PocoColumn.ColumnName);
-            var otherNames = ((ISqlExpression) expression).GeneralMembers.Select(x => x.PocoColumn.ColumnName);
+            var columnNames = ((ISqlExpression)expression).SelectMembers.Select(x => x.PocoColumn.ColumnName);
+            var otherNames = ((ISqlExpression)expression).GeneralMembers.Select(x => x.PocoColumn.ColumnName);
             return Update(poco, columnNames.Union(otherNames));
         }
 
@@ -1900,48 +1812,14 @@ namespace NPoco
             get { return FormatCommand(_lastSql, _lastArgs); }
         }
 
-        private class FormattedParameter
-        {
-            public Type Type { get; set; }
-            public object Value { get; set; }
-            public DbParameter Parameter { get; set; }
-        }
-
         public string FormatCommand(DbCommand cmd)
         {
-            var parameters = cmd.Parameters.Cast<DbParameter>().Select(parameter => new FormattedParameter()
-            {
-                Type = parameter.Value.GetTheType(),
-                Value = parameter.Value,
-                Parameter = parameter
-            });
-            return FormatCommand(cmd.CommandText, parameters.Cast<object>().ToArray());
+            return _dbType.FormatCommand(cmd);
         }
 
         public string FormatCommand(string sql, object[] args)
         {
-            var sb = new StringBuilder();
-            if (sql == null)
-                return "";
-            sb.Append(sql);
-            if (args != null && args.Length > 0)
-            {
-                sb.Append("\n");
-                for (int i = 0; i < args.Length; i++)
-                {
-                    var type = args[i] != null ? args[i].GetType().Name : string.Empty;
-                    var value = args[i];
-                    var formatted = args[i] as FormattedParameter;
-                    if (formatted != null)
-                    {
-                        type = formatted.Type != null ? formatted.Type.Name : string.Format("{0}, {1}", formatted.Parameter.GetType().Name, formatted.Parameter.DbType);
-                        value = formatted.Value;
-                    }
-                    sb.AppendFormat("\t -> {0}{1} [{2}] = \"{3}\"\n", _paramPrefix, i, type, value);
-                }
-                sb.Remove(sb.Length - 1, 1);
-            }
-            return sb.ToString();
+            return _dbType.FormatCommand(sql, args);
         }
 
         private List<IInterceptor> _interceptors;
@@ -2031,7 +1909,7 @@ namespace NPoco
             var converter = database.Mappers.Find(x => x.GetToDbConverter(pc.ColumnType, pc.MemberInfoData.MemberInfo));
             return converter != null ? converter(value) : ProcessDefaultMappings(database, pc, value);
         }
-        
+
         internal static object ProcessDefaultMappings(IDatabase database, PocoColumn pocoColumn, object value)
         {
             if (pocoColumn.SerializedColumn)

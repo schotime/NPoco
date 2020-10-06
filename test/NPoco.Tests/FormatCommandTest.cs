@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Data.SqlClient;
 using NPoco;
 using NUnit.Framework;
@@ -29,11 +30,11 @@ namespace NPoco.Tests
             var db = new MyDb();
             Assert.AreEqual("sql @0\n\t -> @0 [String] = \"value\"", db.FormatCommand("sql @0", new object [] {"value"}));
         }
-        
+
         public class MyDb : Database
         {
             public MyDb()
-                : base("test", DatabaseType.SqlServer2008, SqlClientFactory.Instance)
+                : base("test", DatabaseType.MySQL, SqlClientFactory.Instance)
             {
             }
         }

@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace NPoco.DatabaseTypes
@@ -28,7 +29,7 @@ namespace NPoco.DatabaseTypes
 
             return sqlPage;
         }
-        
+
         private void AdjustSqlInsertCommandText(DbCommand cmd, bool useOutputClause)
         {
             if (!UseOutputClause && !useOutputClause)
@@ -36,7 +37,7 @@ namespace NPoco.DatabaseTypes
                 cmd.CommandText += ";SELECT SCOPE_IDENTITY();";
             }
         }
-        
+
         public override string GetInsertOutputClause(string primaryKeyName, bool useOutputClause)
         {
             if (UseOutputClause || useOutputClause)
@@ -102,6 +103,50 @@ namespace NPoco.DatabaseTypes
                 return new SqlParameter("__bytes", SqlDbType.VarBinary, -1) { Value = DBNull.Value };
             }
             return base.ProcessDefaultMappings(pocoColumn, value);
+        }
+
+        public override string FormatCommand(string sql, object[] args)
+        {            
+            if (sql == null)
+                return "";
+
+            var sb = new StringBuilder();
+            if (args != null && args.Length > 0)
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    var value = args[i];
+                    var type = args[i] != null ? args[i].GetType().Name : string.Empty;
+                    var formatted = args[i] as FormattedParameter;
+                    if (formatted != null)
+                    {
+                        type = formatted.Type != null ? formatted.Type.Name : string.Format("{0}, {1}", formatted.Parameter.GetType().Name, formatted.Parameter.DbType);
+                        value = formatted.Value;
+                    }
+
+                    var p = new System.Data.SqlClient.SqlParameter();
+                    ParameterHelper.SetParameterValue(this, p, args[i]);
+                    if (p.Size == 0 || p.SqlDbType == SqlDbType.UniqueIdentifier)
+                    {
+                        if (value == null && (p.SqlDbType == SqlDbType.NVarChar || p.SqlDbType == SqlDbType.VarChar))
+                        {
+                            sb.AppendFormat("DECLARE {0}{1} {2} = null\n", GetParameterPrefix(), i, p.SqlDbType);
+                        }
+                        else
+                        {
+                            sb.AppendFormat("DECLARE {0}{1} {2} = '{3}'\n", GetParameterPrefix(), i, p.SqlDbType, value);
+                        }
+                    }
+                    else
+                    {
+                        sb.AppendFormat("DECLARE {0}{1} {2}[{3}] = '{4}'\n", GetParameterPrefix(), i, p.SqlDbType, p.Size, value);
+                    }
+                }
+            }
+
+            sb.AppendFormat("\n{0}", sql);
+
+            return sb.ToString();
         }
     }
 }
