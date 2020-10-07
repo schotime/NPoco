@@ -33,7 +33,7 @@ namespace NPoco
         public Database(DbConnection connection, DatabaseType dbType)
             : this(connection, dbType, null, DefaultEnableAutoSelect)
         { }
-        
+
         public Database(DbConnection connection, DatabaseType dbType, IsolationLevel? isolationLevel)
             : this(connection, dbType, isolationLevel, DefaultEnableAutoSelect)
         { }
@@ -391,11 +391,11 @@ namespace NPoco
             p.ParameterName = string.Format("{0}{1}", _paramPrefix, cmd.Parameters.Count);
 
             SetParameterValue(p, value);
-            
+
             cmd.Parameters.Add(p);
         }
 
-        private void SetParameterValue(DbParameter p, object value)
+        internal void SetParameterValue(DbParameter p, object value)
         {
             if (value == null)
             {
@@ -489,7 +489,7 @@ namespace NPoco
         {
             return CreateCommand(connection, CommandType.Text, sql, args);
         }
-        
+
         public virtual DbCommand CreateCommand(DbConnection connection, CommandType commandType, string sql, params object[] args)
         {
             if (commandType == CommandType.StoredProcedure)
@@ -505,7 +505,7 @@ namespace NPoco
             // Create the command and add parameters
             DbCommand cmd = connection.CreateCommand();
             cmd.Connection = connection;
-            cmd.CommandText = sql;            
+            cmd.CommandText = sql;
             cmd.Transaction = _transaction;
 
             foreach (var item in args)
@@ -629,7 +629,7 @@ namespace NPoco
             var result = OnDeleting(deleteContext);
             return result && Interceptors.OfType<IDataInterceptor>().All(x => x.OnDeleting(this, deleteContext));
         }
-        
+
         public DbCommand CreateStoredProcedureCommand(DbConnection connection, string name, params object[] args)
         {
             DbCommand cmd = connection.CreateCommand();
@@ -654,7 +654,7 @@ namespace NPoco
                         param.ParameterName = item.Name;
 
                         SetParameterValue(param, item.Value);
-                        
+
                         cmd.Parameters.Add(param);
                     }
                 }
@@ -708,7 +708,7 @@ namespace NPoco
         {
             return ExecuteScalar<T>(new Sql(sql, args));
         }
-        
+
         public T ExecuteScalar<T>(Sql Sql)
         {
             return ExecuteScalar<T>(Sql.SQL, CommandType.Text, Sql.Arguments);
@@ -1183,7 +1183,7 @@ namespace NPoco
                 OpenSharedConnectionInternal();
                 using var cmd = CreateCommand(_sharedConnection, sql, args);
                 using var r = sync ? ExecuteDataReader(cmd, true).RunSync() : await ExecuteDataReader(cmd, false).ConfigureAwait(false);
-                
+
                 var typeIndex = 1;
                 var list1 = new List<T1>();
                 var list2 = types.Length > 1 ? new List<T2>() : null;
@@ -1436,7 +1436,7 @@ namespace NPoco
             return result;
         }
 
-       
+
         internal static string BuildPrimaryKeySql(Database database, Dictionary<string, object> primaryKeyValuePair, ref int index)
         {
             var tempIndex = index;
@@ -1625,7 +1625,7 @@ namespace NPoco
             return IsNewAsync(poco, true).RunSync();
         }
 
-        private async Task<bool> IsNewAsync<T>(T poco, bool sync) 
+        private async Task<bool> IsNewAsync<T>(T poco, bool sync)
         {
             if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
             {
@@ -1642,8 +1642,8 @@ namespace NPoco
             }
             else if (pd.TableInfo.PrimaryKey.Contains(","))
             {
-                return sync 
-                    ? !PocoExistsAsync(poco, true).RunSync() 
+                return sync
+                    ? !PocoExistsAsync(poco, true).RunSync()
                     : !await PocoExistsAsync(poco, false).ConfigureAwait(false);
             }
             else
@@ -1726,14 +1726,14 @@ namespace NPoco
             get { return FormatCommand(_lastSql, _lastArgs); }
         }
 
-        private class FormattedParameter
+        internal class FormattedParameter
         {
             public Type Type { get; set; }
             public object Value { get; set; }
             public DbParameter Parameter { get; set; }
         }
 
-        public string FormatCommand(DbCommand cmd)
+        public virtual string FormatCommand(DbCommand cmd)
         {
             var parameters = cmd.Parameters.Cast<DbParameter>().Select(parameter => new FormattedParameter()
             {
@@ -1744,11 +1744,11 @@ namespace NPoco
             return FormatCommand(cmd.CommandText, parameters.Cast<object>().ToArray());
         }
 
-        public string FormatCommand(string sql, object[] args)
+        public virtual string FormatCommand(string sql, object[] args)
         {
-            var sb = new StringBuilder();
             if (sql == null)
                 return "";
+            var sb = new StringBuilder();
             sb.Append(sql);
             if (args != null && args.Length > 0)
             {
@@ -1801,7 +1801,7 @@ namespace NPoco
         private IsolationLevel _isolationLevel;
         private string _lastSql;
         private object[] _lastArgs;
-        private string _paramPrefix = "@";
+        internal string _paramPrefix = "@";
         private VersionExceptionHandling _versionException = VersionExceptionHandling.Exception;
         private readonly bool _connectionPassedIn;
 
@@ -1865,7 +1865,7 @@ namespace NPoco
             var converter = database.Mappers.Find(x => x.GetToDbConverter(pc.ColumnType, pc.MemberInfoData.MemberInfo));
             return converter != null ? converter(value) : ProcessDefaultMappings(database, pc, value);
         }
-        
+
         internal static object ProcessDefaultMappings(IDatabase database, PocoColumn pocoColumn, object value)
         {
             if (pocoColumn.SerializedColumn)
