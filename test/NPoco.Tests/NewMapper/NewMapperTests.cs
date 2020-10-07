@@ -670,6 +670,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             Assert.Throws<Exception>(() =>
             {
                 var fastCreate = new FastCreate(typeof(ContentBase), new MapperCollection());
+                fastCreate.Create(new FakeReader());
             });
         }
 

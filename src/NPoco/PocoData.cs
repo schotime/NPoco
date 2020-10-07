@@ -26,8 +26,9 @@ namespace NPoco
         {
         }
 
-        public PocoData(Type type, MapperCollection mapper) : this()
+        public PocoData(Type type, MapperCollection mapper, FastCreate creator) : this()
         {
+            CreateDelegate = creator;
             Type = type;
             Mapper = mapper;
         }
@@ -73,15 +74,11 @@ namespace NPoco
             }
         }
 
-
         public object CreateObject(DbDataReader dataReader)
         {
-            if (CreateDelegate == null)
-                CreateDelegate = new FastCreate(Type, Mapper);
             return CreateDelegate.Create(dataReader);
         }
 
         private FastCreate CreateDelegate { get; set; }
-
     }
 }

@@ -151,13 +151,5 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var data = Database.Single<AdHocUser>("select name \"Na_me\" from users where userid = 1");
             Assert.AreEqual("Name1", data.Name);
         }
-
-        [Test]
-        public void NoParameterLessConstructor()
-        {
-            Assert.Throws<Exception>(() => 
-                Database.Single<UserWithNoParamConstructor>("select * from users where userid = 1"), "Poco '{0}' has not parameterless constructor", 
-                typeof(UserWithNoParamConstructor).FullName);
-        }
     }
 }
