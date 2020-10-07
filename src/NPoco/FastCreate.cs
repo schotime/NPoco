@@ -116,7 +116,13 @@ namespace NPoco
                 })
                 .OrderByDescending(x => x.Parameters.Length)
                 .ToList();
-            
+
+            var attributeConstructor = constructorParameters.FirstOrDefault(x => x.Constructor.GetCustomAttribute(typeof(ConstructAttribute)) != null);
+            if (attributeConstructor != null)
+            {
+                return attributeConstructor.Constructor;
+            }
+
             var getParameterLess = constructorParameters.SingleOrDefault(x => x.Parameters.Length == 0);
 
             return getParameterLess != null

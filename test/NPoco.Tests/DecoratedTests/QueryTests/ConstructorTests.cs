@@ -47,6 +47,7 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             public bool Multiple { get; }
             public bool Single { get; }
 
+            [Construct]
             private SingleParameterConstructor()
             {
                 Single = true;
