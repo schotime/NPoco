@@ -237,7 +237,7 @@ namespace NPoco.Linq
 
         public async Task<T> First(Expression<Func<T, bool>> whereExpression)
         {
-            AddWhere(null);
+            AddWhere(whereExpression);
             return (await ToEnumerable().ConfigureAwait(false)).First();
         }
 
