@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.NetworkInformation;
 using System.Text;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -22,6 +23,23 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             var result = Database.Single<SingleParameterConstructor>("select 'Name' Name, 23 Age");
             Assert.True(result.Single);
             Assert.False(result.Multiple);
+        }
+
+        [Test]
+        public void TestParameterLess2()
+        {
+            var result = Database.Single<GuidConstructor>($"select '{Guid.NewGuid()}' Id");
+            Assert.AreNotEqual(Guid.Empty, result.Id);
+        }
+
+        public class GuidConstructor
+        {
+            public Guid Id { get; }
+
+            public GuidConstructor(Guid id)
+            {
+                Id = id;
+            }
         }
 
         public class MultipleParameterConstructor
