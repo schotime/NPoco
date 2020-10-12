@@ -43,16 +43,11 @@ namespace NPoco
             if (_constructorInfo == null)
                 return _ => null;
 
-            try
-            {
-                var create = CreateObjectFactoryMethodWithCtorParams(_constructorInfo);
-                var parameters = _constructorInfo.GetParameters().Select(x => MappingHelper.GetDefault(x.ParameterType)).ToArray();
-                return x => create(parameters);
-            }
-            catch (Exception exception)
-            {
-                throw new Exception("Error trying to create type " + _type, exception);
-            }
+            var create = CreateObjectFactoryMethodWithCtorParams(_constructorInfo);
+            var parameters = _constructorInfo.GetParameters()
+                .Select(x => MappingHelper.GetDefault(x.ParameterType))
+                .ToArray();
+            return x => create(parameters);
         }
 
         private static Func<object[], object> CreateObjectFactoryMethodWithCtorParams(ConstructorInfo ctor)
