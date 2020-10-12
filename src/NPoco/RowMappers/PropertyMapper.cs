@@ -36,7 +36,7 @@ namespace NPoco.RowMappers
             {
                 context.Instance = context.PocoData.CreateObject(dataReader);
                 if (context.Instance == null)
-                    throw new Exception(string.Format("Cannot create POCO '{0}'. It may have no parameterless constructor or be an interface or abstract class without a Mapper factory.", context.Type.FullName));
+                    throw new Exception(string.Format("Cannot create POCO '{0}'. It may be an interface or abstract class without a Mapper factory.", context.Type.FullName));
             }
             else
             {
@@ -75,7 +75,7 @@ namespace NPoco.RowMappers
         {
             // find pocomember by property name
             var pocoMember = pocoMembers.FirstOrDefault(x => IsEqual(groupedName.Item, x.Name) 
-                                                          || IsEqual(groupedName.Item, x.PocoColumn?.ColumnAlias));
+                                       || string.Equals(groupedName.Item, x.PocoColumn?.ColumnAlias, StringComparison.OrdinalIgnoreCase));
 
             if (pocoMember == null)
             {
