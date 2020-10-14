@@ -41,45 +41,6 @@ namespace NPoco.SqlServer
             }
 
             return await base.ExecutionHookAsync(action).ConfigureAwait(false);
-        }
-
-        public override string FormatCommand(string sql, object[] args)
-        {
-            if (sql == null)
-                return "";
-            var sb = new StringBuilder();
-            if (args != null && args.Length > 0)
-            {
-                for (int i = 0; i < args.Length; i++)
-                {
-                    var value = args[i];
-                    var formatted = args[i] as FormattedParameter;
-                    if (formatted != null)
-                    {
-                        value = formatted.Value;
-                    }
-
-                    var p = new Microsoft.Data.SqlClient.SqlParameter();
-                    SetParameterValue(p, args[i]);
-                    if (p.Size == 0 || p.SqlDbType == SqlDbType.UniqueIdentifier)
-                    {
-                        if (value == null && (p.SqlDbType == SqlDbType.NVarChar || p.SqlDbType == SqlDbType.VarChar))
-                        {
-                            sb.AppendFormat("DECLARE {0}{1} {2} = null\n", _paramPrefix, i, p.SqlDbType);
-                        }
-                        else
-                        {
-                            sb.AppendFormat("DECLARE {0}{1} {2} = '{3}'\n", _paramPrefix, i, p.SqlDbType, value);
-                        }
-                    }
-                    else
-                    {
-                        sb.AppendFormat("DECLARE {0}{1} {2}[{3}] = '{4}'\n", _paramPrefix, i, p.SqlDbType, p.Size, value);
-                    }
-                }
-            }
-            sb.AppendFormat("\n{0}", sql);
-            return sb.ToString();
-        }
+        }        
     }
 }

@@ -77,7 +77,7 @@ namespace NPoco
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 
-        private readonly DatabaseType _dbType;
+        protected readonly DatabaseType _dbType;
         public DatabaseType DatabaseType { get { return _dbType; } }
         public IsolationLevel IsolationLevel { get { return _isolationLevel; } }
 
@@ -390,99 +390,11 @@ namespace NPoco
             var p = cmd.CreateParameter();
             p.ParameterName = string.Format("{0}{1}", _paramPrefix, cmd.Parameters.Count);
 
-            SetParameterValue(p, value);
+            ParameterHelper.SetParameterValue(_dbType, p, value);
 
             cmd.Parameters.Add(p);
         }
 
-        internal void SetParameterValue(DbParameter p, object value)
-        {
-            if (value == null)
-            {
-                p.Value = DBNull.Value;
-                return;
-            }
-
-            // Give the database type first crack at converting to DB required type
-            value = _dbType.MapParameterValue(value);
-
-            var dbtypeSet = false;
-            var t = value.GetType();
-            var underlyingT = Nullable.GetUnderlyingType(t);
-            if (t.GetTypeInfo().IsEnum || (underlyingT != null && underlyingT.GetTypeInfo().IsEnum))        // PostgreSQL .NET driver wont cast enum to int
-            {
-                p.Value = (int)value;
-            }
-            else if (t == typeof(Guid))
-            {
-                p.Value = value;
-                p.DbType = DbType.Guid;
-                p.Size = 40;
-                dbtypeSet = true;
-            }
-            else if (t == typeof(string))
-            {
-                var strValue = value as string;
-                if (strValue == null)
-                {
-                    p.Size = 0;
-                    p.Value = DBNull.Value;
-                }
-                else
-                {
-                    // out of memory exception occurs if trying to save more than 4000 characters to SQL Server CE NText column. Set before attempting to set Size, or Size will always max out at 4000
-                    if (strValue.Length + 1 > 4000 && p.GetType().Name == "SqlCeParameter")
-                    {
-                        p.GetType().GetProperty("SqlDbType").SetValue(p, SqlDbType.NText, null);
-                    }
-
-                    p.Size = Math.Max(strValue.Length + 1, 4000); // Help query plan caching by using common size
-                    p.Value = value;
-                }
-            }
-            else if (t == typeof(AnsiString))
-            {
-                var ansistrValue = value as AnsiString;
-                if (ansistrValue?.Value == null)
-                {
-                    p.Size = 0;
-                    p.Value = DBNull.Value;
-                    p.DbType = DbType.AnsiString;
-                }
-                else
-                {
-                    // Thanks @DataChomp for pointing out the SQL Server indexing performance hit of using wrong string type on varchar
-                    p.Size = Math.Max(ansistrValue.Value.Length + 1, 4000);
-                    p.Value = ansistrValue.Value;
-                    p.DbType = DbType.AnsiString;
-                }
-                dbtypeSet = true;
-            }
-            else if (value.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
-            {
-                p.GetType().GetProperty("UdtTypeName").SetValue(p, "geography", null); //geography is the equivalent SQL Server Type
-                p.Value = value;
-            }
-
-            else if (value.GetType().Name == "SqlGeometry") //SqlGeometry is a CLR Type
-            {
-                p.GetType().GetProperty("UdtTypeName").SetValue(p, "geometry", null); //geography is the equivalent SQL Server Type
-                p.Value = value;
-            }
-            else
-            {
-                p.Value = value;
-            }
-
-            if (!dbtypeSet)
-            {
-                var dbType = _dbType.LookupDbType(p.Value.GetTheType(), p.ParameterName);
-                if (dbType.HasValue)
-                {
-                    p.DbType = dbType.Value;
-                }
-            }
-        }
 
         // Create a command
         private DbCommand CreateCommand(DbConnection connection, string sql, params object[] args)
@@ -652,8 +564,8 @@ namespace NPoco
                     {
                         DbParameter param = cmd.CreateParameter();
                         param.ParameterName = item.Name;
-
-                        SetParameterValue(param, item.Value);
+                        
+                        ParameterHelper.SetParameterValue(_dbType, param, item.Value);
 
                         cmd.Parameters.Add(param);
                     }
@@ -1723,51 +1635,17 @@ namespace NPoco
         public object[] LastArgs { get { return _lastArgs; } }
         public string LastCommand
         {
-            get { return FormatCommand(_lastSql, _lastArgs); }
+            get { return _dbType.FormatCommand(_lastSql, _lastArgs); }
         }
 
-        internal class FormattedParameter
+        public string FormatCommand(DbCommand cmd)
         {
-            public Type Type { get; set; }
-            public object Value { get; set; }
-            public DbParameter Parameter { get; set; }
+            return _dbType.FormatCommand(cmd);
         }
 
-        public virtual string FormatCommand(DbCommand cmd)
+        public string FormatCommand(string sql, object[] args)
         {
-            var parameters = cmd.Parameters.Cast<DbParameter>().Select(parameter => new FormattedParameter()
-            {
-                Type = parameter.Value.GetTheType(),
-                Value = parameter.Value,
-                Parameter = parameter
-            });
-            return FormatCommand(cmd.CommandText, parameters.Cast<object>().ToArray());
-        }
-
-        public virtual string FormatCommand(string sql, object[] args)
-        {
-            if (sql == null)
-                return "";
-            var sb = new StringBuilder();
-            sb.Append(sql);
-            if (args != null && args.Length > 0)
-            {
-                sb.Append("\n");
-                for (int i = 0; i < args.Length; i++)
-                {
-                    var type = args[i] != null ? args[i].GetType().Name : string.Empty;
-                    var value = args[i];
-                    var formatted = args[i] as FormattedParameter;
-                    if (formatted != null)
-                    {
-                        type = formatted.Type != null ? formatted.Type.Name : string.Format("{0}, {1}", formatted.Parameter.GetType().Name, formatted.Parameter.DbType);
-                        value = formatted.Value;
-                    }
-                    sb.AppendFormat("\t -> {0}{1} [{2}] = \"{3}\"\n", _paramPrefix, i, type, value);
-                }
-                sb.Remove(sb.Length - 1, 1);
-            }
-            return sb.ToString();
+            return _dbType.FormatCommand(sql, args);
         }
 
         private List<IInterceptor> _interceptors;
@@ -1793,7 +1671,7 @@ namespace NPoco
         public string ConnectionString { get { return _connectionString; } }
 
         // Member variables
-        private readonly string _connectionString;
+        internal readonly string _connectionString;
         private readonly string _providerName;
         private DbProviderFactory _factory;
         private DbConnection _sharedConnection;

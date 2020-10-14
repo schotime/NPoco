@@ -8,6 +8,7 @@ using NPoco.DatabaseTypes;
 using NPoco.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace NPoco
 {
@@ -102,6 +103,14 @@ namespace NPoco
             return null;
         }
 
+        /// <summary>
+        /// Returns the prefix used to delimit parameters in SQL query strings.
+        /// </summary>        
+        /// <returns></returns>
+        public virtual string GetParameterPrefix()
+        {
+            return "@";
+        }
         /// <summary>
         /// Returns the prefix used to delimit parameters in SQL query strings.
         /// </summary>
@@ -364,5 +373,50 @@ namespace NPoco
         {
             return value;
         }
+
+        internal class FormattedParameter
+        {
+            public Type Type { get; set; }
+            public object Value { get; set; }
+            public DbParameter Parameter { get; set; }
+        }
+
+        public virtual string FormatCommand(DbCommand cmd)
+        {
+            var parameters = cmd.Parameters.Cast<DbParameter>().Select(parameter => new FormattedParameter()
+            {
+                Type = parameter.Value.GetTheType(),
+                Value = parameter.Value,
+                Parameter = parameter
+            });
+            return FormatCommand(cmd.CommandText, parameters.Cast<object>().ToArray());
+        }
+
+        public virtual string FormatCommand(string sql, object[] args)
+        {
+            if (sql == null)
+                return "";
+            var sb = new StringBuilder();
+            sb.Append(sql);
+            if (args != null && args.Length > 0)
+            {
+                sb.Append("\n");
+                for (int i = 0; i < args.Length; i++)
+                {
+                    var type = args[i] != null ? args[i].GetType().Name : string.Empty;
+                    var value = args[i];
+                    var formatted = args[i] as FormattedParameter;
+                    if (formatted != null)
+                    {
+                        type = formatted.Type != null ? formatted.Type.Name : string.Format("{0}, {1}", formatted.Parameter.GetType().Name, formatted.Parameter.DbType);
+                        value = formatted.Value;
+                    }
+                    sb.AppendFormat("\t -> {0}{1} [{2}] = \"{3}\"\n", GetParameterPrefix(), i, type, value);
+                }
+                sb.Remove(sb.Length - 1, 1);
+            }
+            return sb.ToString();
+        }
+
     }
 }
