@@ -74,7 +74,7 @@ namespace NPoco.DatabaseTypes
             return base.LookupDbType(type, name);
         }
 
-        public override void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
+        public override void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions? options)
         {
             SqlBulkCopyHelper.BulkInsert(db, pocos, options);
         }

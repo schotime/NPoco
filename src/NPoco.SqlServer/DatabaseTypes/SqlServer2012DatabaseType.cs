@@ -21,10 +21,10 @@ namespace NPoco.DatabaseTypes
             return sqlPage;
         }
 
-        public override string GetAutoIncrementExpression(TableInfo ti)
+        public override string? GetAutoIncrementExpression(TableInfo ti)
         {
             if (!string.IsNullOrEmpty(ti.SequenceName))
-                return string.Format("NEXT VALUE FOR {0}", ti.SequenceName);
+                return $"NEXT VALUE FOR {ti.SequenceName}";
 
             return null;
         }

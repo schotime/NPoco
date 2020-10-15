@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
@@ -13,12 +14,12 @@ namespace NPoco.SqlServer
         public static Func<DbConnection, SqlConnection> SqlConnectionResolver = dbConn => (SqlConnection)dbConn;
         public static Func<DbTransaction, SqlTransaction> SqlTransactionResolver = dbTran => (SqlTransaction)dbTran;
 
-        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list, InsertBulkOptions insertBulkOptions)
+        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list, InsertBulkOptions? insertBulkOptions)
         {
             BulkInsert(db, list, SqlBulkCopyOptions.Default, insertBulkOptions);
         }
 
-        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions insertBulkOptions)
+        public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions? insertBulkOptions)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
             {
@@ -42,7 +43,7 @@ namespace NPoco.SqlServer
         }
 
 
-        private static DataTable BuildBulkInsertDataTable<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopy bulkCopy, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions insertBulkOptions)
+        private static DataTable BuildBulkInsertDataTable<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopy bulkCopy, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions? insertBulkOptions)
         {
             var pocoData = db.PocoDataFactory.ForType(typeof (T));
 
@@ -78,7 +79,7 @@ namespace NPoco.SqlServer
                 var values = new object[cols.Count];
                 for (var i = 0; i < values.Length; i++)
                 {
-                    var value = cols[i].Value.GetValue(item);
+                    var value = cols[i].Value.GetValue(item!);
                     if (db.Mappers != null)
                     {
                         value = db.Mappers.FindAndExecute(x => x.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfoData.MemberInfo), value);

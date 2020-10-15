@@ -8,14 +8,14 @@ namespace NPoco.SqlServer
 {
     public class SqlServerDatabase : Database
     {
-        private readonly IPollyPolicy _pollyPolicy;
+        private readonly IPollyPolicy? _pollyPolicy;
 
-        public SqlServerDatabase(string connectionString, IPollyPolicy pollyPolicy = null) 
+        public SqlServerDatabase(string connectionString, IPollyPolicy? pollyPolicy = null) 
             : this(connectionString, Singleton<SqlServer2012DatabaseType>.Instance, pollyPolicy)
         {
         }
 
-        public SqlServerDatabase(string connectionString, SqlServerDatabaseType databaseType, IPollyPolicy pollyPolicy) 
+        public SqlServerDatabase(string connectionString, SqlServerDatabaseType databaseType, IPollyPolicy? pollyPolicy) 
             : base(connectionString, databaseType, SqlClientFactory.Instance)
         {
             _pollyPolicy = pollyPolicy;
