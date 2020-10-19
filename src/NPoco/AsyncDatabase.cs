@@ -323,7 +323,7 @@ namespace NPoco
         public async Task SaveAsync<T>(T poco)
         {
             var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
-            if (await IsNewAsync(poco))
+            if (await IsNewAsync(poco).ConfigureAwait(false))
             {
                 await InsertAsync(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco).ConfigureAwait(false);
             }
@@ -338,7 +338,7 @@ namespace NPoco
             var sql = GetExistsSql<T>(poco, true);
             var result = sync 
                 ? ExecuteScalar<int>(sql)
-                : await ExecuteScalarAsync<int>(sql);
+                : await ExecuteScalarAsync<int>(sql).ConfigureAwait(false);
             return result > 0;
         }
 
