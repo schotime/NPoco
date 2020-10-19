@@ -1144,7 +1144,7 @@ namespace NPoco
             // Get the records
             result.Items = sync
                 ? Fetch<T>(new Sql(sqlPage, args))
-                : await FetchAsync<T>(new Sql(sqlPage, args));
+                : await FetchAsync<T>(new Sql(sqlPage, args)).ConfigureAwait(false);
 
             return result;
         }
@@ -1577,7 +1577,7 @@ namespace NPoco
 
             var result = sync
                 ? Execute(sql, rawValues.ToArray())
-                : await ExecuteAsync(sql, rawValues.ToArray());
+                : await ExecuteAsync(sql, rawValues.ToArray()).ConfigureAwait(false);
 
             if (result == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
             {
