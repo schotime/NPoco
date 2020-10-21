@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using NPoco.SqlServer;
 
@@ -97,5 +99,49 @@ namespace NPoco.DatabaseTypes
             }
             return base.ProcessDefaultMappings(pocoColumn, value);
         }
+
+
+        public override string FormatCommand(string sql, object[] args)
+        {
+            if (sql == null)
+                return "";
+
+            var sb = new StringBuilder();
+            if (args != null && args.Length > 0)
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    var value = args[i];
+                    var formatted = args[i] as FormattedParameter;
+                    if (formatted != null)
+                    {
+                        value = formatted.Value;
+                    }
+
+                    var p = new SqlParameter();
+                    ParameterHelper.SetParameterValue(this, p, args[i]);
+                    if (p.Size == 0 || p.SqlDbType == SqlDbType.UniqueIdentifier)
+                    {
+                        if (value == null && (p.SqlDbType == SqlDbType.NVarChar || p.SqlDbType == SqlDbType.VarChar))
+                        {
+                            sb.AppendFormat("DECLARE {0}{1} {2} = null\n", GetParameterPrefix(string.Empty), i, p.SqlDbType);
+                        }
+                        else
+                        {
+                            sb.AppendFormat("DECLARE {0}{1} {2} = '{3}'\n", GetParameterPrefix(string.Empty), i, p.SqlDbType, value);
+                        }
+                    }
+                    else
+                    {
+                        sb.AppendFormat("DECLARE {0}{1} {2}[{3}] = '{4}'\n", GetParameterPrefix(string.Empty), i, p.SqlDbType, p.Size, value);
+                    }
+                }
+            }
+
+            sb.AppendFormat("\n{0}", sql);
+
+            return sb.ToString();
+        }
+
     }
 }

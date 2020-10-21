@@ -2,7 +2,9 @@
 using NPoco.SqlServer;
 using System;
 using System.Threading.Tasks;
+using System.Text;
 using NPoco.DatabaseTypes;
+using System.Data;
 
 namespace NPoco.SqlServer
 {
@@ -39,6 +41,6 @@ namespace NPoco.SqlServer
             }
 
             return await base.ExecutionHookAsync(action).ConfigureAwait(false);
-        }
+        }        
     }
 }
