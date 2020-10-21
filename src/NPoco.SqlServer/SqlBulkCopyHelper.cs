@@ -48,7 +48,7 @@ namespace NPoco.SqlServer
             var pocoData = db.PocoDataFactory.ForType(typeof (T));
 
             bulkCopy.BatchSize = 4096;
-            bulkCopy.DestinationTableName = pocoData.TableInfo.TableName;
+            bulkCopy.DestinationTableName = db.DatabaseType.EscapeTableName(pocoData.TableInfo.TableName);
 
             if (insertBulkOptions?.BulkCopyTimeout != null)
                 bulkCopy.BulkCopyTimeout = insertBulkOptions.BulkCopyTimeout.Value; 
