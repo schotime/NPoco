@@ -70,8 +70,8 @@ namespace NPoco.SqlServer
 
             foreach (var col in cols)
             {
-                bulkCopy.ColumnMappings.Add(col.Value.MemberInfoData.Name, col.Value.ColumnName);
-                table.Columns.Add(col.Value.MemberInfoData.Name, Nullable.GetUnderlyingType(col.Value.MemberInfoData.MemberType) ?? col.Value.MemberInfoData.MemberType);
+                bulkCopy.ColumnMappings.Add(col.Value.MemberInfoKey, col.Value.ColumnName);
+                table.Columns.Add(col.Value.MemberInfoKey, Nullable.GetUnderlyingType(col.Value.MemberInfoData.MemberType) ?? col.Value.MemberInfoData.MemberType);
             }
 
             foreach (var item in list)
