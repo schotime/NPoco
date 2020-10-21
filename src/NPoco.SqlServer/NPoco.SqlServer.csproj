@@ -10,6 +10,7 @@
 	<PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
 	<PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
     <LangVersion>8.0</LangVersion>
+	<nullable>enable</nullable>
   </PropertyGroup>
 
   <ItemGroup>
