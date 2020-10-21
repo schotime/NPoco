@@ -136,7 +136,7 @@ namespace NPoco
             }
         }
 
-        public static void SetParameterValue(DatabaseType dbType, DbParameter p, object value)
+        public static void SetParameterValue(DatabaseType dbType, DbParameter p, object? value)
         {
             if (value == null)
             {
@@ -224,6 +224,5 @@ namespace NPoco
                 }
             }
         }
-
     }
 }

@@ -393,7 +393,7 @@ namespace NPoco
         }
 
         public virtual string FormatCommand(string sql, object[] args)
-        {
+        {            
             if (sql == null)
                 return "";
             var sb = new StringBuilder();
@@ -405,8 +405,7 @@ namespace NPoco
                 {
                     var type = args[i] != null ? args[i].GetType().Name : string.Empty;
                     var value = args[i];
-                    var formatted = args[i] as FormattedParameter;
-                    if (formatted != null)
+                    if (args[i] is FormattedParameter formatted)
                     {
                         type = formatted.Type != null ? formatted.Type.Name : string.Format("{0}, {1}", formatted.Parameter.GetType().Name, formatted.Parameter.DbType);
                         value = formatted.Value;
