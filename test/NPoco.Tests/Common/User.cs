@@ -77,14 +77,6 @@ namespace NPoco.Tests.Common
         public new ExtraUserInfo ExtraUserInfo { get; set; }
     }
 
-    public class UserWithNoParamConstructor : User
-    {
-        public UserWithNoParamConstructor(int userId)
-        {
-            UserId = userId;
-        }
-    }
-
     public class UserWithPrivateParamLessConstructor : User
     {
         private UserWithPrivateParamLessConstructor()

@@ -65,14 +65,14 @@ namespace NPoco
         public PocoData ForType(Type type)
         {
             Guard(type);
-            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFalbackPocoDataBuilder(type));
+            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFallbackPocoDataBuilder(type));
             return pocoDataBuilder.Build();
         }
 
         public TableInfo TableInfoForType(Type type)
         {
             Guard(type);
-            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFalbackPocoDataBuilder(type));
+            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFallbackPocoDataBuilder(type));
             return pocoDataBuilder.BuildTableInfo();
         }
 
@@ -81,7 +81,7 @@ namespace NPoco
             return ForObjectStatic(o, primaryKeyName, autoIncrement, ForType);
         }
 
-        private InitializedPocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
+        private InitializedPocoDataBuilder BaseClassFallbackPocoDataBuilder(Type type)
         {
             var builder = new PocoDataBuilder(type, _mapper).Init();
             var persistedType = builder.BuildTableInfo().PersistedType;
