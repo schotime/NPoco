@@ -1,6 +1,5 @@
 ﻿using System.Data;
 using Microsoft.Data.SqlClient;
-using NPoco.DatabaseTypes;
 using NUnit.Framework;
 
 namespace NPoco.Tests
@@ -33,7 +32,7 @@ namespace NPoco.Tests
         public class MyDb : Database
         {
             public MyDb()
-                : base("test", new SqlServerDatabaseType(), SqlClientFactory.Instance)
+                : base("test", DatabaseType.MySQL, SqlClientFactory.Instance)
             {
             }
         }
