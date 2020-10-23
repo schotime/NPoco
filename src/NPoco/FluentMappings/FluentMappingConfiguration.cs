@@ -277,6 +277,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.IsComplexMapping = overrideColumnDefinition.Value.IsComplexMapping ?? convColDefinition.IsComplexMapping;
                     convColDefinition.ValueObjectColumn = overrideColumnDefinition.Value.ValueObjectColumn ?? convColDefinition.ValueObjectColumn;
                     convColDefinition.ValueObjectColumnName = overrideColumnDefinition.Value.ValueObjectColumnName ?? convColDefinition.ValueObjectColumnName;
+                    convColDefinition.ExactColumnNameMatch = overrideColumnDefinition.Value.ExactColumnNameMatch ?? convColDefinition.ExactColumnNameMatch;
                 }
             }
         }

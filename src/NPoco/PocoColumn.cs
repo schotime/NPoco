@@ -53,6 +53,7 @@ namespace NPoco
         public bool SerializedColumn { get; set; }
         public bool ValueObjectColumn { get; set; }
         public string ValueObjectColumnName { get; set; }
+        public bool ExactColumnNameMatch { get; set; }
 
         internal void SetMemberAccessors(List<MemberAccessor> memberAccessors)
         {

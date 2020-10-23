@@ -745,6 +745,23 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             public string GetData() => Data;
             public string GetData1() => Data1;
         }
+
+        [Test]
+        public void ExactMatchTests()
+        {
+            var result = Database.Single<ExactMatchTestsDto>("select 'Test' MyColumn, 'Test2' My_Column /*poco_dual*/");
+            Assert.AreEqual("Test", result.MyColumn);
+            Assert.AreEqual("Test2", result.My_Column);
+        }
+
+        public class ExactMatchTestsDto
+        {
+            [Column(ExactNameMatch = true)]
+            public string MyColumn { get; set; }
+
+            [Column(ExactNameMatch = true)]
+            public string My_Column { get; set; }
+        }
     }
 
     public class NoPrimaryKey

@@ -89,15 +89,15 @@ namespace NPoco.RowMappers
         private static bool IsPocoMemberEqual(PocoMember pocoMember, string name)
         {
             if (pocoMember.PocoColumn == null)
-                return PropertyMapper.IsEqual(name, pocoMember.Name);
+                return PropertyMapper.IsEqual(name, pocoMember.Name, false);
 
             if (pocoMember.PocoColumn.MemberInfoKey == name)
                 return true;
 
-            if (PropertyMapper.IsEqual(name, pocoMember.PocoColumn.ColumnAlias ?? pocoMember.PocoColumn.ColumnName))
+            if (PropertyMapper.IsEqual(name, pocoMember.PocoColumn.ColumnAlias ?? pocoMember.PocoColumn.ColumnName, pocoMember.PocoColumn.ExactColumnNameMatch))
                 return true;
 
-            return PropertyMapper.IsEqual(name, pocoMember.Name);
+            return PropertyMapper.IsEqual(name, pocoMember.Name, pocoMember.PocoColumn.ExactColumnNameMatch);
         }
 
         private static IEnumerable<PocoMemberLevel> FlattenPocoMembers(List<PocoMember> pocoMembers, int levelMonitor = 1)

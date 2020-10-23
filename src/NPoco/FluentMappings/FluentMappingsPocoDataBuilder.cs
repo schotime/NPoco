@@ -121,6 +121,7 @@ namespace NPoco.FluentMappings
             {
                 var colattr = typeConfig.ColumnConfiguration[key];
                 columnInfo.ColumnName = colattr.DbColumnName;
+                columnInfo.ExactColumnNameMatch = colattr.ExactColumnNameMatch ?? false;
                 columnInfo.ColumnAlias = colattr.DbColumnAlias;
                 if (colattr.ResultColumn.HasValue && colattr.ResultColumn.Value)
                 {

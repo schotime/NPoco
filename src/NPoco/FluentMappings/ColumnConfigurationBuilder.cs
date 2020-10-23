@@ -101,6 +101,7 @@ namespace NPoco.FluentMappings
     public interface IColumnBuilder<TModel>
     {
         IColumnBuilder<TModel> WithName(string name);
+        IColumnBuilder<TModel> WithName(string name, bool exactMatch);
         IColumnBuilder<TModel> WithAlias(string alias);
         IColumnBuilder<TModel> WithDbType(Type type);
         IColumnBuilder<TModel> WithDbType<T>();
@@ -131,6 +132,13 @@ namespace NPoco.FluentMappings
         public IColumnBuilder<TModel> WithName(string name)
         {
             _columnDefinition.DbColumnName = name;
+            return this;
+        }
+
+        public IColumnBuilder<TModel> WithName(string name, bool exactMatch)
+        {
+            _columnDefinition.DbColumnName = name;
+            _columnDefinition.ExactColumnNameMatch = exactMatch;
             return this;
         }
 

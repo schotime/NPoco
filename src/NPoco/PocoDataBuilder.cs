@@ -187,6 +187,7 @@ namespace NPoco
                         MemberInfoChain = members,
                         ColumnName = columnName,
                         ResultColumn = capturedColumnInfo.ResultColumn,
+                        ExactColumnNameMatch = capturedColumnInfo.ExactColumnNameMatch,
                         ForceToUtc = capturedColumnInfo.ForceToUtc,
                         ComputedColumn = capturedColumnInfo.ComputedColumn,
                         ComputedColumnType = capturedColumnInfo.ComputedColumnType,
