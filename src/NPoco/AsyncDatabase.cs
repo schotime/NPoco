@@ -188,7 +188,7 @@ namespace NPoco
                 {
                     var preparedUpdates = batchedPocos.Select(x =>
                     {
-                        if (pd == null) pd = PocoDataFactory.ForType(x.GetType());
+                        if (pd == null) pd = PocoDataFactory.ForType(x.Poco.GetType());
                         return UpdateStatements.PrepareUpdate(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, x.Poco, null, x.Snapshot?.UpdatedColumns());
                     }).ToArray();
 
