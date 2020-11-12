@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace NPoco
@@ -88,6 +89,12 @@ namespace NPoco
             }
 
             return this;
+        }
+
+        public Sql Concat(Sql sql, string delimiter)
+        {
+            sql._sql = delimiter + sql._sql;
+            return Append(sql);
         }
 
         public Sql Append(string sql, params object[] args)
