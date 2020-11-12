@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<Description>NPoco Tests</Description>
 		<VersionPrefix>5.0.0</VersionPrefix>
-		<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+		<TargetFrameworks>net5.0</TargetFrameworks>
 		<AssemblyName>NPoco.Tests</AssemblyName>
 		<OutputType>Library</OutputType>
 		<PackageId>NPoco.Tests</PackageId>
@@ -22,12 +22,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
 		<PackageReference Include="NUnit" Version="3.12.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.8" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.8" />
-		<PackageReference Include="Microsoft.Data.Sqlite" Version="3.1.8" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="5.0.0" />
 		<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="7.5.0" />
 		<PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
 	</ItemGroup>
