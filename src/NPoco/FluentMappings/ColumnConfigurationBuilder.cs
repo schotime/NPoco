@@ -26,6 +26,24 @@ namespace NPoco.FluentMappings
             return builder;
         }
 
+        public IColumnBuilder<T2> Column<T2>(string privateProperty)
+        {
+            var memberInfo = ReflectionUtils.GetPrivatePropertiesForClasses(typeof(T)).FirstOrDefault(x => x.Name == privateProperty);
+            if (memberInfo is null)
+            {
+                throw new Exception($"The name of the private property '{privateProperty}' does not exist of the type '{typeof(T)}'");
+            }
+            var columnDefinition = new ColumnDefinition() { MemberInfo = memberInfo };
+            if (memberInfo.GetMemberInfoType() != typeof(T2))
+            {
+                throw new Exception($"The type of the property '{memberInfo.GetMemberInfoType()}' doesn't match the generic type provided '{typeof(T2)}'");
+            }
+            var builder = new ColumnBuilder<T2>(columnDefinition);
+            var key = memberInfo.Name;
+            _columnDefinitions[key] = columnDefinition;
+            return builder;
+        }
+
         public IManyColumnBuilder<T2> Many<T2>(Expression<Func<T, IList<T2>>> property)
         {
             var members = MemberHelper<T>.GetMembers(property);
@@ -83,6 +101,7 @@ namespace NPoco.FluentMappings
     public interface IColumnBuilder<TModel>
     {
         IColumnBuilder<TModel> WithName(string name);
+        IColumnBuilder<TModel> WithName(string name, bool exactMatch);
         IColumnBuilder<TModel> WithAlias(string alias);
         IColumnBuilder<TModel> WithDbType(Type type);
         IColumnBuilder<TModel> WithDbType<T>();
@@ -113,6 +132,13 @@ namespace NPoco.FluentMappings
         public IColumnBuilder<TModel> WithName(string name)
         {
             _columnDefinition.DbColumnName = name;
+            return this;
+        }
+
+        public IColumnBuilder<TModel> WithName(string name, bool exactMatch)
+        {
+            _columnDefinition.DbColumnName = name;
+            _columnDefinition.ExactColumnNameMatch = exactMatch;
             return this;
         }
 

@@ -9,6 +9,7 @@ Properties {
     $build_artifacts_dir = "$build_dir\build"
     $solution_dir = "$build_dir\src\NPoco"
     $jsonnet = "$build_dir\src\NPoco.JsonNet"
+    $sqlserver = "$build_dir\src\NPoco.SqlServer"
 }
 
 FormatTaskName (("-"*25) + "[{0}]" + ("-"*25))
@@ -19,10 +20,14 @@ Task Build -depends Clean {
     Write-Host "Creating BuildArtifacts" -ForegroundColor Green
     Exec { dotnet restore }
     Set-Location "$solution_dir"
-    #$env:DNX_BUILD_VERSION="alpha02"
-    Exec { dotnet pack --configuration release --output $build_artifacts_dir } 
+    if ($env:BUILD_SUFFIX -ne "") {
+       $suffix = "/p:VersionSuffix=""$env:BUILD_SUFFIX"""
+    }
+    Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix } 
     Set-Location "$jsonnet"
-    Exec { dotnet pack --configuration release --output $build_artifacts_dir } 
+    Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix } 
+    Set-Location "$sqlserver"
+    Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix } 
 }
 
 Task Clean {

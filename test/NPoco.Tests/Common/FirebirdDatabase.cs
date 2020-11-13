@@ -1,5 +1,4 @@
-﻿#if !DNXCORE50
-using System;
+﻿using System;
 using System.Data;
 using System.IO;
 using System.Threading;
@@ -259,4 +258,3 @@ GRANT %role% TO %user%;
         }
     }
 }
-#endif

@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
-#if !DNXCORE50
+using Microsoft.Data.SqlClient;
 using FirebirdSql.Data.FirebirdClient;
-#endif
 using NPoco;
 using NPoco.DatabaseTypes;
 using NPoco.Tests.NewMapper.Models;
@@ -51,13 +49,10 @@ namespace NPoco.Tests.Common
                 case 7: // Postgres
                     Assert.Fail("Database platform not supported for unit testing");
                     return;
-#if !DNXCORE50
                 case 8: // Firebird
                     TestDatabase = new FirebirdDatabase();
                     Database = new Database(TestDatabase.Connection, new FirebirdDatabaseType(), IsolationLevel.ReadUncommitted);
                     break;
-#endif
-
                 default:
                     Assert.Fail("Unknown database platform specified");
                     return;

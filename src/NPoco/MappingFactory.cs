@@ -9,25 +9,26 @@ namespace NPoco
 {
     public class MappingFactory
     {
-        public static List<Func<IRowMapper>> RowMappers { get; private set; } 
+        public static List<Func<MapperCollection, IRowMapper>> RowMappers { get; private set; } 
         private readonly PocoData _pocoData;
         private readonly IRowMapper _rowMapper;
 
         static MappingFactory()
         {
-            RowMappers = new List<Func<IRowMapper>>()
+            RowMappers = new List<Func<MapperCollection, IRowMapper>>()
             {
-                () => new DictionaryMapper(),
-                () => new ValueTypeMapper(),
-                () => new ArrayMapper(),
-                () => new PropertyMapper()
+                x => new ValueTupleRowMapper(x),
+                _ => new DictionaryMapper(),
+                _ => new ValueTypeMapper(),
+                _ => new ArrayMapper(),
+                _ => new PropertyMapper()
             };
         }
 
         public MappingFactory(PocoData pocoData, DbDataReader dataReader)
         {
             _pocoData = pocoData;
-            _rowMapper = RowMappers.Select(mapper => mapper()).First(x => x.ShouldMap(pocoData));
+            _rowMapper = RowMappers.Select(mapper => mapper(_pocoData.Mapper)).First(x => x.ShouldMap(pocoData));
             _rowMapper.Init(dataReader, pocoData);
         }
 

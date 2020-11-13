@@ -1,18 +1,18 @@
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Text;
+using System.Threading.Tasks;
+using NPoco.SqlServer;
 
 namespace NPoco.DatabaseTypes
 {
     public class SqlServerDatabaseType : DatabaseType
     {
         public bool UseOutputClause { get; set; }
-
-        private static readonly Regex OrderByAlias = new Regex(@"[\""\[\]\w]+\.([\[\]\""\w]+)", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
         public override bool UseColumnAliases()
         {
@@ -21,14 +21,9 @@ namespace NPoco.DatabaseTypes
 
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
-            parts.sqlOrderBy = string.IsNullOrEmpty(parts.sqlOrderBy) ? null : OrderByAlias.Replace(parts.sqlOrderBy, "$1");
-            var sqlPage = string.Format("SELECT {4} FROM (SELECT poco_base.*, ROW_NUMBER() OVER ({0}) poco_rn \nFROM ( \n{1}) poco_base ) poco_paged \nWHERE poco_rn > @{2} AND poco_rn <= @{3} \nORDER BY poco_rn",
-                parts.sqlOrderBy ?? "ORDER BY (SELECT NULL /*poco_dual*/)", parts.sqlUnordered, args.Length, args.Length + 1, parts.sqlColumns);
-            args = args.Concat(new object[] { skip, skip + take }).ToArray();
-
-            return sqlPage;
+            return PagingHelper.BuildPaging(skip, take, parts, ref args);
         }
-        
+
         private void AdjustSqlInsertCommandText(DbCommand cmd, bool useOutputClause)
         {
             if (!UseOutputClause && !useOutputClause)
@@ -57,25 +52,16 @@ namespace NPoco.DatabaseTypes
             return db.ExecuteScalarHelper(cmd);
         }
 
-#if !NET35 && !NET40
-        public override System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             AdjustSqlInsertCommandText(cmd, useOutputClause);
             return db.ExecuteScalarHelperAsync(cmd);
         }
-#endif
 
         public override string GetExistsSql()
         {
             return "IF EXISTS (SELECT 1 FROM {0} WHERE {1}) SELECT 1 ELSE SELECT 0";
         }
-
-#if !DNXCORE50
-        public override void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos)
-        {
-            SqlBulkCopyHelper.BulkInsert(db, pocos);
-        }
-#endif
 
         public override IsolationLevel GetDefaultTransactionIsolationLevel()
         {
@@ -90,9 +76,19 @@ namespace NPoco.DatabaseTypes
             return base.LookupDbType(type, name);
         }
 
+        public override void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions? options)
+        {
+            SqlBulkCopyHelper.BulkInsert(db, pocos, options);
+        }
+
+        public override Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
+        {
+            return SqlBulkCopyHelper.BulkInsertAsync(db, pocos, options);
+        }
+
         public override string GetProviderName()
         {
-            return "System.Data.SqlClient";
+            return "Microsoft.Data.SqlClient";
         }
 
         public override object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
@@ -103,5 +99,49 @@ namespace NPoco.DatabaseTypes
             }
             return base.ProcessDefaultMappings(pocoColumn, value);
         }
+
+
+        public override string FormatCommand(string sql, object[] args)
+        {
+            if (sql == null)
+                return "";
+
+            var sb = new StringBuilder();
+            if (args != null && args.Length > 0)
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    var value = args[i];
+                    var formatted = args[i] as FormattedParameter;
+                    if (formatted != null)
+                    {
+                        value = formatted.Value;
+                    }
+
+                    var p = new SqlParameter();
+                    ParameterHelper.SetParameterValue(this, p, args[i]);
+                    if (p.Size == 0 || p.SqlDbType == SqlDbType.UniqueIdentifier)
+                    {
+                        if (value == null && (p.SqlDbType == SqlDbType.NVarChar || p.SqlDbType == SqlDbType.VarChar))
+                        {
+                            sb.AppendFormat("DECLARE {0}{1} {2} = null\n", GetParameterPrefix(string.Empty), i, p.SqlDbType);
+                        }
+                        else
+                        {
+                            sb.AppendFormat("DECLARE {0}{1} {2} = '{3}'\n", GetParameterPrefix(string.Empty), i, p.SqlDbType, value);
+                        }
+                    }
+                    else
+                    {
+                        sb.AppendFormat("DECLARE {0}{1} {2}[{3}] = '{4}'\n", GetParameterPrefix(string.Empty), i, p.SqlDbType, p.Size, value);
+                    }
+                }
+            }
+
+            sb.AppendFormat("\n{0}", sql);
+
+            return sb.ToString();
+        }
+
     }
 }

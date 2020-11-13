@@ -42,5 +42,24 @@ namespace NPoco.Tests.Async
             var records = await Database.PageAsync<User>(2, 5, "SELECT u.* FROM Users u WHERE UserID <= 15");
             Assert.AreEqual(records.Items.Count, 5);
         }
+
+        [Test]
+        public async Task FetchMultipleAsync()
+        {
+            var (users, houses) = await Database.FetchMultipleAsync<User, House>("select * from users;select * from houses");
+            Assert.AreEqual(15, users.Count);
+            Assert.AreEqual(6, houses.Count);
+        }
+
+        [Test]
+        public async Task QueryAsyncSql()
+        {
+            var i = 1;
+            var userCount = Database.QueryAsync<User>("select * from users");
+            await foreach (var item in userCount)
+            {
+                Assert.AreEqual(item.UserId, i++);
+            }
+        }
     }
 }

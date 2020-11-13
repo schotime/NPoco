@@ -41,7 +41,9 @@ namespace NPoco
         public MemberAccessor(Type targetType, string memberName)
         {
             _targetType = targetType;
-            MemberInfo memberInfo = ReflectionUtils.GetFieldsAndPropertiesForClasses(targetType).First(x => x.Name == memberName);
+            MemberInfo memberInfo = ReflectionUtils.GetFieldsAndPropertiesForClasses(targetType)
+                .Concat(ReflectionUtils.GetPrivatePropertiesForClasses(targetType))
+                .First(x => x.Name == memberName);
 
             if (memberInfo == null)
             {
@@ -186,7 +188,7 @@ namespace NPoco
             }
             else
             {
-                var targetGetMethod = ((PropertyInfo)_member).GetGetMethod();
+                var targetGetMethod = ((PropertyInfo)_member).GetGetMethod(true);
                 var opCode = _targetType.GetTypeInfo().IsValueType ? OpCodes.Call : OpCodes.Callvirt;
                 getIL.Emit(opCode, targetGetMethod);
                 returnType = targetGetMethod.ReturnType;

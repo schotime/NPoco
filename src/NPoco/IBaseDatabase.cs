@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 
 namespace NPoco
 {
-    public interface IBaseDatabase
+    public interface IBaseDatabase : IDisposable
     {
         /// <summary>
         /// The underlying connection object

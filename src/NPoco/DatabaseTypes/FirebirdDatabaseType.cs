@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Common;
 using System.Text;
 using NPoco.Expressions;
+using System.Threading.Tasks;
 
 namespace NPoco.DatabaseTypes
 {
@@ -75,20 +76,18 @@ namespace NPoco.DatabaseTypes
             return -1;
         }
 
-#if !NET35 && !NET40
-        public override async System.Threading.Tasks.Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {
                 var param = AdjustSqlInsertCommandText(cmd, primaryKeyName);
-                await db.ExecuteNonQueryHelperAsync(cmd);
+                await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
                 return param.Value;
             }
 
-            await db.ExecuteNonQueryHelperAsync(cmd);
-            return TaskAsyncHelper.FromResult<object>(-1);
+            await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+            return -1;
         }
-#endif
 
         public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
         {

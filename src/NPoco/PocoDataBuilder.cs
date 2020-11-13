@@ -17,6 +17,7 @@ namespace NPoco
     public class PocoDataBuilder : InitializedPocoDataBuilder
     {
         private readonly Cache<string, Type> _aliasToType = Cache<string, Type>.CreateStaticCache();
+        private FastCreate _generator;
 
         protected Type Type { get; set; }
         private MapperCollection Mapper { get; set; }
@@ -38,6 +39,9 @@ namespace NPoco
             var memberInfos = new List<MemberInfo>();
             var columnInfos = GetColumnInfos(Type);
 
+            // init the generator
+            _generator = new FastCreate(Type, Mapper);
+
             // Get table info plan
             _tableInfoPlan = GetTableInfo(Type, columnInfos, memberInfos);
 
@@ -47,11 +51,16 @@ namespace NPoco
             return this;
         }
 
+        protected virtual bool ShouldIncludePrivateColumn(MemberInfo mi, Type t) => mi.GetCustomAttribute<ColumnAttribute>() != null;
+
         public ColumnInfo[] GetColumnInfos(Type type)
         {
             return ReflectionUtils.GetFieldsAndPropertiesForClasses(type)
                 .Where(x => !IsDictionaryType(x.DeclaringType))
-                .Select(x => GetColumnInfo(x, type)).ToArray();
+                .Concat(ReflectionUtils.GetPrivatePropertiesForClasses(type)
+                    .Where(x => ShouldIncludePrivateColumn(x, type)))
+                .Select(x => GetColumnInfo(x, type))
+                .ToArray();
         }
 
         public static bool IsDictionaryType(Type type)
@@ -67,7 +76,7 @@ namespace NPoco
 
         PocoData InitializedPocoDataBuilder.Build()
         {
-            var pocoData = new PocoData(Type, Mapper);
+            var pocoData = new PocoData(Type, Mapper, _generator);
 
             pocoData.TableInfo = _tableInfoPlan();
 
@@ -133,7 +142,7 @@ namespace NPoco
                         : memberInfoType.GetTypeWithGenericTypeDefinitionOf(typeof(IList<>)).GetGenericArguments().First();
                 }
 
-                var childrenPlans = new PocoMemberPlan[0];
+                var childrenPlans = new List<PocoMemberPlan>();
                 TableInfoPlan childTableInfoPlan = null;
                 var members = new List<MemberInfo>(capturedMembers) { columnInfo.MemberInfo };
 
@@ -153,7 +162,7 @@ namespace NPoco
 
                     var newPrefix = JoinStrings(capturedPrefix, columnInfo.ReferenceType != ReferenceType.None ? "" : (columnInfo.ComplexPrefix ?? columnInfo.MemberInfo.Name));
 
-                    childrenPlans = GetPocoMembers(childColumnInfos, members, newPrefix).ToArray();
+                    childrenPlans.AddRange(GetPocoMembers(childColumnInfos, members, newPrefix));
                 }
 
                 MemberInfo capturedMemberInfo = columnInfo.MemberInfo;
@@ -178,6 +187,7 @@ namespace NPoco
                         MemberInfoChain = members,
                         ColumnName = columnName,
                         ResultColumn = capturedColumnInfo.ResultColumn,
+                        ExactColumnNameMatch = capturedColumnInfo.ExactColumnNameMatch,
                         ForceToUtc = capturedColumnInfo.ForceToUtc,
                         ComputedColumn = capturedColumnInfo.ComputedColumn,
                         ComputedColumnType = capturedColumnInfo.ComputedColumnType,

@@ -13,7 +13,7 @@ namespace NPoco.Tests.Common
         public int UserId { get; set; }
         public virtual string Name { get; set; }
         public int Age { get; set; }
-        public DateTime DateOfBirth { get; set; }
+        public DateTime? DateOfBirth { get; set; }
         public decimal Savings { get; set; }
         public bool IsMale { get; set; }
         public Guid? UniqueId { get; set; }
@@ -75,14 +75,6 @@ namespace NPoco.Tests.Common
     {
         [ComplexMapping]
         public new ExtraUserInfo ExtraUserInfo { get; set; }
-    }
-
-    public class UserWithNoParamConstructor : User
-    {
-        public UserWithNoParamConstructor(int userId)
-        {
-            UserId = userId;
-        }
     }
 
     public class UserWithPrivateParamLessConstructor : User

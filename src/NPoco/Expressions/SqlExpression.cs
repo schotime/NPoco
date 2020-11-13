@@ -444,12 +444,9 @@ namespace NPoco.Expressions
                     continue;
 
                 if (Context.UpdateFields.Count > 0 && !Context.UpdateFields.Contains(fieldDef.Value.MemberInfoData.Name)) continue; // added
-                object value = fieldDef.Value.GetColumnValue(_pocoData, item, (pocoColumn, val) => ProcessMapperExtensions.ProcessMapper(_database, pocoColumn, val));
-                if (_database.Mappers != null)
-                {
-                    value = _database.Mappers.FindAndExecute(x => x.GetToDbConverter(fieldDef.Value.ColumnType, fieldDef.Value.MemberInfoData.MemberInfo), value);
-                }
-
+                
+                object value = fieldDef.Value.GetColumnValue(_pocoData, item, (pocoColumn, val) => _database.ProcessMapper(pocoColumn, val));
+                
                 if (excludeDefaults && (value == null || value.Equals(MappingHelper.GetDefault(value.GetType())))) continue; //GetDefaultValue?
 
                 if (setFields.Length > 0)
@@ -917,6 +914,32 @@ namespace NPoco.Expressions
                     isNull = true;
                 }
                 m = m.Expression as MemberExpression;
+            }
+
+            if (m.Member.DeclaringType == typeof(DateTime) || m.Member.DeclaringType == typeof(DateTime?))
+            {
+                if (m.Expression is MemberExpression m1)
+                {
+                    var p = Expression.Convert(m1, typeof(object));
+                    if (p.NodeType == ExpressionType.Convert)
+                    {
+                        var pp = m1.Expression as ParameterExpression;
+                        if (pp == null)
+                        {
+                            m1 = m1.Expression as MemberExpression;
+                            if (m1 != null)
+                            {
+                                pp = m1.Expression as ParameterExpression;
+                            }
+                        }
+                        if (pp != null)
+                        {
+                            if (m.Member.Name == "Value") 
+                                return Visit(m1);
+                            return new PartialSqlString(GetDateTimeSql(m.Member.Name, Visit(m1)));
+                        }
+                    }
+                }
             }
 
             if (m.Expression != null
@@ -1399,9 +1422,17 @@ namespace NPoco.Expressions
                     string.Join(", ", cols.Select(x =>
                     {
                         if (x.SelectSql == null)
+                        {
+                            var pocoColumn = x.PocoColumns.Last();
                             return (PrefixFieldWithTableName
-                                ? _databaseType.EscapeTableName(_pocoData.TableInfo.AutoAlias) + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + _databaseType.EscapeSqlIdentifier(x.PocoColumns.Last().MemberInfoKey)
+                                ? _databaseType.EscapeTableName(_pocoData.TableInfo.AutoAlias) 
+                                  + "." + _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) 
+                                  + " as " + (string.IsNullOrWhiteSpace(pocoColumn.ColumnAlias) 
+                                      ? _databaseType.EscapeSqlIdentifier(pocoColumn.MemberInfoKey) 
+                                      : _databaseType.EscapeSqlIdentifier(pocoColumn.ColumnAlias))
                                 : _databaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName));
+                        }
+
                         return x.SelectSql;
                     }).ToArray()),
                     _databaseType.EscapeTableName(_pocoData.TableInfo.TableName) + (PrefixFieldWithTableName ? " " + _databaseType.EscapeTableName(_pocoData.TableInfo.AutoAlias) : string.Empty));
@@ -1579,6 +1610,22 @@ namespace NPoco.Expressions
                 return string.Format("substring({0},{1},{2})", columnName, CreateParam(startIndex), CreateParam(length));
             else
                 return string.Format("substring({0},{1},8000)", columnName, CreateParam(startIndex));
+        }
+
+        protected virtual string GetDateTimeSql(string memberName, object m)
+        {
+            string sql;
+            switch (memberName)
+            {
+                case "Year": sql = $"DATEPART(YEAR,{m})"; break;
+                case "Month": sql = $"DATEPART(MONTH,{m})"; break;
+                case "Day": sql = $"DATEPART(DAY,{m})"; break;
+                case "Hour": sql = $"DATEPART(HOUR,{m})"; break;
+                case "Minute": sql = $"DATEPART(MINUTE,{m})"; break;
+                case "Second": sql = $"DATEPART(SECOND,{m})"; break;
+                default: throw new NotSupportedException("Not Supported " + memberName);
+            }
+            return sql;
         }
     }
 

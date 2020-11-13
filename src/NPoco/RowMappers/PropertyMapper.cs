@@ -36,7 +36,7 @@ namespace NPoco.RowMappers
             {
                 context.Instance = context.PocoData.CreateObject(dataReader);
                 if (context.Instance == null)
-                    throw new Exception(string.Format("Cannot create POCO '{0}'. It may have no parameterless constructor or be an interface or abstract class without a Mapper factory.", context.Type.FullName));
+                    throw new Exception(string.Format("Cannot create POCO '{0}'. It may be an interface or abstract class without a Mapper factory.", context.Type.FullName));
             }
             else
             {
@@ -74,7 +74,8 @@ namespace NPoco.RowMappers
         private IEnumerable<MapPlan> BuildMapPlans(GroupResult<PosName> groupedName, DbDataReader dataReader, PocoData pocoData, List<PocoMember> pocoMembers)
         {
             // find pocomember by property name
-            var pocoMember = pocoMembers.FirstOrDefault(x => IsEqual(groupedName.Item, x.Name));
+            var pocoMember = pocoMembers.FirstOrDefault(x => IsEqual(groupedName.Item, x.Name, x.PocoColumn?.ExactColumnNameMatch ?? false) 
+                                       || string.Equals(groupedName.Item, x.PocoColumn?.ColumnAlias, StringComparison.OrdinalIgnoreCase));
 
             if (pocoMember == null)
             {
@@ -127,10 +128,13 @@ namespace NPoco.RowMappers
             }
         }
 
-        public static bool IsEqual(string name, string value)
+        public static bool IsEqual(string name, string value, bool exactMatch)
         {
+            if (value is null)
+                return false;
+
             return string.Equals(value, name, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(value, name.Replace("_", ""), StringComparison.OrdinalIgnoreCase);
+                || (!exactMatch && string.Equals(value, name.Replace("_", ""), StringComparison.OrdinalIgnoreCase));
         }
 
         private bool MapValue(GroupResult<PosName> posName, object[] values, Func<object, object> converter, object instance, PocoColumn pocoColumn, object defaultValue)

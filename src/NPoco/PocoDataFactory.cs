@@ -65,14 +65,14 @@ namespace NPoco
         public PocoData ForType(Type type)
         {
             Guard(type);
-            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFalbackPocoDataBuilder(type));
+            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFallbackPocoDataBuilder(type));
             return pocoDataBuilder.Build();
         }
 
         public TableInfo TableInfoForType(Type type)
         {
             Guard(type);
-            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFalbackPocoDataBuilder(type));
+            var pocoDataBuilder = _pocoDatas.Get(type, () => BaseClassFallbackPocoDataBuilder(type));
             return pocoDataBuilder.BuildTableInfo();
         }
 
@@ -81,7 +81,7 @@ namespace NPoco
             return ForObjectStatic(o, primaryKeyName, autoIncrement, ForType);
         }
 
-        private InitializedPocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
+        private InitializedPocoDataBuilder BaseClassFallbackPocoDataBuilder(Type type)
         {
             var builder = new PocoDataBuilder(type, _mapper).Init();
             var persistedType = builder.BuildTableInfo().PersistedType;
@@ -95,7 +95,6 @@ namespace NPoco
         public static PocoData ForObjectStatic(object o, string primaryKeyName, bool autoIncrement, Func<Type, PocoData> fallback)
         {
             var t = o.GetType();
-#if !NET35
             if (t == typeof (System.Dynamic.ExpandoObject) || t == typeof (PocoExpando))
             {
                 var pd = new PocoData
@@ -122,16 +121,13 @@ namespace NPoco
                 return pd;
             }
             else
-#endif
                 return fallback(t);
         }
 
         public static void Guard(Type type)
         {
-#if !NET35
             if (type == typeof(System.Dynamic.ExpandoObject) || type == typeof(PocoExpando))
                 throw new InvalidOperationException("Can't use dynamic types with this method");
-#endif
         }
 
     }

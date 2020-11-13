@@ -7,7 +7,6 @@ namespace NPoco.Tests.NewMapper
 {
     public class FakeReader : DbDataReader
     {
-#if !DNXCORE50
         public override void Close()
         {
             throw new NotImplementedException();
@@ -17,7 +16,6 @@ namespace NPoco.Tests.NewMapper
         {
             throw new NotImplementedException();
         }
-#endif
 
         public override bool NextResult()
         {

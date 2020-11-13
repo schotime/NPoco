@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -65,10 +67,19 @@ namespace NPoco
                         }
                     }
 
-                    var pi = o.GetType().GetProperty(param);
+                    var type = o.GetType();
+                    var pi = type.GetProperty(param);
                     if (pi != null)
                     {
                         arg_val = pi.GetValue(o, null);
+                        found = true;
+                        break;
+                    }
+
+                    var fi =  type.GetField(param);
+                    if (fi != null)
+                    {
+                        arg_val = fi.GetValue(o);
                         found = true;
                         break;
                     }
@@ -122,6 +133,95 @@ namespace NPoco
 
                 args_dest.Add(arg_val);
                 return "@" + (args_dest.Count - 1).ToString();
+            }
+        }
+
+        public static void SetParameterValue(DatabaseType dbType, DbParameter p, object value)
+        {
+            if (value == null)
+            {
+                p.Value = DBNull.Value;
+                return;
+            }
+
+            // Give the database type first crack at converting to DB required type
+            value = dbType.MapParameterValue(value);
+
+            var dbtypeSet = false;
+            var t = value.GetType();
+            var underlyingT = Nullable.GetUnderlyingType(t);
+            if (t.GetTypeInfo().IsEnum || (underlyingT != null && underlyingT.GetTypeInfo().IsEnum))        // PostgreSQL .NET driver wont cast enum to int
+            {
+                p.Value = (int)value;
+            }
+            else if (t == typeof(Guid))
+            {
+                p.Value = value;
+                p.DbType = DbType.Guid;
+                p.Size = 40;
+                dbtypeSet = true;
+            }
+            else if (t == typeof(string))
+            {
+                var strValue = value as string;
+                if (strValue == null)
+                {
+                    p.Size = 0;
+                    p.Value = DBNull.Value;
+                }
+                else
+                {
+                    // out of memory exception occurs if trying to save more than 4000 characters to SQL Server CE NText column. Set before attempting to set Size, or Size will always max out at 4000
+                    if (strValue.Length + 1 > 4000 && p.GetType().Name == "SqlCeParameter")
+                    {
+                        p.GetType().GetProperty("SqlDbType").SetValue(p, SqlDbType.NText, null);
+                    }
+
+                    p.Size = Math.Max(strValue.Length + 1, 4000); // Help query plan caching by using common size
+                    p.Value = value;
+                }
+            }
+            else if (t == typeof(AnsiString))
+            {
+                var ansistrValue = value as AnsiString;
+                if (ansistrValue?.Value == null)
+                {
+                    p.Size = 0;
+                    p.Value = DBNull.Value;
+                    p.DbType = DbType.AnsiString;
+                }
+                else
+                {
+                    // Thanks @DataChomp for pointing out the SQL Server indexing performance hit of using wrong string type on varchar
+                    p.Size = Math.Max(ansistrValue.Value.Length + 1, 4000);
+                    p.Value = ansistrValue.Value;
+                    p.DbType = DbType.AnsiString;
+                }
+                dbtypeSet = true;
+            }
+            else if (value.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
+            {
+                p.GetType().GetProperty("UdtTypeName").SetValue(p, "geography", null); //geography is the equivalent SQL Server Type
+                p.Value = value;
+            }
+
+            else if (value.GetType().Name == "SqlGeometry") //SqlGeometry is a CLR Type
+            {
+                p.GetType().GetProperty("UdtTypeName").SetValue(p, "geometry", null); //geography is the equivalent SQL Server Type
+                p.Value = value;
+            }
+            else
+            {
+                p.Value = value;
+            }
+
+            if (!dbtypeSet)
+            {
+                var dbTypeLookup = dbType.LookupDbType(p.Value.GetTheType(), p.ParameterName);
+                if (dbTypeLookup.HasValue)
+                {
+                    p.DbType = dbTypeLookup.Value;
+                }
             }
         }
     }

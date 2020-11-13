@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<Description>An extremely easy to use Micro-ORM supporting Sql Server.</Description>
+	<VersionPrefix>5.0.0</VersionPrefix>
+	<TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
+	<AssemblyName>NPoco.SqlServer</AssemblyName>
+	<PackageId>NPoco.SqlServer</PackageId>
+	<Authors>Adam Schröder</Authors>
+	<PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
+	<PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
+    <LangVersion>8.0</LangVersion>
+	<nullable>enable</nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="2.0.1" />
+    <PackageReference Include="Polly" Version="7.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NPoco\NPoco.csproj" />
+  </ItemGroup>
+
+</Project>

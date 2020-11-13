@@ -1,20 +1,16 @@
 using System;
 using System.Linq.Expressions;
-#if !NET35 && !NET40
 using System.Threading.Tasks;
-#endif
 using NPoco.Expressions;
 
 namespace NPoco.Linq
 {
     public interface IAsyncUpdateQueryProvider<T>
     {
-#if !NET35 && !NET40
         IAsyncUpdateQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
         IAsyncUpdateQueryProvider<T> ExcludeDefaults();
         IAsyncUpdateQueryProvider<T> OnlyFields(Expression<Func<T, object>> onlyFields);
         Task<int> Execute(T obj);
-#endif
     }
 
     public interface IUpdateQueryProvider<T>
@@ -23,9 +19,7 @@ namespace NPoco.Linq
         IUpdateQueryProvider<T> ExcludeDefaults();
         IUpdateQueryProvider<T> OnlyFields(Expression<Func<T, object>> onlyFields);
         int Execute(T obj);
-#if !NET35 && !NET40
         Task<int> ExecuteAsync(T obj);
-#endif
     }
 
     public class UpdateQueryProvider<T> : AsyncUpdateQueryProvider<T>, IUpdateQueryProvider<T>
@@ -57,12 +51,10 @@ namespace NPoco.Linq
         }
 #pragma warning restore CS0109
 
-#if !NET35 && !NET40
         public Task<int> ExecuteAsync(T obj)
         {
             return base.Execute(obj);
         }
-#endif
     }
 
     public class AsyncUpdateQueryProvider<T> : IAsyncUpdateQueryProvider<T>
@@ -97,12 +89,10 @@ namespace NPoco.Linq
             return this;
         }
 
-#if !NET35 && !NET40
         public async Task<int> Execute(T obj)
         {
             var updateStatement = _sqlExpression.Context.ToUpdateStatement(obj, _excludeDefaults, _onlyFields);
-            return await _database.ExecuteAsync(updateStatement, _sqlExpression.Context.Params);
+            return await _database.ExecuteAsync(updateStatement, _sqlExpression.Context.Params).ConfigureAwait(false);
         }
-#endif
     }
 }

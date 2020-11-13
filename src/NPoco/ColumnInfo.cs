@@ -25,6 +25,7 @@ namespace NPoco
         public ReferenceType ReferenceType { get; set; }
         public string ReferenceMemberName { get; set; }
         public MemberInfo MemberInfo { get; internal set; }
+        public bool ExactColumnNameMatch { get; set; }
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
@@ -84,6 +85,7 @@ namespace NPoco
             {
                 ci.ColumnName = colAttrs.FirstOrDefault(x => !string.IsNullOrEmpty(x.Name))?.Name ?? mi.Name;
                 ci.ForceToUtc = colAttrs.All(x => x.ForceToUtc);
+                ci.ExactColumnNameMatch = colAttrs.All(x => x.ExactNameMatch);
 
                 var resultAttr = colAttrs.OfType<ResultColumnAttribute>().FirstOrDefault();
                 ci.ResultColumn = resultAttr != null;

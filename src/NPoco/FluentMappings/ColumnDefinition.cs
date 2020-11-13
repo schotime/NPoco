@@ -25,5 +25,6 @@ namespace NPoco.FluentMappings
         public string ComplexPrefix { get; set; }
         public bool? ValueObjectColumn { get; set; }
         public string ValueObjectColumnName { get; set; }
+        public bool? ExactColumnNameMatch { get; set; }
     }
 }

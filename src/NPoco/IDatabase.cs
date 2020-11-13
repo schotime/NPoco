@@ -1,11 +1,13 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using NPoco.Linq;
+using System.Threading.Tasks;
 
 namespace NPoco
 {
-    public interface IDatabase : IDisposable, IDatabaseQuery, IDatabaseConfig
+    public interface IDatabase : IAsyncDatabase, IDatabaseQuery, IDatabaseConfig
     {
         /// <summary>
         /// Insert POCO into the table, primary key and autoincrement specified
@@ -25,12 +27,12 @@ namespace NPoco
         /// <summary>
         /// Insert POCO's into database using SqlBulkCopy for SqlServer (other DB's currently fall back to looping each row)
         /// </summary>        
-        void InsertBulk<T>(IEnumerable<T> pocos);
+        void InsertBulk<T>(IEnumerable<T> pocos, InsertBulkOptions? options = null);
 
         /// <summary>
         /// Insert POCO's into database by concatenating sql using the provided batch options
         /// </summary>        
-        int InsertBatch<T>(IEnumerable<T> pocos, BatchOptions options = null);
+        int InsertBatch<T>(IEnumerable<T> pocos, BatchOptions? options = null);
 
         /// <summary>
         /// Update POCO in the specified table, primary key and primarkey value
@@ -45,12 +47,12 @@ namespace NPoco
         /// <summary>
         /// Update POCO in the specified table, primary key, primarkey value for only the columns specified
         /// </summary>        
-        int Update(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns);
+        int Update(string tableName, string primaryKeyName, object poco, object? primaryKeyValue, IEnumerable<string>? columns);
 
         /// <summary>
         /// Update POCO in the specified table, primary key for only the columns specified
         /// </summary>        
-        int Update(string tableName, string primaryKeyName, object poco, IEnumerable<string> columns);
+        int Update(string tableName, string primaryKeyName, object poco, IEnumerable<string>? columns);
 
         /// <summary>
         /// Update POCO by convention or configuration for only the columns specified
@@ -60,7 +62,7 @@ namespace NPoco
         /// <summary>
         /// Update POCO by primary key for only the columns specified
         /// </summary>        
-        int Update(object poco, object primaryKeyValue, IEnumerable<string> columns);
+        int Update(object poco, object primaryKeyValue, IEnumerable<string>? columns);
 
         /// <summary>
         /// Update POCO by convention or configuration
@@ -96,7 +98,7 @@ namespace NPoco
         /// <summary>
         /// Update POCO's into database by concatenating sql using the provided batch options
         /// </summary>     
-        int UpdateBatch<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null);
+        int UpdateBatch<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions? options = null);
 
         /// <summary>
         /// Generate an update statement using a Fluent syntax. Remember to call Execute.
@@ -111,7 +113,7 @@ namespace NPoco
         /// <summary>
         /// Delete POCO specifying the table name, primary key name and primary key value
         /// </summary>        
-        int Delete(string tableName, string primaryKeyName, object poco, object primaryKeyValue);
+        int Delete(string tableName, string primaryKeyName, object? poco, object? primaryKeyValue);
 
         /// <summary>
         /// Delete POCO using convention or configuration

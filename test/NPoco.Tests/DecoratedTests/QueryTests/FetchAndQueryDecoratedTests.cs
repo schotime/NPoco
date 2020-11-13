@@ -3,7 +3,7 @@ using System.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 
 namespace NPoco.Tests.DecoratedTests.QueryTests
 {
@@ -73,6 +73,34 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             Assert.NotNull(user);
             Assert.True(!string.IsNullOrWhiteSpace(user.Name));
         }
+
+        [Test]
+        public void FetchWithAliasLinq()
+        {
+            var user = Database.Query<UserDecoratedWithAlias>().Where(x => x.UserId == 1).Single();
+
+            Assert.NotNull(user);
+            Assert.True(!string.IsNullOrWhiteSpace(user.Name));
+        }
+
+        [Test]
+        public void FetchWithAliasNested()
+        {
+            var user = Database.Single<UserAliasNested>("select 'howdy' N__A /*poco_dual*/");
+
+            Assert.NotNull(user);
+            Assert.AreEqual("howdy", user.N.Aliased);
+        }
+
+        [Test]
+        public void FetchWithAliasAutoSelect()
+        {
+            var user = Database.Single<UserDecoratedWithAlias>("where userid = 1");
+
+            Assert.NotNull(user);
+            Assert.True(!string.IsNullOrWhiteSpace(user.Name));
+        }
+
 
         [Test]
         public void FetchWithAliasUsingAutoSelect()

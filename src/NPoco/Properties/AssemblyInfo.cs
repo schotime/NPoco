@@ -23,3 +23,4 @@ using System.Runtime.InteropServices;
 [assembly: Guid("56481bba-35a1-4061-9fe8-0ed9e1b6a0a3")]
 
 [assembly: InternalsVisibleTo("NPoco.Tests")]
+[assembly: InternalsVisibleTo("NPoco.SqlServer")]

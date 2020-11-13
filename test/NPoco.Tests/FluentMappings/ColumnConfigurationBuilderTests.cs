@@ -5,6 +5,7 @@ using NPoco.FluentMappings;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 using System.Reflection;
+using NPoco.Tests.NewMapper;
 
 namespace NPoco.Tests.FluentMappings
 {
@@ -218,6 +219,50 @@ namespace NPoco.Tests.FluentMappings
 
             var pd = map.Config(new MapperCollection()).Resolver(typeof(User), new PocoDataFactory(new MapperCollection())).Build();
             Assert.AreEqual(true, pd.Columns.ContainsKey("CM__Street"));
+        }
+
+        public class FluentMappingOverridesForPrivates : Mappings
+        {
+            public FluentMappingOverridesForPrivates()
+            {
+                For<NewMapperTests.Result36>().Columns(x =>
+                {
+                    x.Column<string>("Data");
+                });
+            }
+        }
+
+        [Test]
+        public void FluentMappingForPrivates()
+        {
+            var map = FluentMappingConfiguration.Configure(new FluentMappingOverridesForPrivates());
+            var pd = map.Config(new MapperCollection()).Resolver(typeof(NewMapperTests.Result36), new PocoDataFactory(new MapperCollection())).Build();
+            Assert.AreEqual(true, pd.Columns.ContainsKey("Data"));
+        }
+
+        public class FluentMappingOverridesForPrivatesScan : Mappings
+        {
+            public FluentMappingOverridesForPrivatesScan()
+            {
+                For<NewMapperTests.Result36>().Columns(x =>
+                {
+                    x.Column<string>("Data1");
+                });
+            }
+        }
+
+        [Test]
+        public void FluentMappingForPrivatesScan()
+        {
+            var map = FluentMappingConfiguration.Scan(s =>
+            {
+                s.Assembly(typeof(NewMapperTests.Result36).GetTypeInfo().Assembly);
+                s.IncludeTypes(t => t == typeof(NewMapperTests.Result36));
+                s.OverrideMappingsWith(new FluentMappingOverridesForPrivatesScan());
+            });
+            var pd = map.Config(new MapperCollection()).Resolver(typeof(NewMapperTests.Result36), new PocoDataFactory(new MapperCollection())).Build();
+            Assert.AreEqual(true, pd.Columns.ContainsKey("Data"));
+            Assert.AreEqual(true, pd.Columns.ContainsKey("Data1"));
         }
     }
 }

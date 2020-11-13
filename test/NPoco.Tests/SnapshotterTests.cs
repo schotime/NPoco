@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Linq;
 using NPoco;
 using NPoco.FluentMappings;
 using NPoco.Tests.Common;
 using NUnit.Framework;
+using NPoco.DatabaseTypes;
 
 namespace NPoco.Tests
 {
@@ -19,7 +20,7 @@ namespace NPoco.Tests
             var dbfactory = new DatabaseFactory();
             dbfactory
                 .Config()
-                .UsingDatabase(() => new Database("", DatabaseType.SqlServer2012, SqlClientFactory.Instance))
+                .UsingDatabase(() => new Database("", new SqlServer2012DatabaseType(), SqlClientFactory.Instance))
                 .WithFluentConfig(FluentMappingConfiguration.Configure(new MyMappings()));
             
             _database = dbfactory.GetDatabase();

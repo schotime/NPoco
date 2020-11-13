@@ -25,10 +25,8 @@ namespace NPoco.RowMappers
         {
             IDictionary<string, object> target = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
-#if !NET35
             if (context.Type == typeof(object))
                 target = new PocoExpando();
-#endif
 
             for (int i = 0; i < _posNames.Length; i++)
             {

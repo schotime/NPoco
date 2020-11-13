@@ -443,6 +443,19 @@ select 22 Money__Value /*poco_dual*/");
             Assert.AreEqual("1 Road Street, Suburb", data[1].Address);
         }
 
+        [Test]
+        public void Test22_2()
+        {
+            var data = Database.Query<MyUserDec>()
+                .Include<HouseDecorated>()
+                .ProjectTo(x => x.House)
+                .ToList();
+
+            Assert.AreEqual(15, data.Count);
+            Assert.AreEqual(2, data[1].HouseId);
+            Assert.AreEqual("1 Road Street, Suburb", data[1].Address);
+        }
+
         [TableName("Users"), PrimaryKey("UserId")]
         public class MyUserDec
         {
@@ -451,6 +464,29 @@ select 22 Money__Value /*poco_dual*/");
 
             [Reference(ReferenceType.OneToOne, ColumnName = "HouseId", ReferenceMemberName = "HouseId")]
             public HouseDecorated House { get; set; }
+        }
+
+        [Test]
+        public void Test22_3()
+        {
+            var result = Database.Single<Ticket>("SELECT '8440F7B5-F1A6-E911-8100-005056833617' as [TID], '3686a4b6-75a6-e911-8e46-5cc5d488af58' as [OID], '3686a4b6-75a6-e911-8e46-5cc5d488af58' as [Order__OID], 'the desc' as [Order__Description] /*poco_dual*/");
+            Assert.AreEqual("the desc", result.Order.Description);
+            Assert.AreEqual(Guid.Parse("8440F7B5-F1A6-E911-8100-005056833617"), result.TID);
+        }
+
+        public class Ticket
+        {
+            public Guid TID { get; set; }
+            public Guid? OID { get; set; }
+            [ComputedColumn]
+            [Reference(ReferenceType.OneToOne, ColumnName = "OID", ReferenceMemberName = "OID")]
+            public Order Order { get; set; }
+        }
+
+        public class Order
+        {
+            public Guid OID { get; set; }
+            public string Description { get; set; }
         }
 
         [Test]
@@ -634,6 +670,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             Assert.Throws<Exception>(() =>
             {
                 var fastCreate = new FastCreate(typeof(ContentBase), new MapperCollection());
+                fastCreate.Create(new FakeReader());
             });
         }
 
@@ -688,6 +725,42 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
                 public string Name { get; set; }
                 public int Age { get; set; }
             }
+        }
+
+        [Test]
+        public void Test36()
+        {
+            var result = Database.Single<Result36>("select 'Test' Data, 'Test2' Data1 /*poco_dual*/");
+            Assert.AreEqual("Test", result.GetData());
+            Assert.AreEqual(null, result.GetData1());
+        }
+
+        public class Result36
+        {
+            [Column]
+            private string Data { get; set; }
+
+            private string Data1 { get; set; }
+
+            public string GetData() => Data;
+            public string GetData1() => Data1;
+        }
+
+        [Test]
+        public void ExactMatchTests()
+        {
+            var result = Database.Single<ExactMatchTestsDto>("select 'Test' MyColumn, 'Test2' My_Column /*poco_dual*/");
+            Assert.AreEqual("Test", result.MyColumn);
+            Assert.AreEqual("Test2", result.My_Column);
+        }
+
+        public class ExactMatchTestsDto
+        {
+            [Column(ExactNameMatch = true)]
+            public string MyColumn { get; set; }
+
+            [Column(ExactNameMatch = true)]
+            public string My_Column { get; set; }
         }
     }
 

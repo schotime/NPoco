@@ -1,4 +1,4 @@
-﻿using System.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using NPoco;
 using NPoco.FluentMappings;
 using NUnit.Framework;

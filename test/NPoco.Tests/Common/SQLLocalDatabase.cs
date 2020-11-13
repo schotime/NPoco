@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.IO;
 using NPoco.DatabaseTypes;
 
@@ -27,19 +27,17 @@ namespace NPoco.Tests.Common
 
             ConnectionStringBase = String.Format("Data Source={0};Integrated Security=True;", dataSource);
             ConnectionString = String.Format("{0}AttachDbFileName=\"{1}\";", ConnectionStringBase, FQDBFile);
-            ProviderName = "System.Data.SqlClient";
+            ProviderName = "Microsoft.Data.SqlClient";
 
             RecreateDataBase();
             EnsureSharedConnectionConfigured();
 
 //            Console.WriteLine("Tables (Constructor): " + Environment.NewLine);
-//#if !DNXCORE50
 //            var dt = ((SqlConnection)Connection).GetSchema("Tables");
 //            foreach (DataRow row in dt.Rows)
 //            {
 //                Console.WriteLine((string)row[2]);
 //            }
-//#endif
         }
 
         public override void EnsureSharedConnectionConfigured()
@@ -221,14 +219,18 @@ namespace NPoco.Tests.Common
             ";
             cmd.ExecuteNonQuery();
 
+            cmd.CommandText = "CREATE TABLE Parent (ParentId int NOT NULL PRIMARY KEY, Id int NOT NULL)";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = "CREATE TABLE Child (ChildId int NOT NULL PRIMARY KEY, ParentId int NOT NULL, CONSTRAINT fk FOREIGN KEY (ParentId) REFERENCES Parent(ParentId))";
+            cmd.ExecuteNonQuery();
+
+
             //            Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
-            //#if !DNXCORE50
             //            var dt = conn.GetSchema("Tables");
             //            foreach (DataRow row in dt.Rows)
             //            {
             //                Console.WriteLine(row[2]);
             //            }
-            //#endif
 
             cmd.Dispose();
             conn.Close();

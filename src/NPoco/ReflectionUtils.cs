@@ -22,6 +22,14 @@ namespace NPoco
             return GetFieldsAndProperties(type);
         }
 
+        public static List<MemberInfo> GetPrivatePropertiesForClasses(Type type)
+        {
+            if (type.GetTypeInfo().IsValueType || type == typeof(string) || type == typeof(byte[]) || type == typeof(Dictionary<string, object>) || type.IsArray)
+                return new List<MemberInfo>();
+
+            return GetFieldsAndProperties(type, BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+
         public static List<MemberInfo> GetFieldsAndProperties(Type type)
         {
             return GetFieldsAndProperties(type, BindingFlags.Instance | BindingFlags.Public);
@@ -31,7 +39,7 @@ namespace NPoco
         {
             List<MemberInfo> targetMembers = new List<MemberInfo>();
 
-            targetMembers.AddRange(type.GetFields(bindingAttr).Where(x=>!x.IsInitOnly).ToArray());
+            targetMembers.AddRange(type.GetFields(bindingAttr).Where(x => !x.IsInitOnly).ToArray());
             targetMembers.AddRange(type.GetProperties(bindingAttr));
 
             return targetMembers;
@@ -54,13 +62,8 @@ namespace NPoco
 
         public static bool IsDynamic(this MemberInfo member)
         {
-#if !NET35
             return member.GetCustomAttributes(typeof(DynamicAttribute), true).Any();
-#else
-            return false;
-#endif
         }
-
 
         public static bool IsField(this MemberInfo member)
         {
@@ -150,23 +153,13 @@ namespace NPoco
 
         public static IEnumerable<Attribute> GetCustomAttributes(MemberInfo memberInfo)
         {
-#if NET35 || NET40
-            var attrs = Attribute.GetCustomAttributes(memberInfo);
-#else
             var attrs = memberInfo.GetCustomAttributes();
-#endif
-
             return attrs;
         }
 
         public static IEnumerable<Attribute> GetCustomAttributes(MemberInfo memberInfo, Type type)
         {
-#if NET35 || NET40
-            var attrs = Attribute.GetCustomAttributes(memberInfo, type);
-#else
             var attrs = memberInfo.GetCustomAttributes(type);
-#endif
-
             return attrs;
         }
     }

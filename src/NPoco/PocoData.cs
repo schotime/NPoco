@@ -19,12 +19,16 @@ namespace NPoco
         public List<PocoMember> Members { get; protected internal set; }
         public List<PocoColumn> AllColumns { get; protected internal set; }
 
+        // This is used on a per query basis, if we have cache PocoData then this will need to change.
+        public bool IsQueryGenerated { get; set; }
+
         public PocoData()
         {
         }
 
-        public PocoData(Type type, MapperCollection mapper) : this()
+        public PocoData(Type type, MapperCollection mapper, FastCreate creator) : this()
         {
+            CreateDelegate = creator;
             Type = type;
             Mapper = mapper;
         }
@@ -70,15 +74,11 @@ namespace NPoco
             }
         }
 
-
         public object CreateObject(DbDataReader dataReader)
         {
-            if (CreateDelegate == null)
-                CreateDelegate = new FastCreate(Type, Mapper);
             return CreateDelegate.Create(dataReader);
         }
 
         private FastCreate CreateDelegate { get; set; }
-
     }
 }

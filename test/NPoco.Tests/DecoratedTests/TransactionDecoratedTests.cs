@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using NPoco;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -52,7 +52,7 @@ namespace NPoco.Tests.DecoratedTests
             {
                 using (var scope2 = Database.GetTransaction())
                 {
-                    
+
 
                     var user1 = new UserDecorated
                     {
@@ -197,7 +197,7 @@ namespace NPoco.Tests.DecoratedTests
                     };
                     InMemoryExtraUserInfos.Add(extra1);
                     Database.Insert(extra1);
-                    
+
                     scope2.Complete();
                 }
 
@@ -218,7 +218,7 @@ namespace NPoco.Tests.DecoratedTests
                 Name = "Name" + 16,
                 Age = 20 + 16,
                 DateOfBirth = new DateTime(1970, 1, 1).AddYears(16),
-                Savings = 50.00m + (1.01m*16)
+                Savings = 50.00m + (1.01m * 16)
             };
             InMemoryUsers.Add(user);
             Database.Insert(user);
@@ -239,7 +239,7 @@ namespace NPoco.Tests.DecoratedTests
                 Name = "Name" + 16,
                 Age = 20 + 16,
                 DateOfBirth = new DateTime(1970, 1, 1).AddYears(16),
-                Savings = 50.00m + (1.01m*16)
+                Savings = 50.00m + (1.01m * 16)
             };
             InMemoryUsers.Add(user1);
             Database.Insert(user1);

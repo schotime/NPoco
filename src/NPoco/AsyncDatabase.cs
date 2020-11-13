@@ -1,5 +1,4 @@
-﻿#if !NET35 && !NET40
-using System.Collections;
+﻿using System.Collections;
 using System.Linq.Expressions;
 using NPoco.Expressions;
 using System;
@@ -55,10 +54,10 @@ namespace NPoco
         public virtual Task<object> InsertAsync<T>(string tableName, string primaryKeyName, bool autoIncrement, T poco)
         {
             var pd = PocoDataFactory.ForObject(poco, primaryKeyName, autoIncrement);
-            return InsertAsyncImp(pd, tableName, primaryKeyName, autoIncrement, poco);
+            return InsertAsyncImp(pd, tableName, primaryKeyName, autoIncrement, poco, false);
         }
 
-        private async Task<object> InsertAsyncImp<T>(PocoData pocoData, string tableName, string primaryKeyName, bool autoIncrement, T poco)
+        private async Task<object> InsertAsyncImp<T>(PocoData pocoData, string tableName, string primaryKeyName, bool autoIncrement, T poco, bool sync)
         {
             if (!OnInsertingInternal(new InsertContext(poco, tableName, autoIncrement, primaryKeyName)))
                 return 0;
@@ -77,12 +76,18 @@ namespace NPoco
                     object id;
                     if (!autoIncrement)
                     {
-                        await ExecuteNonQueryHelperAsync(cmd);
+                        _ = sync
+                            ? ExecuteNonQueryHelper(cmd)
+                            : await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+
                         id = InsertStatements.AssignNonIncrementPrimaryKey(primaryKeyName, poco, preparedInsert);
                     }
                     else
                     {
-                        id = await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray());
+                        id = sync 
+                            ? _dbType.ExecuteInsert(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray())
+                            : await _dbType.ExecuteInsertAsync(this, cmd, primaryKeyName, preparedInsert.PocoData.TableInfo.UseOutputClause, poco, preparedInsert.Rawvalues.ToArray()).ConfigureAwait(false);
+                        
                         InsertStatements.AssignPrimaryKey(primaryKeyName, poco, id, preparedInsert);
                     }
 
@@ -100,7 +105,30 @@ namespace NPoco
             }
         }
 
-        public async Task<int> InsertBatchAsync<T>(IEnumerable<T> pocos, BatchOptions options = null)
+        public async Task InsertBulkAsync<T>(IEnumerable<T> pocos, InsertBulkOptions options = null)
+        {
+            try
+            {
+                OpenSharedConnectionInternal();
+                await _dbType.InsertBulkAsync(this, pocos, options).ConfigureAwait(false);
+            }
+            catch (Exception x)
+            {
+                OnExceptionInternal(x);
+                throw;
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+
+        public Task<int> InsertBatchAsync<T>(IEnumerable<T> pocos, BatchOptions options = null)
+        {
+            return InsertBatchAsyncImp(pocos, options, false);
+        }
+
+        private async Task<int> InsertBatchAsyncImp<T>(IEnumerable<T> pocos, BatchOptions options, bool sync)
         {
             options = options ?? new BatchOptions();
             var result = 0;
@@ -126,7 +154,9 @@ namespace NPoco
 
                     using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
                     {
-                        result += await ExecuteNonQueryHelperAsync(cmd);
+                        result += sync
+                            ? ExecuteNonQueryHelper(cmd)
+                            : await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
                     }
                 }
             }
@@ -170,11 +200,15 @@ namespace NPoco
 
         public virtual Task<int> UpdateAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue, IEnumerable<string> columns)
         {
-            return UpdateImp (tableName, primaryKeyName, poco, primaryKeyValue, columns,
-                async (sql, args, next) => next(await ExecuteAsync(sql, args).ConfigureAwait(false)), TaskAsyncHelper.FromResult(0));
+            return UpdateImpAsync(tableName, primaryKeyName, poco, primaryKeyValue, columns, false);
         }
 
-        public async Task<int> UpdateBatchAsync<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null)
+        public Task<int> UpdateBatchAsync<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null)
+        {
+            return UpdateBatchAsyncImp(pocos, options, false);
+        }
+
+        private async Task<int> UpdateBatchAsyncImp<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options, bool sync)
         {
             options = options ?? new BatchOptions();
             int result = 0;
@@ -188,7 +222,7 @@ namespace NPoco
                 {
                     var preparedUpdates = batchedPocos.Select(x =>
                     {
-                        if (pd == null) pd = PocoDataFactory.ForType(x.GetType());
+                        if (pd == null) pd = PocoDataFactory.ForType(x.Poco.GetType());
                         return UpdateStatements.PrepareUpdate(this, pd, pd.TableInfo.TableName, pd.TableInfo.PrimaryKey, x.Poco, null, x.Snapshot?.UpdatedColumns());
                     }).ToArray();
 
@@ -203,7 +237,9 @@ namespace NPoco
 
                     using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))
                     {
-                        result += await ExecuteNonQueryHelperAsync(cmd);
+                        result += sync
+                            ? ExecuteNonQueryHelper(cmd)
+                            : await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
                     }
                 }
             }
@@ -238,7 +274,7 @@ namespace NPoco
 
         public virtual Task<int> DeleteAsync(string tableName, string primaryKeyName, object poco, object primaryKeyValue)
         {
-            return DeleteImp(tableName, primaryKeyName, poco, primaryKeyValue, ExecuteAsync, TaskAsyncHelper.FromResult(0));
+            return DeleteImpAsync(tableName, primaryKeyName, poco, primaryKeyValue, false);
         }
 
         public IAsyncDeleteQueryProvider<T> DeleteManyAsync<T>()
@@ -253,12 +289,7 @@ namespace NPoco
 
         public Task<Page<T>> PageAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
         {
-            return PageImp<T, Task<Page<T>>>(page, itemsPerPage, sql, args,
-                async (paged, thesql) =>
-                {
-                    paged.Items = (await QueryAsync<T>(thesql).ConfigureAwait(false)).ToList();
-                    return paged;
-                });
+            return PageImpAsync<T>(page, itemsPerPage, sql, args, false);
         }
 
         public Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, params object[] args)
@@ -283,38 +314,101 @@ namespace NPoco
             return SkipTakeAsync<T>(skip, take, sql.SQL, sql.Arguments);
         }
 
+        /// <summary>Checks if a poco represents a new record.</summary>
+        public Task<bool> IsNewAsync<T>(T poco)
+        {
+            return IsNewAsync(poco, false);
+        }
+
+        public async Task SaveAsync<T>(T poco)
+        {
+            var tableInfo = PocoDataFactory.TableInfoForType(poco.GetType());
+            if (await IsNewAsync(poco).ConfigureAwait(false))
+            {
+                await InsertAsync(tableInfo.TableName, tableInfo.PrimaryKey, tableInfo.AutoIncrement, poco).ConfigureAwait(false);
+            }
+            else
+            {
+                await UpdateAsync(tableInfo.TableName, tableInfo.PrimaryKey, poco, null, null).ConfigureAwait(false);
+            }
+        }
+
+        private async Task<bool> PocoExistsAsync<T>(T poco, bool sync)
+        {
+            var sql = GetExistsSql<T>(poco, true);
+            var result = sync 
+                ? ExecuteScalar<int>(sql)
+                : await ExecuteScalarAsync<int>(sql).ConfigureAwait(false);
+            return result > 0;
+        }
+
+        private async Task<bool> ExistsAsync<T>(object primaryKey, bool sync)
+        {
+            var sql = GetExistsSql<T>(primaryKey, false);
+            var result = sync 
+                ? ExecuteScalar<int>(sql)
+                : await ExecuteScalarAsync<int>(sql).ConfigureAwait(false);
+            return result > 0;
+        }
+
+        private Sql GetExistsSql<T>(object primaryKeyorPoco, bool isPoco)
+        {
+            var index = 0;
+            var pd = PocoDataFactory.ForType(typeof(T));
+            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKeyorPoco, isPoco);
+            var sql = string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index));
+            var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
+            return new Sql(sql, args);
+        }
+
         public Task<List<T>> FetchAsync<T>()
         {
             return FetchAsync<T>("");
         }
 
-        public async Task<List<T>> FetchAsync<T>(string sql, params object[] args)
+        public Task<List<T>> FetchAsync<T>(string sql, params object[] args)
         {
-            return (await QueryAsync<T>(sql, args).ConfigureAwait(false)).ToList();
+            return QueryAsync<T>(sql, args).ToListAsync().AsTask();
         }
 
-        public async Task<List<T>> FetchAsync<T>(Sql sql)
+        public Task<List<T>> FetchAsync<T>(Sql sql)
         {
-            return (await QueryAsync<T>(sql).ConfigureAwait(false)).ToList();
+            return QueryAsync<T>(sql).ToListAsync().AsTask();
         }
+
+        public Task<TRet> FetchMultipleAsync<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, string sql, params object[] args) { return FetchMultipleImp<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, new Sql(sql, args), false); }
+        public Task<TRet> FetchMultipleAsync<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, string sql, params object[] args) { return FetchMultipleImp<T1, T2, T3, DontMap, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, new Sql(sql, args), false); }
+        public Task<TRet> FetchMultipleAsync<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, string sql, params object[] args) { return FetchMultipleImp<T1, T2, T3, T4, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, new Sql(sql, args), false); }
+        public Task<TRet> FetchMultipleAsync<T1, T2, TRet>(Func<List<T1>, List<T2>, TRet> cb, Sql sql) { return FetchMultipleImp<T1, T2, DontMap, DontMap, TRet>(new[] { typeof(T1), typeof(T2) }, cb, sql, false); }
+        public Task<TRet> FetchMultipleAsync<T1, T2, T3, TRet>(Func<List<T1>, List<T2>, List<T3>, TRet> cb, Sql sql) { return FetchMultipleImp<T1, T2, T3, DontMap, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3) }, cb, sql, false); }
+        public Task<TRet> FetchMultipleAsync<T1, T2, T3, T4, TRet>(Func<List<T1>, List<T2>, List<T3>, List<T4>, TRet> cb, Sql sql) { return FetchMultipleImp<T1, T2, T3, T4, TRet>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, cb, sql, false); }
+
+        public Task<(List<T1>, List<T2>)> FetchMultipleAsync<T1, T2>(string sql, params object[] args) { return FetchMultipleImp<T1, T2, DontMap, DontMap, (List<T1>, List<T2>)>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, (List<T1>, List<T2>)>((y, z) => (y, z)), new Sql(sql, args), false); }
+        public Task<(List<T1>, List<T2>, List<T3>)> FetchMultipleAsync<T1, T2, T3>(string sql, params object[] args) { return FetchMultipleImp<T1, T2, T3, DontMap, (List<T1>, List<T2>, List<T3>)>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, (List<T1>, List<T2>, List<T3>)>((x, y, z) => (x, y, z)), new Sql(sql, args), false); }
+        public Task<(List<T1>, List<T2>, List<T3>, List<T4>)> FetchMultipleAsync<T1, T2, T3, T4>(string sql, params object[] args) { return FetchMultipleImp<T1, T2, T3, T4, (List<T1>, List<T2>, List<T3>, List<T4>)>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, (List<T1>, List<T2>, List<T3>, List<T4>)>((w, x, y, z) => (w, x, y, z)), new Sql(sql, args), false); }
+        public Task<(List<T1>, List<T2>)> FetchMultipleAsync<T1, T2>(Sql sql) { return FetchMultipleImp<T1, T2, DontMap, DontMap, (List<T1>, List<T2>)>(new[] { typeof(T1), typeof(T2) }, new Func<List<T1>, List<T2>, (List<T1>, List<T2>)>((y, z) => (y, z)), sql, false); }
+        public Task<(List<T1>, List<T2>, List<T3>)> FetchMultipleAsync<T1, T2, T3>(Sql sql) { return FetchMultipleImp<T1, T2, T3, DontMap, (List<T1>, List<T2>, List<T3>)>(new[] { typeof(T1), typeof(T2), typeof(T3) }, new Func<List<T1>, List<T2>, List<T3>, (List<T1>, List<T2>, List<T3>)>((x, y, z) => (x, y, z)), sql, false); }
+        public Task<(List<T1>, List<T2>, List<T3>, List<T4>)> FetchMultipleAsync<T1, T2, T3, T4>(Sql sql) { return FetchMultipleImp<T1, T2, T3, T4, (List<T1>, List<T2>, List<T3>, List<T4>)>(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, new Func<List<T1>, List<T2>, List<T3>, List<T4>, (List<T1>, List<T2>, List<T3>, List<T4>)>((w, x, y, z) => (w, x, y, z)), sql, false); }
 
         public IAsyncQueryProviderWithIncludes<T> QueryAsync<T>()
         {
             return new AsyncQueryProvider<T>(this);
         }
 
-        public Task<IEnumerable<T>> QueryAsync<T>(string sql, params object[] args)
+        public IAsyncEnumerable<T> QueryAsync<T>(string sql, params object[] args)
         {
             return QueryAsync<T>(new Sql(sql, args));
         }
 
-        public Task<IEnumerable<T>> QueryAsync<T>(Sql sql)
+        public IAsyncEnumerable<T> QueryAsync<T>(Sql sql)
         {
             return QueryAsync(default(T), null, null, sql);
         }
 
-        internal async Task<IEnumerable<T>> QueryAsync<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql)
+        internal async IAsyncEnumerable<T> QueryAsync<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql, PocoData pocoData = null)
         {
+            pocoData ??= PocoDataFactory.ForType(typeof(T));
+
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
@@ -323,78 +417,70 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-                DbCommand cmd = CreateCommand(_sharedConnection, sql, args); 
-                DbDataReader r;
-                try
+                using var cmd = CreateCommand(_sharedConnection, sql, args); 
+                using var reader = await ExecuteDataReader(cmd, false).ConfigureAwait(false);
+                var read = (listExpression != null ? ReadOneToManyAsync(instance, reader, listExpression, idFunc, pocoData) : ReadAsync<T>(instance, reader, pocoData));
+                await foreach (var item in read)
                 {
-                    r = await ExecuteReaderHelperAsync(cmd).ConfigureAwait(false);
+                    yield return item;
                 }
-                catch (Exception x)
-                {
-                    cmd.Dispose();
-                    OnExceptionInternal(x);
-                    throw;
-                }
-
-                return listExpression != null ? ReadOneToMany(instance, r, cmd, listExpression, idFunc) : Read<T>(typeof(T), instance, r, cmd);
             }
-            catch
+            finally
             {
                 CloseSharedConnectionInternal();
-                throw;
             }
         }
 
-        public async Task<T> SingleAsync<T>(string sql, params object[] args)
+        public Task<T> SingleAsync<T>(string sql, params object[] args)
         {
-            return (await QueryAsync<T>(sql, args).ConfigureAwait(false)).Single();
+            return QueryAsync<T>(sql, args).SingleAsync().AsTask();
         }
 
-        public async Task<T> SingleAsync<T>(Sql sql)
+        public Task<T> SingleAsync<T>(Sql sql)
         {
-            return (await QueryAsync<T>(sql).ConfigureAwait(false)).Single();
+            return QueryAsync<T>(sql).SingleAsync().AsTask();
         }
 
-        public async Task<T> SingleOrDefaultAsync<T>(string sql, params object[] args)
+        public Task<T> SingleOrDefaultAsync<T>(string sql, params object[] args)
         {
-            return (await QueryAsync<T>(sql, args).ConfigureAwait(false)).SingleOrDefault();
+            return QueryAsync<T>(sql, args).SingleOrDefaultAsync().AsTask();
         }
 
-        public async Task<T> SingleOrDefaultAsync<T>(Sql sql)
+        public Task<T> SingleOrDefaultAsync<T>(Sql sql)
         {
-            return (await QueryAsync<T>(sql).ConfigureAwait(false)).SingleOrDefault();
+            return QueryAsync<T>(sql).SingleOrDefaultAsync().AsTask();
         }
 
-        public async Task<T> SingleByIdAsync<T>(object primaryKey)
+        public Task<T> SingleByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
-            return (await QueryAsync<T>(sql).ConfigureAwait(false)).Single();
+            return QueryAsync<T>(sql).SingleAsync().AsTask();
         }
 
-        public async Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey)
+        public Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
-            return (await QueryAsync<T>(sql).ConfigureAwait(false)).SingleOrDefault();
+            return QueryAsync<T>(sql).SingleOrDefaultAsync().AsTask();
         }
 
-        public async Task<T> FirstAsync<T>(string sql, params object[] args)
+        public Task<T> FirstAsync<T>(string sql, params object[] args)
         {
-            return (await QueryAsync<T>(sql, args).ConfigureAwait(false)).First();
+            return QueryAsync<T>(sql).FirstAsync().AsTask();
         }
 
-        public async Task<T> FirstAsync<T>(Sql sql)
+        public Task<T> FirstAsync<T>(Sql sql)
         {
-            return (await QueryAsync<T>(sql).ConfigureAwait(false)).First();
+            return QueryAsync<T>(sql).FirstAsync().AsTask();
         }
 
-        public async Task<T> FirstOrDefaultAsync<T>(string sql, params object[] args)
+        public Task<T> FirstOrDefaultAsync<T>(string sql, params object[] args)
         {
-            return (await QueryAsync<T>(sql, args).ConfigureAwait(false)).FirstOrDefault();
+            return QueryAsync<T>(sql).FirstOrDefaultAsync().AsTask();
         }
 
-        public async Task<T> FirstOrDefaultAsync<T>(Sql sql)
+        public Task<T> FirstOrDefaultAsync<T>(Sql sql)
         {
-            return (await QueryAsync<T>(sql).ConfigureAwait(false)).FirstOrDefault();
+            return QueryAsync<T>(sql).FirstOrDefaultAsync().AsTask();
         }
 
         public Task<int> ExecuteAsync(string sql, params object[] args)
@@ -445,7 +531,7 @@ namespace NPoco
                     object val = await ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
 
                     if (val == null || val == DBNull.Value)
-                        return await TaskAsyncHelper.FromResult(default(T)).ConfigureAwait(false);
+                        return default(T);
 
                     Type t = typeof(T);
                     Type u = Nullable.GetUnderlyingType(t);
@@ -467,7 +553,7 @@ namespace NPoco
         internal async Task<int> ExecuteNonQueryHelperAsync(DbCommand cmd)
         {
             DoPreExecute(cmd);
-            var result = await _dbType.ExecuteNonQueryAsync(this, cmd).ConfigureAwait(false);
+            var result = await ExecutionHookAsync(() => _dbType.ExecuteNonQueryAsync(this, cmd)).ConfigureAwait(false);
             OnExecutedCommandInternal(cmd);
             return result;
         }
@@ -475,7 +561,7 @@ namespace NPoco
         internal async Task<object> ExecuteScalarHelperAsync(DbCommand cmd)
         {
             DoPreExecute(cmd);
-            var result = await _dbType.ExecuteScalarAsync(this, cmd).ConfigureAwait(false);
+            var result = await ExecutionHookAsync(() => _dbType.ExecuteScalarAsync(this, cmd)).ConfigureAwait(false);
             OnExecutedCommandInternal(cmd);
             return result;
         }
@@ -483,21 +569,9 @@ namespace NPoco
         internal async Task<DbDataReader> ExecuteReaderHelperAsync(DbCommand cmd)
         {
             DoPreExecute(cmd);
-            var reader = await _dbType.ExecuteReaderAsync(this, cmd).ConfigureAwait(false);
+            var reader = await ExecutionHookAsync(() => _dbType.ExecuteReaderAsync(this, cmd)).ConfigureAwait(false);
             OnExecutedCommandInternal(cmd);
             return reader;
         }
     }
-
-    public class TaskAsyncHelper
-    {
-        public static Task<T> FromResult<T>(T value)
-        {
-            var tcs = new TaskCompletionSource<T>();
-            tcs.SetResult(value);
-            return tcs.Task;
-        }
-    }
 }
-
-#endif

@@ -4,13 +4,11 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq.Expressions;
 using NPoco.Linq;
-#if !NET35 && !NET40
 using System.Threading.Tasks;
-#endif
 
 namespace NPoco
 {
-    public interface IDatabaseQuery : IAsyncDatabase
+    public interface IDatabaseQuery : IAsyncQueryDatabase
     {
         /// <summary>
         /// Builds a paged query from a non-paged query
@@ -319,31 +317,31 @@ namespace NPoco
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
-        Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(string sql, params object[] args);
+        (List<T1>, List<T2>) FetchMultiple<T1, T2>(string sql, params object[] args);
         
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
-        Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(string sql, params object[] args);
+        (List<T1>, List<T2>, List<T3>) FetchMultiple<T1, T2, T3>(string sql, params object[] args);
         
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
-        Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(string sql, params object[] args);
+        (List<T1>, List<T2>, List<T3>, List<T4>) FetchMultiple<T1, T2, T3, T4>(string sql, params object[] args);
         
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
-        Tuple<List<T1>, List<T2>> FetchMultiple<T1, T2>(Sql sql);
+        (List<T1>, List<T2>) FetchMultiple<T1, T2>(Sql sql);
         
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
-        Tuple<List<T1>, List<T2>, List<T3>> FetchMultiple<T1, T2, T3>(Sql sql);
+        (List<T1>, List<T2>, List<T3>) FetchMultiple<T1, T2, T3>(Sql sql);
         
         /// <summary>
         /// Fetches multiple result sets into the one Tuple.
         /// </summary>
-        Tuple<List<T1>, List<T2>, List<T3>, List<T4>> FetchMultiple<T1, T2, T3, T4>(Sql sql);
+        (List<T1>, List<T2>, List<T3>, List<T4>) FetchMultiple<T1, T2, T3, T4>(Sql sql);
     }
 }

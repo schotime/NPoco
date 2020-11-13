@@ -27,12 +27,5 @@ namespace NPoco
         {
             return type != typeof(Type) && !type.GetTypeInfo().IsValueType && (type.GetTypeInfo().IsClass || type.GetTypeInfo().IsInterface) && type != typeof (string) && type != typeof(object) && !type.IsArray;
         }
-
-#if NET40 || NET35
-        public static Type GetTypeInfo(this Type type)
-        {
-            return type;
-        }
-#endif
     }
 }

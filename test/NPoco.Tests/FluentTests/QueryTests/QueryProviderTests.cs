@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -341,14 +342,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
 
         private static void SetCurrentCulture(CultureInfo culture)
         {
-#if NET35 || NET40 || NET45 || NET451 || NET452 || NET462 || DNX451 || DNX452
-            // In the .NET Framework 4.5.2 and earlier versions, the CurrentCulture property is read-only
-            Thread.CurrentThread.CurrentCulture = culture;
-#else
-            // Starting with the .NET Framework 4.6, the CurrentCulture property is read-write
-            // and Core does not have Thread.CurrentThread?
             CultureInfo.CurrentCulture = culture;
-#endif
         }
 
         [Test]
@@ -363,7 +357,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 SetCurrentCulture(new CultureInfo("en-US"));
 
                 var users = Database.Query<User>()
-                    .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format("{0:n}", x.Age) });
+                    .ProjectTo(x => new ProjectUser2 { FormattedAge = x.Age.ToString("n2") });
 
                 Assert.AreEqual("21.00", users[0].FormattedAge);
                 Assert.AreEqual(15, users.Count);
@@ -390,7 +384,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 // these arguments are properly supported (ProcessMethodSearchRecursively supports
                 // NewArrayExpression).
                 var users = Database.Query<User>()
-                    .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format("{0:n} {1:n} {2:n} {3:n} {4:n} {5:n} {6:n}",
+                    .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format("{0:n2} {1:n2} {2:n2} {3:n2} {4:n2} {5:n2} {6:n2}",
                         x.Age, x.Age, x.Age, x.Age, x.Age, x.Age, x.Age) });
 
                 Assert.AreEqual("21.00 21.00 21.00 21.00 21.00 21.00 21.00", users[0].FormattedAge);
@@ -447,7 +441,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public void QueryWithProjectionAndMethod()
         {
             var users = Database.Query<User>()
-                .ProjectTo(x => new ProjectUser2 { Age = x.Age, Date = x.DateOfBirth.ToString("yyyy-MM-dd") });
+                .ProjectTo(x => new ProjectUser2 { Age = x.Age, Date = x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("yyyy-MM-dd") : "" });
 
             Assert.AreEqual(21, users[0].Age);
             Assert.AreEqual("1969-01-01", users[0].Date);
@@ -578,6 +572,21 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.NotNull(ex[1].House);
         }
 
+        [Test]
+        public void QueryWithDateTimeYear()
+        {
+            var dt = new DateTime(1969, 1, 1);
+            var users2 = Database.Query<User>().Where(x => x.DateOfBirth.Value.Year == dt.Year).ToList();
+            Assert.AreEqual(1, users2.Count);
+        }
+
+        [Test]
+        public void QueryWithDateTimeNullable()
+        {
+            var users2 = Database.Query<User>().Where(x => x.DateOfBirth.HasValue).ToList();
+            Assert.AreEqual(15, users2.Count);
+        }
+
         //[Test]
         //public void QueryWithInheritedTypesAliasCorrectlyWithJoin()
         //{
@@ -610,7 +619,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
 
 //Module Module1
 //    Sub Main()
-//        Dim Db = New Database("asdf", "System.Data.SqlClient")
+//        Dim Db = New Database("asdf", "Microsoft.Data.SqlClient")
 //        Dim exp = New DefaultSqlExpression (Of User)(Db)
 //        Dim whered = exp.Where(Function(item) (item.Name = "Test"))
 //        Console.WriteLine(whered.Context.ToSelectStatement())

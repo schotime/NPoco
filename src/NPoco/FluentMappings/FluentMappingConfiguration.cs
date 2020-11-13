@@ -190,10 +190,8 @@ namespace NPoco.FluentMappings
 
         private static IEnumerable<Type> FindTypes(ConventionScannerSettings scannerSettings)
         {
-#if !DNXCORE50
             if (scannerSettings.TheCallingAssembly)
                 scannerSettings.Assemblies.Add(FindTheCallingAssembly());
-#endif
 
             var types = scannerSettings.Assemblies
                 .SelectMany(x => x.GetExportedTypes())
@@ -279,6 +277,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.IsComplexMapping = overrideColumnDefinition.Value.IsComplexMapping ?? convColDefinition.IsComplexMapping;
                     convColDefinition.ValueObjectColumn = overrideColumnDefinition.Value.ValueObjectColumn ?? convColDefinition.ValueObjectColumn;
                     convColDefinition.ValueObjectColumnName = overrideColumnDefinition.Value.ValueObjectColumnName ?? convColDefinition.ValueObjectColumnName;
+                    convColDefinition.ExactColumnNameMatch = overrideColumnDefinition.Value.ExactColumnNameMatch ?? convColDefinition.ExactColumnNameMatch;
                 }
             }
         }
@@ -307,7 +306,6 @@ namespace NPoco.FluentMappings
             }));
         }
 
-#if !DNXCORE50
         // Helper method if code is in seperate assembly
         private static Assembly FindTheCallingAssembly()
         {
@@ -330,6 +328,5 @@ namespace NPoco.FluentMappings
             }
             return callingAssembly;
         }
-#endif
     }
 }

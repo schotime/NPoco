@@ -191,5 +191,16 @@ namespace NPoco.Tests
 
             Assert.AreEqual("SELECT  1 , COUNT(*) FROM test ", template.RawSql);
         }
+
+        [Test]
+        public void Test15()
+        {
+            var sql1 = new Sql("select a from test1 where a = @0", 1);
+            var sql2 = new Sql("select b from test2 where b = @0", 2);
+            var sql = sql1.Concat(sql2, ";");
+            Assert.AreEqual("select a from test1 where a = @0\n;select b from test2 where b = @1", sql.SQL);
+            Assert.AreEqual(1, sql.Arguments[0]);
+            Assert.AreEqual(2, sql.Arguments[1]);
+        }
     }
 }

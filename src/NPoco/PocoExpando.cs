@@ -4,7 +4,6 @@ using System.Collections.Generic;
 
 namespace NPoco
 {
-    #if !NET35
     public class PocoExpando : System.Dynamic.DynamicObject, IDictionary<string, object>, IDictionary
     {
         private readonly IDictionary<string, object> Dictionary =
@@ -17,7 +16,7 @@ namespace NPoco
 
         public bool Contains(object key)
         {
-            return ((IDictionary) Dictionary).Contains(key);
+            return ((IDictionary)Dictionary).Contains(key);
         }
 
         public void Add(object key, object value)
@@ -32,7 +31,7 @@ namespace NPoco
 
         IDictionaryEnumerator IDictionary.GetEnumerator()
         {
-            return ((IDictionary) Dictionary).GetEnumerator();
+            return ((IDictionary)Dictionary).GetEnumerator();
         }
 
         public void Remove(object key)
@@ -71,8 +70,8 @@ namespace NPoco
             get { return this.Dictionary.Keys.Count; }
         }
 
-        public object SyncRoot => ((IDictionary) Dictionary).SyncRoot;
-        public bool IsSynchronized => ((IDictionary) Dictionary).IsSynchronized;
+        public object SyncRoot => ((IDictionary)Dictionary).SyncRoot;
+        public bool IsSynchronized => ((IDictionary)Dictionary).IsSynchronized;
 
         ICollection IDictionary.Values => ((IDictionary)Dictionary).Values;
 
@@ -171,5 +170,4 @@ namespace NPoco
             get { return Dictionary.Values; }
         }
     }
-    #endif
 }

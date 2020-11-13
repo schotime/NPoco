@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Reflection;
+using Newtonsoft.Json;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
@@ -16,7 +19,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.IsNotNull(poco);
 
             poco.Age = InMemoryUsers[1].Age + 100;
-            poco.Savings = (Decimal)1234.23;
+            poco.Savings = (Decimal) 1234.23;
             Database.Update(poco);
 
             var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
@@ -35,7 +38,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.IsNotNull(poco);
 
             poco.Age = InMemoryUsers[1].Age + 100;
-            poco.Savings = (Decimal)1234.23;
+            poco.Savings = (Decimal) 1234.23;
             Database.Update(poco, InMemoryUsers[2].UserId);
 
             var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[2].UserId);
@@ -81,8 +84,8 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.IsNotNull(poco);
 
             poco.Age = poco.Age + 100;
-            poco.Savings = (Decimal)1234.23;
-            Database.Update(poco, x=>x.Age);
+            poco.Savings = (Decimal) 1234.23;
+            Database.Update(poco, x => x.Age);
 
             var verify = Database.SingleOrDefaultById<UserDecorated>(1);
             Assert.IsNotNull(verify);
@@ -98,7 +101,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         {
             var poco1 = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
             var poco2 = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
-            
+
             poco1.Age = 100;
             Database.Update(poco1);
 
@@ -111,7 +114,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         public void UpdatePrimaryKeyNoVersionConcurrencyException()
         {
             var poco1 = Database.SingleOrDefaultById<UserTimestampVersionDecorated>(InMemoryUsers[1].UserId);
-            
+
             poco1.Age = 100;
             Database.Update(poco1);
 
@@ -169,7 +172,79 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             {
                 Assert.AreEqual(30, u.Age);
             }
+
             Assert.AreEqual(14, updated);
+        }
+
+        [Test]
+        public void UpdateRecordUsingTuples()
+        {
+            var poco = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            Assert.IsNotNull(poco);
+
+            var record = (2, "Timmy", InMemoryUsers[1].UserId);
+            Database.Execute("update Users set name = @Item2, age = @Item1 where userid = @Item3", record);
+
+            var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
+            Assert.IsNotNull(verify);
+
+            Assert.AreEqual(record.Item2, verify.Name);
+            Assert.AreEqual(record.Item3, verify.Age);
+        }
+
+        [Test]
+        public void UpdateManyWithMapper()
+        {
+            var updateData = new UserModel()
+            {
+                Id = 1,
+                Suggestion = new Dictionary<string, object>()
+                {
+                    {"test", 2}
+                }
+            };
+
+            var myMapper = new MyMapper();
+            Database.Mappers.Add(myMapper);
+
+            Database.UpdateMany<UserModel>()
+                .Where(x => x.Id == 1)
+                .OnlyFields(x => new { x.Suggestion })
+                .Execute(updateData);
+
+            Database.Mappers.Remove(myMapper);
+
+            var user = Database.Single<(int, string)>("select userid, name from users where userid = 1");
+
+            Assert.AreEqual(JsonConvert.SerializeObject(updateData.Suggestion), user.Item2);
+        }
+
+        [TableName("Users")]
+        [PrimaryKey("UserId")]
+        public class UserModel
+        {
+            [Column("userid")]
+            public int Id { get; set; }
+            [Column("name")]
+            [ColumnType(typeof(string))]
+            public IDictionary<string, object> Suggestion { get; set; }
+        }
+
+        public class MyMapper : DefaultMapper
+        {
+            public override Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo)
+            {
+                if ((destType == typeof(string)) && (sourceMemberInfo.GetMemberInfoType() == typeof(IDictionary<string, object>)))
+                {
+                    return src =>
+                    {
+                        var data = src as IDictionary<string, object>;
+                        return data == null || data.Count <= 0 ? null : JsonConvert.SerializeObject(data);
+                    };
+                }
+
+                return base.GetToDbConverter(destType, sourceMemberInfo);
+            }
         }
     }
 }
