@@ -61,5 +61,14 @@ namespace NPoco.Tests.Async
                 Assert.AreEqual(item.UserId, i++);
             }
         }
+
+        [Test]
+        public async Task QueryAsyncFirst()
+        {
+            var user = await Database.FirstOrDefaultAsync<User>("where userid = @0", 1);
+            Assert.AreEqual(1, user.UserId);
+            var user1 = await Database.FirstAsync<User>("where userid = @0", 1);
+            Assert.AreEqual(1, user1.UserId);
+        }
     }
 }
