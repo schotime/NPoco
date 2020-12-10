@@ -303,7 +303,7 @@ namespace NPoco.FluentMappings
                     }
                 }
                 return new PocoDataBuilder(t, mapper).Init();
-            }));
+            }, mapper));
         }
 
         // Helper method if code is in seperate assembly

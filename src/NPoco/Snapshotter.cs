@@ -77,7 +77,7 @@ namespace NPoco
             return list;
         }
 
-        private static bool AreEqual(object first, object second)
+        private bool AreEqual(object first, object second)
         {
             if (first == null && second == null) return true;
             if (first == null) return false;
@@ -86,7 +86,7 @@ namespace NPoco
             var type = first.GetType();
             if (type.IsAClass() || type.IsArray)
             {
-                return DatabaseFactory.ColumnSerializer.Serialize(first) == DatabaseFactory.ColumnSerializer.Serialize(second);
+                return _pocoData.Mapper.ColumnSerializer.Serialize(first) == _pocoData.Mapper.ColumnSerializer.Serialize(second);
             }
 
             return first.Equals(second);

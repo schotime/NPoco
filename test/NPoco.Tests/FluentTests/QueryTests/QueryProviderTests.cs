@@ -587,6 +587,30 @@ namespace NPoco.Tests.FluentTests.QueryTests
             Assert.AreEqual(15, users2.Count);
         }
 
+        [Test]
+        public void QueryWithHints()
+        {
+            var users = Database.Query<User>().Hint("(nolock)");
+            var sql = ((INeedSql)users).GetSql();
+
+            Assert.True(sql.SQL.Contains("(nolock)"));
+            Assert.AreEqual(15, users.ToList().Count);
+        }
+
+        [Test]
+        public void QueryWithHintsOnJoin()
+        {
+            var users = Database.Query<User>()
+                .Hint("(nolock)")
+                .Include(x => x.House, joinTableHint: "with (nolock)");
+
+            var sql = ((INeedSql)users).GetSql();
+
+            Assert.True(sql.SQL.Contains("(nolock)"));
+            Assert.True(sql.SQL.Contains("with (nolock)"));
+            Assert.AreEqual(15, users.ToList().Count);
+        }
+
         //[Test]
         //public void QueryWithInheritedTypesAliasCorrectlyWithJoin()
         //{
@@ -612,20 +636,3 @@ namespace NPoco.Tests.FluentTests.QueryTests
         public int UserId { get; set; }
     }
 }
-
-//VB Tests for query provider
-//Imports NPoco
-//Imports NPoco.Expressions
-
-//Module Module1
-//    Sub Main()
-//        Dim Db = New Database("asdf", "Microsoft.Data.SqlClient")
-//        Dim exp = New DefaultSqlExpression (Of User)(Db)
-//        Dim whered = exp.Where(Function(item) (item.Name = "Test"))
-//        Console.WriteLine(whered.Context.ToSelectStatement())
-//    End Sub
-//End Module
-
-//Public Class User
-//    Public Property Name As String
-//End Class

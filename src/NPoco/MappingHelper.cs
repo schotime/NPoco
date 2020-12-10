@@ -23,9 +23,9 @@ namespace NPoco
                     return converter;
             }
 
-            if (pc != null && pc.SerializedColumn)
+            if (pc != null && pc.SerializedColumn && mapper?.ColumnSerializer != null)
             {
-                converter = src => DatabaseFactory.ColumnSerializer.Deserialize((string) src, dstType);
+                converter = src => mapper.ColumnSerializer.Deserialize((string) src, dstType);
                 return converter;
             }
 

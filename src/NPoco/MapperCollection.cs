@@ -7,6 +7,7 @@ namespace NPoco
 {
     public class MapperCollection : List<IMapper>
     {
+        public IColumnSerializer ColumnSerializer { get; set; } = DatabaseFactory.ColumnSerializer;
         internal readonly Dictionary<Type, ObjectFactoryDelegate> Factories = new Dictionary<Type, ObjectFactoryDelegate>();
         public delegate object ObjectFactoryDelegate(DbDataReader dataReader);
 

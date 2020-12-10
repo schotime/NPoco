@@ -1760,7 +1760,7 @@ namespace NPoco
         {
             if (pocoColumn.SerializedColumn)
             {
-                return DatabaseFactory.ColumnSerializer.Serialize(value);
+                return database.Mappers.ColumnSerializer.Serialize(value);
             }
             if (pocoColumn.ColumnType == typeof(string) && Database.IsEnum(pocoColumn.MemberInfoData) && value != null)
             {

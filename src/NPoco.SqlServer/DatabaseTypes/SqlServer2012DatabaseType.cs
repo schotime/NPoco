@@ -13,12 +13,43 @@ namespace NPoco.DatabaseTypes
 
         public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
         {
-            if (!parts.sql.ToLower().Contains("order by"))
-                throw new Exception("SQL Server 2012 Paging via OFFSET requires an ORDER BY statement.");
-
-            var sqlPage = string.Format("{0}\nOFFSET @{1} ROWS FETCH NEXT @{2} ROWS ONLY", parts.sql, args.Length, args.Length + 1);
+            var sqlPage = string.Format("{0}{1}\nOFFSET @{2} ROWS FETCH NEXT @{3} ROWS ONLY", 
+                parts.sql,
+                !HasTopLevelOrderBy(parts.sql) ? "\nORDER BY (SELECT NULL)" : string.Empty,
+                args.Length, 
+                args.Length + 1);
             args = args.Concat(new object[] {skip, take}).ToArray();
             return sqlPage;
+        } 
+
+        public static bool HasTopLevelOrderBy(string sql)
+        {
+            var indent = 0;
+            for (int i = sql.Length - 1; i >= 0; i--)
+            {
+                if (i >= 7)
+                {
+                    if (indent == 0
+                        && (sql[i - 7] == 'o' || sql[i - 7] == 'O')
+                        && (sql[i - 6] == 'r' || sql[i - 6] == 'R')
+                        && (sql[i - 5] == 'd' || sql[i - 5] == 'D')
+                        && (sql[i - 4] == 'e' || sql[i - 4] == 'E')
+                        && (sql[i - 3] == 'r' || sql[i - 3] == 'R')
+                        && (sql[i - 2] == ' ')
+                        && (sql[i - 1] == 'b' || sql[i - 1] == 'B')
+                        && (sql[i]     == 'y' || sql[i]     == 'Y'))
+                    {
+                        return true;
+                    }
+                }
+
+                if (sql[i] == ')')
+                    indent++;
+                else if (sql[i] == '(')
+                    indent--;
+            }
+
+            return false;
         }
 
         public override string? GetAutoIncrementExpression(TableInfo ti)

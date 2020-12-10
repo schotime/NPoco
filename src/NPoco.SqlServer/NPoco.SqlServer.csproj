@@ -2,14 +2,14 @@
 
   <PropertyGroup>
 	<Description>An extremely easy to use Micro-ORM supporting Sql Server.</Description>
-	<VersionPrefix>5.0.1</VersionPrefix>
+	<VersionPrefix>5.1.0</VersionPrefix>
 	<TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
 	<AssemblyName>NPoco.SqlServer</AssemblyName>
 	<PackageId>NPoco.SqlServer</PackageId>
 	<Authors>Adam Schröder</Authors>
 	<PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
 	<PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>latest</LangVersion>
 	<nullable>enable</nullable>
   </PropertyGroup>
 

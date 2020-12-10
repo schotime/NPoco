@@ -107,20 +107,22 @@ namespace NPoco.Linq
 
     public interface IAsyncQueryProviderWithIncludes<T> : IAsyncQueryProvider<T>
     {
-        IAsyncQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left);
-        IAsyncQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left) where T2 : class;
-        IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class;
-        IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left) where T2 : class;
-        IAsyncQueryProviderWithIncludes<T> UsingAlias(string empty);
+        IAsyncQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "");
+        IAsyncQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
+        IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
+        IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
+        IAsyncQueryProviderWithIncludes<T> UsingAlias(string tableAlias);
+        IAsyncQueryProviderWithIncludes<T> Hint(string tableHint);
     }
 
     public interface IQueryProviderWithIncludes<T> : IQueryProvider<T>
     {
-        IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left);
-        IQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left) where T2 : class;
-        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class;
-        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left) where T2 : class;
-        IQueryProviderWithIncludes<T> UsingAlias(string empty);
+        IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "");
+        IQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
+        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
+        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
+        IQueryProviderWithIncludes<T> UsingAlias(string tableAlias);
+        IQueryProviderWithIncludes<T> Hint(string tableHint);
     }
 
     public class AsyncQueryProvider<T> : IAsyncQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>, INeedDatabase, INeedSql
@@ -164,13 +166,13 @@ namespace NPoco.Linq
             return sql;
         }
 
-        public IAsyncQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left)
+        public IAsyncQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "")
         {
             _listExpression = expression;
-            return QueryProviderWithIncludes(expression, null, joinType);
+            return QueryProviderWithIncludes(expression, null, joinType, joinTableHint);
         }
         
-        public IAsyncQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left) where T2 : class
+        public IAsyncQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class
         {
             var oneToOneMembers = _database.PocoDataFactory.ForType(typeof(T))
                 .Members.Where(x => (x.ReferenceType == ReferenceType.OneToOne || x.ReferenceType == ReferenceType.Foreign)
@@ -180,20 +182,20 @@ namespace NPoco.Linq
             {
                 var entityParam = Expression.Parameter(typeof(T), "entity");
                 var joinProperty = Expression.Lambda<Func<T, T2>>(Expression.PropertyOrField(entityParam, o2oMember.Name), entityParam);
-                Include(joinProperty, joinType);
+                Include(joinProperty, joinType, joinTableHint);
             }
 
             return this;
         }
 
-        public IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class
+        public IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class
         {
-            return QueryProviderWithIncludes(expression, null, joinType);
+            return QueryProviderWithIncludes(expression, null, joinType, joinTableHint);
         }
 
-        public IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left) where T2 : class
+        public IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class
         {
-            return QueryProviderWithIncludes(expression, tableAlias, joinType);
+            return QueryProviderWithIncludes(expression, tableAlias, joinType, joinTableHint);
         }
 
         public IAsyncQueryProviderWithIncludes<T> UsingAlias(string tableAlias)
@@ -203,9 +205,15 @@ namespace NPoco.Linq
             return this;
         }
 
-        private IAsyncQueryProviderWithIncludes<T> QueryProviderWithIncludes(Expression expression, string tableAlias, JoinType joinType)
+        public IAsyncQueryProviderWithIncludes<T> Hint(string tableHint)
         {
-            var joinExpressions = _buildComplexSql.GetJoinExpressions(expression, tableAlias, joinType);
+            _sqlExpression.TableHint(tableHint);
+            return this;
+        }
+
+        private IAsyncQueryProviderWithIncludes<T> QueryProviderWithIncludes(Expression expression, string tableAlias, JoinType joinType, string joinTableHint)
+        {
+            var joinExpressions = _buildComplexSql.GetJoinExpressions(expression, tableAlias, joinType, joinTableHint);
             foreach (var joinExpression in joinExpressions)
             {
                 _joinSqlExpressions[joinExpression.Key] = joinExpression.Value;
@@ -725,29 +733,34 @@ namespace NPoco.Linq
             return base.Distinct();
         }
         
-        public new IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left)
+        public new IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "")
         {
-            return (IQueryProvider<T>)base.IncludeMany(expression, joinType);
+            return (IQueryProvider<T>)base.IncludeMany(expression, joinType, joinTableHint);
         }
 
-        public new IQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left) where T2 : class
+        public new IQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class
         {
-            return (IQueryProviderWithIncludes<T>)base.Include<T2>(joinType);
+            return (IQueryProviderWithIncludes<T>)base.Include<T2>(joinType, joinTableHint);
         }
 
-        public new IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left) where T2 : class
+        public new IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class
         {
-            return (IQueryProviderWithIncludes<T>)base.Include(expression, joinType);
+            return (IQueryProviderWithIncludes<T>)base.Include(expression, joinType, joinTableHint);
         }
 
-        public new IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left) where T2 : class
+        public new IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class
         {
-            return (IQueryProviderWithIncludes<T>)base.Include(expression, tableAlias, joinType);
+            return (IQueryProviderWithIncludes<T>)base.Include(expression, tableAlias, joinType, joinTableHint);
         }
 
-        public new IQueryProviderWithIncludes<T> UsingAlias(string empty)
+        public new IQueryProviderWithIncludes<T> UsingAlias(string tableAlias)
         {
-            return (IQueryProviderWithIncludes<T>)base.UsingAlias(empty);
+            return (IQueryProviderWithIncludes<T>)base.UsingAlias(tableAlias);
+        }
+
+        public new IQueryProviderWithIncludes<T> Hint(string tableHint)
+        {
+            return (IQueryProviderWithIncludes<T>)base.Hint(tableHint);
         }
 
         public new IQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression)

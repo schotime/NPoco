@@ -17,7 +17,7 @@ namespace NPoco
     public class PocoDataBuilder : InitializedPocoDataBuilder
     {
         private readonly Cache<string, Type> _aliasToType = Cache<string, Type>.CreateStaticCache();
-        private FastCreate _generator;
+        private IFastCreate _generator;
 
         protected Type Type { get; set; }
         private MapperCollection Mapper { get; set; }

@@ -18,7 +18,7 @@ namespace NPoco
     public abstract partial class DatabaseType
     {
         // Helper Properties
-        public static DatabaseType SqlServer2012 { get { return DynamicDatabaseType.MakeSqlServerType("SqlServerDatabaseType"); } }
+        public static DatabaseType SqlServer2012 { get { return DynamicDatabaseType.MakeSqlServerType("SqlServer2012DatabaseType"); } }
         public static DatabaseType SqlServer2008 { get { return DynamicDatabaseType.MakeSqlServerType("SqlServer2008DatabaseType"); } }
         public static DatabaseType SqlServer2005 { get { return DynamicDatabaseType.MakeSqlServerType("SqlServerDatabaseType"); } }
         public static DatabaseType PostgreSQL { get { return Singleton<PostgreSQLDatabaseType>.Instance; } }
