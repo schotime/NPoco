@@ -79,14 +79,7 @@ namespace NPoco.SqlServer
                 var values = new object[cols.Count];
                 for (var i = 0; i < values.Length; i++)
                 {
-                    var value = cols[i].Value.GetValue(item!);
-                    if (db.Mappers != null)
-                    {
-                        value = db.Mappers.FindAndExecute(x => x.GetToDbConverter(cols[i].Value.ColumnType, cols[i].Value.MemberInfoData.MemberInfo), value);
-                    }
-
-                    value = db.DatabaseType.MapParameterValue(value);
-
+                    var value = db.DatabaseType.MapParameterValue(db.ProcessMapper(cols[i].Value, cols[i].Value.GetValue(item!)));
                     if (value.GetTheType() == typeof (SqlParameter))
                     {
                         value = ((SqlParameter) value).Value;
