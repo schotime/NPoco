@@ -1493,7 +1493,7 @@ namespace NPoco
             var sql = $"DELETE FROM {_dbType.EscapeTableName(tableName)} WHERE {BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index)}";
             var rawValues = primaryKeyValuePairs.Select(x => x.Value).ToList();
 
-            var versionColumn = pd?.AllColumns.SingleOrDefault(x => x.VersionColumn);
+            var versionColumn = pd?.Columns.Where(x => x.Value.VersionColumn).Select(x => x.Value).SingleOrDefault();
             string? versionName = null;
             object? versionValue = null;
             if (versionColumn != null)
