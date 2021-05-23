@@ -38,6 +38,25 @@ namespace NPoco.Linq
             var sql = BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), selectMembers, false, distinct);
             return sql;
         }
+                
+        public Sql GetSqlForProjection<T2>(Expression<Func<T, T2>> projectionExpression, bool distinct, int skip, int rows)
+        {
+            var selectMembers = _database.DatabaseType.ExpressionVisitor<T>(_database, _pocoData).SelectProjection(projectionExpression);
+
+            ((ISqlExpression)_sqlExpression).SelectMembers.Clear();
+            ((ISqlExpression)_sqlExpression).SelectMembers.AddRange(selectMembers);
+
+            _sqlExpression.Limit(skip, rows);
+
+            if (!_joinSqlExpressions.Any())
+            {
+                var finalsql = ((ISqlExpression)_sqlExpression).ApplyPaging(_sqlExpression.Context.ToSelectStatement(false, distinct), selectMembers.Select(x => x.PocoColumns), _joinSqlExpressions);
+                return new Sql(finalsql, _sqlExpression.Context.Params);
+            }
+
+            var sql = BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), selectMembers, false, distinct);
+            return sql;
+        }
 
         public Sql BuildJoin(IDatabase database, ISqlExpression<T> sqlExpression, List<JoinData> joinSqlExpressions, List<SelectMember> newMembers, bool count, bool distinct)
         {

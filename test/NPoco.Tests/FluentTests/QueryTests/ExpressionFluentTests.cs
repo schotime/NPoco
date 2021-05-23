@@ -200,6 +200,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var users = Database.Query<UserDecorated>().ProjectTo(x => new { x.Name }).ToList();
             Assert.AreEqual("Name1", users[0].Name);
         }
+        
+        [Test]
+        public void FetchByExpressionAndSelectProjection()
+        {
+            var records = Database.Query<User>().ToProjectedPage(x => new { x.Name }, 2, 5);
+            Assert.AreEqual(records.Items.Count, 5);
+            Assert.AreEqual(records.Items[0].Name, "Name6");
+        }
 
         [Test]
         public void FetchWithWhereExpressionContains()

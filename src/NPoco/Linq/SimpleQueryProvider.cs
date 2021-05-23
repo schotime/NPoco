@@ -222,6 +222,30 @@ namespace NPoco.Linq
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
             return ExecuteQueryAsync(sql, cancellationToken).Select(projectionExpression.Compile()).ToListAsync(cancellationToken).AsTask();
         }
+        
+        public async Task<Page<T2>> ToProjectedPage<T2>(Expression<Func<T, T2>> projectionExpression, int page, int pageSize, CancellationToken cancellationToken = default)
+        {
+            int offset = (page - 1) * pageSize;
+
+            // Save the one-time command time out and use it for both queries
+            int saveTimeout = _database.OneTimeCommandTimeout;
+
+            // Setup the paged result
+            var result = new Page<T2>();
+            result.CurrentPage = page;
+            result.ItemsPerPage = pageSize;
+            result.TotalItems = await Count().ConfigureAwait(false);
+            result.TotalPages = result.TotalItems / pageSize;
+            if ((result.TotalItems % pageSize) != 0)
+                result.TotalPages++;
+
+            _database.OneTimeCommandTimeout = saveTimeout;
+
+            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false, offset, pageSize);
+            result.Items = await ExecuteQueryAsync(sql, cancellationToken).Select(projectionExpression.Compile()).ToListAsync(cancellationToken).AsTask();
+
+            return result;
+        }
 
         public Task<List<T>> Distinct(CancellationToken cancellationToken = default)
         {
@@ -491,6 +515,30 @@ namespace NPoco.Linq
             return ExecuteQuery(sql).Select(projectionExpression.Compile()).ToList();
         }
 
+        public Page<T2> ToProjectedPage<T2>(Expression<Func<T, T2>> projectionExpression, int page, int pageSize)
+        {
+            int offset = (page - 1) * pageSize;
+
+            // Save the one-time command time out and use it for both queries
+            int saveTimeout = _database.OneTimeCommandTimeout;
+
+            // Setup the paged result
+            var result = new Page<T2>();
+            result.CurrentPage = page;
+            result.ItemsPerPage = pageSize;
+            result.TotalItems = Count();
+            result.TotalPages = result.TotalItems / pageSize;
+            if ((result.TotalItems % pageSize) != 0)
+                result.TotalPages++;
+
+            _database.OneTimeCommandTimeout = saveTimeout;
+
+            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false, offset, pageSize);
+            result.Items = ExecuteQuery(sql).Select(projectionExpression.Compile()).ToList();
+
+            return result;
+        }
+
         public new List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
         {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, true);
@@ -605,6 +653,11 @@ namespace NPoco.Linq
         public Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken = default)
         {
             return base.ProjectTo(projectionExpression, cancellationToken);
+        }
+
+        public Task<Page<T2>> ToProjectedPageAsync<T2>(Expression<Func<T, T2>> projectionExpression, int page, int pageSize, CancellationToken cancellationToken = default)
+        {
+            return base.ToProjectedPage(projectionExpression, page, pageSize, cancellationToken);
         }
 
         public Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken = default)

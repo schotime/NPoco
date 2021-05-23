@@ -29,6 +29,7 @@ namespace NPoco.Linq
         Task<bool> Any(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
         Task<Page<T>> ToPage(int page, int pageSize, CancellationToken cancellationToken = default);
         Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken = default);
+        Task<Page<T2>> ToProjectedPage<T2>(Expression<Func<T, T2>> projectionExpression, int page, int pageSize, CancellationToken cancellationToken = default);
         Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken = default);
         Task<List<T>> Distinct(CancellationToken cancellationToken = default);
     }
@@ -54,6 +55,7 @@ namespace NPoco.Linq
         IEnumerable<dynamic> ToDynamicEnumerable();
         Page<T> ToPage(int page, int pageSize);
         List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
+        Page<T2> ToProjectedPage<T2>(Expression<Func<T, T2>> projectionExpression, int page, int pageSize);
         List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T> Distinct();
         Task<List<T>> ToListAsync(CancellationToken cancellationToken = default);
@@ -73,6 +75,7 @@ namespace NPoco.Linq
         Task<bool> AnyAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
         Task<Page<T>> ToPageAsync(int page, int pageSize, CancellationToken cancellationToken = default);
         Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken = default);
+        Task<Page<T2>> ToProjectedPageAsync<T2>(Expression<Func<T, T2>> projectionExpression, int page, int pageSize, CancellationToken cancellationToken = default);
         Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken = default);
         Task<List<T>> DistinctAsync(CancellationToken cancellationToken = default);
     }
