@@ -1,5 +1,6 @@
 NPoco
 =====
+![Nuget](https://img.shields.io/nuget/v/npoco)
 
 Welcome to the NPoco! NPoco is a fork of PetaPoco based on Schotime's branch with a handful of extra features.
 
@@ -20,3 +21,4 @@ This works by mapping the column names to the property names on the ``User`` obj
 There is no mapping setup needed for this (query only) scenario. 
 
 Checkout the [Wiki](https://github.com/schotime/NPoco/wiki/Home) for more documentation.
+
