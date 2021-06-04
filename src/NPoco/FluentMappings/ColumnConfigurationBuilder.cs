@@ -61,6 +61,7 @@ namespace NPoco.FluentMappings
         IManyColumnBuilder<TModel> WithDbType(Type type);
         IManyColumnBuilder<TModel> WithDbType<T>();
         IManyColumnBuilder<TModel> Reference(Expression<Func<TModel, object>> member);
+        IManyColumnBuilder<TModel> LimitMappingDepth(int limit = 1);        
     }
 
     public class ManyColumnBuilder<TModel> : IManyColumnBuilder<TModel>
@@ -96,6 +97,20 @@ namespace NPoco.FluentMappings
             _columnDefinition.ReferenceMember = MemberHelper<TModel>.GetMembers(member).Last();
             return this;
         }
+        /// <summary>
+        /// Sets the hard mapping depth limit for this column's definition
+        /// </summary>
+        /// <param name="limit">integer hard depth limit. Defaults to and can't be less than 1</param>
+        /// <returns>The ManyColumnBuilder</returns>
+        public IManyColumnBuilder<TModel> LimitMappingDepth(int limit = 1)
+        {
+            if ( limit < 1 )
+                throw new ArgumentOutOfRangeException("limit", "The mapping depth limit must always be at least equal to 1");
+
+                _columnDefinition.HardDepthLimit = limit;
+
+                return this;
+        }
     }
 
     public interface IColumnBuilder<TModel>
@@ -118,6 +133,7 @@ namespace NPoco.FluentMappings
         IColumnBuilder<TModel> ValueObject();
         IColumnBuilder<TModel> ValueObject(Expression<Func<TModel, object>> member);
         IColumnBuilder<TModel> ForceToUtc(bool enabled);
+        IColumnBuilder<TModel> LimitMappingDepth(int limit = 1);
     }
 
     public class ColumnBuilder<TModel> : IColumnBuilder<TModel>
@@ -253,5 +269,19 @@ namespace NPoco.FluentMappings
             _columnDefinition.ForceUtc = enabled;
             return this;
         }
+        /// <summary>
+        /// Sets the hard mapping depth limit for this column's definition
+        /// </summary>
+        /// <param name="limit">integer hard depth limit. Defaults to and can't be less than 1</param>
+        /// <returns>The ColumnBuilder</returns>
+        public IColumnBuilder<TModel> LimitMappingDepth(int limit = 1)
+        {
+            if ( limit < 1 )
+                throw new ArgumentOutOfRangeException("limit", "The mapping depth limit must always be at least equal to 1");
+
+                _columnDefinition.HardDepthLimit = limit;
+
+            return this;
+        }        
     }
 }

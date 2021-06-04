@@ -31,6 +31,10 @@ namespace NPoco.FluentMappings
         public Func<MemberInfo, string> DbColumnsNamed { get; set; }
         public Func<MemberInfo, string> AliasNamed { get; set; }
         public Func<MemberInfo, Type> DbColumnTypesAs { get; set; }
+        /// <summary>
+        /// Set the hard depth limit for the columns. Null leaves the limit unset.
+        /// </summary>
+        public Func<MemberInfo, int?> HardDepthLimitAs {get;set;}
         public List<Func<MemberInfo, bool>> IgnorePropertiesWhere { get; set; }
         public Func<MemberInfo, bool> VersionPropertiesWhere { get; set; }
         public Func<MemberInfo, VersionColumnType> VersionPropertyTypeAs { get; set; }

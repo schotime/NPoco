@@ -113,10 +113,14 @@ namespace NPoco.FluentMappings
 
                     foreach (var columnDefinition in columnDefinitions)
                     {
+
+                        if ( columnDefinition.HardDepthLimit >= members.Count)
+                            continue;
+
                         yield return columnDefinition;
                     }
 
-                    var referenceDbColumnsNamed = scannerSettings.ReferenceDbColumnsNamed(member);
+                    var referenceDbColumnsNamed = scannerSettings.ReferenceDbColumnsNamed(member);                                        
 
                     yield return new ColumnDefinition()
                     {
@@ -128,6 +132,7 @@ namespace NPoco.FluentMappings
                         ReferenceMember = null,
                         ResultColumn = scannerSettings.ResultPropertiesWhere(member),
                         DbColumnName = referenceProperty ? referenceDbColumnsNamed : null,
+                        HardDepthLimit = scannerSettings.HardDepthLimitAs(member)
                     };
                 }
                 else
@@ -151,6 +156,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.Serialized = scannerSettings.SerializedWhere(member);
                     columnDefinition.IsComplexMapping = scannerSettings.ComplexPropertiesWhere(member);
                     columnDefinition.ValueObjectColumn = scannerSettings.ValueObjectColumnWhere(member);
+                    columnDefinition.HardDepthLimit = scannerSettings.HardDepthLimitAs(member);
                     yield return columnDefinition;
                 }
             }
@@ -182,7 +188,8 @@ namespace NPoco.FluentMappings
                 DbColumnWhere = x => ReflectionUtils.GetCustomAttributes(x, typeof(ColumnAttribute)).Any(),
                 ValueObjectColumnWhere = x => x.GetMemberInfoType().GetInterfaces().Any(y => y == typeof(IValueObject)),
                 Lazy = false,
-                MapNestedTypesWhen = x => false
+                MapNestedTypesWhen = x => false,
+                HardDepthLimitAs = x => null //no depth limit by default
             };
             scanner.Invoke(new ConventionScanner(defaultScannerSettings));
             return defaultScannerSettings;
@@ -227,6 +234,7 @@ namespace NPoco.FluentMappings
                     columnDefinition.Value.ForceUtc = columnInfo.ForceToUtc;
                     columnDefinition.Value.Serialized = columnInfo.SerializedColumn;
                     columnDefinition.Value.ValueObjectColumn = columnInfo.ValueObjectColumn;
+                    columnDefinition.Value.HardDepthLimit = columnInfo.HardDepthLimit;
                 }
             }
         }
@@ -278,6 +286,7 @@ namespace NPoco.FluentMappings
                     convColDefinition.ValueObjectColumn = overrideColumnDefinition.Value.ValueObjectColumn ?? convColDefinition.ValueObjectColumn;
                     convColDefinition.ValueObjectColumnName = overrideColumnDefinition.Value.ValueObjectColumnName ?? convColDefinition.ValueObjectColumnName;
                     convColDefinition.ExactColumnNameMatch = overrideColumnDefinition.Value.ExactColumnNameMatch ?? convColDefinition.ExactColumnNameMatch;
+                    convColDefinition.HardDepthLimit = overrideColumnDefinition.Value.HardDepthLimit ?? convColDefinition.HardDepthLimit;
                 }
             }
         }
