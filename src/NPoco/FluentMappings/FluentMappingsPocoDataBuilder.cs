@@ -116,6 +116,8 @@ namespace NPoco.FluentMappings
             if (isColumnDefined && (typeConfig.ColumnConfiguration[key].IgnoreColumn.HasValue && typeConfig.ColumnConfiguration[key].IgnoreColumn.Value))
                 columnInfo.IgnoreColumn = true;
 
+            if (isColumnDefined) columnInfo.HardDepthLimit = typeConfig.ColumnConfiguration[key].HardDepthLimit;
+
             // Work out the DB column name
             if (isColumnDefined)
             {

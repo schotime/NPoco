@@ -26,5 +26,9 @@ namespace NPoco.FluentMappings
         public bool? ValueObjectColumn { get; set; }
         public string ValueObjectColumnName { get; set; }
         public bool? ExactColumnNameMatch { get; set; }
+        /// <summary>
+        /// If this is set, this column's members will not be mapped beyond [HardDepthLimit] iterations (useful for complex, long-looping or aggregate data structures)
+        /// </summary>
+        public int? HardDepthLimit {get;set;}
     }
 }

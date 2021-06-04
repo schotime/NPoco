@@ -26,6 +26,10 @@ namespace NPoco
         public string ReferenceMemberName { get; set; }
         public MemberInfo MemberInfo { get; internal set; }
         public bool ExactColumnNameMatch { get; set; }
+        /// <summary>
+        /// If this is set, this column's members will not be mapped beyond [HardDepthLimit] iterations (useful for complex, long-looping or aggregate data structures)
+        /// </summary>
+        public int? HardDepthLimit {get;set;}
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
@@ -38,6 +42,7 @@ namespace NPoco
             var serializedColumnAttributes = attrs.OfType<SerializedColumnAttribute>().ToArray();
             var reference = attrs.OfType<ReferenceAttribute>().ToArray();
             var aliasColumn = attrs.OfType<AliasAttribute>().FirstOrDefault();
+            var depthLimit = attrs.OfType<DepthLimitAttribute>().FirstOrDefault();
 
             // Check if declaring poco has [ExplicitColumns] attribute
             var explicitColumns = mi.DeclaringType.GetTypeInfo().GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Any();
@@ -49,6 +54,9 @@ namespace NPoco
             {
                 ci.IgnoreColumn = true;
             }
+
+            if (depthLimit != null )
+                ci.HardDepthLimit = depthLimit.DepthLimit;
 
             if (complexMapping.Any())
             {

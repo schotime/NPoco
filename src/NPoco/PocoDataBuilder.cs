@@ -123,10 +123,34 @@ namespace NPoco
             }
         }
 
-        public IEnumerable<PocoMemberPlan> GetPocoMembers(ColumnInfo[] columnInfos, List<MemberInfo> memberInfos, string prefix = null)
+        private int _LongestUnbrokenTypeSequence(IEnumerable<Type> input)
         {
+            var iterator = input.GetEnumerator();
+            Dictionary<Type, int> lastPositions = new Dictionary<Type, int>();
+            int maxLen = 0;
+            int windowStart = 0;
+            int windowEnd = 0;
+
+            while (iterator.MoveNext())
+            {
+                if (lastPositions.ContainsKey(iterator.Current))
+                {
+                    windowStart = Math.Max(windowStart, lastPositions[iterator.Current] + 1);
+                }
+
+                lastPositions[iterator.Current] = windowEnd;
+                maxLen = Math.Max(maxLen, windowEnd - windowStart + 1);
+                windowEnd++;
+            }
+
+            return maxLen;
+        }
+
+        public IEnumerable<PocoMemberPlan> GetPocoMembers(ColumnInfo[] columnInfos, List<MemberInfo> memberInfos, string prefix = null)
+        {            
             var capturedMembers = memberInfos.ToArray();
             var capturedPrefix = prefix;
+
             foreach (var columnInfo in columnInfos)
             {
                 if (columnInfo.IgnoreColumn)
@@ -144,6 +168,14 @@ namespace NPoco
                 var childrenPlans = new List<PocoMemberPlan>();
                 TableInfoPlan childTableInfoPlan = null;
                 var members = new List<MemberInfo>(capturedMembers) { columnInfo.MemberInfo };
+
+                // Never map anything beyond the hard set limit, if one has been set
+                if ( columnInfo.HardDepthLimit.HasValue)
+                {
+                    if (_LongestUnbrokenTypeSequence(members.Select(m => m.GetMemberInfoType())) > columnInfo.HardDepthLimit.Value)
+                        continue;
+                }
+                    
 
                 if (columnInfo.ComplexMapping || columnInfo.ReferenceType != ReferenceType.None)
                 {
