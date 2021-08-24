@@ -123,5 +123,26 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var data = Database.Fetch<User>("select * from users where uniqueid in (@1) and userid = @0 and name = @2", 1, list, "name");
             Assert.AreEqual(0, data.Count);
         }
+
+        [Test]
+        public void FallbackUser()
+        {
+            var data = Database.Fetch<UserFallback>("select 'thename' myname");
+            Assert.AreEqual(1, data.Count);
+            Assert.AreEqual("thename", data[0].Name);
+        }
+
+        [Test]
+        public void FallbackUserNested()
+        {
+            var data = Database.Fetch<FallbackDto>("select null npoco_User, 'thename' myname");
+            Assert.AreEqual(1, data.Count);
+            Assert.AreEqual("thename", data[0].User.Name);
+        }
+
+        public class FallbackDto
+        {
+            public UserFallback User { get; set; }
+        }
     }
 }

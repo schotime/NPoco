@@ -239,6 +239,10 @@ namespace NPoco.Tests.Common
             });
             For<Supervisor>().UseMap<SupervisorMap>();
             For<Supervisor>().TableName("users").Columns(x => x.Column(y => y.IsMale).WithName("is_male"));
+            For<UserFallback>().Columns(x =>
+            {
+                x.Column(y => y.Name).WithName("myname");
+            });
         }
     }
 
