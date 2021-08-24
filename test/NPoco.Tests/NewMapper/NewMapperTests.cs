@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using NPoco.Expressions;
 using NPoco.fastJSON;
 using NPoco.Linq;
@@ -640,6 +641,47 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
             public class Nest3
             {
                 public string Z { get; set; }
+            }
+        }
+
+        [Test]
+        public void Test28A()
+        {
+            Database.Mappers.Add(new TestMapper());
+            var data = Database.Fetch<Test28AClass>("select null npoco_NestMe3, 'something' as Y").Single();
+            Assert.AreEqual("something", data.NestMe3.Y.X);
+        }
+
+        public class TestMapper : DefaultMapper
+        {
+            public override Func<object, object> GetFromDbConverter(MemberInfo destType, Type sourceType)
+            {
+                if (destType.GetMemberInfoType() == typeof(Test28AClass.Nest4) && sourceType == typeof(string))
+                {
+                    return x =>
+                    {
+                        return new Test28AClass.Nest4 { X = (string)x };
+                    };
+                }
+
+                return base.GetFromDbConverter(destType, sourceType);
+            }
+        }
+
+        public class Test28AClass
+        {
+            public Nest3 NestMe3 { get; set; }
+
+            public class Nest3
+            {
+                public string Z { get; set; }
+                public Nest4 Y { get; set; }
+            }
+
+            [ComplexMapping(ComplexMapping = false)]
+            public class Nest4
+            {
+                public string X { get; set; }
             }
         }
 
