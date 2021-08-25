@@ -174,7 +174,7 @@ namespace NPoco.FluentMappings
                 ComputedPropertyTypeAs = x => ComputedColumnType.Always,
                 ForceDateTimesToUtcWhere = x => true,
                 ReferencePropertiesWhere = x => x.GetMemberInfoType().IsAClass() && ReflectionUtils.GetCustomAttributes(x, typeof(ReferenceAttribute)).Any(),
-                ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && ReflectionUtils.GetCustomAttributes(x, typeof(ComplexMappingAttribute)).Any(),
+                ComplexPropertiesWhere = x => x.GetMemberInfoType().IsAClass() && (ReflectionUtils.GetCustomAttributes(x, typeof(ComplexMappingAttribute)).Cast<ComplexMappingAttribute>().FirstOrDefault()?.ComplexMapping ?? false),
                 ReferenceDbColumnsNamed = x => x.Name + "ID",
                 SequencesNamed = x => null,
                 UseOutputClauseWhere = x => false,
