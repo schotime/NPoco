@@ -55,13 +55,14 @@ namespace NPoco
             database.Mappers = mappers;
             if (_options.PocoDataFactory != null)
             {
-                database.PocoDataFactory = _cachedPocoDataFactory = (_cachedPocoDataFactory == null ? _options.PocoDataFactory.Config(mappers) : _cachedPocoDataFactory);
+                database.PocoDataFactory = _cachedPocoDataFactory ??= _options.PocoDataFactory.Config(mappers);
             }
         }
 
         private MapperCollection BuildMapperCollection(IDatabase database)
         {
             var mc = new MapperCollection();
+            mc.ColumnSerializer = _options.ColumnSerializer ?? ColumnSerializer;
             mc.AddRange(database.Mappers);
             mc.AddRange(_options.Mapper);
 
@@ -105,6 +106,7 @@ namespace NPoco
         public MapperCollection Mapper { get; private set; }
         public FluentConfig PocoDataFactory { get; set; }
         public List<IInterceptor> Interceptors { get; private set; }
+        public IColumnSerializer ColumnSerializer { get; set; }
     }
 
     public class DatabaseFactoryConfig
@@ -143,6 +145,12 @@ namespace NPoco
         public DatabaseFactoryConfig WithInterceptor(IInterceptor interceptor)
         {
             _options.Interceptors.Add(interceptor);
+            return this;
+        }
+
+        public DatabaseFactoryConfig WithColumnSerializer(IColumnSerializer columnSerializer)
+        {
+            _options.ColumnSerializer = columnSerializer;
             return this;
         }
     }

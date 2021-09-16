@@ -23,19 +23,16 @@ namespace NPoco
                     return converter;
             }
 
-            if (pc != null && pc.SerializedColumn)
+            if (pc != null && pc.SerializedColumn && mapper?.ColumnSerializer != null)
             {
-                converter = delegate(object src)
-                {
-                    return DatabaseFactory.ColumnSerializer.Deserialize((string) src, dstType);
-                };
+                converter = src => mapper.ColumnSerializer.Deserialize((string) src, dstType);
                 return converter;
             }
 
             // Standard DateTime->Utc mapper
             if (pc != null && pc.ForceToUtc && srcType == typeof(DateTime) && (dstType == typeof(DateTime) || dstType == typeof(DateTime?)))
             {
-                converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
+                converter = src => new DateTime(((DateTime) src).Ticks, DateTimeKind.Utc);
                 return converter;
             }
 
@@ -71,14 +68,13 @@ namespace NPoco
             //var tc = Type.GetTypeCode(t);
             //return tc >= TypeCode.SByte && tc <= TypeCode.UInt64;
             //Not available for now
-
             return new[]
-                   {
-                       typeof (SByte), typeof (Byte),
-                       typeof (Int16), typeof (UInt16),
-                       typeof (Int32), typeof (UInt32),
-                       typeof (Int64), typeof (UInt64)
-                   }.Contains(t);
+            {
+                typeof(SByte), typeof(Byte),
+                typeof(Int16), typeof(UInt16),
+                typeof(Int32), typeof(UInt32),
+                typeof(Int64), typeof(UInt64)
+            }.Contains(t);
         }
 
         public static object GetDefault(Type type)

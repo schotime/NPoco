@@ -88,4 +88,10 @@ namespace NPoco.Tests.Common
             UserId = userId;
         }
     }
+
+    public class UserFallback
+    {
+        public string Name { get; set; }
+    }
+
 }

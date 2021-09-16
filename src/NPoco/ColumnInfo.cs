@@ -50,10 +50,17 @@ namespace NPoco
                 ci.IgnoreColumn = true;
             }
 
+            var complexMappingAttribute = mi.GetMemberInfoType().GetCustomAttribute<ComplexMappingAttribute>();
+
             if (complexMapping.Any())
             {
-                ci.ComplexMapping = true;
+                ci.ComplexMapping = complexMapping.First().ComplexMapping;
                 ci.ComplexPrefix = complexMapping.First().CustomPrefix;
+            }
+            else if (complexMappingAttribute != null)
+            {
+                ci.ComplexMapping = complexMappingAttribute.ComplexMapping;
+                ci.ComplexPrefix = complexMappingAttribute.CustomPrefix;
             }
             else if (mi.GetMemberInfoType().GetInterfaces().Any(x => x == typeof(IValueObject)))
             {

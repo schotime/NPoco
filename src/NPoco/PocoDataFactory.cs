@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
 
 namespace NPoco
 {
@@ -13,11 +12,13 @@ namespace NPoco
 
     public class FluentPocoDataFactory : IPocoDataFactory
     {
+        private readonly MapperCollection _mapperCollection;
         private readonly Cache<Type, InitializedPocoDataBuilder> _pocoDatas = Cache<Type, InitializedPocoDataBuilder>.CreateStaticCache();
         public Func<Type, IPocoDataFactory, InitializedPocoDataBuilder> Resolver { get; private set; }
 
-        public FluentPocoDataFactory(Func<Type, IPocoDataFactory, InitializedPocoDataBuilder> resolver)
+        public FluentPocoDataFactory(Func<Type, IPocoDataFactory, InitializedPocoDataBuilder> resolver, MapperCollection mapperCollection)
         {
+            _mapperCollection = mapperCollection;
             Resolver = resolver;
         }
         
@@ -37,7 +38,7 @@ namespace NPoco
 
         public PocoData ForObject(object o, string primaryKeyName, bool autoIncrement)
         {
-            return PocoDataFactory.ForObjectStatic(o, primaryKeyName, autoIncrement, ForType);
+            return PocoDataFactory.ForObjectStatic(o, primaryKeyName, autoIncrement, ForType, _mapperCollection);
         }
 
         private InitializedPocoDataBuilder BaseClassFalbackPocoDataBuilder(Type type)
@@ -78,7 +79,7 @@ namespace NPoco
 
         public PocoData ForObject(object o, string primaryKeyName, bool autoIncrement)
         {
-            return ForObjectStatic(o, primaryKeyName, autoIncrement, ForType);
+            return ForObjectStatic(o, primaryKeyName, autoIncrement, ForType, _mapper);
         }
 
         private InitializedPocoDataBuilder BaseClassFallbackPocoDataBuilder(Type type)
@@ -92,12 +93,12 @@ namespace NPoco
             return new PocoDataBuilder(persistedType, _mapper).Init();
         }
 
-        public static PocoData ForObjectStatic(object o, string primaryKeyName, bool autoIncrement, Func<Type, PocoData> fallback)
+        public static PocoData ForObjectStatic(object o, string primaryKeyName, bool autoIncrement, Func<Type, PocoData> fallback, MapperCollection mapper)
         {
             var t = o.GetType();
             if (t == typeof (System.Dynamic.ExpandoObject) || t == typeof (PocoExpando))
             {
-                var pd = new PocoData
+                var pd = new PocoData(t, mapper, Singleton<NullFastCreate>.Instance)
                 {
                     TableInfo = new TableInfo
                     {

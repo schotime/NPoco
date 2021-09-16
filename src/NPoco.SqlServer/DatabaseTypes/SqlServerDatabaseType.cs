@@ -131,6 +131,10 @@ namespace NPoco.DatabaseTypes
                             sb.AppendFormat("DECLARE {0}{1} {2} = '{3}'\n", GetParameterPrefix(string.Empty), i, p.SqlDbType, value);
                         }
                     }
+                    else if (p.SqlDbType == SqlDbType.NVarChar || p.SqlDbType == SqlDbType.VarChar)
+                    {
+                        sb.AppendFormat("DECLARE {0}{1} {2}({3}) = '{4}'\n", GetParameterPrefix(string.Empty), i, p.SqlDbType, p.Size, value);
+                    }
                     else
                     {
                         sb.AppendFormat("DECLARE {0}{1} {2}[{3}] = '{4}'\n", GetParameterPrefix(string.Empty), i, p.SqlDbType, p.Size, value);

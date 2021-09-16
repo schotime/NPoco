@@ -465,7 +465,7 @@ namespace NPoco
 
         public Task<T> FirstAsync<T>(string sql, params object[] args)
         {
-            return QueryAsync<T>(sql).FirstAsync().AsTask();
+            return QueryAsync<T>(sql, args).FirstAsync().AsTask();
         }
 
         public Task<T> FirstAsync<T>(Sql sql)
@@ -475,7 +475,7 @@ namespace NPoco
 
         public Task<T> FirstOrDefaultAsync<T>(string sql, params object[] args)
         {
-            return QueryAsync<T>(sql).FirstOrDefaultAsync().AsTask();
+            return QueryAsync<T>(sql, args).FirstOrDefaultAsync().AsTask();
         }
 
         public Task<T> FirstOrDefaultAsync<T>(Sql sql)

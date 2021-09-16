@@ -17,16 +17,12 @@ namespace NPoco
         public TableInfo TableInfo { get; protected internal set; }
         public Dictionary<string, PocoColumn> Columns { get; protected internal set; }
         public List<PocoMember> Members { get; protected internal set; }
-        public List<PocoColumn> AllColumns { get; protected internal set; }
+        private IFastCreate CreateDelegate { get; }
 
         // This is used on a per query basis, if we have cache PocoData then this will need to change.
         public bool IsQueryGenerated { get; set; }
 
-        public PocoData()
-        {
-        }
-
-        public PocoData(Type type, MapperCollection mapper, FastCreate creator) : this()
+        public PocoData(Type type, MapperCollection mapper, IFastCreate creator)
         {
             CreateDelegate = creator;
             Type = type;
@@ -78,7 +74,5 @@ namespace NPoco
         {
             return CreateDelegate.Create(dataReader);
         }
-
-        private FastCreate CreateDelegate { get; set; }
     }
 }

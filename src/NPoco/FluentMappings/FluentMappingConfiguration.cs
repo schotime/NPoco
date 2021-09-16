@@ -290,20 +290,17 @@ namespace NPoco.FluentMappings
             {
                 if (maps != null)
                 {
-                    if (maps.Config.ContainsKey(t))
-                    {
-                        return new FluentMappingsPocoDataBuilder(t, mappings, mapper).Init();
-                    }
-
                     if (scana != null)
                     {
                         var settings = ProcessSettings(scana);
                         var typeMapping = CreateMappings(settings, new[] { t });
                         return new FluentMappingsPocoDataBuilder(t, typeMapping, mapper).Init();
                     }
+
+                    return new FluentMappingsPocoDataBuilder(t, mappings, mapper).Init();
                 }
                 return new PocoDataBuilder(t, mapper).Init();
-            }));
+            }, mapper));
         }
 
         // Helper method if code is in seperate assembly

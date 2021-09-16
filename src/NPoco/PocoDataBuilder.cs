@@ -17,7 +17,7 @@ namespace NPoco
     public class PocoDataBuilder : InitializedPocoDataBuilder
     {
         private readonly Cache<string, Type> _aliasToType = Cache<string, Type>.CreateStaticCache();
-        private FastCreate _generator;
+        private IFastCreate _generator;
 
         protected Type Type { get; set; }
         private MapperCollection Mapper { get; set; }
@@ -79,11 +79,8 @@ namespace NPoco
             var pocoData = new PocoData(Type, Mapper, _generator);
 
             pocoData.TableInfo = _tableInfoPlan();
-
             pocoData.Members = _memberPlans.Select(plan => plan(pocoData.TableInfo)).ToList();
-
-            pocoData.Columns = GetPocoColumns(pocoData.Members, false).Where(x => x != null).ToDictionary(x => x.ColumnName, x => x, StringComparer.OrdinalIgnoreCase);
-            pocoData.AllColumns = GetPocoColumns(pocoData.Members, true).Where(x => x != null).ToList();
+            pocoData.Columns = GetPocoColumns(pocoData.Members).Where(x => x != null).ToDictionary(x => x.ColumnName, x => x, StringComparer.OrdinalIgnoreCase);
 
             //Build column list for automatic select
             pocoData.QueryColumns = pocoData.Columns.Where(c => !c.Value.ResultColumn && c.Value.ReferenceType == ReferenceType.None).ToArray();
@@ -96,7 +93,7 @@ namespace NPoco
             var alias = CreateAlias(type.Name, type);
             var tableInfo = TableInfo.FromPoco(type);
             tableInfo.AutoAlias = alias;
-            return () => { return tableInfo.Clone(); };
+            return () => tableInfo.Clone();
         }
 
         protected virtual ColumnInfo GetColumnInfo(MemberInfo mi, Type type)
@@ -104,21 +101,23 @@ namespace NPoco
             return ColumnInfo.FromMemberInfo(mi);
         }
 
-        private static IEnumerable<PocoColumn> GetPocoColumns(IEnumerable<PocoMember> members, bool all)
+        private static IEnumerable<PocoColumn> GetPocoColumns(IEnumerable<PocoMember> members)
         {
             foreach (var member in members)
             {
-                if (all || (member.ReferenceType != ReferenceType.OneToOne
-                            && member.ReferenceType != ReferenceType.Many))
+                switch (member.ReferenceType)
                 {
-                    yield return member.PocoColumn;
-                }
-
-                if (all || (member.ReferenceType == ReferenceType.None))
-                {
-                    foreach (var pocoMemberChild in GetPocoColumns(member.PocoMemberChildren, all))
+                    case ReferenceType.Foreign:
+                        yield return member.PocoColumn;
+                        break;
+                    case ReferenceType.None:
                     {
-                        yield return pocoMemberChild;
+                        yield return member.PocoColumn;
+                        foreach (var pocoMemberChild in GetPocoColumns(member.PocoMemberChildren))
+                        {
+                            yield return pocoMemberChild;
+                        }
+                        break;
                     }
                 }
             }

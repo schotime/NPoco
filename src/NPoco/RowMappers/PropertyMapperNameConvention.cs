@@ -36,7 +36,7 @@ namespace NPoco.RowMappers
                     continue;
                 }
 
-                var member = FindMember(scopedPocoMembers, posName.Name);
+                var member = FindMember(scopedPocoMembers, prefix, posName.Name);
                 if (member != null && member.PocoColumn != null)
                 {
                     posName.Name = member.PocoColumn.MemberInfoKey;
@@ -76,22 +76,25 @@ namespace NPoco.RowMappers
         {
             return pocoMembers
                 .Where(x => x.PocoMember.ReferenceType == ReferenceType.None)
-                .FirstOrDefault(x => IsPocoMemberEqual(x.PocoMember, name));
+                .FirstOrDefault(x => IsPocoMemberEqual(x.PocoMember, string.Empty, name));
         }
 
-        internal static PocoMember FindMember(IEnumerable<PocoMember> pocoMembers, string name)
+        internal static PocoMember FindMember(IEnumerable<PocoMember> pocoMembers, string prefix, string name)
         {
             return pocoMembers
                 .Where(x => x.ReferenceType == ReferenceType.None)
-                .FirstOrDefault(x => IsPocoMemberEqual(x, name));
+                .FirstOrDefault(x => IsPocoMemberEqual(x, prefix, name));
         }
 
-        private static bool IsPocoMemberEqual(PocoMember pocoMember, string name)
+        private static bool IsPocoMemberEqual(PocoMember pocoMember, string prefix, string name)
         {
             if (pocoMember.PocoColumn == null)
                 return PropertyMapper.IsEqual(name, pocoMember.Name, false);
 
             if (pocoMember.PocoColumn.MemberInfoKey == name)
+                return true;
+
+            if (string.Equals(pocoMember.PocoColumn.ColumnName, PocoDataBuilder.JoinStrings(prefix, name), StringComparison.OrdinalIgnoreCase))
                 return true;
 
             if (PropertyMapper.IsEqual(name, pocoMember.PocoColumn.ColumnAlias ?? pocoMember.PocoColumn.ColumnName, pocoMember.PocoColumn.ExactColumnNameMatch))
