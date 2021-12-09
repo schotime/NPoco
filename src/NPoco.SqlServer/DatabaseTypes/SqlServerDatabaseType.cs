@@ -119,7 +119,7 @@ namespace NPoco.DatabaseTypes
                     }
 
                     var p = new SqlParameter();
-                    ParameterHelper.SetParameterValue(this, p, args[i]);
+                    ParameterHelper.SetParameterValue(this, p, value);
                     if (p.Size == 0 || p.SqlDbType == SqlDbType.UniqueIdentifier)
                     {
                         if (value == null && (p.SqlDbType == SqlDbType.NVarChar || p.SqlDbType == SqlDbType.VarChar))

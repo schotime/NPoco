@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace NPoco
 {
-    public interface IDatabase : IAsyncDatabase, IDatabaseQuery, IDatabaseConfig
+    public interface IDatabase : IAsyncDatabase, IDatabaseQuery
     {
         /// <summary>
         /// Insert POCO into the table, primary key and autoincrement specified

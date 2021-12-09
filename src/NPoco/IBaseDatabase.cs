@@ -5,7 +5,7 @@ using System.Data.Common;
 
 namespace NPoco
 {
-    public interface IBaseDatabase : IDisposable
+    public interface IBaseDatabase : IDisposable, IDatabaseConfig
     {
         /// <summary>
         /// The underlying connection object

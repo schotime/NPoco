@@ -83,16 +83,13 @@ namespace NPoco.RowMappers
         {
             return pocoMembers
                 .Where(x => x.ReferenceType == ReferenceType.None)
-                .FirstOrDefault(x => IsPocoMemberEqual(x, prefix, name));
+                .FirstOrDefault(x => x.PocoColumn?.MemberInfoKey == name || IsPocoMemberEqual(x, prefix, name));
         }
 
         private static bool IsPocoMemberEqual(PocoMember pocoMember, string prefix, string name)
         {
             if (pocoMember.PocoColumn == null)
                 return PropertyMapper.IsEqual(name, pocoMember.Name, false);
-
-            if (pocoMember.PocoColumn.MemberInfoKey == name)
-                return true;
 
             if (string.Equals(pocoMember.PocoColumn.ColumnName, PocoDataBuilder.JoinStrings(prefix, name), StringComparison.OrdinalIgnoreCase))
                 return true;
