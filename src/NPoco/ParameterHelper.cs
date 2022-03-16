@@ -90,7 +90,10 @@ namespace NPoco
             }
 
             // Expand collections to parameter lists
+            // Do not take in consideration special cases like Newtonsoft JObject/JToken (they implement IEnumerable..)
             if ((arg_val as System.Collections.IEnumerable) != null &&
+                !string.Equals(arg_val.GetType().Name, "JObject") &&
+                !string.Equals(arg_val.GetType().Name, "JToken") &&
                 (arg_val as string) == null &&
                 (arg_val as byte[]) == null)
             {
