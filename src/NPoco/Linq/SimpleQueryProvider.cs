@@ -371,7 +371,7 @@ namespace NPoco.Linq
 
         public Task<T> Single(CancellationToken cancellationToken)
         {
-            return Single(null, CancellationToken.None);
+            return Single(null, cancellationToken);
         }
 
         public Task<T> Single(Expression<Func<T, bool>> whereExpression)

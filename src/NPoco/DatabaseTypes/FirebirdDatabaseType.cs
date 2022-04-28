@@ -3,6 +3,7 @@ using System;
 using System.Data;
 using System.Data.Common;
 using System.Text;
+using System.Threading;
 using NPoco.Expressions;
 using System.Threading.Tasks;
 
@@ -76,16 +77,23 @@ namespace NPoco.DatabaseTypes
             return -1;
         }
 
-        public override async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName,
+            bool useOutputClause, T poco, object[] args)
+        {
+            return await ExecuteInsertAsync(db, cmd, primaryKeyName, useOutputClause, poco, args,
+                CancellationToken.None);
+        }
+
+        public override async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args, CancellationToken cancellationToken)
         {
             if (primaryKeyName != null)
             {
                 var param = AdjustSqlInsertCommandText(cmd, primaryKeyName);
-                await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+                await db.ExecuteNonQueryHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
                 return param.Value;
             }
 
-            await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+            await db.ExecuteNonQueryHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
             return -1;
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -33,6 +34,39 @@ namespace NPoco.Tests.Async
         }
 
         [Test]
+        public async Task InsertPocoIntoDatabaseUsingInsertAsync_WithCancellationToken_ShouldNotThrow()
+        {
+            var user = new User()
+            {
+                Age = 10,
+                DateOfBirth = DateTime.Now
+            };
+
+            var source = new CancellationTokenSource();
+            var pk = await Database.InsertAsync(user, source.Token);
+
+            var userDb = Database.Query<User>().Where(x => x.UserId == user.UserId).Single();
+            Assert.AreEqual(user.Age, userDb.Age);
+            Assert.AreEqual(pk, userDb.UserId);
+            Assert.AreEqual(user.UserId, userDb.UserId);
+        }
+
+        [Test]
+        public void InsertPocoIntoDatabaseUsingInsertAsync_WithCancelledCancellationToken_ShouldThrow()
+        {
+            var user = new User()
+            {
+                Age = 10,
+                DateOfBirth = DateTime.Now
+            };
+
+            var source = new CancellationTokenSource();
+            source.Cancel();
+
+            Assert.ThrowsAsync<TaskCanceledException>(() => Database.InsertAsync(user, source.Token));
+        }
+
+        [Test]
         public async Task InsertTwoPocoIntoDatabaseUsingInsertAsync()
         {
             var user1 = new User() { Age = 10, DateOfBirth = DateTime.Now };
@@ -48,7 +82,7 @@ namespace NPoco.Tests.Async
             Assert.AreEqual(user2.Age, userDb2.Age);
             Assert.AreEqual(pk2, userDb2.UserId);
         }
-        
+
         //[Test, NUnit.Framework.Ignore("LocalDB cannot insert more than one at a time")]
         public void InsertTwoPocoIntoDatabaseUsingInsertAsyncWaitingForAll1()
         {
