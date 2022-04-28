@@ -11,13 +11,22 @@ namespace NPoco.Tests.Async
         [Test]
         public async Task DeletePrimaryKeyObject()
         {
-            var poco = await Database.QueryAsync<User>().Where(x => x.UserId == InMemoryUsers[1].UserId).SingleOrDefault();
-            Assert.IsNotNull(poco);
+            try
+            {
+                var poco = await Database.QueryAsync<User>().Where(x => x.UserId == InMemoryUsers[1].UserId)
+                    .SingleOrDefault();
+                Assert.IsNotNull(poco);
 
-            await Database.DeleteAsync(poco);
+                await Database.DeleteAsync(poco);
 
-            var verify = await Database.QueryAsync<User>().Where(x => x.UserId == InMemoryUsers[1].UserId).SingleOrDefault();
-            Assert.IsNull(verify);
+                var verify = await Database.QueryAsync<User>().Where(x => x.UserId == InMemoryUsers[1].UserId)
+                    .SingleOrDefault();
+                Assert.IsNull(verify);
+            }
+            catch (Exception ex)
+            {
+                Assert.Null(ex);
+            }
         }
     }
 }

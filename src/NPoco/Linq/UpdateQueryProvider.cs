@@ -1,5 +1,6 @@
 using System;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using NPoco.Expressions;
 
@@ -11,6 +12,7 @@ namespace NPoco.Linq
         IAsyncUpdateQueryProvider<T> ExcludeDefaults();
         IAsyncUpdateQueryProvider<T> OnlyFields(Expression<Func<T, object>> onlyFields);
         Task<int> Execute(T obj);
+        Task<int> Execute(T obj, CancellationToken cancellationToken);
     }
 
     public interface IUpdateQueryProvider<T>
@@ -20,6 +22,7 @@ namespace NPoco.Linq
         IUpdateQueryProvider<T> OnlyFields(Expression<Func<T, object>> onlyFields);
         int Execute(T obj);
         Task<int> ExecuteAsync(T obj);
+        Task<int> ExecuteAsync(T obj, CancellationToken cancellationToken);
     }
 
     public class UpdateQueryProvider<T> : AsyncUpdateQueryProvider<T>, IUpdateQueryProvider<T>
@@ -54,6 +57,11 @@ namespace NPoco.Linq
         public Task<int> ExecuteAsync(T obj)
         {
             return base.Execute(obj);
+        }
+
+        public Task<int> ExecuteAsync(T obj, CancellationToken cancellationToken)
+        {
+            return base.Execute(obj, cancellationToken);
         }
     }
 
@@ -91,8 +99,13 @@ namespace NPoco.Linq
 
         public async Task<int> Execute(T obj)
         {
+            return await Execute(obj, CancellationToken.None);
+        }
+
+        public async Task<int> Execute(T obj, CancellationToken cancellationToken)
+        {
             var updateStatement = _sqlExpression.Context.ToUpdateStatement(obj, _excludeDefaults, _onlyFields);
-            return await _database.ExecuteAsync(updateStatement, _sqlExpression.Context.Params).ConfigureAwait(false);
+            return await _database.ExecuteAsync(updateStatement, _sqlExpression.Context.Params, cancellationToken).ConfigureAwait(false);
         }
     }
 }

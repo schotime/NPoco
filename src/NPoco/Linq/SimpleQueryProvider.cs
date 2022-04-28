@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using NPoco.Expressions;
 
@@ -11,24 +12,43 @@ namespace NPoco.Linq
     public interface IAsyncQueryResultProvider<T>
     {
         Task<List<T>> ToList();
+        Task<List<T>> ToList(CancellationToken cancellationToken);
         Task<T[]> ToArray();
+        Task<T[]> ToArray(CancellationToken cancellationToken);
         IAsyncEnumerable<T> ToEnumerable();
+        IAsyncEnumerable<T> ToEnumerable(CancellationToken cancellationToken);
         Task<T> FirstOrDefault();
+        Task<T> FirstOrDefault(CancellationToken cancellationToken);
         Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression);
+        Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<T> First();
+        Task<T> First(CancellationToken cancellationToken);
         Task<T> First(Expression<Func<T, bool>> whereExpression);
+        Task<T> First(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<T> SingleOrDefault();
+        Task<T> SingleOrDefault(CancellationToken cancellationToken);
         Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression);
+        Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<T> Single();
+        Task<T> Single(CancellationToken cancellationToken);
         Task<T> Single(Expression<Func<T, bool>> whereExpression);
+        Task<T> Single(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<int> Count();
+        Task<int> Count(CancellationToken cancellationToken);
         Task<int> Count(Expression<Func<T, bool>> whereExpression);
+        Task<int> Count(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<bool> Any();
+        Task<bool> Any(CancellationToken cancellationToken);
         Task<bool> Any(Expression<Func<T, bool>> whereExpression);
+        Task<bool> Any(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<Page<T>> ToPage(int page, int pageSize);
+        Task<Page<T>> ToPage(int page, int pageSize, CancellationToken cancellationToken);
         Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
+        Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken);
         Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
+        Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken);
         Task<List<T>> Distinct();
+        Task<List<T>> Distinct(CancellationToken cancellationToken);
     }
 
     public interface IQueryResultProvider<T>
@@ -55,24 +75,43 @@ namespace NPoco.Linq
         List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
         List<T> Distinct();
         Task<List<T>> ToListAsync();
+        Task<List<T>> ToListAsync(CancellationToken cancellationToken);
         Task<T[]> ToArrayAsync();
+        Task<T[]> ToArrayAsync(CancellationToken cancellationToken);
         IAsyncEnumerable<T> ToEnumerableAsync();
+        IAsyncEnumerable<T> ToEnumerableAsync(CancellationToken cancellationToken);
         Task<T> FirstOrDefaultAsync();
+        Task<T> FirstOrDefaultAsync(CancellationToken cancellationToken);
         Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression);
+        Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<T> FirstAsync();
+        Task<T> FirstAsync(CancellationToken cancellationToken);
         Task<T> FirstAsync(Expression<Func<T, bool>> whereExpression);
+        Task<T> FirstAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<T> SingleOrDefaultAsync();
+        Task<T> SingleOrDefaultAsync(CancellationToken cancellationToken);
         Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression);
+        Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<T> SingleAsync();
+        Task<T> SingleAsync(CancellationToken cancellationToken);
         Task<T> SingleAsync(Expression<Func<T, bool>> whereExpression);
+        Task<T> SingleAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<int> CountAsync();
+        Task<int> CountAsync(CancellationToken cancellationToken);
         Task<int> CountAsync(Expression<Func<T, bool>> whereExpression);
+        Task<int> CountAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<bool> AnyAsync();
+        Task<bool> AnyAsync(CancellationToken cancellationToken);
         Task<bool> AnyAsync(Expression<Func<T, bool>> whereExpression);
+        Task<bool> AnyAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken);
         Task<Page<T>> ToPageAsync(int page, int pageSize);
+        Task<Page<T>> ToPageAsync(int page, int pageSize, CancellationToken cancellationToken);
         Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression);
+        Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken);
         Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression);
+        Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken);
         Task<List<T>> DistinctAsync();
+        Task<List<T>> DistinctAsync(CancellationToken cancellationToken);
     }
 
     public interface IQueryProvider<T> : IQueryResultProvider<T>
@@ -224,91 +263,176 @@ namespace NPoco.Linq
 
         public Task<List<T>> ToList()
         {
-            return ToEnumerable().ToListAsync().AsTask();
+            return ToList(CancellationToken.None);
+        }
+
+        public Task<List<T>> ToList(CancellationToken cancellationToken)
+        {
+            return ToEnumerable(cancellationToken).ToListAsync(cancellationToken).AsTask();
         }
 
         public Task<T[]> ToArray()
         {
-            return ToEnumerable().ToArrayAsync().AsTask();
+            return ToArray(CancellationToken.None);
+        }
+
+        public Task<T[]> ToArray(CancellationToken cancellationToken)
+        {
+            return ToEnumerable(cancellationToken).ToArrayAsync(cancellationToken).AsTask();
         }
 
         public IAsyncEnumerable<T> ToEnumerable()
         {
-            return ExecuteQueryAsync(BuildSql());
+            return ToEnumerable(CancellationToken.None);
+        }
+
+        public IAsyncEnumerable<T> ToEnumerable(CancellationToken cancellationToken)
+        {
+            return ExecuteQueryAsync(BuildSql(), cancellationToken);
         }
 
         private IAsyncEnumerable<T> ExecuteQueryAsync(Sql sql)
         {
-            return _database.QueryAsync<T>(default, _listExpression, null, sql, _pocoData);
+            return ExecuteQueryAsync(sql, CancellationToken.None);
+        }
+
+        private IAsyncEnumerable<T> ExecuteQueryAsync(Sql sql, CancellationToken cancellationToken)
+        {
+            return _database.QueryAsync<T>(default, _listExpression, null, sql, cancellationToken, _pocoData);
         }
 
         public Task<T> FirstOrDefault()
         {
-            return FirstOrDefault(null);
+            return FirstOrDefault(CancellationToken.None);
+        }
+
+        public Task<T> FirstOrDefault(CancellationToken cancellationToken)
+        {
+            return FirstOrDefault(null, cancellationToken);
         }
 
         public Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression)
         {
+            return FirstOrDefault(whereExpression, CancellationToken.None);
+        }
+
+        public Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
             AddWhere(whereExpression);
-            return ToEnumerable().FirstOrDefaultAsync().AsTask();
+            return ToEnumerable(cancellationToken).FirstOrDefaultAsync(cancellationToken).AsTask();
         }
 
         public Task<T> First()
         {
-            return First(null);
+            return First(CancellationToken.None);
+        }
+
+        public Task<T> First(CancellationToken cancellationToken)
+        {
+            return First(null, cancellationToken);
         }
 
         public Task<T> First(Expression<Func<T, bool>> whereExpression)
         {
+            return First(whereExpression, CancellationToken.None);
+        }
+
+        public Task<T> First(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
             AddWhere(whereExpression);
-            return ToEnumerable().FirstAsync().AsTask();
+            return ToEnumerable(cancellationToken).FirstAsync(cancellationToken).AsTask();
         }
 
         public Task<T> SingleOrDefault()
         {
-            return SingleOrDefault(null);
+            return SingleOrDefault(CancellationToken.None);
+        }
+
+        public Task<T> SingleOrDefault(CancellationToken cancellationToken)
+        {
+            return SingleOrDefault(null, cancellationToken);
         }
 
         public Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression)
         {
+            return SingleOrDefault(whereExpression, CancellationToken.None);
+        }
+
+        public Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
             AddWhere(whereExpression);
-            return ToEnumerable().SingleOrDefaultAsync().AsTask();
+            return ToEnumerable(cancellationToken).SingleOrDefaultAsync(cancellationToken).AsTask();
         }
 
         public Task<T> Single()
         {
-            return Single(null);
+            return Single(CancellationToken.None);
+        }
+
+        public Task<T> Single(CancellationToken cancellationToken)
+        {
+            return Single(null, CancellationToken.None);
         }
 
         public Task<T> Single(Expression<Func<T, bool>> whereExpression)
         {
+            return Single(whereExpression, CancellationToken.None);
+        }
+
+        public Task<T> Single(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
             AddWhere(whereExpression);
-            return ToEnumerable().SingleAsync().AsTask();
+            return ToEnumerable(cancellationToken).SingleAsync(cancellationToken).AsTask();
         }
 
         public Task<int> Count()
         {
-            return Count(null);
+            return Count(CancellationToken.None);
+        }
+
+        public Task<int> Count(CancellationToken cancellationToken)
+        {
+            return Count(null, cancellationToken);
         }
 
         public Task<int> Count(Expression<Func<T, bool>> whereExpression)
         {
+            return Count(whereExpression, CancellationToken.None);
+        }
+
+        public Task<int> Count(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
             AddWhere(whereExpression);
             var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true, false);
-            return _database.ExecuteScalarAsync<int>(sql);
+            return _database.ExecuteScalarAsync<int>(sql, cancellationToken);
         }
 
         public Task<bool> Any()
         {
-            return Any(null);
+            return Any(CancellationToken.None);
+        }
+
+        public Task<bool> Any(CancellationToken cancellationToken)
+        {
+            return Any(null, cancellationToken);
         }
 
         public async Task<bool> Any(Expression<Func<T, bool>> whereExpression)
         {
-            return (await Count(whereExpression).ConfigureAwait(false)) > 0;
+            return await Any(whereExpression, CancellationToken.None);
+        }
+
+        public async Task<bool> Any(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
+            return (await Count(whereExpression, cancellationToken).ConfigureAwait(false)) > 0;
         }
 
         public async Task<Page<T>> ToPage(int page, int pageSize)
+        {
+            return await ToPage(page, pageSize, CancellationToken.None);
+        }
+
+        public async Task<Page<T>> ToPage(int page, int pageSize, CancellationToken cancellationToken)
         {
             int offset = (page - 1) * pageSize;
 
@@ -319,7 +443,7 @@ namespace NPoco.Linq
             var result = new Page<T>();
             result.CurrentPage = page;
             result.ItemsPerPage = pageSize;
-            result.TotalItems = await Count().ConfigureAwait(false);
+            result.TotalItems = await Count(cancellationToken).ConfigureAwait(false);
             result.TotalPages = result.TotalItems / pageSize;
             if ((result.TotalItems % pageSize) != 0)
                 result.TotalPages++;
@@ -328,26 +452,41 @@ namespace NPoco.Linq
 
             _sqlExpression = _sqlExpression.Limit(offset, pageSize);
 
-            result.Items = await ToList().ConfigureAwait(false);
+            result.Items = await ToList(cancellationToken).ConfigureAwait(false);
 
             return result;
         }
 
         public Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression)
         {
-            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
-            return ExecuteQueryAsync(sql).Select(projectionExpression.Compile()).ToListAsync().AsTask();
+            return ProjectTo<T2>(projectionExpression, CancellationToken.None);
         }
 
-        public Task<List<T>> Distinct()
+        public Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken)
         {
-            return ExecuteQueryAsync(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params)).ToListAsync().AsTask();
+            var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
+            return ExecuteQueryAsync(sql, cancellationToken).Select(projectionExpression.Compile()).ToListAsync(cancellationToken).AsTask();
         }
 
         public Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
         {
+            return Distinct<T2>(projectionExpression, CancellationToken.None);
+        }
+
+        public Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken)
+        {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, true);
-            return ExecuteQueryAsync(sql).Select(projectionExpression.Compile()).ToListAsync().AsTask();
+            return ExecuteQueryAsync(sql, cancellationToken).Select(projectionExpression.Compile()).ToListAsync(cancellationToken).AsTask();
+        }
+
+        public Task<List<T>> Distinct()
+        {
+            return Distinct(CancellationToken.None);
+        }
+
+        public Task<List<T>> Distinct(CancellationToken cancellationToken)
+        {
+            return ExecuteQueryAsync(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params), cancellationToken).ToListAsync(cancellationToken).AsTask();
         }
 
         public IAsyncQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression)
@@ -640,99 +779,194 @@ namespace NPoco.Linq
 
         public Task<List<T>> ToListAsync()
         {
-            return base.ToList();
+            return ToListAsync(CancellationToken.None);
+        }
+
+        public Task<List<T>> ToListAsync(CancellationToken cancellationToken)
+        {
+            return ToList(cancellationToken);
         }
 
         public Task<T[]> ToArrayAsync()
         {
-            return base.ToArray();
+            return ToArrayAsync(CancellationToken.None);
+        }
+
+        public Task<T[]> ToArrayAsync(CancellationToken cancellationToken)
+        {
+            return ToArray(cancellationToken);
         }
 
         public IAsyncEnumerable<T> ToEnumerableAsync()
         {
-            return base.ToEnumerable();
+            return ToEnumerableAsync(CancellationToken.None);
+        }
+
+        public IAsyncEnumerable<T> ToEnumerableAsync(CancellationToken cancellationToken)
+        {
+            return ToEnumerable(cancellationToken);
         }
 
         public Task<T> FirstOrDefaultAsync()
         {
-            return base.FirstOrDefault();
+            return FirstOrDefaultAsync(CancellationToken.None);
+        }
+
+        public Task<T> FirstOrDefaultAsync(CancellationToken cancellationToken)
+        {
+            return FirstOrDefault(cancellationToken);
         }
 
         public Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression)
         {
-            return base.FirstOrDefault(whereExpression);
+            return FirstOrDefaultAsync(whereExpression, CancellationToken.None);
+        }
+
+        public Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
+            return FirstOrDefault(whereExpression, cancellationToken);
         }
 
         public Task<T> FirstAsync()
         {
-            return base.First();
+            return FirstAsync(CancellationToken.None);
+        }
+
+        public Task<T> FirstAsync(CancellationToken cancellationToken)
+        {
+            return First(cancellationToken);
         }
 
         public Task<T> FirstAsync(Expression<Func<T, bool>> whereExpression)
         {
-            return base.First(whereExpression);
+            return FirstAsync(whereExpression, CancellationToken.None);
+        }
+
+        public Task<T> FirstAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
+            return base.First(whereExpression, cancellationToken);
         }
 
         public Task<T> SingleOrDefaultAsync()
         {
-            return base.SingleOrDefault();
+            return SingleOrDefaultAsync(CancellationToken.None);
+        }
+
+        public Task<T> SingleOrDefaultAsync(CancellationToken cancellationToken)
+        {
+            return SingleOrDefault(cancellationToken);
         }
 
         public Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression)
         {
-            return base.SingleOrDefault(whereExpression);
+            return SingleOrDefaultAsync(whereExpression, CancellationToken.None);
+        }
+
+        public Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
+            return SingleOrDefault(whereExpression, cancellationToken);
         }
 
         public Task<T> SingleAsync()
         {
-            return base.Single();
+            return SingleAsync(CancellationToken.None);
+        }
+
+        public Task<T> SingleAsync(CancellationToken cancellationToken)
+        {
+            return Single(cancellationToken);
         }
 
         public Task<T> SingleAsync(Expression<Func<T, bool>> whereExpression)
         {
-            return base.Single(whereExpression);
+            return SingleAsync(whereExpression, CancellationToken.None);
+        }
+
+        public Task<T> SingleAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
+            return Single(whereExpression, cancellationToken);
         }
 
         public Task<int> CountAsync()
         {
-            return base.Count();
+            return CountAsync(CancellationToken.None);
+        }
+
+        public Task<int> CountAsync(CancellationToken cancellationToken)
+        {
+            return Count(cancellationToken);
         }
 
         public Task<int> CountAsync(Expression<Func<T, bool>> whereExpression)
         {
-            return base.Count(whereExpression);
+            return CountAsync(whereExpression, CancellationToken.None);
+        }
+
+        public Task<int> CountAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
+            return Count(whereExpression, cancellationToken);
         }
 
         public Task<bool> AnyAsync()
         {
-            return base.Any();
+            return AnyAsync(CancellationToken.None);
+        }
+
+        public Task<bool> AnyAsync(CancellationToken cancellationToken)
+        {
+            return Any(cancellationToken);
         }
 
         public Task<bool> AnyAsync(Expression<Func<T, bool>> whereExpression)
         {
-            return base.Any(whereExpression);
+            return AnyAsync(whereExpression, CancellationToken.None);
+        }
+
+        public Task<bool> AnyAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken)
+        {
+            return base.Any(whereExpression, cancellationToken);
         }
 
         public Task<Page<T>> ToPageAsync(int page, int pageSize)
         {
-            return base.ToPage(page, pageSize);
+            return ToPageAsync(page, pageSize, CancellationToken.None);
+        }
+
+        public Task<Page<T>> ToPageAsync(int page, int pageSize, CancellationToken cancellationToken)
+        {
+            return ToPage(page, pageSize, cancellationToken);
         }
 
         public Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression)
         {
-            return base.ProjectTo(projectionExpression);
+            return ProjectToAsync(projectionExpression, CancellationToken.None);
+        }
+
+        public Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken)
+        {
+            return ProjectTo(projectionExpression, cancellationToken);
         }
 
         public Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression)
         {
-            return base.Distinct(projectionExpression);
+            return DistinctAsync(projectionExpression, CancellationToken.None);
+        }
+
+        public Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken)
+        {
+            return Distinct(projectionExpression, cancellationToken);
         }
 
         public Task<List<T>> DistinctAsync()
         {
-            return base.Distinct();
+            return DistinctAsync(CancellationToken.None);
         }
-        
+
+        public Task<List<T>> DistinctAsync(CancellationToken cancellationToken)
+        {
+            return Distinct(cancellationToken);
+        }
+
         public new IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "")
         {
             return (IQueryProvider<T>)base.IncludeMany(expression, joinType, joinTableHint);

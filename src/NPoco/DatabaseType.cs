@@ -9,6 +9,7 @@ using NPoco.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Text;
+using System.Threading;
 
 namespace NPoco
 {
@@ -228,8 +229,14 @@ namespace NPoco
 
         public virtual async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
+            return await ExecuteInsertAsync(db, cmd, primaryKeyName, useOutputClause, poco, args,
+                CancellationToken.None);
+        }
+
+        public virtual async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args, CancellationToken cancellationToken)
+        {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
-            return await db.ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
+            return await db.ExecuteScalarHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
         }
 
         public virtual void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
@@ -242,9 +249,14 @@ namespace NPoco
 
         public virtual async Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
         {
+            await InsertBulkAsync(db, pocos, options, CancellationToken.None);
+        }
+
+        public virtual async Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options, CancellationToken cancellationToken)
+        {
             foreach (var poco in pocos)
             {
-                await db.InsertAsync(poco).ConfigureAwait(false);
+                await db.InsertAsync(poco, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -348,17 +360,32 @@ namespace NPoco
 
         public virtual Task<int> ExecuteNonQueryAsync(Database database, DbCommand cmd)
         {
-            return cmd.ExecuteNonQueryAsync();
+            return ExecuteNonQueryAsync(database, cmd, CancellationToken.None);
+        }
+
+        public virtual Task<int> ExecuteNonQueryAsync(Database database, DbCommand cmd, CancellationToken cancellationToken)
+        {
+            return cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
         public virtual Task<object> ExecuteScalarAsync(Database database, DbCommand cmd)
         {
-            return cmd.ExecuteScalarAsync();
+            return ExecuteScalarAsync(database, cmd, CancellationToken.None);
+        }
+
+        public virtual Task<object> ExecuteScalarAsync(Database database, DbCommand cmd, CancellationToken cancellationToken)
+        {
+            return cmd.ExecuteScalarAsync(cancellationToken);
         }
 
         public virtual Task<DbDataReader> ExecuteReaderAsync(Database database, DbCommand cmd)
         {
-            return cmd.ExecuteReaderAsync();
+            return ExecuteReaderAsync(database, cmd, CancellationToken.None);
+        }
+
+        public virtual Task<DbDataReader> ExecuteReaderAsync(Database database, DbCommand cmd, CancellationToken cancellationToken)
+        {
+            return cmd.ExecuteReaderAsync(cancellationToken);
         }
 
         public virtual object ProcessDefaultMappings(PocoColumn pocoColumn, object value)

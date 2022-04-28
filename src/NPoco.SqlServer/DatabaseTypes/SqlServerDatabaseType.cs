@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using NPoco.SqlServer;
 
@@ -54,8 +55,13 @@ namespace NPoco.DatabaseTypes
 
         public override Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
+            return ExecuteInsertAsync(db, cmd, primaryKeyName, useOutputClause, poco, args, CancellationToken.None);
+        }
+
+        public override Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args, CancellationToken cancellationToken)
+        {
             AdjustSqlInsertCommandText(cmd, useOutputClause);
-            return db.ExecuteScalarHelperAsync(cmd);
+            return db.ExecuteScalarHelperAsync(cmd, cancellationToken);
         }
 
         public override string GetExistsSql()
@@ -83,7 +89,12 @@ namespace NPoco.DatabaseTypes
 
         public override Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
         {
-            return SqlBulkCopyHelper.BulkInsertAsync(db, pocos, options);
+            return InsertBulkAsync(db, pocos, options, CancellationToken.None);
+        }
+
+        public override Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options, CancellationToken cancellationToken)
+        {
+            return SqlBulkCopyHelper.BulkInsertAsync(db, pocos, options, cancellationToken);
         }
 
         public override string GetProviderName()
