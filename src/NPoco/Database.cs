@@ -632,7 +632,11 @@ namespace NPoco
                     Type t = typeof(T);
                     Type u = Nullable.GetUnderlyingType(t);
 
-                    return (T)Convert.ChangeType(val, u ?? t);
+                    var converter = MappingHelper.GetConverter(Mappers, null, val.GetType(), u ?? t);
+
+                    return converter != null
+                        ? (T)converter.Invoke(val)
+                        : (T)Convert.ChangeType(val, u ?? t);
                 }
             }
             catch (Exception x)
