@@ -32,4 +32,27 @@ namespace NPoco.Tests.Common
             return base.GetFromDbConverter(DestType, SourceType);
         }
     }
+
+    internal class SqlTestDefaultMapper : DefaultMapper
+    {
+        public override Func<object, object> GetFromDbConverter(Type DestType, Type SourceType)
+        {
+            if ((DestType == typeof(StringObject)) && (SourceType == typeof(string)))
+            {
+                return src => new StringObject { MyValue = src?.ToString() };
+            }
+
+            return base.GetFromDbConverter(DestType, SourceType);
+        }
+
+        public override Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo)
+        {
+            if ((sourceMemberInfo.GetMemberInfoType() == typeof(StringObject)) && (destType == typeof(string)))
+            {
+                return src => ((StringObject)(src))?.ToString();
+            }
+
+            return base.GetToDbConverter(destType, sourceMemberInfo);
+        }
+    }
 }

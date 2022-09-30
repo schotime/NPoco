@@ -746,9 +746,9 @@ namespace NPoco.Expressions
             if (b.NodeType == ExpressionType.AndAlso || b.NodeType == ExpressionType.OrElse)
             {
                 var m = b.Left as MemberExpression;
-                if (m != null && m.Expression != null
+                if (m?.Expression != null
                     && m.Expression.NodeType == ExpressionType.Parameter)
-                    left = new PartialSqlString(string.Format("{0} = {1}", VisitMemberAccess(m), GetQuotedTrueValue()));
+                    left = new PartialSqlString($"{VisitMemberAccess(m)} = {GetQuotedTrueValue()}");
                 else
                     left = Visit(b.Left);
 
@@ -758,9 +758,9 @@ namespace NPoco.Expressions
                 }
 
                 m = b.Right as MemberExpression;
-                if (m != null && m.Expression != null
+                if (m?.Expression != null
                     && m.Expression.NodeType == ExpressionType.Parameter)
-                    right = new PartialSqlString(string.Format("{0} = {1}", VisitMemberAccess(m), GetQuotedTrueValue()));
+                    right = new PartialSqlString($"{VisitMemberAccess(m)} = {GetQuotedTrueValue()}");
                 else
                     right = Visit(b.Right);
 
@@ -769,15 +769,15 @@ namespace NPoco.Expressions
                     right = new PartialSqlString("(" + right + " is not null)");
                 }
 
-                if (!(left is PartialSqlString) && !(right is PartialSqlString))
+                if (left is not PartialSqlString && right is not PartialSqlString)
                 {
                     var result = Expression.Lambda(b).Compile().DynamicInvoke();
                     return new PartialSqlString(CreateParam(result));
                 }
 
-                if (!(left is PartialSqlString))
+                if (left is not PartialSqlString)
                     left = ((bool)left) ? GetTrueExpression() : GetFalseExpression();
-                if (!(right is PartialSqlString))
+                if (right is not PartialSqlString)
                     right = ((bool)right) ? GetTrueExpression() : GetFalseExpression();
             }
             else
@@ -810,12 +810,12 @@ namespace NPoco.Expressions
                         left = CreateParam(left);
                 }
                 // Nullable Members
-                else if (left is NullableMemberAccess && !(right is PartialSqlString))
+                else if (left is NullableMemberAccess && right is not PartialSqlString)
                 {
                     operand = ((bool)right) ? "is not" : "is";
                     right = new PartialSqlString("null");
                 }
-                else if (right is NullableMemberAccess && !(left is PartialSqlString))
+                else if (right is NullableMemberAccess && left is not PartialSqlString)
                 {
                     operand = ((bool)left) ? "is not" : "is";
                     left = new PartialSqlString("null");
@@ -833,7 +833,7 @@ namespace NPoco.Expressions
                     left = CreateParam(Convert.ToChar(left));
                 }
                 // AnsiString
-                else if (isLeftMemberAccessString && right is string && leftMemberAccessString.PocoColumn.ColumnType == typeof (AnsiString))
+                else if (isLeftMemberAccessString && right is string && leftMemberAccessString.PocoColumn.ColumnType == typeof(AnsiString))
                 {
                     right = CreateParam(new AnsiString((string)right));
                 }
@@ -850,14 +850,23 @@ namespace NPoco.Expressions
                 {
                     left = CreateParam(rightMemberAccessString.PocoColumn.GetValueObjectValue(left));
                 }
-                else if (!(left is PartialSqlString) && !(right is PartialSqlString))
+                // Mappers
+                else if (isLeftMemberAccessString && right is not PartialSqlString && _database.TryGetMapper(leftMemberAccessString.PocoColumn, out var converterRight))
+                {
+                    right = CreateParam(converterRight(right));
+                }
+                else if (isRightMemberAccessString && left is not PartialSqlString && _database.TryGetMapper(rightMemberAccessString.PocoColumn, out var converterLeft))
+                {
+                    left = CreateParam(converterLeft(left));
+                }
+                else if (left is not PartialSqlString && right is not PartialSqlString)
                 {
                     var result = Expression.Lambda(b).Compile().DynamicInvoke();
                     return result;
                 }
-                else if (!(left is PartialSqlString))
+                else if (left is not PartialSqlString)
                     left = CreateParam(left);
-                else if (!(right is PartialSqlString))
+                else if (right is not PartialSqlString)
                     right = CreateParam(right);
 
             }
@@ -879,7 +888,7 @@ namespace NPoco.Expressions
             {
                 case "MOD":
                 case "COALESCE":
-                    return new PartialSqlString(string.Format("{0}({1},{2})", operand, left, right));
+                    return new PartialSqlString($"{operand}({left},{right})");
                 default:
                     return new PartialSqlString("(" + left + sep + operand + sep + right + ")");
             }
@@ -1279,12 +1288,18 @@ namespace NPoco.Expressions
             return sIn;
         }
 
-        private static object FormatParameters(object partialSqlString, object e)
+        private object FormatParameters(object partialSqlString, object e)
         {
-            if (partialSqlString is EnumMemberAccess && ((EnumMemberAccess)partialSqlString).PocoColumn.ColumnType == typeof(string))
+            switch (partialSqlString)
             {
-                e = e.ToString();
+                case EnumMemberAccess ema when ema.PocoColumn.ColumnType == typeof(string):
+                    e = e.ToString();
+                    break;
+                case MemberAccessString mas:
+                    if (_database.TryGetMapper(mas.PocoColumn, out var converter)) e = converter(e);
+                    break;
             }
+
             return e;
         }
 

@@ -103,7 +103,8 @@ namespace NPoco.Tests.Common
                     VersionInt int default(0) NOT NULL,
                     YorN char NULL,
                     Address__Street nvarchar(50) NULL,
-                    Address__City nvarchar(50) NULL
+                    Address__City nvarchar(50) NULL,
+                    StringObject nvarchar(50) NULL
                 );
             ";
             cmd.ExecuteNonQuery();

@@ -18,7 +18,7 @@ namespace NPoco
             // Get converter from the mapper
             if (mapper != null)
             {
-                converter = pc != null && pc.MemberInfoData != null ? mapper.Find(x => x.GetFromDbConverter(pc.MemberInfoData.MemberInfo, srcType)) : mapper.Find(x => x.GetFromDbConverter(dstType, srcType));
+                converter = pc != null && pc.MemberInfoData != null ? mapper.FindFromDbConverter(pc.MemberInfoData.MemberInfo, srcType) : mapper.FindFromDbConverter(dstType, srcType);
                 if (converter != null)
                     return converter;
             }

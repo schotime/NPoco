@@ -32,8 +32,20 @@ namespace NPoco.Tests.Common
         [Reference(ReferenceType.OneToOne, ReferenceMemberName = "UserId")]
         public ExtraUserInfo ExtraUserInfo { get; set; }
 
+        public StringObject StringObject { get; set; }
+
         //[ResultColumn]
         //public Supervisor Supervisor { get; set; }
+    }
+
+    public class StringObject
+    {
+        public string MyValue { get; set; }
+        
+        public override string ToString()
+        {
+            return MyValue;
+        }
     }
 
     public class Address
