@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>Provides an implementation to use Json.NET as the serializer for serialized columns</Description>
-    <VersionPrefix>5.3.2</VersionPrefix>
+    <VersionPrefix>5.4.0</VersionPrefix>
     <TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
     <AssemblyName>NPoco.JsonNet</AssemblyName>
     <PackageId>NPoco.JsonNet</PackageId>
