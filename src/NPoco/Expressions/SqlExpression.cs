@@ -711,8 +711,15 @@ namespace NPoco.Expressions
                     }
                     else
                     {
-                        string r = VisitMemberAccess(m).ToString();
-                        return string.Format("{0}={1}", r, GetQuotedTrueValue());
+                        var o = VisitMemberAccess(m);
+                        if (o is MemberAccessString memberAccessString)
+                        {
+                            return string.Format("{0}={1}", o,
+                                _database.TryGetMapper(memberAccessString.PocoColumn, out var converter)
+                                    ? CreateParam(converter(true))
+                                    : GetQuotedTrueValue());
+                        }
+                        return string.Format("{0}={1}", o, GetQuotedTrueValue());
                     }
                 }
             }
@@ -1076,7 +1083,7 @@ namespace NPoco.Expressions
         }
 
         List<object> _params = new List<object>();
-        
+
         string paramPrefix;
         private bool _projection;
         public SqlExpressionContext Context { get; private set; }
@@ -1116,12 +1123,15 @@ namespace NPoco.Expressions
                     if (o as PartialSqlString == null)
                         return !((bool)o);
 
-                    if (o as MemberAccessString != null)
+                    if (o is MemberAccessString memberAccessString)
                     {
                         if (o as NullableMemberAccess != null)
                             o = o + " is not null";
                         else
-                            o = o + " = " + GetQuotedTrueValue();
+                            o = o + " = " + (
+                                _database.TryGetMapper(memberAccessString.PocoColumn, out var converter)
+                                    ? CreateParam(converter(true))
+                                    : GetQuotedTrueValue());
                     }
 
                     return new PartialSqlString("NOT (" + o + ")");

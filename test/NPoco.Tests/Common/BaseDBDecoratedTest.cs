@@ -40,6 +40,7 @@ namespace NPoco.Tests.Common
                     var dataSource = configuration.GetSection("TestDbDataSource").Value;
                     TestDatabase = new SQLLocalDatabase(dataSource);
                     Database = new Database(TestDatabase.Connection, new SqlServer2008DatabaseType() { UseOutputClause = false }, IsolationLevel.ReadUncommitted); // Need read uncommitted for the transaction tests
+                    Database.Mappers.Insert(0, new SqlTestDefaultMapper());
                     break;
 
                 case 3: // SQL Server

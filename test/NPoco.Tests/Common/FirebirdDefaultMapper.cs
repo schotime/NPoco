@@ -42,6 +42,11 @@ namespace NPoco.Tests.Common
                 return src => new StringObject { MyValue = src?.ToString() };
             }
 
+            if ((DestType == typeof(bool)) && (SourceType == typeof(string)))
+            {
+                return src => !string.IsNullOrEmpty(src.ToString()) && src.ToString()[0] == 'Y';
+            }
+
             return base.GetFromDbConverter(DestType, SourceType);
         }
 
@@ -50,6 +55,11 @@ namespace NPoco.Tests.Common
             if ((sourceMemberInfo.GetMemberInfoType() == typeof(StringObject)) && (destType == typeof(string)))
             {
                 return src => ((StringObject)(src))?.ToString();
+            }
+
+            if (sourceMemberInfo?.Name == "YorNBoolean")
+            {
+                return src => (bool)src ? "Y" : "N";
             }
 
             return base.GetToDbConverter(destType, sourceMemberInfo);
