@@ -279,6 +279,22 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void FetchWithWhereLambdaExpressionUsingMapper()
+        {
+            var users = Database.Query<User>().Where(x => x.YorNBoolean).ToList();
+
+            Assert.AreEqual(5, users.Count);
+        }
+
+        [Test]
+        public void FetchWithWhereUnaryExpressionUsingMapper()
+        {
+            var users = Database.Query<User>().Where(x => !x.YorNBoolean).ToList();
+
+            Assert.AreEqual(10, users.Count);
+        }
+
+        [Test]
         public void FetchWithWhereExpressionInAsStaticMethod()
         {
             var list = new[] {1, 2, 3, 4};

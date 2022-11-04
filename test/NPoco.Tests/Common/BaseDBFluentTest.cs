@@ -161,7 +161,8 @@ namespace NPoco.Tests.Common
                         City = "City " + i
                     },
                     TestEnum = (i + 1) % 2 == 0 ? TestEnum.All : TestEnum.None,
-                    StringObject = new StringObject { MyValue = (i % 2) == 0 ? "Even" : "Odd" }
+                    StringObject = new StringObject { MyValue = (i % 2) == 0 ? "Even" : "Odd" },
+                    YorNBoolean = i % 3 == 0
                 };
                 Database.Insert(user);
                 InMemoryUsers.Add(user);
