@@ -10,9 +10,10 @@ Properties {
     $solution_dir = "$build_dir\src\NPoco"
     $jsonnet = "$build_dir\src\NPoco.JsonNet"
     $sqlserver = "$build_dir\src\NPoco.SqlServer"
+    $sqlserversysdata = "$build_dir\src\NPoco.SqlServer.SystemData"
 }
 
-FormatTaskName (("-"*25) + "[{0}]" + ("-"*25))
+FormatTaskName (("-" * 25) + "[{0}]" + ("-" * 25))
 
 Task Default -depends Build 
 
@@ -21,12 +22,14 @@ Task Build -depends Clean {
     Exec { dotnet restore }
     Set-Location "$solution_dir"
     if ($env:BUILD_SUFFIX -ne "") {
-       $suffix = "/p:VersionSuffix=""$env:BUILD_SUFFIX"""
+        $suffix = "/p:VersionSuffix=""$env:BUILD_SUFFIX"""
     }
     Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix } 
     Set-Location "$jsonnet"
     Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix } 
     Set-Location "$sqlserver"
+    Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix } 
+    Set-Location "$sqlserversysdata"
     Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix } 
 }
 

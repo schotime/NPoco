@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
 using NPoco.Internal;
 
-namespace NPoco.SqlServer
+namespace NPoco.SqlServer.SystemData
 {
     public class SqlBulkCopyHelper
     {

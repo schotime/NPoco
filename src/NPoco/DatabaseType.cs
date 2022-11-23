@@ -366,7 +366,7 @@ namespace NPoco
             return value;
         }
 
-        internal class FormattedParameter
+        public class FormattedParameter
         {
             public Type Type { get; set; }
             public object Value { get; set; }

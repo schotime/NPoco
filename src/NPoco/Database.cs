@@ -22,6 +22,7 @@ using System.Threading.Tasks;
 using NPoco.Expressions;
 using NPoco.Extensions;
 using NPoco.Linq;
+using NPoco.Internal;
 
 namespace NPoco
 {
@@ -1747,38 +1748,6 @@ namespace NPoco
         {
             var underlyingType = Nullable.GetUnderlyingType(memberInfo.MemberType);
             return memberInfo.MemberType.GetTypeInfo().IsEnum || (underlyingType != null && underlyingType.GetTypeInfo().IsEnum);
-        }
-    }
-
-    internal static class ProcessMapperExtensions
-    {
-        internal static bool TryGetMapper(this IDatabase database, PocoColumn pc, out Func<object?, object> converter)
-        {
-            converter = database.Mappers.FindToDbConverter(pc.ColumnType, pc.MemberInfoData.MemberInfo);
-            return converter is not null;
-        }
-
-        internal static object ProcessMapper(this IDatabase database, PocoColumn pc, object? value)
-        {
-            if (TryGetMapper(database, pc, out var converter))
-            {
-                return converter(value);
-            }
-            return ProcessDefaultMappings(database, pc, value);
-        }
-
-        internal static object ProcessDefaultMappings(IDatabase database, PocoColumn pocoColumn, object? value)
-        {
-            if (pocoColumn.SerializedColumn)
-            {
-                return database.Mappers.ColumnSerializer.Serialize(value);
-            }
-            if (pocoColumn.ColumnType == typeof(string) && Database.IsEnum(pocoColumn.MemberInfoData) && value != null)
-            {
-                return value.ToString();
-            }
-
-            return database.DatabaseType.ProcessDefaultMappings(pocoColumn, value);
         }
     }
 }

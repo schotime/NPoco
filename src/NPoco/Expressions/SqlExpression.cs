@@ -7,6 +7,7 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Collections.ObjectModel;
 using System.Linq.Expressions;
+using NPoco.Internal;
 using NPoco.Linq;
 
 namespace NPoco.Expressions

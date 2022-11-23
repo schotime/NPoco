@@ -24,3 +24,4 @@ using System.Runtime.InteropServices;
 
 [assembly: InternalsVisibleTo("NPoco.Tests")]
 [assembly: InternalsVisibleTo("NPoco.SqlServer")]
+[assembly: InternalsVisibleTo("NPoco.SqlServer.SystemData")]
