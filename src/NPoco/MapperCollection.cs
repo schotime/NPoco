@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Data.Common;
+using System.Reflection;
 
 namespace NPoco
 {
@@ -54,6 +55,27 @@ namespace NPoco
         {
             var converter = Find(predicate);
             return converter != null ? converter(value) : value;
+        }
+
+        private static readonly Cache<object, Func<object, object>> ToDbConverterCache = new();
+        private static readonly Cache<object, Func<object, object>> FromDbConverterCache = new();
+
+        internal Func<object, object> FindFromDbConverter(Type destType, Type srcType)
+        {
+            var key = new { DestType = destType, SrcType = srcType };
+            return FromDbConverterCache.Get(key, () => Find(x => x.GetFromDbConverter(destType, srcType)));
+        }
+
+        internal Func<object, object> FindFromDbConverter(MemberInfo destInfo, Type srcType)
+        {
+            var key = new { DestInfo = destInfo, SrcType = srcType };
+            return FromDbConverterCache.Get(key, () => Find(x => x.GetFromDbConverter(destInfo, srcType)));
+        }
+
+        internal Func<object, object> FindToDbConverter(Type destType, MemberInfo srcInfo)
+        {
+            var key = new { DestType = destType, SrcInfo = srcInfo };
+            return ToDbConverterCache.Get(key, () => Find(x => x.GetToDbConverter(destType, srcInfo)));
         }
     }
 }

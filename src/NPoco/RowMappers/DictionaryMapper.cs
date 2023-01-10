@@ -30,7 +30,7 @@ namespace NPoco.RowMappers
 
             for (int i = 0; i < _posNames.Length; i++)
             {
-                var converter = context.PocoData.Mapper.Find(x => x.GetFromDbConverter(typeof(object), dataReader.GetFieldType(_posNames[i].Pos))) ?? (x => x);
+                var converter = context.PocoData.Mapper.FindFromDbConverter(typeof(object), dataReader.GetFieldType(_posNames[i].Pos)) ?? (x => x);
                 target.Add(_posNames[i].Name, dataReader.IsDBNull(_posNames[i].Pos) ? null : converter(dataReader.GetValue(_posNames[i].Pos)));
             }
 

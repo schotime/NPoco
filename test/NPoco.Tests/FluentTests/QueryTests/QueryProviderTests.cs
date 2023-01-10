@@ -107,6 +107,13 @@ namespace NPoco.Tests.FluentTests.QueryTests
         }
 
         [Test]
+        public void QueryWithWhereContainsNoValues()
+        {
+            var users = Database.Query<User>().Where(x => new int[] {}.Contains(x.UserId)).ToList();
+            Assert.AreEqual(0, users.Count);
+        }
+
+        [Test]
         public void QueryWithWhereUserIdAndTrue()
         {
             var users = Database.Query<User>().Where(x => x.UserId == 1 && true).ToList();

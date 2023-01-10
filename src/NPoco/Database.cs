@@ -367,7 +367,9 @@ namespace NPoco
             // Convert value to from poco type to db type
             if (Mappers != null && value != null)
             {
-                value = Mappers.FindAndExecute(x => x.GetParameterConverter(cmd, value.GetType()), value);
+                var converter = Mappers.Find(x => x.GetParameterConverter(cmd, value.GetType()));
+                if (converter != null)
+                    value = converter(value);
             }
 
             // Support passed in parameters
@@ -1750,10 +1752,19 @@ namespace NPoco
 
     internal static class ProcessMapperExtensions
     {
+        internal static bool TryGetMapper(this IDatabase database, PocoColumn pc, out Func<object?, object> converter)
+        {
+            converter = database.Mappers.FindToDbConverter(pc.ColumnType, pc.MemberInfoData.MemberInfo);
+            return converter is not null;
+        }
+
         internal static object ProcessMapper(this IDatabase database, PocoColumn pc, object? value)
         {
-            var converter = database.Mappers.Find(x => x.GetToDbConverter(pc.ColumnType, pc.MemberInfoData.MemberInfo));
-            return converter != null ? converter(value) : ProcessDefaultMappings(database, pc, value);
+            if (TryGetMapper(database, pc, out var converter))
+            {
+                return converter(value);
+            }
+            return ProcessDefaultMappings(database, pc, value);
         }
 
         internal static object ProcessDefaultMappings(IDatabase database, PocoColumn pocoColumn, object? value)

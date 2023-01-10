@@ -274,11 +274,6 @@ namespace NPoco
         bool Exists<T>(object primaryKey);
         
         /// <summary>
-        /// Specifies the command timeout to be used for the very next command
-        /// </summary>
-        int OneTimeCommandTimeout { get; set; }
-
-        /// <summary>
         /// Fetches multiple result sets into the one object.
         /// In this method you must provide how you will take the results and combine them
         /// </summary>

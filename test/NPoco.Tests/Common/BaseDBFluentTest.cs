@@ -62,6 +62,7 @@ namespace NPoco.Tests.Common
                     var dataSource = configuration.GetSection("TestDbDataSource").Value;
                     TestDatabase = new SQLLocalDatabase(dataSource);
                     Database = dbFactory.Build(new Database(TestDatabase.Connection, new NPoco.DatabaseTypes.SqlServer2008DatabaseType()));
+                    Database.Mappers.Insert(0, new SqlTestDefaultMapper());
                     break;
 
                 case 4: // SQL CE
@@ -159,7 +160,9 @@ namespace NPoco.Tests.Common
                         Street = i + " Road Street",
                         City = "City " + i
                     },
-                    TestEnum = (i + 1) % 2 == 0 ? TestEnum.All : TestEnum.None
+                    TestEnum = (i + 1) % 2 == 0 ? TestEnum.All : TestEnum.None,
+                    StringObject = new StringObject { MyValue = (i % 2) == 0 ? "Even" : "Odd" },
+                    YorNBoolean = i % 3 == 0
                 };
                 Database.Insert(user);
                 InMemoryUsers.Add(user);
@@ -236,6 +239,7 @@ namespace NPoco.Tests.Common
                 x.Column(y => y.Address).ComplexMapping();
                 x.Column(y => y.House).WithName("HouseId").Reference(z => z.HouseId);
                 x.Column(y => y.ExtraUserInfo).WithName("UserId").Reference(z => z.UserId, ReferenceType.OneToOne);
+                x.Column(y => y.StringObject).WithDbType<string>();
             });
             For<Supervisor>().UseMap<SupervisorMap>();
             For<Supervisor>().TableName("users").Columns(x => x.Column(y => y.IsMale).WithName("is_male"));

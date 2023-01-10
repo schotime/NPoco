@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace NPoco
 {
     public static class Snapshotter
     {
-        public static Snapshot<T> StartSnapshot<T>(this IDatabase d, T obj)
+        public static Snapshot<T> StartSnapshot<T>(this IDatabaseConfig d, T obj)
         {
             return new Snapshot<T>(d.PocoDataFactory.ForType(obj.GetType()), obj);
         }
@@ -14,6 +15,11 @@ namespace NPoco
         public static int Update<T>(this IDatabase d, T obj, Snapshot<T> snapshot)
         {
             return d.Update(obj, snapshot.UpdatedColumns());
+        }
+
+        public static Task<int> UpdateAsync<T>(this IAsyncDatabase d, T obj, Snapshot<T> snapshot)
+        {
+            return d.UpdateAsync(obj, snapshot.UpdatedColumns());
         }
     }
 

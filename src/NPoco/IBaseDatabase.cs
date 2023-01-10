@@ -5,7 +5,7 @@ using System.Data.Common;
 
 namespace NPoco
 {
-    public interface IBaseDatabase : IDisposable
+    public interface IBaseDatabase : IDisposable, IDatabaseConfig
     {
         /// <summary>
         /// The underlying connection object
@@ -81,5 +81,15 @@ namespace NPoco
         /// Closes the DBConnection manually
         /// </summary>
         void CloseSharedConnection();
+
+        /// <summary>
+        /// Sets command timeout for the lifetime of the Database instance
+        /// </summary>
+        public int CommandTimeout { get; set; }
+
+        /// <summary>
+        /// Sets command timeout only for the next command, is reverted after
+        /// </summary>
+        public int OneTimeCommandTimeout { get; set; }
     }
 }

@@ -5,7 +5,7 @@
     <TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
     <AssemblyName>NPoco</AssemblyName>
     <PackageId>NPoco</PackageId>
-    <VersionPrefix>5.3.1</VersionPrefix>
+    <VersionPrefix>5.6.0</VersionPrefix>
     <Authors>Adam Schröder</Authors>
     <PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
     <PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>

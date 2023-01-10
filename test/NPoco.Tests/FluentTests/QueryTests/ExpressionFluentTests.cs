@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Threading.Tasks;
 using NPoco.Expressions;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -259,6 +260,38 @@ namespace NPoco.Tests.FluentTests.QueryTests
             {
                 AssertUserValues(InMemoryUsers[i], users[i]);
             }
+        }
+
+        [Test]
+        public void FetchWithWhereExpressionUsingMapper()
+        {
+            var users = Database.Query<User>().Where(x => x.StringObject == new StringObject { MyValue = "Even" }).ToList();
+
+            Assert.AreEqual(8, users.Count);
+        }
+
+        [Test]
+        public void FetchWithWhereInExpressionUsingMapper()
+        {
+            var users = Database.Query<User>().Where(x => x.StringObject.In(new[] { new StringObject { MyValue = "Even" } })).ToList();
+
+            Assert.AreEqual(8, users.Count);
+        }
+
+        [Test]
+        public void FetchWithWhereLambdaExpressionUsingMapper()
+        {
+            var users = Database.Query<User>().Where(x => x.YorNBoolean).ToList();
+
+            Assert.AreEqual(5, users.Count);
+        }
+
+        [Test]
+        public void FetchWithWhereUnaryExpressionUsingMapper()
+        {
+            var users = Database.Query<User>().Where(x => !x.YorNBoolean).ToList();
+
+            Assert.AreEqual(10, users.Count);
         }
 
         [Test]
