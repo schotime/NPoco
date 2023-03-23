@@ -267,7 +267,7 @@ namespace NPoco
                 return Singleton<OracleDatabaseType>.Instance;
             if (typeName.StartsWith("Oracle"))
                 return Singleton<OracleDatabaseType>.Instance;
-            if (typeName.StartsWith("SQLite"))
+            if (typeName.StartsWith("SQLite", StringComparison.OrdinalIgnoreCase))
                 return Singleton<SQLiteDatabaseType>.Instance;
             if (typeName.StartsWith("SqlConnection"))
                 return DynamicDatabaseType.MakeSqlServerType("SqlServerDatabaseType");
