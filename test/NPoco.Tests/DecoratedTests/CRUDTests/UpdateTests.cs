@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using NPoco.Tests.Common;
+using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Reflection;
-using Newtonsoft.Json;
-using NPoco.Tests.Common;
-using NUnit.Framework;
 
 namespace NPoco.Tests.DecoratedTests.CRUDTests
 {
@@ -19,7 +19,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.IsNotNull(poco);
 
             poco.Age = InMemoryUsers[1].Age + 100;
-            poco.Savings = (Decimal) 1234.23;
+            poco.Savings = (Decimal)1234.23;
             Database.Update(poco);
 
             var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[1].UserId);
@@ -38,7 +38,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.IsNotNull(poco);
 
             poco.Age = InMemoryUsers[1].Age + 100;
-            poco.Savings = (Decimal) 1234.23;
+            poco.Savings = (Decimal)1234.23;
             Database.Update(poco, InMemoryUsers[2].UserId);
 
             var verify = Database.SingleOrDefaultById<UserDecorated>(InMemoryUsers[2].UserId);
@@ -84,7 +84,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
             Assert.IsNotNull(poco);
 
             poco.Age = poco.Age + 100;
-            poco.Savings = (Decimal) 1234.23;
+            poco.Savings = (Decimal)1234.23;
             Database.Update(poco, x => x.Age);
 
             var verify = Database.SingleOrDefaultById<UserDecorated>(1);
@@ -232,7 +232,7 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
 
         public class MyMapper : DefaultMapper
         {
-            public override Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo)
+            public override Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo, IReadOnlyDictionary<string, object> metadata = null)
             {
                 if ((destType == typeof(string)) && (sourceMemberInfo.GetMemberInfoType() == typeof(IDictionary<string, object>)))
                 {

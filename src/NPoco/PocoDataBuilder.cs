@@ -1,10 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using NPoco.FluentMappings;
-using NPoco.RowMappers;
 
 namespace NPoco
 {
@@ -65,7 +62,7 @@ namespace NPoco
 
         public static bool IsDictionaryType(Type type)
         {
-            return new[] {typeof(object), typeof(IDictionary<string, object>), typeof(Dictionary<string, object>)}.Contains(type)
+            return new[] { typeof(object), typeof(IDictionary<string, object>), typeof(Dictionary<string, object>) }.Contains(type)
                 || (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) && type.GetGenericArguments().First() == typeof(string));
         }
 
@@ -111,14 +108,14 @@ namespace NPoco
                         yield return member.PocoColumn;
                         break;
                     case ReferenceType.None:
-                    {
-                        yield return member.PocoColumn;
-                        foreach (var pocoMemberChild in GetPocoColumns(member.PocoMemberChildren))
                         {
-                            yield return pocoMemberChild;
+                            yield return member.PocoColumn;
+                            foreach (var pocoMemberChild in GetPocoColumns(member.PocoMemberChildren))
+                            {
+                                yield return pocoMemberChild;
+                            }
+                            break;
                         }
-                        break;
-                    }
                 }
             }
         }
@@ -136,8 +133,8 @@ namespace NPoco
                 if (columnInfo.ReferenceType == ReferenceType.Many)
                 {
                     var genericArguments = memberInfoType.GetGenericArguments();
-                    memberInfoType = genericArguments.Any() 
-                        ? genericArguments.First() 
+                    memberInfoType = genericArguments.Any()
+                        ? genericArguments.First()
                         : memberInfoType.GetTypeWithGenericTypeDefinitionOf(typeof(IList<>)).GetGenericArguments().First();
                 }
 
@@ -175,7 +172,7 @@ namespace NPoco
                 var fastCreate = GetFastCreate(memberType, Mapper, isList, isDynamic);
                 var columnName = GetColumnName(capturedPrefix, capturedColumnInfo.ColumnName ?? capturedMemberInfo.Name);
                 var memberInfoData = new MemberInfoData(capturedMemberInfo);
-                
+
                 yield return tableInfo =>
                 {
                     var pc = new PocoColumn
@@ -196,6 +193,7 @@ namespace NPoco
                         VersionColumnType = capturedColumnInfo.VersionColumnType,
                         SerializedColumn = capturedColumnInfo.SerializedColumn,
                         ValueObjectColumn = capturedColumnInfo.ValueObjectColumn,
+                        Metadata = capturedColumnInfo.Metadata
                     };
 
                     if (pc.ValueObjectColumn)

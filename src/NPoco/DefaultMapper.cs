@@ -1,5 +1,5 @@
 using System;
-using System.Data;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Reflection;
 
@@ -7,7 +7,7 @@ namespace NPoco
 {
     public abstract class DefaultMapper : IMapper
     {
-        public virtual Func<object, object> GetFromDbConverter(MemberInfo destMemberInfo, Type sourceType)
+        public virtual Func<object, object> GetFromDbConverter(MemberInfo destMemberInfo, Type sourceType, IReadOnlyDictionary<string, object> metadata = null)
         {
             var type = destMemberInfo.GetMemberInfoType();
             return destMemberInfo != null ? GetFromDbConverter(type, sourceType) : null;
@@ -18,7 +18,7 @@ namespace NPoco
             return null;
         }
 
-        public virtual Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo)
+        public virtual Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo, IReadOnlyDictionary<string, object> metadata = null)
         {
             return null;
         }

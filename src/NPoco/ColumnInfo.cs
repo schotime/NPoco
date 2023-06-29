@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace NPoco
 {
@@ -26,10 +25,11 @@ namespace NPoco
         public string ReferenceMemberName { get; set; }
         public MemberInfo MemberInfo { get; internal set; }
         public bool ExactColumnNameMatch { get; set; }
+        public IReadOnlyDictionary<string, object> Metadata { get; set; }
 
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
-            var ci = new ColumnInfo{MemberInfo = mi};
+            var ci = new ColumnInfo { MemberInfo = mi };
             var attrs = ReflectionUtils.GetCustomAttributes(mi).ToArray();
             var colAttrs = attrs.OfType<ColumnAttribute>().ToArray();
             var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>().ToArray();

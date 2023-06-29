@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq.Expressions;
 using System.Linq;
-using System.Reflection;
+using System.Linq.Expressions;
 
 namespace NPoco.FluentMappings
 {
@@ -118,6 +117,7 @@ namespace NPoco.FluentMappings
         IColumnBuilder<TModel> ValueObject();
         IColumnBuilder<TModel> ValueObject(Expression<Func<TModel, object>> member);
         IColumnBuilder<TModel> ForceToUtc(bool enabled);
+        IColumnBuilder<TModel> WithMetadata(string key, object value);
     }
 
     public class ColumnBuilder<TModel> : IColumnBuilder<TModel>
@@ -156,7 +156,7 @@ namespace NPoco.FluentMappings
 
         public IColumnBuilder<TModel> WithDbType<T>()
         {
-            return WithDbType(typeof (T));
+            return WithDbType(typeof(T));
         }
 
         public IColumnBuilder<TModel> Version()
@@ -251,6 +251,13 @@ namespace NPoco.FluentMappings
         public IColumnBuilder<TModel> ForceToUtc(bool enabled)
         {
             _columnDefinition.ForceUtc = enabled;
+            return this;
+        }
+
+        public IColumnBuilder<TModel> WithMetadata(string key, object value)
+        {
+            _columnDefinition.Metadata ??= new Dictionary<string, object>(1);
+            _columnDefinition.Metadata.Add(key, value);
             return this;
         }
     }

@@ -9,7 +9,7 @@ namespace NPoco.FluentMappings
     {
         private readonly Mappings _mappings;
 
-        public FluentMappingsPocoDataBuilder(Type type, Mappings mappings, MapperCollection mapper) : 
+        public FluentMappingsPocoDataBuilder(Type type, Mappings mappings, MapperCollection mapper) :
             base(type, mapper)
         {
             _mappings = mappings;
@@ -42,7 +42,7 @@ namespace NPoco.FluentMappings
                     primaryKey = string.Join(",", originalPk);
                 }
             }
-            
+
             a = typeConfig.SequenceName ?? "";
             var sequenceName = a.Length == 0 ? null : a;
 
@@ -50,10 +50,10 @@ namespace NPoco.FluentMappings
 
             // Set autoincrement false if primary key has multiple columns
             autoIncrement = autoIncrement ? !primaryKey.Contains(',') : autoIncrement;
-            
+
             // Set auto alias
             var autoAlias = CreateAlias(type.Name, type);
-            
+
             return () => new TableInfo
             {
                 TableName = tableName,
@@ -67,10 +67,10 @@ namespace NPoco.FluentMappings
 
         protected override bool ShouldIncludePrivateColumn(MemberInfo mi, Type type)
         {
-            if (_mappings.Config.ContainsKey(type) 
+            if (_mappings.Config.ContainsKey(type)
                 && _mappings.Config[type].ColumnConfiguration.ContainsKey(mi.Name))
                 return true;
-            
+
             return base.ShouldIncludePrivateColumn(mi, type);
         }
 
@@ -80,7 +80,7 @@ namespace NPoco.FluentMappings
                 return base.GetColumnInfo(mi, type);
 
             var typeConfig = _mappings.Config[type];
-            var columnInfo = new ColumnInfo() {MemberInfo = mi};
+            var columnInfo = new ColumnInfo() { MemberInfo = mi };
             var key = mi.Name;
 
             bool explicitColumns = typeConfig.ExplicitColumns ?? false;
@@ -144,8 +144,10 @@ namespace NPoco.FluentMappings
                 }
 
                 columnInfo.ColumnType = colattr.DbColumnType;
+
+                columnInfo.Metadata = colattr.Metadata;
             }
-            
+
             return columnInfo;
         }
     }

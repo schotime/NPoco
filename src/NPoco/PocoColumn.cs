@@ -54,6 +54,7 @@ namespace NPoco
         public bool ValueObjectColumn { get; set; }
         public string ValueObjectColumnName { get; set; }
         public bool ExactColumnNameMatch { get; set; }
+        public IReadOnlyDictionary<string, object> Metadata { get; set; }
 
         internal void SetMemberAccessors(List<MemberAccessor> memberAccessors)
         {
@@ -82,8 +83,8 @@ namespace NPoco
 
         public virtual object GetValue(object target)
         {
-            return valueObjectGetter != null 
-                ? valueObjectGetter(GetRecursiveValue(target) ?? fastCreate.Create(null)) 
+            return valueObjectGetter != null
+                ? valueObjectGetter(GetRecursiveValue(target) ?? fastCreate.Create(null))
                 : GetRecursiveValue(target);
         }
 
