@@ -1,6 +1,6 @@
 NPoco
 =====
-![Nuget](https://img.shields.io/nuget/v/npoco)
+[![NuGet](https://img.shields.io/nuget/v/npoco)](https://www.nuget.org/packages/NPoco)
 
 Welcome to the NPoco! NPoco is a fork of PetaPoco based on Schotime's branch with a handful of extra features.
 
