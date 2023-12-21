@@ -44,7 +44,7 @@ namespace NPoco.DatabaseTypes
             return IsolationLevel.RepeatableRead;
         }
 
-        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
+        public override ISqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
         {
             return new MySqlSqlExpression<T>(db, pocoData, prefixTableName);
         }

@@ -36,7 +36,7 @@ namespace NPoco
             object arg_val;
 
             int paramIndex;
-            if (Int32.TryParse(param, out paramIndex))
+            if (int.TryParse(param, out paramIndex))
             {
                 // Numbered parameter
                 if (paramIndex < 0 || paramIndex >= args_src.Length)
@@ -118,7 +118,7 @@ namespace NPoco
                         type = t.GetGenericArguments().First();
 
                     sb.AppendFormat($"select @{args_dest.Count} /*poco_dual*/ where 1 = 0");
-                    args_dest.Add(MappingHelper.GetDefault(type));
+                    args_dest.Add(GetDefault(type));
                 }
                 return sb.ToString();
             }
@@ -136,7 +136,16 @@ namespace NPoco
             }
         }
 
-        public static void SetParameterValue(DatabaseType dbType, DbParameter p, object value)
+        public static object GetDefault(Type type)
+        {
+            if (type.GetTypeInfo().IsValueType)
+            {
+                return Activator.CreateInstance(type);
+            }
+            return null;
+        }
+
+        public static void SetParameterValue(IDatabaseType dbType, DbParameter p, object value)
         {
             if (value == null)
             {

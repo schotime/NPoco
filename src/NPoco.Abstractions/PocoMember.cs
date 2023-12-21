@@ -70,7 +70,7 @@ namespace NPoco
             set;
         }
 
-        private FastCreate _creator;
+        private IFastCreate _creator;
         private MemberAccessor _memberAccessor;
         private Type _listType;
 
@@ -85,14 +85,14 @@ namespace NPoco
             return (IList)list;
         }
 
-        public void SetMemberAccessor(MemberAccessor memberAccessor, FastCreate fastCreate, Type listType)
+        public void SetMemberAccessor(MemberAccessor memberAccessor, IFastCreate fastCreate, Type listType)
         {
             _listType = listType;
             _memberAccessor = memberAccessor;
             _creator = fastCreate;
         }
 
-        public void SetDynamicMemberAccessor(FastCreate fastCreate)
+        public void SetDynamicMemberAccessor(IFastCreate fastCreate)
         {
             _creator = fastCreate;
         }

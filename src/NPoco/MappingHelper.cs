@@ -11,7 +11,7 @@ namespace NPoco
         static readonly EnumMapper EnumMapper = new EnumMapper();
         static readonly Cache<Type, Type> UnderlyingTypes = Cache<Type, Type>.CreateStaticCache();
 
-        public static Func<object, object> GetConverter(MapperCollection mapper, PocoColumn pc, Type srcType, Type dstType)
+        public static Func<object, object> GetConverter(IMapperCollection mapper, PocoColumn pc, Type srcType, Type dstType)
         {
             Func<object, object> converter = null;
 

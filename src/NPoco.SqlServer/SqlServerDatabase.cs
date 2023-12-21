@@ -2,6 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using NPoco.DatabaseTypes;
+using System.Threading;
 
 namespace NPoco.SqlServer
 {
@@ -30,11 +31,11 @@ namespace NPoco.SqlServer
             return base.ExecutionHook(action);
         }
 
-        protected override async Task<T> ExecutionHookAsync<T>(Func<Task<T>> action)
+        protected override async Task<T> ExecutionHookAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken cancellationToken = default)
         {
             if (_pollyPolicy?.AsyncRetryPolicy != null)
             {
-                return await _pollyPolicy.AsyncRetryPolicy.ExecuteAsync(action).ConfigureAwait(false);
+                return await _pollyPolicy.AsyncRetryPolicy.ExecuteAsync(() => action(cancellationToken)).ConfigureAwait(false);
             }
 
             return await base.ExecutionHookAsync(action).ConfigureAwait(false);

@@ -1,22 +1,11 @@
 using System;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using NPoco.Expressions;
 
 namespace NPoco.Linq
 {
-    public interface IAsyncDeleteQueryProvider<T>
-    {
-        IAsyncDeleteQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
-        Task<int> Execute();
-    }
-
-    public interface IDeleteQueryProvider<T>
-    {
-        IDeleteQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
-        int Execute();
-        Task<int> ExecuteAsync();
-    }
 
     public class DeleteQueryProvider<T> : AsyncDeleteQueryProvider<T>, IDeleteQueryProvider<T>
     {
@@ -35,9 +24,9 @@ namespace NPoco.Linq
         }
 #pragma warning restore CS0109
 
-        public Task<int> ExecuteAsync()
+        public Task<int> ExecuteAsync(CancellationToken cancellationToken = default)
         {
-            return base.Execute();
+            return base.Execute(cancellationToken);
         }
 
     }
@@ -45,7 +34,7 @@ namespace NPoco.Linq
     public class AsyncDeleteQueryProvider<T> : IAsyncDeleteQueryProvider<T>
     {
         protected readonly IDatabase _database;
-        protected SqlExpression<T> _sqlExpression;
+        protected ISqlExpression<T> _sqlExpression;
 
         public AsyncDeleteQueryProvider(IDatabase database)
         {
@@ -59,9 +48,9 @@ namespace NPoco.Linq
             return this;
         }
 
-        public Task<int> Execute()
+        public Task<int> Execute(CancellationToken cancellationToken = default)
         {
-            return _database.ExecuteAsync(_sqlExpression.Context.ToDeleteStatement(), _sqlExpression.Context.Params);
+            return _database.ExecuteAsync(_sqlExpression.Context.ToDeleteStatement(), _sqlExpression.Context.Params, cancellationToken);
         }
     }
 }

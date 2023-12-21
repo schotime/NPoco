@@ -20,7 +20,7 @@ namespace NPoco
         private IFastCreate _generator;
 
         protected Type Type { get; set; }
-        private MapperCollection Mapper { get; set; }
+        private IMapperCollection Mapper { get; set; }
 
         private List<PocoMemberPlan> _memberPlans { get; set; }
         private TableInfoPlan _tableInfoPlan { get; set; }
@@ -28,7 +28,7 @@ namespace NPoco
         public delegate PocoMember PocoMemberPlan(TableInfo tableInfo);
         protected delegate TableInfo TableInfoPlan();
 
-        public PocoDataBuilder(Type type, MapperCollection mapper)
+        public PocoDataBuilder(Type type, IMapperCollection mapper)
         {
             Type = type;
             Mapper = mapper;
@@ -91,14 +91,14 @@ namespace NPoco
         protected virtual TableInfoPlan GetTableInfo(Type type, ColumnInfo[] columnInfos, List<MemberInfo> memberInfos)
         {
             var alias = CreateAlias(type.Name, type);
-            var tableInfo = TableInfo.FromPoco(type);
+            var tableInfo = TableInfoCreator.FromPoco(type);
             tableInfo.AutoAlias = alias;
             return () => tableInfo.Clone();
         }
 
         protected virtual ColumnInfo GetColumnInfo(MemberInfo mi, Type type)
         {
-            return ColumnInfo.FromMemberInfo(mi);
+            return ColumnInfoCreator.FromMemberInfo(mi);
         }
 
         private static IEnumerable<PocoColumn> GetPocoColumns(IEnumerable<PocoMember> members)
@@ -247,7 +247,7 @@ namespace NPoco
             pc.ColumnType = type;
         }
 
-        private static FastCreate GetFastCreate(Type memberType, MapperCollection mapperCollection, bool isList, bool isDynamic)
+        private static FastCreate GetFastCreate(Type memberType, IMapperCollection mapperCollection, bool isList, bool isDynamic)
         {
             return memberType.IsAClass() || isDynamic
                        ? (new FastCreate(isList

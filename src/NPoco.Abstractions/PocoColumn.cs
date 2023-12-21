@@ -38,7 +38,7 @@ namespace NPoco
         private List<MemberAccessor> _memberAccessorChain = new List<MemberAccessor>();
         private Action<object, object> valueObjectSetter;
         private Func<object, object> valueObjectGetter;
-        private FastCreate fastCreate;
+        private IFastCreate fastCreate;
 
         public Type ColumnType
         {
@@ -61,7 +61,7 @@ namespace NPoco
             _memberAccessorChain = memberAccessors;
         }
 
-        internal void SetValueObjectAccessors(FastCreate fastCreate, Action<object, object> setter, Func<object, object> getter)
+        internal void SetValueObjectAccessors(IFastCreate fastCreate, Action<object, object> setter, Func<object, object> getter)
         {
             this.fastCreate = fastCreate;
             valueObjectSetter = setter;

@@ -4,6 +4,6 @@ namespace NPoco.Linq
 {
     public interface ISimpleQueryProviderExpression<TModel>
     {
-        SqlExpression<TModel> AtlasSqlExpression { get; }
+        ISqlExpression<TModel> AtlasSqlExpression { get; }
     }
 }

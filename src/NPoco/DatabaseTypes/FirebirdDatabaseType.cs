@@ -5,6 +5,7 @@ using System.Data.Common;
 using System.Text;
 using NPoco.Expressions;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace NPoco.DatabaseTypes
 {
@@ -30,7 +31,7 @@ namespace NPoco.DatabaseTypes
             return $"\"{str}\"";
         }
 
-        public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
+        public override string BuildPageQuery(long skip, long take, SQLParts parts, ref object[] args)
         {
             StringBuilder sql = new StringBuilder("SELECT ");
 
@@ -63,33 +64,33 @@ namespace NPoco.DatabaseTypes
             return param;
         }
 
-        public override object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override object ExecuteInsert<T>(IDatabase db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {
                 var param = AdjustSqlInsertCommandText(cmd, primaryKeyName);
-                db.ExecuteNonQueryHelper(cmd);
+                (db as IDatabaseHelpers).ExecuteNonQueryHelper(cmd);
                 return param.Value;
             }
 
-            db.ExecuteNonQueryHelper(cmd);
+            (db as IDatabaseHelpers).ExecuteNonQueryHelper(cmd);
             return -1;
         }
 
-        public override async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override async Task<object> ExecuteInsertAsync<T>(IDatabase db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args, CancellationToken cancellationToken = default)
         {
             if (primaryKeyName != null)
             {
                 var param = AdjustSqlInsertCommandText(cmd, primaryKeyName);
-                await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+                await (db as IDatabaseHelpers).ExecuteNonQueryHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
                 return param.Value;
             }
 
-            await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+            await (db as IDatabaseHelpers).ExecuteNonQueryHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
             return -1;
         }
 
-        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
+        public override ISqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
         {
             return new FirebirdSqlExpression<T>(db, pocoData, prefixTableName);
         }

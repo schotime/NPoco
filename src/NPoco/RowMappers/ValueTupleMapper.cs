@@ -9,12 +9,12 @@ namespace NPoco.RowMappers
     public class ValueTupleRowMapper : IRowMapper
     {
         private Func<DbDataReader, object> mapper = default!;
-        private MapperCollection mappers;
+        private IMapperCollection mappers;
 
-        private static Cache<(Type, MapperCollection), Func<DbDataReader, object>> cache
-            = new Cache<(Type, MapperCollection), Func<DbDataReader, object>>();
+        private static Cache<(Type, IMapperCollection), Func<DbDataReader, object>> cache
+            = new Cache<(Type, IMapperCollection), Func<DbDataReader, object>>();
 
-        public ValueTupleRowMapper(MapperCollection mappers)
+        public ValueTupleRowMapper(IMapperCollection mappers)
         {
             this.mappers = mappers;
         }
@@ -52,12 +52,12 @@ namespace NPoco.RowMappers
             return IsValueTuple(pocoData.Type);
         }
 
-        private static Func<DbDataReader, object> GetRowMapper(Type type, MapperCollection mappers, DbDataReader dataReader)
+        private static Func<DbDataReader, object> GetRowMapper(Type type, IMapperCollection mappers, DbDataReader dataReader)
         {
             return cache.Get((type, mappers), () => CreateRowMapper(type, mappers, dataReader));
         }
 
-        private static Func<DbDataReader, object> CreateRowMapper(Type type, MapperCollection mappers, DbDataReader dataReader)
+        private static Func<DbDataReader, object> CreateRowMapper(Type type, IMapperCollection mappers, DbDataReader dataReader)
         {
             var reader = Expression.Parameter(typeof(DbDataReader), "reader");
             var (tupleExpr, _) = CreateTupleExpression(type, mappers, dataReader, reader, 0);
@@ -70,7 +70,7 @@ namespace NPoco.RowMappers
             return (Func<DbDataReader, object>)expr.Compile();
         }
 
-        private static (NewExpression expr, int fieldsIndex) CreateTupleExpression(Type type, MapperCollection mappers, DbDataReader dataReader, ParameterExpression reader, int fieldIndex)
+        private static (NewExpression expr, int fieldsIndex) CreateTupleExpression(Type type, IMapperCollection mappers, DbDataReader dataReader, ParameterExpression reader, int fieldIndex)
         {
             var argTypes = type.GetGenericArguments();
             var ctor = type.GetConstructor(argTypes);

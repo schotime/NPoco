@@ -23,6 +23,8 @@ using NPoco.Expressions;
 using NPoco.Extensions;
 using NPoco.Linq;
 using NPoco.Internal;
+using System.Threading;
+using System.Runtime.CompilerServices;
 
 namespace NPoco
 {
@@ -50,7 +52,7 @@ namespace NPoco
             _connectionPassedIn = true;
             _sharedConnection = connection;
             _connectionString = connection.ConnectionString;
-            _dbType = dbType ?? DatabaseType.Resolve(_sharedConnection.GetType().Name, null);
+            _dbType = dbType ?? NPoco.DatabaseType.Resolve(_sharedConnection.GetType().Name, null);
             _providerName = _dbType.GetProviderName();
             _isolationLevel = isolationLevel ?? _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
@@ -76,14 +78,14 @@ namespace NPoco
             _sharedConnection = default!;
             _connectionString = connectionString;
             _factory = provider;
-            _dbType = databaseType ?? DatabaseType.Resolve(_factory.GetType().Name, null);
+            _dbType = databaseType ?? NPoco.DatabaseType.Resolve(_factory.GetType().Name, null);
             _providerName = _dbType.GetProviderName();
             _isolationLevel = isolationLevel ?? _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 
         private readonly DatabaseType _dbType;
-        public DatabaseType DatabaseType => _dbType;
+        public IDatabaseType DatabaseType => _dbType;
         public IsolationLevel IsolationLevel => _isolationLevel;
 
         private IDictionary<string, object>? _data;
@@ -674,7 +676,7 @@ namespace NPoco
                 sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
 
             // Split the SQL
-            PagingHelper.SQLParts parts;
+            SQLParts parts;
             if (!PagingHelper.SplitSQL(sql, out parts)) throw new Exception("Unable to parse SQL statement for paged query");
 
             sqlPage = _dbType.BuildPageQuery(skip, take, parts, ref args);
@@ -757,7 +759,7 @@ namespace NPoco
             return Query(default(T)!, Sql);
         }
 
-        private async IAsyncEnumerable<T> ReadAsync<T>(object instance, DbDataReader r, PocoData pd)
+        private async IAsyncEnumerable<T> ReadAsync<T>(object instance, DbDataReader r, PocoData pd, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var factory = new MappingFactory(pd, r);
             while (true)
@@ -765,7 +767,7 @@ namespace NPoco
                 T poco;
                 try
                 {
-                    if (!await r.ReadAsync().ConfigureAwait(false)) yield break;
+                    if (!await r.ReadAsync(cancellationToken).ConfigureAwait(false)) yield break;
                     poco = (T)factory.Map(r, instance);
                 }
                 catch (Exception x)
@@ -778,7 +780,7 @@ namespace NPoco
             }
         }
 
-        private async IAsyncEnumerable<T> ReadOneToManyAsync<T>(T instance, DbDataReader r, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, PocoData pocoData)
+        private async IAsyncEnumerable<T> ReadOneToManyAsync<T>(T instance, DbDataReader r, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, PocoData pocoData, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             Func<T, IList>? listFunc = null;
             PocoMember? pocoMember = null;
@@ -801,7 +803,7 @@ namespace NPoco
                 T poco;
                 try
                 {
-                    if (!await r.ReadAsync().ConfigureAwait(false)) break;
+                    if (!await r.ReadAsync(cancellationToken).ConfigureAwait(false)) break;
                     poco = (T)factory.Map(r, instance);
                 }
                 catch (Exception x)
@@ -1009,12 +1011,12 @@ namespace NPoco
             }
         }
 
-        private async Task<DbDataReader> ExecuteDataReader(DbCommand cmd, bool sync)
+        private async Task<DbDataReader> ExecuteDataReader(DbCommand cmd, bool sync, CancellationToken cancellationToken = default)
         {
             DbDataReader r;
             try
             {
-                r = sync ? ExecuteReaderHelper(cmd) : await ExecuteReaderHelperAsync(cmd).ConfigureAwait(false);
+                r = sync ? ExecuteReaderHelper(cmd) : await ExecuteReaderHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -1050,7 +1052,7 @@ namespace NPoco
         }
 
         // Actual implementation of the multi-poco paging
-        private async Task<Page<T>> PageImpAsync<T>(long page, long itemsPerPage, string sql, object[] args, bool sync)
+        private async Task<Page<T>> PageImpAsync<T>(long page, long itemsPerPage, string sql, object[] args, bool sync, CancellationToken cancellationToken = default)
         {
             if (page <= 0 || itemsPerPage <= 0)
             {
@@ -1070,7 +1072,7 @@ namespace NPoco
             var result = new Page<T>();
             result.CurrentPage = page;
             result.ItemsPerPage = itemsPerPage;
-            result.TotalItems = ExecuteScalar<long>(sqlCount, args);
+            result.TotalItems = sync ? ExecuteScalar<long>(sqlCount, args) : await ExecuteScalarAsync<long>(sqlCount, args, cancellationToken).ConfigureAwait(false);
             result.TotalPages = result.TotalItems / itemsPerPage;
             if ((result.TotalItems % itemsPerPage) != 0)
                 result.TotalPages++;
@@ -1080,7 +1082,7 @@ namespace NPoco
             // Get the records
             result.Items = sync
                 ? Fetch<T>(new Sql(sqlPage, args))
-                : await FetchAsync<T>(new Sql(sqlPage, args)).ConfigureAwait(false);
+                : await FetchAsync<T>(new Sql(sqlPage, args), cancellationToken).ConfigureAwait(false);
 
             return result;
         }
@@ -1102,7 +1104,7 @@ namespace NPoco
         public class DontMap { }
 
         // Actual implementation of the multi query
-        private async Task<TRet> FetchMultipleImp<T1, T2, T3, T4, TRet>(Type[] types, object cb, Sql Sql, bool sync)
+        private async Task<TRet> FetchMultipleImp<T1, T2, T3, T4, TRet>(Type[] types, object cb, Sql Sql, bool sync, CancellationToken cancellationToken = default)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
@@ -1111,7 +1113,7 @@ namespace NPoco
             {
                 OpenSharedConnectionInternal();
                 using var cmd = CreateCommand(_sharedConnection, sql, args);
-                using var r = sync ? ExecuteDataReader(cmd, true).RunSync() : await ExecuteDataReader(cmd, false).ConfigureAwait(false);
+                using var r = sync ? ExecuteDataReader(cmd, true).RunSync() : await ExecuteDataReader(cmd, false, cancellationToken).ConfigureAwait(false);
 
                 var typeIndex = 1;
                 var list1 = new List<T1>();
@@ -1130,7 +1132,7 @@ namespace NPoco
                     {
                         try
                         {
-                            if (sync ? !r.Read() : !await r.ReadAsync().ConfigureAwait(false))
+                            if (sync ? !r.Read() : !await r.ReadAsync(cancellationToken).ConfigureAwait(false))
                                 break;
 
                             switch (typeIndex)
@@ -1157,7 +1159,7 @@ namespace NPoco
                     }
 
                     typeIndex++;
-                } while (sync ? r.NextResult() : await r.NextResultAsync().ConfigureAwait(false));
+                } while (sync ? r.NextResult() : await r.NextResultAsync(cancellationToken).ConfigureAwait(false));
 
                 switch (types.Length)
                 {
@@ -1330,7 +1332,7 @@ namespace NPoco
         }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
-        private async Task<int> UpdateImpAsync(string tableName, string primaryKeyName, object poco, object? primaryKeyValue, IEnumerable<string>? columns, bool sync)
+        private async Task<int> UpdateImpAsync(string tableName, string primaryKeyName, object poco, object? primaryKeyValue, IEnumerable<string>? columns, bool sync, CancellationToken cancellationToken = default)
         {
             if (!OnUpdatingInternal(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns)))
                 return 0;
@@ -1345,7 +1347,7 @@ namespace NPoco
 
             var result = sync
                 ? Execute(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray())
-                : await ExecuteAsync(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray()).ConfigureAwait(false);
+                : await ExecuteAsync(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray(), cancellationToken).ConfigureAwait(false);
 
             if (result == 0 && !string.IsNullOrEmpty(preparedStatement.VersionName) && VersionException == VersionExceptionHandling.Exception)
             {
@@ -1365,7 +1367,6 @@ namespace NPoco
 
             return result;
         }
-
 
         internal static string BuildPrimaryKeySql(Database database, Dictionary<string, object> primaryKeyValuePair, ref int index)
         {
@@ -1483,7 +1484,7 @@ namespace NPoco
             return DeleteImpAsync(tableName, primaryKeyName, poco, primaryKeyValue, true).RunSync();
         }
 
-        private async Task<int> DeleteImpAsync(string tableName, string primaryKeyName, object? poco, object? primaryKeyValue, bool sync)
+        private async Task<int> DeleteImpAsync(string tableName, string primaryKeyName, object? poco, object? primaryKeyValue, bool sync, CancellationToken cancellationToken = default)
         {
             if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue)))
                 return 0;
@@ -1513,7 +1514,7 @@ namespace NPoco
 
             var result = sync
                 ? Execute(sql, rawValues.ToArray())
-                : await ExecuteAsync(sql, rawValues.ToArray()).ConfigureAwait(false);
+                : await ExecuteAsync(sql, rawValues.ToArray(), cancellationToken).ConfigureAwait(false);
 
             if (result == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
             {
@@ -1556,7 +1557,7 @@ namespace NPoco
             return IsNewAsync(poco, true).RunSync();
         }
 
-        private async Task<bool> IsNewAsync<T>(T poco, bool sync)
+        private async Task<bool> IsNewAsync<T>(T poco, bool sync, CancellationToken cancellationToken = default)
         {
             if (poco == null) throw new ArgumentNullException(nameof(poco));
             if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
@@ -1670,8 +1671,8 @@ namespace NPoco
         private List<IInterceptor>? _interceptors;
         public List<IInterceptor> Interceptors => _interceptors ??= new List<IInterceptor>();
 
-        private MapperCollection? _mappers;
-        public MapperCollection Mappers
+        private IMapperCollection? _mappers;
+        public IMapperCollection Mappers
         {
             get => _mappers ??= new MapperCollection();
             set => _mappers = value;
@@ -1727,9 +1728,9 @@ namespace NPoco
             return action();
         }
 
-        protected virtual async Task<T> ExecutionHookAsync<T>(Func<Task<T>> action)
+        protected virtual async Task<T> ExecutionHookAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken cancellationToken = default)
         {
-            return await action().ConfigureAwait(false);
+            return await action(cancellationToken).ConfigureAwait(false);
         }
 
         int IDatabaseHelpers.ExecuteNonQueryHelper(DbCommand cmd) => ExecuteNonQueryHelper(cmd);
@@ -1738,11 +1739,11 @@ namespace NPoco
 
         DbDataReader IDatabaseHelpers.ExecuteReaderHelper(DbCommand cmd) => ExecuteReaderHelper(cmd);
 
-        Task<int> IDatabaseHelpers.ExecuteNonQueryHelperAsync(DbCommand cmd) => ExecuteNonQueryHelperAsync(cmd);
+        Task<int> IDatabaseHelpers.ExecuteNonQueryHelperAsync(DbCommand cmd, CancellationToken cancellationToken) => ExecuteNonQueryHelperAsync(cmd, cancellationToken);
 
-        Task<object> IDatabaseHelpers.ExecuteScalarHelperAsync(DbCommand cmd) => ExecuteScalarHelperAsync(cmd);
+        Task<object> IDatabaseHelpers.ExecuteScalarHelperAsync(DbCommand cmd, CancellationToken cancellationToken) => ExecuteScalarHelperAsync(cmd, cancellationToken);
 
-        Task<DbDataReader> IDatabaseHelpers.ExecuteReaderHelperAsync(DbCommand cmd) => ExecuteReaderHelperAsync(cmd);
+        Task<DbDataReader> IDatabaseHelpers.ExecuteReaderHelperAsync(DbCommand cmd, CancellationToken cancellationToken) => ExecuteReaderHelperAsync(cmd, cancellationToken);
 
         public static bool IsEnum(MemberInfoData memberInfo)
         {

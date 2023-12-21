@@ -26,12 +26,4 @@ namespace NPoco
         /// </summary>
         public string ColumnName { get; set; }
     }
-
-    public enum ReferenceType
-    {
-        None,
-        OneToOne,
-        Foreign,
-        Many
-    }
 }

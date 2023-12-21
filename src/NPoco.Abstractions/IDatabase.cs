@@ -162,7 +162,7 @@ namespace NPoco
         /// <summary>
         /// A collection of mappers used for converting values on inserting or on mapping
         /// </summary>        
-        MapperCollection Mappers { get; set; }
+        IMapperCollection Mappers { get; set; }
         /// <summary>
         /// The PocoData factory used to build the meta data used by NPoco
         /// </summary>        
@@ -170,7 +170,7 @@ namespace NPoco
         /// <summary>
         /// The target database used to handle different oddities in the different database providers
         /// </summary>        
-        DatabaseType DatabaseType { get; }
+        IDatabaseType DatabaseType { get; }
         /// <summary>
         /// A list of IInterceptor's which can run at different times in the CRUD lifecyle
         /// </summary>        

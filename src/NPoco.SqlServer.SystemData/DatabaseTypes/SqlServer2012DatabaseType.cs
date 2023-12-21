@@ -10,7 +10,7 @@ namespace NPoco.DatabaseTypes
             return new Database(connectionString, SqlServer2012, SqlClientFactory.Instance);
         }
 
-        public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
+        public override string BuildPageQuery(long skip, long take, SQLParts parts, ref object[] args)
         {
             var sqlPage = string.Format("{0}{1}\nOFFSET @{2} ROWS FETCH NEXT @{3} ROWS ONLY", 
                 parts.sql,

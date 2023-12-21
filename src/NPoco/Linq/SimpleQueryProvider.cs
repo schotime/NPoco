@@ -3,132 +3,16 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using NPoco.Expressions;
 
 namespace NPoco.Linq
 {
-    public interface IAsyncQueryResultProvider<T>
-    {
-        Task<List<T>> ToList();
-        Task<T[]> ToArray();
-        IAsyncEnumerable<T> ToEnumerable();
-        Task<T> FirstOrDefault();
-        Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression);
-        Task<T> First();
-        Task<T> First(Expression<Func<T, bool>> whereExpression);
-        Task<T> SingleOrDefault();
-        Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression);
-        Task<T> Single();
-        Task<T> Single(Expression<Func<T, bool>> whereExpression);
-        Task<int> Count();
-        Task<int> Count(Expression<Func<T, bool>> whereExpression);
-        Task<bool> Any();
-        Task<bool> Any(Expression<Func<T, bool>> whereExpression);
-        Task<Page<T>> ToPage(int page, int pageSize);
-        Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
-        Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
-        Task<List<T>> Distinct();
-    }
-
-    public interface IQueryResultProvider<T>
-    {
-        T FirstOrDefault();
-        T FirstOrDefault(Expression<Func<T, bool>> whereExpression);
-        T First();
-        T First(Expression<Func<T, bool>> whereExpression);
-        T SingleOrDefault();
-        T SingleOrDefault(Expression<Func<T, bool>> whereExpression);
-        T Single();
-        T Single(Expression<Func<T, bool>> whereExpression);
-        int Count();
-        int Count(Expression<Func<T, bool>> whereExpression);
-        bool Any();
-        bool Any(Expression<Func<T, bool>> whereExpression);
-        List<T> ToList();
-        T[] ToArray();
-        IEnumerable<T> ToEnumerable();
-        List<dynamic> ToDynamicList();
-        IEnumerable<dynamic> ToDynamicEnumerable();
-        Page<T> ToPage(int page, int pageSize);
-        List<T2> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression);
-        List<T2> Distinct<T2>(Expression<Func<T, T2>> projectionExpression);
-        List<T> Distinct();
-        Task<List<T>> ToListAsync();
-        Task<T[]> ToArrayAsync();
-        IAsyncEnumerable<T> ToEnumerableAsync();
-        Task<T> FirstOrDefaultAsync();
-        Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression);
-        Task<T> FirstAsync();
-        Task<T> FirstAsync(Expression<Func<T, bool>> whereExpression);
-        Task<T> SingleOrDefaultAsync();
-        Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression);
-        Task<T> SingleAsync();
-        Task<T> SingleAsync(Expression<Func<T, bool>> whereExpression);
-        Task<int> CountAsync();
-        Task<int> CountAsync(Expression<Func<T, bool>> whereExpression);
-        Task<bool> AnyAsync();
-        Task<bool> AnyAsync(Expression<Func<T, bool>> whereExpression);
-        Task<Page<T>> ToPageAsync(int page, int pageSize);
-        Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression);
-        Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression);
-        Task<List<T>> DistinctAsync();
-    }
-
-    public interface IQueryProvider<T> : IQueryResultProvider<T>
-    {
-        IQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
-        IQueryProvider<T> WhereSql(string sql, params object[] args);
-        IQueryProvider<T> WhereSql(Sql sql);
-        IQueryProvider<T> WhereSql(Func<QueryContext<T>, Sql> queryBuilder);
-        IQueryProvider<T> OrderBy(Expression<Func<T, object>> column);
-        IQueryProvider<T> OrderByDescending(Expression<Func<T, object>> column);
-        IQueryProvider<T> ThenBy(Expression<Func<T, object>> column);
-        IQueryProvider<T> ThenByDescending(Expression<Func<T, object>> column);
-        IQueryProvider<T> Limit(int rows);
-        IQueryProvider<T> Limit(int skip, int rows);
-        IQueryProvider<T> From(QueryBuilder<T> builder);
-    }
-
-    public interface IAsyncQueryProvider<T> : IAsyncQueryResultProvider<T>
-    {
-        IAsyncQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
-        IAsyncQueryProvider<T> WhereSql(string sql, params object[] args);
-        IAsyncQueryProvider<T> WhereSql(Sql sql);
-        IAsyncQueryProvider<T> WhereSql(Func<QueryContext<T>, Sql> queryBuilder);
-        IAsyncQueryProvider<T> OrderBy(Expression<Func<T, object>> column);
-        IAsyncQueryProvider<T> OrderByDescending(Expression<Func<T, object>> column);
-        IAsyncQueryProvider<T> ThenBy(Expression<Func<T, object>> column);
-        IAsyncQueryProvider<T> ThenByDescending(Expression<Func<T, object>> column);
-        IAsyncQueryProvider<T> Limit(int rows);
-        IAsyncQueryProvider<T> Limit(int skip, int rows);
-        IAsyncQueryProvider<T> From(QueryBuilder<T> builder);
-    }
-
-    public interface IAsyncQueryProviderWithIncludes<T> : IAsyncQueryProvider<T>
-    {
-        IAsyncQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "");
-        IAsyncQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
-        IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
-        IAsyncQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
-        IAsyncQueryProviderWithIncludes<T> UsingAlias(string tableAlias);
-        IAsyncQueryProviderWithIncludes<T> Hint(string tableHint);
-    }
-
-    public interface IQueryProviderWithIncludes<T> : IQueryProvider<T>
-    {
-        IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "");
-        IQueryProviderWithIncludes<T> Include<T2>(JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
-        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
-        IQueryProviderWithIncludes<T> Include<T2>(Expression<Func<T, T2>> expression, string tableAlias, JoinType joinType = JoinType.Left, string joinTableHint = "") where T2 : class;
-        IQueryProviderWithIncludes<T> UsingAlias(string tableAlias);
-        IQueryProviderWithIncludes<T> Hint(string tableHint);
-    }
-
     public class AsyncQueryProvider<T> : IAsyncQueryProviderWithIncludes<T>, ISimpleQueryProviderExpression<T>, INeedDatabase, INeedSql
     {
         protected readonly Database _database;
-        protected SqlExpression<T> _sqlExpression;
+        protected ISqlExpression<T> _sqlExpression;
         protected Dictionary<string, JoinData> _joinSqlExpressions = new Dictionary<string, JoinData>();
         protected readonly ComplexSqlBuilder<T> _buildComplexSql;
         protected Expression<Func<T, IList>> _listExpression = null;
@@ -144,7 +28,7 @@ namespace NPoco.Linq
             _sqlExpression = _sqlExpression.Where(whereExpression);
         }
 
-        SqlExpression<T> ISimpleQueryProviderExpression<T>.AtlasSqlExpression { get { return _sqlExpression; } }
+        ISqlExpression<T> ISimpleQueryProviderExpression<T>.AtlasSqlExpression { get { return _sqlExpression; } }
 
         public AsyncQueryProvider(Database database) : this(database, null)
         {
@@ -207,7 +91,7 @@ namespace NPoco.Linq
 
         public IAsyncQueryProviderWithIncludes<T> Hint(string tableHint)
         {
-            _sqlExpression.TableHint(tableHint);
+            _sqlExpression.Hint(tableHint);
             return this;
         }
 
@@ -222,93 +106,93 @@ namespace NPoco.Linq
             return this;
         }
 
-        public Task<List<T>> ToList()
+        public Task<List<T>> ToList(CancellationToken cancellationToken)
         {
-            return ToEnumerable().ToListAsync().AsTask();
+            return ToEnumerable(cancellationToken).ToListAsync(cancellationToken).AsTask();
         }
 
-        public Task<T[]> ToArray()
+        public Task<T[]> ToArray(CancellationToken cancellationToken)
         {
-            return ToEnumerable().ToArrayAsync().AsTask();
+            return ToEnumerable(cancellationToken).ToArrayAsync(cancellationToken).AsTask();
         }
 
-        public IAsyncEnumerable<T> ToEnumerable()
+        public IAsyncEnumerable<T> ToEnumerable(CancellationToken cancellationToken)
         {
-            return ExecuteQueryAsync(BuildSql());
+            return ExecuteQueryAsync(BuildSql(), cancellationToken);
         }
 
-        private IAsyncEnumerable<T> ExecuteQueryAsync(Sql sql)
+        private IAsyncEnumerable<T> ExecuteQueryAsync(Sql sql, CancellationToken cancellationToken)
         {
-            return _database.QueryAsync<T>(default, _listExpression, null, sql, _pocoData);
+            return _database.QueryAsync<T>(default, _listExpression, null, sql, _pocoData, cancellationToken);
         }
 
-        public Task<T> FirstOrDefault()
+        public Task<T> FirstOrDefault(CancellationToken cancellationToken = default)
         {
-            return FirstOrDefault(null);
+            return FirstOrDefault(null, cancellationToken);
         }
 
-        public Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression)
-        {
-            AddWhere(whereExpression);
-            return ToEnumerable().FirstOrDefaultAsync().AsTask();
-        }
-
-        public Task<T> First()
-        {
-            return First(null);
-        }
-
-        public Task<T> First(Expression<Func<T, bool>> whereExpression)
+        public Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
         {
             AddWhere(whereExpression);
-            return ToEnumerable().FirstAsync().AsTask();
+            return ToEnumerable(cancellationToken).FirstOrDefaultAsync(cancellationToken).AsTask();
         }
 
-        public Task<T> SingleOrDefault()
+        public Task<T> First(CancellationToken cancellationToken = default)
         {
-            return SingleOrDefault(null);
+            return First(null, cancellationToken);
         }
 
-        public Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression)
-        {
-            AddWhere(whereExpression);
-            return ToEnumerable().SingleOrDefaultAsync().AsTask();
-        }
-
-        public Task<T> Single()
-        {
-            return Single(null);
-        }
-
-        public Task<T> Single(Expression<Func<T, bool>> whereExpression)
+        public Task<T> First(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
         {
             AddWhere(whereExpression);
-            return ToEnumerable().SingleAsync().AsTask();
+            return ToEnumerable(cancellationToken).FirstAsync(cancellationToken).AsTask();
         }
 
-        public Task<int> Count()
+        public Task<T> SingleOrDefault(CancellationToken cancellationToken = default)
         {
-            return Count(null);
+            return SingleOrDefault(null, cancellationToken);
         }
 
-        public Task<int> Count(Expression<Func<T, bool>> whereExpression)
+        public Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
+        {
+            AddWhere(whereExpression);
+            return ToEnumerable(cancellationToken).SingleOrDefaultAsync(cancellationToken).AsTask();
+        }
+
+        public Task<T> Single(CancellationToken cancellationToken = default)
+        {
+            return Single(null, cancellationToken);
+        }
+
+        public Task<T> Single(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
+        {
+            AddWhere(whereExpression);
+            return ToEnumerable(cancellationToken).SingleAsync(cancellationToken).AsTask();
+        }
+
+        public Task<int> Count(CancellationToken cancellationToken = default)
+        {
+            return Count(null, cancellationToken);
+        }
+
+        public Task<int> Count(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
         {
             AddWhere(whereExpression);
             var sql = _buildComplexSql.BuildJoin(_database, _sqlExpression, _joinSqlExpressions.Values.ToList(), null, true, false);
-            return _database.ExecuteScalarAsync<int>(sql);
+            return _database.ExecuteScalarAsync<int>(sql, cancellationToken);
         }
 
-        public Task<bool> Any()
+        public Task<bool> Any(CancellationToken cancellationToken = default)
         {
-            return Any(null);
+            return Any(null, cancellationToken);
         }
 
-        public async Task<bool> Any(Expression<Func<T, bool>> whereExpression)
+        public async Task<bool> Any(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
         {
-            return (await Count(whereExpression).ConfigureAwait(false)) > 0;
+            return (await Count(whereExpression, cancellationToken).ConfigureAwait(false)) > 0;
         }
 
-        public async Task<Page<T>> ToPage(int page, int pageSize)
+        public async Task<Page<T>> ToPage(int page, int pageSize, CancellationToken cancellationToken = default)
         {
             int offset = (page - 1) * pageSize;
 
@@ -319,7 +203,7 @@ namespace NPoco.Linq
             var result = new Page<T>();
             result.CurrentPage = page;
             result.ItemsPerPage = pageSize;
-            result.TotalItems = await Count().ConfigureAwait(false);
+            result.TotalItems = await Count(cancellationToken).ConfigureAwait(false);
             result.TotalPages = result.TotalItems / pageSize;
             if ((result.TotalItems % pageSize) != 0)
                 result.TotalPages++;
@@ -328,26 +212,26 @@ namespace NPoco.Linq
 
             _sqlExpression = _sqlExpression.Limit(offset, pageSize);
 
-            result.Items = await ToList().ConfigureAwait(false);
+            result.Items = await ToList(cancellationToken).ConfigureAwait(false);
 
             return result;
         }
 
-        public Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression)
+        public Task<List<T2>> ProjectTo<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken = default)
         {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, false);
-            return ExecuteQueryAsync(sql).Select(projectionExpression.Compile()).ToListAsync().AsTask();
+            return ExecuteQueryAsync(sql, cancellationToken).Select(projectionExpression.Compile()).ToListAsync(cancellationToken).AsTask();
         }
 
-        public Task<List<T>> Distinct()
+        public Task<List<T>> Distinct(CancellationToken cancellationToken = default)
         {
-            return ExecuteQueryAsync(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params)).ToListAsync().AsTask();
+            return ExecuteQueryAsync(new Sql(_sqlExpression.Context.ToSelectStatement(true, true), _sqlExpression.Context.Params), cancellationToken).ToListAsync(cancellationToken).AsTask();
         }
 
-        public Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression)
+        public Task<List<T2>> Distinct<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken = default)
         {
             var sql = _buildComplexSql.GetSqlForProjection(projectionExpression, true);
-            return ExecuteQueryAsync(sql).Select(projectionExpression.Compile()).ToListAsync().AsTask();
+            return ExecuteQueryAsync(sql, cancellationToken).Select(projectionExpression.Compile()).ToListAsync(cancellationToken).AsTask();
         }
 
         public IAsyncQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression)
@@ -638,99 +522,99 @@ namespace NPoco.Linq
         }
 #pragma warning restore CS0109
 
-        public Task<List<T>> ToListAsync()
+        public Task<List<T>> ToListAsync(CancellationToken cancellationToken = default)
         {
-            return base.ToList();
+            return base.ToList(cancellationToken);
         }
 
-        public Task<T[]> ToArrayAsync()
+        public Task<T[]> ToArrayAsync(CancellationToken cancellationToken = default)
         {
-            return base.ToArray();
+            return base.ToArray(cancellationToken);
         }
 
-        public IAsyncEnumerable<T> ToEnumerableAsync()
+        public IAsyncEnumerable<T> ToEnumerableAsync(CancellationToken cancellationToken = default)
         {
-            return base.ToEnumerable();
+            return base.ToEnumerable(cancellationToken);
         }
 
-        public Task<T> FirstOrDefaultAsync()
+        public Task<T> FirstOrDefaultAsync(CancellationToken cancellationToken = default)
         {
-            return base.FirstOrDefault();
+            return base.FirstOrDefault(cancellationToken);
         }
 
-        public Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
         {
-            return base.FirstOrDefault(whereExpression);
+            return base.FirstOrDefault(whereExpression, cancellationToken);
         }
 
-        public Task<T> FirstAsync()
+        public Task<T> FirstAsync(CancellationToken cancellationToken = default)
         {
-            return base.First();
+            return base.First(cancellationToken);
         }
 
-        public Task<T> FirstAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<T> FirstAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
         {
-            return base.First(whereExpression);
+            return base.First(whereExpression, cancellationToken);
         }
 
-        public Task<T> SingleOrDefaultAsync()
+        public Task<T> SingleOrDefaultAsync(CancellationToken cancellationToken = default)
         {
-            return base.SingleOrDefault();
+            return base.SingleOrDefault(cancellationToken);
         }
 
-        public Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
         {
-            return base.SingleOrDefault(whereExpression);
+            return base.SingleOrDefault(whereExpression, cancellationToken);
         }
 
-        public Task<T> SingleAsync()
+        public Task<T> SingleAsync(CancellationToken cancellationToken = default)
         {
-            return base.Single();
+            return base.Single(cancellationToken);
         }
 
-        public Task<T> SingleAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<T> SingleAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
         {
-            return base.Single(whereExpression);
+            return base.Single(whereExpression, cancellationToken);
         }
 
-        public Task<int> CountAsync()
+        public Task<int> CountAsync(CancellationToken cancellationToken = default)
         {
-            return base.Count();
+            return base.Count(cancellationToken);
         }
 
-        public Task<int> CountAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<int> CountAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
         {
-            return base.Count(whereExpression);
+            return base.Count(whereExpression, cancellationToken);
         }
 
-        public Task<bool> AnyAsync()
+        public Task<bool> AnyAsync(CancellationToken cancellationToken = default)
         {
-            return base.Any();
+            return base.Any(cancellationToken);
         }
 
-        public Task<bool> AnyAsync(Expression<Func<T, bool>> whereExpression)
+        public Task<bool> AnyAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default)
         {
-            return base.Any(whereExpression);
+            return base.Any(whereExpression, cancellationToken);
         }
 
-        public Task<Page<T>> ToPageAsync(int page, int pageSize)
+        public Task<Page<T>> ToPageAsync(int page, int pageSize, CancellationToken cancellationToken = default)
         {
-            return base.ToPage(page, pageSize);
+            return base.ToPage(page, pageSize, cancellationToken);
         }
 
-        public Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression)
+        public Task<List<T2>> ProjectToAsync<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken = default)
         {
-            return base.ProjectTo(projectionExpression);
+            return base.ProjectTo(projectionExpression, cancellationToken);
         }
 
-        public Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression)
+        public Task<List<T2>> DistinctAsync<T2>(Expression<Func<T, T2>> projectionExpression, CancellationToken cancellationToken = default)
         {
-            return base.Distinct(projectionExpression);
+            return base.Distinct(projectionExpression, cancellationToken);
         }
 
-        public Task<List<T>> DistinctAsync()
+        public Task<List<T>> DistinctAsync(CancellationToken cancellationToken = default)
         {
-            return base.Distinct();
+            return base.Distinct(cancellationToken);
         }
         
         public new IQueryProvider<T> IncludeMany(Expression<Func<T, IList>> expression, JoinType joinType = JoinType.Left, string joinTableHint = "")
