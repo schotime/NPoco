@@ -5,6 +5,7 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using NPoco.Internal;
 
@@ -29,20 +30,19 @@ namespace NPoco.SqlServer.SystemData
             }
         }
 
-        public static Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, InsertBulkOptions sqlBulkCopyOptions)
+        public static Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, InsertBulkOptions sqlBulkCopyOptions, CancellationToken cancellationToken = default)
         {
-            return BulkInsertAsync(db, list, SqlBulkCopyOptions.Default, sqlBulkCopyOptions);
+            return BulkInsertAsync(db, list, SqlBulkCopyOptions.Default, sqlBulkCopyOptions, cancellationToken);
         }
 
-        public static async Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions insertBulkOptions)
+        public static async Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions insertBulkOptions, CancellationToken cancellationToken = default)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
             {
                 var table = BuildBulkInsertDataTable(db, list, bulkCopy, sqlBulkCopyOptions, insertBulkOptions);
-                await bulkCopy.WriteToServerAsync(table).ConfigureAwait(false);
+                await bulkCopy.WriteToServerAsync(table, cancellationToken).ConfigureAwait(false);
             }
         }
-
 
         private static DataTable BuildBulkInsertDataTable<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopy bulkCopy, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions? insertBulkOptions)
         {

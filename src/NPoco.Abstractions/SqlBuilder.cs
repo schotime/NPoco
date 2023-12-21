@@ -39,7 +39,7 @@ namespace NPoco
                 return prefix + string.Join(joiner, this.Select(c => c.ResolvedSql).ToArray()) + postfix;
             }
         }
-
+         
         public class Template
         {
             public bool TokenReplacementRequired { get; set; }

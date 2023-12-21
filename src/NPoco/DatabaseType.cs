@@ -9,13 +9,14 @@ using NPoco.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Text;
+using System.Threading;
 
 namespace NPoco
 {
     /// <summary>
     /// Base class for DatabaseType handlers - provides default/common handling for different database engines
     /// </summary>
-    public abstract partial class DatabaseType
+    public abstract partial class DatabaseType : IDatabaseType
     {
         // Helper Properties
         public static DatabaseType SqlServer2012 { get { return DynamicDatabaseType.MakeSqlServerType("SqlServer2012DatabaseType"); } }
@@ -34,7 +35,7 @@ namespace NPoco
         public DatabaseType()
         {
             typeMap = new Dictionary<Type, DbType>();
-            typeMap[typeof(byte)] = DbType.Byte; 
+            typeMap[typeof(byte)] = DbType.Byte;
             typeMap[typeof(sbyte)] = DbType.SByte;
             typeMap[typeof(short)] = DbType.Int16;
             typeMap[typeof(ushort)] = DbType.UInt16;
@@ -146,7 +147,7 @@ namespace NPoco
         /// <param name="parts">The original SQL query after being parsed into it's component parts</param>
         /// <param name="args">Arguments to any embedded parameters in the SQL query</param>
         /// <returns>The final SQL query that should be executed.</returns>
-        public virtual string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
+        public virtual string BuildPageQuery(long skip, long take, SQLParts parts, ref object[] args)
         {
             var sql = string.Format("{0}\nLIMIT @{1} OFFSET @{2}", parts.sql, args.Length, args.Length + 1);
             args = args.Concat(new object[] { take, skip }).ToArray();
@@ -220,16 +221,16 @@ namespace NPoco
         /// <param name="poco"></param>
         /// <param name="args"></param>
         /// <returns>The ID of the newly inserted record</returns>
-        public virtual object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public virtual object ExecuteInsert<T>(IDatabase db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
-            return db.ExecuteScalarHelper(cmd);
+            return ((IDatabaseHelpers)db).ExecuteScalarHelper(cmd);
         }
 
-        public virtual async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public virtual async Task<object> ExecuteInsertAsync<T>(IDatabase db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args, CancellationToken cancellationToken = default)
         {
             cmd.CommandText += ";\nSELECT @@IDENTITY AS NewID;";
-            return await db.ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
+            return await ((IDatabaseHelpers)db).ExecuteScalarHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
         }
 
         public virtual void InsertBulk<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
@@ -240,11 +241,11 @@ namespace NPoco
             }
         }
 
-        public virtual async Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options)
+        public virtual async Task InsertBulkAsync<T>(IDatabase db, IEnumerable<T> pocos, InsertBulkOptions options, CancellationToken cancellationToken = default)
         {
             foreach (var poco in pocos)
             {
-                await db.InsertAsync(poco).ConfigureAwait(false);
+                await db.InsertAsync(poco, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -331,12 +332,12 @@ namespace NPoco
             }
         }
 
-        public SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData)
+        public ISqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData)
         {
             return ExpressionVisitor<T>(db, pocoData, false);
         }
 
-        public virtual SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
+        public virtual ISqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
         {
             return new DefaultSqlExpression<T>(db, pocoData, prefixTableName);
         }
@@ -346,19 +347,19 @@ namespace NPoco
             return "Microsoft.Data.SqlClient";
         }
 
-        public virtual Task<int> ExecuteNonQueryAsync(Database database, DbCommand cmd)
+        public virtual Task<int> ExecuteNonQueryAsync(IDatabase database, DbCommand cmd, CancellationToken cancellationToken = default)
         {
-            return cmd.ExecuteNonQueryAsync();
+            return cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        public virtual Task<object> ExecuteScalarAsync(Database database, DbCommand cmd)
+        public virtual Task<object> ExecuteScalarAsync(IDatabase database, DbCommand cmd, CancellationToken cancellationToken = default)
         {
-            return cmd.ExecuteScalarAsync();
+            return cmd.ExecuteScalarAsync(cancellationToken);
         }
 
-        public virtual Task<DbDataReader> ExecuteReaderAsync(Database database, DbCommand cmd)
+        public virtual Task<DbDataReader> ExecuteReaderAsync(IDatabase database, DbCommand cmd, CancellationToken cancellationToken = default)
         {
-            return cmd.ExecuteReaderAsync();
+            return cmd.ExecuteReaderAsync(cancellationToken);
         }
 
         public virtual object ProcessDefaultMappings(PocoColumn pocoColumn, object value)
@@ -385,7 +386,7 @@ namespace NPoco
         }
 
         public virtual string FormatCommand(string sql, object[] args)
-        {            
+        {
             if (sql == null)
                 return "";
             var sb = new StringBuilder();

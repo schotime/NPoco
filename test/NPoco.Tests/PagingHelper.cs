@@ -13,7 +13,7 @@ namespace NPoco.Tests
         {
             var sql = @"select test.*, (select top 1 d from test2 order by c) from test order by a, b";
 
-            PagingHelper.SQLParts parts;
+            SQLParts parts;
             PagingHelper.SplitSQL(sql, out parts);
 
             Assert.AreEqual("order by a, b", parts.sqlOrderBy);
@@ -25,7 +25,7 @@ namespace NPoco.Tests
         {
             var sql = @"select test.*, (select top 1 d from test2 order by c) from test where (select top 1 e from test2 order by e) > 5 order by a, b";
 
-            PagingHelper.SQLParts parts;
+            SQLParts parts;
             PagingHelper.SplitSQL(sql, out parts);
 
             Assert.AreEqual("order by a, b", parts.sqlOrderBy);
@@ -37,7 +37,7 @@ namespace NPoco.Tests
         {
             var sql = @"select test.* from test order by len(a), b";
 
-            PagingHelper.SQLParts parts;
+            SQLParts parts;
             PagingHelper.SplitSQL(sql, out parts);
 
             Assert.AreEqual("order by len(a), b", parts.sqlOrderBy);
@@ -50,7 +50,7 @@ namespace NPoco.Tests
         {
             var sql = "select test.* from test order by len(a),\r\nb";
 
-            PagingHelper.SQLParts parts;
+            SQLParts parts;
             PagingHelper.SplitSQL(sql, out parts);
 
             Assert.AreEqual("order by len(a),\r\nb", parts.sqlOrderBy);
@@ -62,7 +62,7 @@ namespace NPoco.Tests
         {
             var sql = @"select test.*, (select top 1 d from test2 order by c) from test";
 
-            PagingHelper.SQLParts parts;
+            SQLParts parts;
             PagingHelper.SplitSQL(sql, out parts);
 
             Assert.AreEqual(null, parts.sqlOrderBy);
@@ -74,7 +74,7 @@ namespace NPoco.Tests
         {
             var sql = @"select id, date_from from test1 order by date_from";
 
-            PagingHelper.SQLParts parts;
+            SQLParts parts;
             PagingHelper.SplitSQL(sql, out parts);
 
             Assert.AreEqual("order by date_from", parts.sqlOrderBy);
@@ -86,7 +86,7 @@ namespace NPoco.Tests
         {
             var sql = @"select id, date_from from(select id, date_from from test1) a order by date_from";
 
-            PagingHelper.SQLParts parts;
+            SQLParts parts;
             PagingHelper.SplitSQL(sql, out parts);
 
             Assert.AreEqual("order by date_from", parts.sqlOrderBy);

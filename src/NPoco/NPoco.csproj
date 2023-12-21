@@ -31,4 +31,8 @@
 	<None Include="LICENSE.txt" Pack="true" PackagePath="" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\NPoco.Abstractions\NPoco.Abstractions.csproj" />
+  </ItemGroup>
+
 </Project>
