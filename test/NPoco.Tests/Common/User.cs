@@ -1,5 +1,4 @@
 using System;
-using NPoco;
 
 namespace NPoco.Tests.Common
 {
@@ -43,7 +42,7 @@ namespace NPoco.Tests.Common
     public class StringObject
     {
         public string MyValue { get; set; }
-        
+
         public override string ToString()
         {
             return MyValue;

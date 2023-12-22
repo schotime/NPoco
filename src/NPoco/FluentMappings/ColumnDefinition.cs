@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace NPoco.FluentMappings
@@ -26,5 +27,6 @@ namespace NPoco.FluentMappings
         public bool? ValueObjectColumn { get; set; }
         public string ValueObjectColumnName { get; set; }
         public bool? ExactColumnNameMatch { get; set; }
+        public Dictionary<string, object> Metadata { get; set; }
     }
 }

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Reflection;
 
@@ -18,21 +16,24 @@ namespace NPoco
             // Get converter from the mapper
             if (mapper != null)
             {
-                converter = pc != null && pc.MemberInfoData != null ? mapper.FindFromDbConverter(pc.MemberInfoData.MemberInfo, srcType) : mapper.FindFromDbConverter(dstType, srcType);
+                converter = pc != null && pc.MemberInfoData != null
+                    ? mapper.FindFromDbConverter(pc.MemberInfoData.MemberInfo, srcType, pc.Metadata)
+                    : mapper.FindFromDbConverter(dstType, srcType);
+
                 if (converter != null)
                     return converter;
             }
 
             if (pc != null && pc.SerializedColumn && mapper?.ColumnSerializer != null)
             {
-                converter = src => mapper.ColumnSerializer.Deserialize((string) src, dstType);
+                converter = src => mapper.ColumnSerializer.Deserialize((string)src, dstType);
                 return converter;
             }
 
             // Standard DateTime->Utc mapper
             if (pc != null && pc.ForceToUtc && srcType == typeof(DateTime) && (dstType == typeof(DateTime) || dstType == typeof(DateTime?)))
             {
-                converter = src => new DateTime(((DateTime) src).Ticks, DateTimeKind.Utc);
+                converter = src => new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc);
                 return converter;
             }
 
@@ -54,7 +55,7 @@ namespace NPoco
             }
             else if (srcType == typeof(string) && (dstType == typeof(Guid) || dstType == typeof(Guid?)))
             {
-                converter = src => Guid.Parse((string) src);
+                converter = src => Guid.Parse((string)src);
             }
             else if ((!pc?.ValueObjectColumn ?? true) && !dstType.IsAssignableFrom(srcType))
             {

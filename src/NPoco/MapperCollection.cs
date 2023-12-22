@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Data.Common;
+using System.Linq;
 using System.Reflection;
 
 namespace NPoco
@@ -26,7 +26,7 @@ namespace NPoco
 
         public ObjectFactoryDelegate GetFactory(Type type)
         {
-            return Factories.ContainsKey(type) ? Factories[type] : null;
+            return Factories.TryGetValue(type, out var factory) ? factory : null;
         }
 
         public bool HasFactory(Type type)
@@ -66,16 +66,16 @@ namespace NPoco
             return FromDbConverterCache.Get(key, () => Find(x => x.GetFromDbConverter(destType, srcType)));
         }
 
-        internal Func<object, object> FindFromDbConverter(MemberInfo destInfo, Type srcType)
+        internal Func<object, object> FindFromDbConverter(MemberInfo destInfo, Type srcType, IReadOnlyDictionary<string, object> metadata = null)
         {
             var key = new { DestInfo = destInfo, SrcType = srcType };
-            return FromDbConverterCache.Get(key, () => Find(x => x.GetFromDbConverter(destInfo, srcType)));
+            return FromDbConverterCache.Get(key, () => Find(x => x.GetFromDbConverter(destInfo, srcType, metadata)));
         }
 
-        internal Func<object, object> FindToDbConverter(Type destType, MemberInfo srcInfo)
+        internal Func<object, object> FindToDbConverter(Type destType, MemberInfo srcInfo, IReadOnlyDictionary<string, object> metadata = null)
         {
             var key = new { DestType = destType, SrcInfo = srcInfo };
-            return ToDbConverterCache.Get(key, () => Find(x => x.GetToDbConverter(destType, srcInfo)));
+            return ToDbConverterCache.Get(key, () => Find(x => x.GetToDbConverter(destType, srcInfo, metadata)));
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using NPoco.FluentMappings;
 using NPoco.Tests.Common;
 using NUnit.Framework;
+using System.Linq;
 
 namespace NPoco.Tests.FluentMappings
 {
@@ -83,10 +84,10 @@ namespace NPoco.Tests.FluentMappings
         {
             var typeDefinition = new TypeDefinition(typeof(User));
             var map = new TestMap(typeDefinition);
-            
+
             var typeDefinition1 = new TypeDefinition(typeof(Supervisor));
             var map1 = new SupervisorMap(typeDefinition1);
-            
+
             Assert.AreEqual(4, typeDefinition1.ColumnConfiguration.Count);
             Assert.IsTrue(typeDefinition1.ColumnConfiguration["Age"].IgnoreColumn ?? false);
             Assert.IsTrue(typeDefinition1.ColumnConfiguration["IsSupervisor"].ResultColumn ?? false);
@@ -103,6 +104,15 @@ namespace NPoco.Tests.FluentMappings
 
             Assert.AreEqual(1, typeDefinition1.ColumnConfiguration.Count);
         }
+
+        [Test]
+        public void MetadataDefinition()
+        {
+            var typeDefinition = new TypeDefinition(typeof(User));
+            var map = new TestMetadataMap(typeDefinition);
+
+            Assert.AreEqual("TestKey", typeDefinition.ColumnConfiguration["Name"].Metadata.Keys.First());
+        }
     }
 
     public class TestMap : Map<UserWithNullableId>
@@ -111,6 +121,14 @@ namespace NPoco.Tests.FluentMappings
         {
             UseMap<UserMap>();
             Columns(x => x.Column(y => y.Days).Result());
+        }
+    }
+
+    public class TestMetadataMap : Map<User>
+    {
+        public TestMetadataMap(TypeDefinition typeDefinition) : base(typeDefinition)
+        {
+            Columns(x => x.Column(y => y.Name).WithMetadata("TestKey", new object()));
         }
     }
 }

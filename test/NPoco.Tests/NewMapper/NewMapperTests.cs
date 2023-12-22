@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using NPoco.Expressions;
+﻿using NPoco.Expressions;
 using NPoco.fastJSON;
 using NPoco.Linq;
 using NPoco.Tests.Common;
 using NPoco.Tests.NewMapper.Models;
 using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
 namespace NPoco.Tests.NewMapper
 {
@@ -654,7 +654,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
 
         public class TestMapper : DefaultMapper
         {
-            public override Func<object, object> GetFromDbConverter(MemberInfo destType, Type sourceType)
+            public override Func<object, object> GetFromDbConverter(MemberInfo destType, Type sourceType, IReadOnlyDictionary<string, object> metadata = null)
             {
                 if (destType.GetMemberInfoType() == typeof(Test28AClass.Nest4) && sourceType == typeof(string))
                 {
@@ -726,7 +726,7 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         public void Test33()
         {
             var users = Database.Query<UserDecorated>()
-                .WhereSql(x=> new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new {list = new[] {2}}))
+                .WhereSql(x => new Sql($"{x.DatabaseType.EscapeTableName(x.PocoData.TableInfo.AutoAlias)}.UserId in (@list)", new { list = new[] { 2 } }))
                 .Where(x => x.UserId.In(new[] { 1, 2 }))
                 .OrderBy(x => x.UserId)
                 .ToList();
@@ -751,8 +751,8 @@ select 'NameAnswer' Name, 'Answer' type /*poco_dual*/
         [Test]
         public void Test35()
         {
-            var data = new Result35.ResultData() {Name = "Bob", Age = 66};
-            var result = Database.Single<Result35>("select @0 as Data", JSON.ToJSON(new[] {data}));
+            var data = new Result35.ResultData() { Name = "Bob", Age = 66 };
+            var result = Database.Single<Result35>("select @0 as Data", JSON.ToJSON(new[] { data }));
             Assert.AreEqual(data.Name, result.Data[0].Name);
             Assert.AreEqual(data.Age, result.Data[0].Age);
         }

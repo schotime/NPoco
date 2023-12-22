@@ -1,20 +1,20 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
-using NPoco;
 
 namespace NPoco.Tests.Common
 {
-    internal class FirebirdDefaultMapper: DefaultMapper
+    internal class FirebirdDefaultMapper : DefaultMapper
     {
         private bool isNullable(Type type)
         {
-            return (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof (Nullable<>));
+            return (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>));
         }
 
         public override Func<object, object> GetFromDbConverter(Type DestType, Type SourceType)
         {
             // Db:String -> Guid
-            if ((DestType == typeof (Guid)) && (SourceType == typeof (string)))
+            if ((DestType == typeof(Guid)) && (SourceType == typeof(string)))
             {
                 return src => Guid.Parse((string)src);
             }
@@ -23,9 +23,9 @@ namespace NPoco.Tests.Common
             if (isNullable(DestType))
             {
                 var underlyingType = Nullable.GetUnderlyingType(DestType);
-                if (underlyingType == typeof (Guid) )
+                if (underlyingType == typeof(Guid))
                 {
-                    return src => (src == null ? (Guid?) null : Guid.Parse((string) src));
+                    return src => (src == null ? (Guid?)null : Guid.Parse((string)src));
                 }
             }
 
@@ -50,7 +50,7 @@ namespace NPoco.Tests.Common
             return base.GetFromDbConverter(DestType, SourceType);
         }
 
-        public override Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo)
+        public override Func<object, object> GetToDbConverter(Type destType, MemberInfo sourceMemberInfo, IReadOnlyDictionary<string, object> metadata = null)
         {
             if ((sourceMemberInfo.GetMemberInfoType() == typeof(StringObject)) && (destType == typeof(string)))
             {
