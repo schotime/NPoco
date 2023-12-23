@@ -106,16 +106,27 @@ namespace NPoco
         // Open a connection (can be nested)
         public IDatabase OpenSharedConnection()
         {
-            OpenSharedConnectionImp(false);
+            OpenSharedConnectionImp(false, true).RunSync();
+            return this;
+        }
+
+        public async Task<IAsyncDatabase> OpenSharedConnectionAsync(CancellationToken cancellationToken = default)
+        {
+            await OpenSharedConnectionImp(false, false, cancellationToken);
             return this;
         }
 
         private void OpenSharedConnectionInternal()
         {
-            OpenSharedConnectionImp(true);
+            OpenSharedConnectionImp(true, true).RunSync();
         }
 
-        private void OpenSharedConnectionImp(bool isInternal)
+        private Task OpenSharedConnectionInternalAsync(CancellationToken cancellationToken = default)
+        {
+            return OpenSharedConnectionImp(true, false, cancellationToken);
+        }
+
+        private async Task OpenSharedConnectionImp(bool isInternal, bool sync, CancellationToken cancellationToken = default)
         {
             if (_connectionPassedIn && _sharedConnection != null && _sharedConnection.State != ConnectionState.Open)
                 throw new Exception("You must explicitly open the connection before executing anything when passing in a DbConnection to Database");
@@ -132,12 +143,24 @@ namespace NPoco
 
             if (_sharedConnection.State == ConnectionState.Broken)
             {
-                _sharedConnection.Close();
+                if (sync)
+                    _sharedConnection.Close();
+                else { 
+#if NETSTANDARD2_1_OR_GREATER
+                    await _sharedConnection.CloseAsync();
+#else
+                    _sharedConnection.Close();
+#endif
+                }
             }
 
             if (_sharedConnection.State == ConnectionState.Closed)
             {
-                _sharedConnection.Open();
+                if (sync) 
+                    _sharedConnection.Open();
+                else 
+                    await _sharedConnection.OpenAsync(cancellationToken);
+
                 _sharedConnection = OnConnectionOpenedInternal(_sharedConnection);
 
                 //using (var cmd = _sharedConnection.CreateCommand())
@@ -155,23 +178,64 @@ namespace NPoco
                 CloseSharedConnection();
         }
 
-        // Close a previously opened connection
+        private async Task CloseSharedConnectionInternalAsync()
+        {
+            if (ShouldCloseConnectionAutomatically && _transaction == null)
+                await CloseSharedConnectionAsync();
+        }
+
         public void CloseSharedConnection()
+        {
+            CloseSharedConnectionImp(true).RunSync();
+        }
+
+        public async Task CloseSharedConnectionAsync()
+        {
+            await CloseSharedConnectionImp(false);
+        }
+
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        private async Task CloseSharedConnectionImp(bool sync, CancellationToken cancellationToken = default)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             if (KeepConnectionAlive) return;
 
             if (_transaction != null)
             {
-                _transaction.Dispose();
-                _transaction = null;
+                if (sync)
+                {
+                    _transaction.Dispose();
+                }
+                else
+                {
+#if NETSTANDARD2_1_OR_GREATER
+                    await _transaction.DisposeAsync();
+#else
+                    _transaction.Dispose();
+#endif
+                    _transaction = null;
+                }
             }
 
             if (_sharedConnection == null) return;
 
             OnConnectionClosingInternal(_sharedConnection);
 
-            _sharedConnection.Close();
-            _sharedConnection.Dispose();
+            if (sync)
+            {
+                _sharedConnection.Close();
+                _sharedConnection.Dispose();
+            }
+            else
+            {
+#if NETSTANDARD2_1_OR_GREATER
+                await _sharedConnection.CloseAsync();
+                await _sharedConnection.DisposeAsync();
+#else
+                _sharedConnection.Close();
+                _sharedConnection.Dispose();
+#endif
+            }
             _sharedConnection = null!;
         }
 
@@ -282,14 +346,98 @@ namespace NPoco
             }
         }
 
+#if NETSTANDARD2_1_OR_GREATER
+        public Task BeginTransactionAsync()
+        {
+            return BeginTransactionAsync(_isolationLevel);
+        }
+
+        public async Task BeginTransactionAsync(IsolationLevel isolationLevel)
+        {
+            if (_transaction == null)
+            {
+                TransactionCount = 0;
+                await OpenSharedConnectionInternalAsync();
+                _transaction = await _sharedConnection.BeginTransactionAsync(isolationLevel);
+                OnBeginTransactionInternal();
+            }
+
+            if (_transaction != null)
+            {
+                TransactionCount++;
+            }
+        }
+
+        private async Task OnBeginTransactionInternalAsync()
+        {
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine("Created new transaction using isolation level of " + _transaction?.IsolationLevel + ".");
+#endif
+            await OnBeginTransactionAsync();
+            foreach (var interceptor in Interceptors.OfType<ITransactionInterceptor>())
+            {
+                interceptor.OnBeginTransaction(this);
+            }
+        }
+
+        protected virtual Task OnBeginTransactionAsync()
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task AbortTransactionAsync()
+        {
+            return AbortTransaction(false, false);
+        }
+
+        private async Task OnAbortTransactionInternalAsync()
+        {
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine("Rolled back a transaction");
+#endif
+            await OnAbortTransactionAsync();
+            foreach (var interceptor in Interceptors.OfType<ITransactionInterceptor>())
+            {
+                interceptor.OnAbortTransaction(this);
+            }
+        }
+
+        protected virtual Task OnAbortTransactionAsync()
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task CompleteTransactionAsync()
+        {
+            return CompleteTransactionImp(false);
+        }
+
+        private async Task OnCompleteTransactionInternalAsync()
+        {
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine("Committed the transaction");
+#endif
+            await OnCompleteTransactionAsync();
+            foreach (var interceptor in Interceptors.OfType<ITransactionInterceptor>())
+            {
+                interceptor.OnCompleteTransaction(this);
+            }
+        }
+
+        protected virtual Task OnCompleteTransactionAsync()
+        {
+            return Task.CompletedTask;
+        }
+#endif
+
         // Abort the entire outer most transaction scope
         public void AbortTransaction()
         {
             TransactionIsAborted = true;
-            AbortTransaction(false);
+            AbortTransaction(false, true).RunSync();
         }
 
-        public void AbortTransaction(bool fromComplete)
+        private async Task AbortTransaction(bool fromComplete, bool sync, CancellationToken cancellationToken = default)
         {
             if (_transaction == null)
             {
@@ -308,27 +456,88 @@ namespace NPoco
             }
 
             if (TransactionIsOk())
-                _transaction.Rollback();
+            {
+                if (sync)
+                {
+                    _transaction.Rollback();
+                }
+                else
+                {
+#if NETSTANDARD2_1_OR_GREATER
+                    await _transaction.RollbackAsync(cancellationToken);
+#else
+                    _transaction.Rollback();
+#endif
+                }
+            }
 
             if (_transaction != null)
-                _transaction.Dispose();
-
+            {
+                if (sync)
+                {
+                    _transaction.Dispose();
+                }
+                else
+                {
+#if NETSTANDARD2_1_OR_GREATER
+                    await _transaction.DisposeAsync();
+#else
+                    _transaction.Dispose();
+#endif
+                }
+            }
             _transaction = null;
             TransactionIsAborted = false;
 
             // You cannot continue to use a connection after a transaction has been rolled back
             if (_sharedConnection != null)
             {
-                _sharedConnection.Close();
-                _sharedConnection.Open();
+                if (sync)
+                {
+                    _sharedConnection.Close();
+                    _sharedConnection.Open();
+                }
+                else
+                {
+                    if (sync)
+                    {
+                        _sharedConnection.Close();
+                    }
+                    else
+                    {
+#if NETSTANDARD2_1_OR_GREATER
+                        await _sharedConnection.CloseAsync();
+#else
+                        _sharedConnection.Close();
+#endif
+                    }
+
+                    await _sharedConnection.OpenAsync();
+                }
             }
 
-            OnAbortTransactionInternal();
-            CloseSharedConnectionInternal();
+            if (sync)
+            {
+                OnAbortTransactionInternal();
+                CloseSharedConnectionInternal();
+            }
+            else
+            {
+#if NETSTANDARD2_1_OR_GREATER
+                await OnAbortTransactionInternalAsync();
+#else
+                OnAbortTransactionInternal();
+#endif
+                await CloseSharedConnectionInternalAsync();
+            }
         }
 
-        // Complete the transaction
         public void CompleteTransaction()
+        {
+            CompleteTransactionImp(true).RunSync();
+        }
+
+        private async Task CompleteTransactionImp(bool sync, CancellationToken cancellationToken = default)
         {
             if (_transaction == null)
                 return;
@@ -339,18 +548,62 @@ namespace NPoco
 
             if (TransactionIsAborted)
             {
-                AbortTransaction(true);
+                if (sync)
+                {
+                    AbortTransaction(true, true).RunSync();
+                }
+                else
+                {
+                    await AbortTransaction(true, false);
+                }
                 return;
             }
 
             if (TransactionIsOk())
-                _transaction.Commit();
+            {
+                if (sync)
+                {
+                    _transaction.Commit();
+                }
+                else
+                {
+#if NETSTANDARD2_1_OR_GREATER
+                    await _transaction.CommitAsync();
+#else
+                    _transaction.Commit();
+#endif
+                }
+            }
 
-            _transaction?.Dispose();
+            if (sync)
+            {
+                _transaction?.Dispose();
+            }
+            else
+            {
+#if NETSTANDARD2_1_OR_GREATER
+                if (_transaction != null) await _transaction.DisposeAsync();
+#else
+                _transaction?.Dispose();
+#endif
+            }
+            
             _transaction = null;
 
-            OnCompleteTransactionInternal();
-            CloseSharedConnectionInternal();
+            if (sync)
+            {
+                OnCompleteTransactionInternal();
+                CloseSharedConnectionInternal();
+            }
+            else
+            {
+#if NETSTANDARD2_1_OR_GREATER
+                await OnCompleteTransactionInternalAsync();
+#else
+                OnCompleteTransactionInternal();
+#endif
+                await CloseSharedConnectionInternalAsync();
+            }
         }
 
         internal bool TransactionIsAborted { get; set; }
@@ -1577,7 +1830,7 @@ namespace NPoco
             {
                 return sync
                     ? !PocoExistsAsync(poco, true).RunSync()
-                    : !await PocoExistsAsync(poco, false).ConfigureAwait(false);
+                    : !await PocoExistsAsync(poco, false, cancellationToken).ConfigureAwait(false);
             }
             else
             {

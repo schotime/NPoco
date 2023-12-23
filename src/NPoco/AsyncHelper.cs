@@ -11,5 +11,10 @@ namespace NPoco
         {
             return task.ConfigureAwait(false).GetAwaiter().GetResult();
         }
+
+        internal static void RunSync(this Task task)
+        {
+            task.ConfigureAwait(false).GetAwaiter().GetResult();
+        }
     }
 }

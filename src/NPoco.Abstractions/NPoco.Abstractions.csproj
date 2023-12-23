@@ -10,7 +10,6 @@
   <ItemGroup>
 	<PackageReference Condition="'$(TargetFramework)' == 'net461' " Include="System.ValueTuple" Version="4.5.0" />
 	<PackageReference Condition="'$(TargetFramework)' == 'net461' or '$(TargetFramework)' == 'netstandard2.0' " Include="Microsoft.Bcl.AsyncInterfaces" Version="1.1.1" />
-	<!--<PackageReference Include="System.Linq.Async" Version="5.0.0" />-->
 	<PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
   </ItemGroup>
 
