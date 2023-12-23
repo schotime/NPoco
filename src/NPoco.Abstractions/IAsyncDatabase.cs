@@ -99,7 +99,7 @@ namespace NPoco
         Task SaveAsync<T>(T poco, CancellationToken cancellationToken = default);
     }
 
-    public interface IAsyncQueryDatabase : IBaseDatabase
+    public interface IAsyncQueryDatabase : IAsyncBaseDatabase
     {
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
