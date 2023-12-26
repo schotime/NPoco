@@ -76,6 +76,8 @@ namespace NPoco.SqlServer
                 table.Columns.Add(col.Value.MemberInfoKey, Nullable.GetUnderlyingType(col.Value.MemberInfoData.MemberType) ?? col.Value.MemberInfoData.MemberType);
             }
 
+            var itemCount = 0;
+
             foreach (var item in list)
             {
                 var values = new object[cols.Count];
@@ -87,16 +89,20 @@ namespace NPoco.SqlServer
                         value = ((SqlParameter) value).Value;
                     }
 
-                    var newType = value.GetTheType();
-                    if (newType != null && newType != typeof (DBNull))
+                    if (itemCount == 0)
                     {
-                        table.Columns[i].DataType = newType;
+                        var newType = value.GetTheType();
+                        if (newType != null && newType != typeof(DBNull))
+                        {
+                            table.Columns[i].DataType = newType;
+                        }
                     }
 
                     values[i] = value;
                 }
 
                 table.Rows.Add(values);
+                itemCount++;
             }
             return table;
         }
