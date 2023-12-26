@@ -7,9 +7,10 @@ namespace NPoco
 {
     public class PocoColumn
     {
+        public static bool ForceToUTCDefault { get; set; } = true;
+
         public PocoColumn()
         {
-            ForceToUtc = true;
             MemberInfoChain = new List<MemberInfo>();
         }
 
@@ -39,6 +40,7 @@ namespace NPoco
         private Action<object, object> valueObjectSetter;
         private Func<object, object> valueObjectGetter;
         private IFastCreate fastCreate;
+        private bool? forceToUtc;
 
         public Type ColumnType
         {
@@ -46,7 +48,7 @@ namespace NPoco
             set { _columnType = value; }
         }
 
-        public bool ForceToUtc { get; set; }
+        public bool ForceToUtc { get => forceToUtc ?? ForceToUTCDefault; set => forceToUtc = value; }
         public string ColumnAlias { get; set; }
 
         public ReferenceType ReferenceType { get; set; }
