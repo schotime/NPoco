@@ -65,7 +65,8 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                if (sync) OpenSharedConnectionInternal();
+                else await OpenSharedConnectionInternalAsync(cancellationToken);
 
                 var preparedInsert = InsertStatements.PrepareInsertSql(this, pocoData, tableName, primaryKeyName, autoIncrement, poco);
 
@@ -102,7 +103,8 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                if (sync) CloseSharedConnectionInternal();
+                else await CloseSharedConnectionInternalAsync();
             }
         }
 
@@ -110,7 +112,7 @@ namespace NPoco
         {
             try
             {
-                OpenSharedConnectionInternal();
+                await OpenSharedConnectionInternalAsync(cancellationToken);
                 await _dbType.InsertBulkAsync(this, pocos, options, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception x)
@@ -120,7 +122,7 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
         }
 
@@ -136,7 +138,9 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                if (sync) OpenSharedConnectionInternal();
+                else await OpenSharedConnectionInternalAsync(cancellationToken);
+
                 PocoData pd = null;
 
                 foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
@@ -168,7 +172,8 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                if (sync) CloseSharedConnectionInternal();
+                else await CloseSharedConnectionInternalAsync();
             }
 
             return result;
@@ -178,8 +183,8 @@ namespace NPoco
         {
             var expression = DatabaseType.ExpressionVisitor<T>(this, PocoDataFactory.ForType(typeof(T)));
             expression = expression.Select(fields);
-            var columnNames = ((ISqlExpression)expression).SelectMembers.Select(x => x.PocoColumn.ColumnName);
-            var otherNames = ((ISqlExpression)expression).GeneralMembers.Select(x => x.PocoColumn.ColumnName);
+            var columnNames = expression.SelectMembers.Select(x => x.PocoColumn.ColumnName);
+            var otherNames = expression.GeneralMembers.Select(x => x.PocoColumn.ColumnName);
             return UpdateAsync(poco, columnNames.Union(otherNames), cancellationToken);
         }
 
@@ -216,7 +221,9 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                if (sync) OpenSharedConnectionInternal();
+                else await OpenSharedConnectionInternalAsync(cancellationToken);
+
                 PocoData pd = null;
 
                 foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
@@ -251,7 +258,8 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                if (sync) CloseSharedConnectionInternal();
+                else await CloseSharedConnectionInternalAsync();
             }
 
             return result;
@@ -305,7 +313,7 @@ namespace NPoco
 
         public Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, string sql, object[] args, CancellationToken cancellationToken = default)
         {
-            return SkipTakeAsync<T>((page - 1) * itemsPerPage, itemsPerPage, sql, args);
+            return SkipTakeAsync<T>((page - 1) * itemsPerPage, itemsPerPage, sql, args, cancellationToken);
         }
 
         public Task<List<T>> FetchAsync<T>(long page, long itemsPerPage, Sql sql, CancellationToken cancellationToken = default)
@@ -367,11 +375,11 @@ namespace NPoco
             return result > 0;
         }
 
-        private Sql GetExistsSql<T>(object primaryKeyorPoco, bool isPoco)
+        private Sql GetExistsSql<T>(object primaryKeyOrPoco, bool isPoco)
         {
             var index = 0;
             var pd = PocoDataFactory.ForType(typeof(T));
-            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKeyorPoco, isPoco);
+            var primaryKeyValuePairs = GetPrimaryKeyValues(this, pd, pd.TableInfo.PrimaryKey, primaryKeyOrPoco, isPoco);
             var sql = string.Format(DatabaseType.GetExistsSql(), DatabaseType.EscapeTableName(pd.TableInfo.TableName), BuildPrimaryKeySql(this, primaryKeyValuePairs, ref index));
             var args = primaryKeyValuePairs.Select(x => x.Value).ToArray();
             return new Sql(sql, args);
@@ -448,18 +456,18 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                await OpenSharedConnectionInternalAsync(cancellationToken);
                 using var cmd = CreateCommand(_sharedConnection, sql, args); 
                 using var reader = await ExecuteDataReader(cmd, false, cancellationToken).ConfigureAwait(false);
                 var read = (listExpression != null ? ReadOneToManyAsync(instance, reader, listExpression, idFunc, pocoData, cancellationToken) : ReadAsync<T>(instance, reader, pocoData, cancellationToken));
-                await foreach (var item in read)
+                await foreach (var item in read.WithCancellation(cancellationToken))
                 {
                     yield return item;
                 }
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
         }
 
@@ -537,7 +545,7 @@ namespace NPoco
 
         public Task<int> ExecuteAsync(string sql, CancellationToken cancellationToken = default)
         {
-            return ExecuteAsync(new Sql(sql));
+            return ExecuteAsync(new Sql(sql), cancellationToken);
         }
 
         public Task<int> ExecuteAsync(string sql, object[] args, CancellationToken cancellationToken = default)
@@ -552,12 +560,10 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql, args))
-                {
-                    var result = await ExecuteNonQueryHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
-                    return result;
-                }
+                await OpenSharedConnectionInternalAsync(cancellationToken);
+                using var cmd = CreateCommand(_sharedConnection, sql, args);
+                var result = await ExecuteNonQueryHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
+                return result;
             }
             catch (Exception x)
             {
@@ -566,7 +572,7 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
         }
 
@@ -587,19 +593,17 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
-                using (var cmd = CreateCommand(_sharedConnection, sql, args))
-                {
-                    object val = await ExecuteScalarHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
+                await OpenSharedConnectionInternalAsync(cancellationToken);
+                using var cmd = CreateCommand(_sharedConnection, sql, args);
+                object val = await ExecuteScalarHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
 
-                    if (val == null || val == DBNull.Value)
-                        return default(T);
+                if (val == null || val == DBNull.Value)
+                    return default(T);
 
-                    Type t = typeof(T);
-                    Type u = Nullable.GetUnderlyingType(t);
+                Type t = typeof(T);
+                Type u = Nullable.GetUnderlyingType(t);
 
-                    return (T)Convert.ChangeType(val, u ?? t);
-                }
+                return (T)Convert.ChangeType(val, u ?? t);
             }
             catch (Exception x)
             {
@@ -608,7 +612,7 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
         }
 
