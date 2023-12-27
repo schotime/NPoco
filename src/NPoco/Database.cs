@@ -888,7 +888,7 @@ namespace NPoco
                         return default!;
 
                     Type t = typeof(T);
-                    Type u = Nullable.GetUnderlyingType(t);
+                    Type? u = Nullable.GetUnderlyingType(t);
 
                     return (T)Convert.ChangeType(val, u ?? t);
                 }
@@ -964,12 +964,12 @@ namespace NPoco
             return SkipTake<T>(skip, take, sql.SQL, sql.Arguments);
         }
 
-        public Dictionary<TKey, TValue> Dictionary<TKey, TValue>(Sql Sql)
+        public Dictionary<TKey, TValue> Dictionary<TKey, TValue>(Sql Sql) where TKey : notnull
         {
             return Dictionary<TKey, TValue>(Sql.SQL, Sql.Arguments);
         }
 
-        public Dictionary<TKey, TValue> Dictionary<TKey, TValue>(string sql, params object[] args)
+        public Dictionary<TKey, TValue> Dictionary<TKey, TValue>(string sql, params object[] args) where TKey : notnull
         {
             var newDict = new Dictionary<TKey, TValue>();
             bool isConverterSet = false;
@@ -1364,7 +1364,9 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                if (sync) OpenSharedConnectionInternal();
+                else await OpenSharedConnectionInternalAsync(cancellationToken);
+
                 using var cmd = CreateCommand(_sharedConnection, sql, args);
                 using var r = sync ? ExecuteDataReader(cmd, true).RunSync() : await ExecuteDataReader(cmd, false, cancellationToken).ConfigureAwait(false);
 
@@ -1428,7 +1430,8 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                if (sync) CloseSharedConnectionInternal();
+                else await CloseSharedConnectionInternalAsync();
             }
         }
 
@@ -1443,7 +1446,7 @@ namespace NPoco
             return Single<T>(sql);
         }
 
-        public T SingleOrDefaultById<T>(object primaryKey)
+        public T? SingleOrDefaultById<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
             return SingleOrDefault<T>(sql);
@@ -1467,11 +1470,11 @@ namespace NPoco
         {
             return Query(instance, new Sql(sql, args)).Single();
         }
-        public T SingleOrDefault<T>(string sql, params object[] args)
+        public T? SingleOrDefault<T>(string sql, params object[] args)
         {
             return Query<T>(sql, args).SingleOrDefault();
         }
-        public T SingleOrDefaultInto<T>(T instance, string sql, params object[] args)
+        public T? SingleOrDefaultInto<T>(T instance, string sql, params object[] args)
         {
             return Query(instance, new Sql(sql, args)).SingleOrDefault();
         }
@@ -1483,11 +1486,11 @@ namespace NPoco
         {
             return Query(instance, new Sql(sql, args)).First();
         }
-        public T FirstOrDefault<T>(string sql, params object[] args)
+        public T? FirstOrDefault<T>(string sql, params object[] args)
         {
             return Query<T>(sql, args).FirstOrDefault();
         }
-        public T FirstOrDefaultInto<T>(T instance, string sql, params object[] args)
+        public T? FirstOrDefaultInto<T>(T instance, string sql, params object[] args)
         {
             return Query(instance, new Sql(sql, args)).FirstOrDefault();
         }
@@ -1499,11 +1502,11 @@ namespace NPoco
         {
             return Query(instance, sql).Single();
         }
-        public T SingleOrDefault<T>(Sql sql)
+        public T? SingleOrDefault<T>(Sql sql)
         {
             return Query<T>(sql).SingleOrDefault();
         }
-        public T SingleOrDefaultInto<T>(T instance, Sql sql)
+        public T? SingleOrDefaultInto<T>(T instance, Sql sql)
         {
             return Query(instance, sql).SingleOrDefault();
         }
@@ -1515,11 +1518,11 @@ namespace NPoco
         {
             return Query(instance, sql).First();
         }
-        public T FirstOrDefault<T>(Sql sql)
+        public T? FirstOrDefault<T>(Sql sql)
         {
             return Query<T>(sql).FirstOrDefault();
         }
-        public T FirstOrDefaultInto<T>(T instance, Sql sql)
+        public T? FirstOrDefaultInto<T>(T instance, Sql sql)
         {
             return Query(instance, sql).FirstOrDefault();
         }
@@ -1581,7 +1584,7 @@ namespace NPoco
 
         public int UpdateBatch<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions? options = null)
         {
-            return UpdateBatchAsyncImp<T>(pocos, options, true).RunSync();
+            return UpdateBatchAsyncImp(pocos, options, true).RunSync();
         }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
@@ -1611,7 +1614,7 @@ namespace NPoco
             // Set Version
             if (!string.IsNullOrEmpty(preparedStatement.VersionName) && preparedStatement.VersionColumnType == VersionColumnType.Number)
             {
-                PocoColumn pc;
+                PocoColumn? pc;
                 if (preparedStatement.PocoData.Columns.TryGetValue(preparedStatement.VersionName, out pc))
                 {
                     pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(preparedStatement.VersionValue) + 1, pc.MemberInfoData.MemberType));
@@ -1642,7 +1645,7 @@ namespace NPoco
                 else
                 {
                     var dict = primaryKeyValueOrPoco as Dictionary<string, object>;
-                    primaryKeyValues = dict ?? multiplePrimaryKeysNames.ToDictionary(x => x, x => primaryKeyValueOrPoco.GetType().GetProperties().Single(y => string.Equals(x, y.Name, StringComparison.OrdinalIgnoreCase)).GetValue(primaryKeyValueOrPoco, null), StringComparer.OrdinalIgnoreCase);
+                    primaryKeyValues = dict ?? multiplePrimaryKeysNames.ToDictionary(x => x, x => primaryKeyValueOrPoco.GetType().GetProperties().Single(y => string.Equals(x, y.Name, StringComparison.OrdinalIgnoreCase)).GetValue(primaryKeyValueOrPoco, null)!, StringComparer.OrdinalIgnoreCase);
                 }
             }
             else
@@ -1820,7 +1823,7 @@ namespace NPoco
 
             var pd = PocoDataFactory.ForType(poco.GetType());
             object pk;
-            PocoColumn pc;
+            PocoColumn? pc;
 
             if (pd.Columns.TryGetValue(pd.TableInfo.PrimaryKey, out pc))
             {
@@ -1836,7 +1839,7 @@ namespace NPoco
             {
                 var pi = poco.GetType().GetProperty(pd.TableInfo.PrimaryKey);
                 if (pi == null) throw new ArgumentException(string.Format("The object doesn't have a property matching the primary key column name '{0}'", pd.TableInfo.PrimaryKey));
-                pk = pi.GetValue(poco, null);
+                pk = pi.GetValue(poco, null)!;
             }
 
             if (pk == null)
@@ -1965,7 +1968,7 @@ namespace NPoco
             DoPreExecute(cmd);
             var result = ExecutionHook(() => cmd.ExecuteScalar());
             OnExecutedCommandInternal(cmd);
-            return result;
+            return result!;
         }
 
         internal DbDataReader ExecuteReaderHelper(DbCommand cmd)
@@ -1973,7 +1976,7 @@ namespace NPoco
             DoPreExecute(cmd);
             var result = ExecutionHook(() => cmd.ExecuteReader());
             OnExecutedCommandInternal(cmd);
-            return result;
+            return result!;
         }
 
         protected virtual T ExecutionHook<T>(Func<T> action)

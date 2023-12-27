@@ -238,7 +238,7 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static T ToObject<T>(string json)
         {
-            return new deserializer(Parameters).ToObject<T>(json);
+            return new Deserializer(Parameters).ToObject<T>(json);
         }
         /// <summary>
         /// Create a typed generic object from the json with parameter override on this call
@@ -249,7 +249,7 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static T ToObject<T>(string json, JSONParameters param)
         {
-            return new deserializer(param).ToObject<T>(json);
+            return new Deserializer(param).ToObject<T>(json);
         }
         /// <summary>
         /// Create an object from the json
@@ -258,7 +258,7 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static object ToObject(string json)
         {
-            return new deserializer(Parameters).ToObject(json, null);
+            return new Deserializer(Parameters).ToObject(json, null);
         }
         /// <summary>
         /// Create an object from the json with parameter override on this call
@@ -268,7 +268,7 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static object ToObject(string json, JSONParameters param)
         {
-            return new deserializer(param).ToObject(json, null);
+            return new Deserializer(param).ToObject(json, null);
         }
         /// <summary>
         /// Create an object of type from the json
@@ -278,7 +278,7 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static object ToObject(string json, Type type)
         {
-            return new deserializer(Parameters).ToObject(json, type);
+            return new Deserializer(Parameters).ToObject(json, type);
         }
         /// <summary>
         /// Create an object of type from the json with parameter override on this call
@@ -289,7 +289,7 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static object ToObject(string json, Type type, JSONParameters par)
         {
-            return new deserializer(par).ToObject(json, type);
+            return new Deserializer(par).ToObject(json, type);
         }
         /// <summary>
         /// Fill a given object with the json represenation
@@ -301,7 +301,7 @@ namespace NPoco.fastJSON
         {
             Dictionary<string, object> ht = new JsonParser(json, Parameters.AllowNonQuotedKeys).Decode() as Dictionary<string, object>;
             if (ht == null) return null;
-            return new deserializer(Parameters).ParseDictionary(ht, null, input.GetType(), input);
+            return new Deserializer(Parameters).ParseDictionary(ht, null, input.GetType(), input);
         }
         /// <summary>
         /// Deep copy an object i.e. clone to a new object
@@ -310,7 +310,7 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static object DeepCopy(object obj)
         {
-            return new deserializer(Parameters).ToObject(ToJSON(obj));
+            return new Deserializer(Parameters).ToObject(ToJSON(obj));
         }
         /// <summary>
         /// 
@@ -320,7 +320,7 @@ namespace NPoco.fastJSON
         /// <returns></returns>
         public static T DeepCopy<T>(T obj)
         {
-            return new deserializer(Parameters).ToObject<T>(ToJSON(obj));
+            return new Deserializer(Parameters).ToObject<T>(ToJSON(obj));
         }
 
         /// <summary>
@@ -386,9 +386,9 @@ namespace NPoco.fastJSON
         }
     }
 
-    internal class deserializer
+    internal class Deserializer
     {
-        public deserializer(JSONParameters param)
+        public Deserializer(JSONParameters param)
         {
             param.FixValues();
             _params = param.MakeCopy();
@@ -776,7 +776,13 @@ namespace NPoco.fastJSON
             {
 #if !DNXCORE50
                 if (_params.ParametricConstructorOverride)
+                {
+#if NET5_0_OR_GREATER
+                    o = System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(type);
+#else
                     o = System.Runtime.Serialization.FormatterServices.GetUninitializedObject(type);
+#endif
+                }
                 else
 #endif
                     o = Reflection.Instance.FastCreateInstance(type);
