@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -46,12 +47,12 @@ namespace NPoco
         /// <summary>
         /// Insert POCO's into database using SqlBulkCopy for SqlServer (other DB's currently fall back to looping each row)
         /// </summary>  
-        Task InsertBulkAsync<T>(IEnumerable<T> pocos, InsertBulkOptions options = null, CancellationToken cancellationToken = default);
+        Task InsertBulkAsync<T>(IEnumerable<T> pocos, InsertBulkOptions? options = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Insert POCO's into database by concatenating sql using the provided batch options
         /// </summary>  
-        Task<int> InsertBatchAsync<T>(IEnumerable<T> pocos, BatchOptions options = null, CancellationToken cancellationToken = default);
+        Task<int> InsertBatchAsync<T>(IEnumerable<T> pocos, BatchOptions? options = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update POCO in the table by convention or configuration
@@ -71,7 +72,7 @@ namespace NPoco
         /// <summary>
         /// Update POCO's into database by concatenating sql using the provided batch options
         /// </summary>  
-        Task<int> UpdateBatchAsync<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions options = null, CancellationToken cancellationToken = default);
+        Task<int> UpdateBatchAsync<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions? options = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete POCO from table by convention or configuration
@@ -116,13 +117,13 @@ namespace NPoco
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
         /// </summary>
-        Task<T> SingleOrDefaultAsync<T>(string sql, CancellationToken cancellationToken = default);
-        Task<T> SingleOrDefaultAsync<T>(string sql, object[] args, CancellationToken cancellationToken = default);
+        Task<T?> SingleOrDefaultAsync<T>(string sql, CancellationToken cancellationToken = default);
+        Task<T?> SingleOrDefaultAsync<T>(string sql, object[] args, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
         /// </summary>
-        Task<T> SingleOrDefaultAsync<T>(Sql sql, CancellationToken cancellationToken = default);
+        Task<T?> SingleOrDefaultAsync<T>(Sql sql, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get an object of type T by primary key value
@@ -132,7 +133,7 @@ namespace NPoco
         /// <summary>
         /// Get an object of type T by primary key value
         /// </summary>
-        Task<T> SingleOrDefaultByIdAsync<T>(object primaryKey, CancellationToken cancellationToken = default);
+        Task<T?> SingleOrDefaultByIdAsync<T>(object primaryKey, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified
@@ -148,13 +149,13 @@ namespace NPoco
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified
         /// </summary>
-        Task<T> FirstOrDefaultAsync<T>(string sql, CancellationToken cancellationToken = default);
-        Task<T> FirstOrDefaultAsync<T>(string sql, object[] args, CancellationToken cancellationToken = default);
+        Task<T?> FirstOrDefaultAsync<T>(string sql, CancellationToken cancellationToken = default);
+        Task<T?> FirstOrDefaultAsync<T>(string sql, object[] args, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified
         /// </summary>
-        Task<T> FirstOrDefaultAsync<T>(Sql sql, CancellationToken cancellationToken = default);
+        Task<T?> FirstOrDefaultAsync<T>(Sql sql, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 

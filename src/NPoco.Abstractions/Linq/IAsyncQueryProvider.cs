@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,12 +15,12 @@ namespace NPoco.Linq
         Task<List<T>> ToList(CancellationToken cancellationToken = default);
         Task<T[]> ToArray(CancellationToken cancellationToken = default);
         IAsyncEnumerable<T> ToEnumerable(CancellationToken cancellationToken = default);
-        Task<T> FirstOrDefault(CancellationToken cancellationToken = default);
-        Task<T> FirstOrDefault(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
+        Task<T?> FirstOrDefault(CancellationToken cancellationToken = default);
+        Task<T?> FirstOrDefault(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
         Task<T> First(CancellationToken cancellationToken = default);
         Task<T> First(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
-        Task<T> SingleOrDefault(CancellationToken cancellationToken = default);
-        Task<T> SingleOrDefault(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
+        Task<T?> SingleOrDefault(CancellationToken cancellationToken = default);
+        Task<T?> SingleOrDefault(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
         Task<T> Single(CancellationToken cancellationToken = default);
         Task<T> Single(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
         Task<int> Count(CancellationToken cancellationToken = default);
@@ -34,12 +35,12 @@ namespace NPoco.Linq
 
     public interface IQueryResultProvider<T>
     {
-        T FirstOrDefault();
-        T FirstOrDefault(Expression<Func<T, bool>> whereExpression);
+        T? FirstOrDefault();
+        T? FirstOrDefault(Expression<Func<T, bool>> whereExpression);
         T First();
         T First(Expression<Func<T, bool>> whereExpression);
-        T SingleOrDefault();
-        T SingleOrDefault(Expression<Func<T, bool>> whereExpression);
+        T? SingleOrDefault();
+        T? SingleOrDefault(Expression<Func<T, bool>> whereExpression);
         T Single();
         T Single(Expression<Func<T, bool>> whereExpression);
         int Count();
@@ -58,12 +59,12 @@ namespace NPoco.Linq
         Task<List<T>> ToListAsync(CancellationToken cancellationToken = default);
         Task<T[]> ToArrayAsync(CancellationToken cancellationToken = default);
         IAsyncEnumerable<T> ToEnumerableAsync(CancellationToken cancellationToken = default);
-        Task<T> FirstOrDefaultAsync(CancellationToken cancellationToken = default);
-        Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
+        Task<T?> FirstOrDefaultAsync(CancellationToken cancellationToken = default);
+        Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
         Task<T> FirstAsync(CancellationToken cancellationToken = default);
         Task<T> FirstAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
-        Task<T> SingleOrDefaultAsync(CancellationToken cancellationToken = default);
-        Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
+        Task<T?> SingleOrDefaultAsync(CancellationToken cancellationToken = default);
+        Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
         Task<T> SingleAsync(CancellationToken cancellationToken = default);
         Task<T> SingleAsync(Expression<Func<T, bool>> whereExpression, CancellationToken cancellationToken = default);
         Task<int> CountAsync(CancellationToken cancellationToken = default);
