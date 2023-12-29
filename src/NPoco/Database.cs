@@ -146,7 +146,7 @@ namespace NPoco
                 if (sync)
                     _sharedConnection.Close();
                 else { 
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
                     await _sharedConnection.CloseAsync();
 #else
                     _sharedConnection.Close();
@@ -208,7 +208,7 @@ namespace NPoco
                 }
                 else
                 {
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
                     await _transaction.DisposeAsync();
 #else
                     _transaction.Dispose();
@@ -228,7 +228,7 @@ namespace NPoco
             }
             else
             {
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
                 await _sharedConnection.CloseAsync();
                 await _sharedConnection.DisposeAsync();
 #else
@@ -346,20 +346,20 @@ namespace NPoco
             }
         }
 
-#if NETSTANDARD2_1_OR_GREATER
-        public Task BeginTransactionAsync()
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+        public Task BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
-            return BeginTransactionAsync(_isolationLevel);
+            return BeginTransactionAsync(_isolationLevel, cancellationToken);
         }
 
-        public async Task BeginTransactionAsync(IsolationLevel isolationLevel)
+        public async Task BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
         {
             if (_transaction == null)
             {
                 TransactionCount = 0;
-                await OpenSharedConnectionInternalAsync();
-                _transaction = await _sharedConnection.BeginTransactionAsync(isolationLevel);
-                OnBeginTransactionInternal();
+                await OpenSharedConnectionInternalAsync(cancellationToken);
+                _transaction = await _sharedConnection.BeginTransactionAsync(isolationLevel, cancellationToken);
+                await OnBeginTransactionInternalAsync(cancellationToken);
             }
 
             if (_transaction != null)
@@ -368,63 +368,63 @@ namespace NPoco
             }
         }
 
-        private async Task OnBeginTransactionInternalAsync()
+        private async Task OnBeginTransactionInternalAsync(CancellationToken cancellationToken = default)
         {
 #if DEBUG
             System.Diagnostics.Debug.WriteLine("Created new transaction using isolation level of " + _transaction?.IsolationLevel + ".");
 #endif
-            await OnBeginTransactionAsync();
+            await OnBeginTransactionAsync(cancellationToken);
             foreach (var interceptor in Interceptors.OfType<ITransactionInterceptor>())
             {
                 interceptor.OnBeginTransaction(this);
             }
         }
 
-        protected virtual Task OnBeginTransactionAsync()
+        protected virtual Task OnBeginTransactionAsync(CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
 
-        public Task AbortTransactionAsync()
+        public Task AbortTransactionAsync(CancellationToken cancellationToken = default)
         {
-            return AbortTransaction(false, false);
+            return AbortTransaction(false, false, cancellationToken);
         }
 
-        private async Task OnAbortTransactionInternalAsync()
+        private async Task OnAbortTransactionInternalAsync(CancellationToken cancellationToken = default)
         {
 #if DEBUG
             System.Diagnostics.Debug.WriteLine("Rolled back a transaction");
 #endif
-            await OnAbortTransactionAsync();
+            await OnAbortTransactionAsync(cancellationToken);
             foreach (var interceptor in Interceptors.OfType<ITransactionInterceptor>())
             {
                 interceptor.OnAbortTransaction(this);
             }
         }
 
-        protected virtual Task OnAbortTransactionAsync()
+        protected virtual Task OnAbortTransactionAsync(CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
 
-        public Task CompleteTransactionAsync()
+        public Task CompleteTransactionAsync(CancellationToken cancellationToken = default)
         {
-            return CompleteTransactionImp(false);
+            return CompleteTransactionImp(false, cancellationToken);
         }
 
-        private async Task OnCompleteTransactionInternalAsync()
+        private async Task OnCompleteTransactionInternalAsync(CancellationToken cancellationToken = default)
         {
 #if DEBUG
             System.Diagnostics.Debug.WriteLine("Committed the transaction");
 #endif
-            await OnCompleteTransactionAsync();
+            await OnCompleteTransactionAsync(cancellationToken);
             foreach (var interceptor in Interceptors.OfType<ITransactionInterceptor>())
             {
                 interceptor.OnCompleteTransaction(this);
             }
         }
 
-        protected virtual Task OnCompleteTransactionAsync()
+        protected virtual Task OnCompleteTransactionAsync(CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
@@ -463,7 +463,7 @@ namespace NPoco
                 }
                 else
                 {
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
                     await _transaction.RollbackAsync(cancellationToken);
 #else
                     _transaction.Rollback();
@@ -479,7 +479,7 @@ namespace NPoco
                 }
                 else
                 {
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
                     await _transaction.DisposeAsync();
 #else
                     _transaction.Dispose();
@@ -505,14 +505,14 @@ namespace NPoco
                     }
                     else
                     {
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
                         await _sharedConnection.CloseAsync();
 #else
                         _sharedConnection.Close();
 #endif
                     }
 
-                    await _sharedConnection.OpenAsync();
+                    await _sharedConnection.OpenAsync(cancellationToken);
                 }
             }
 
@@ -523,8 +523,8 @@ namespace NPoco
             }
             else
             {
-#if NETSTANDARD2_1_OR_GREATER
-                await OnAbortTransactionInternalAsync();
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                await OnAbortTransactionInternalAsync(cancellationToken);
 #else
                 OnAbortTransactionInternal();
 #endif
@@ -554,7 +554,7 @@ namespace NPoco
                 }
                 else
                 {
-                    await AbortTransaction(true, false);
+                    await AbortTransaction(true, false, cancellationToken);
                 }
                 return;
             }
@@ -567,8 +567,8 @@ namespace NPoco
                 }
                 else
                 {
-#if NETSTANDARD2_1_OR_GREATER
-                    await _transaction.CommitAsync();
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                    await _transaction.CommitAsync(cancellationToken);
 #else
                     _transaction.Commit();
 #endif
@@ -581,7 +581,7 @@ namespace NPoco
             }
             else
             {
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
                 if (_transaction != null) await _transaction.DisposeAsync();
 #else
                 _transaction?.Dispose();
@@ -597,8 +597,8 @@ namespace NPoco
             }
             else
             {
-#if NETSTANDARD2_1_OR_GREATER
-                await OnCompleteTransactionInternalAsync();
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                await OnCompleteTransactionInternalAsync(cancellationToken);
 #else
                 OnCompleteTransactionInternal();
 #endif
