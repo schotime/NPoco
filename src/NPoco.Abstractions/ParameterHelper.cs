@@ -12,6 +12,8 @@ namespace NPoco
 {
     public class ParameterHelper
     {
+        public static List<Type> ExcludedIEnumerableTypes = new();
+
         // Helper to handle named parameters from object properties
         public static Regex rxParamsPrefix = new Regex(@"(?<!@)@\w+", RegexOptions.Compiled);
 
@@ -92,7 +94,8 @@ namespace NPoco
             // Expand collections to parameter lists
             if ((arg_val as System.Collections.IEnumerable) != null &&
                 (arg_val as string) == null &&
-                (arg_val as byte[]) == null)
+                (arg_val as byte[]) == null &&
+                !ExcludedIEnumerableTypes.Contains(arg_val.GetTheType()))
             {
                 var sb = new StringBuilder();
                 foreach (var i in arg_val as System.Collections.IEnumerable)
