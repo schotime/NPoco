@@ -16,26 +16,26 @@ namespace NPoco
         /// </summary>
         Task CloseSharedConnectionAsync();
 
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
         /// <summary>
         /// Manually begin a transaction. Recommended to use GetTransaction
         /// </summary>        
-        Task BeginTransactionAsync();
+        Task BeginTransactionAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Manually begin a transaction. Recommended to use GetTransaction
         /// </summary>        
-        Task BeginTransactionAsync(IsolationLevel isolationLevel);
+        Task BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Manually abort/rollback a transaction
         /// </summary>        
-        Task AbortTransactionAsync();
+        Task AbortTransactionAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Manually commit a transaction
         /// </summary>        
-        Task CompleteTransactionAsync();
+        Task CompleteTransactionAsync(CancellationToken cancellationToken = default);
 #endif
     }
 }
