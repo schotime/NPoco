@@ -346,7 +346,16 @@ namespace NPoco
             }
         }
 
-#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+        public async Task<IAsyncTransaction> GetTransactionAsync()
+        {
+            return await AsyncTransaction.Init(this, _isolationLevel);
+        }
+
+        public async Task<IAsyncTransaction> GetTransactionAsync(IsolationLevel isolationLevel)
+        {
+            return await AsyncTransaction.Init(this, isolationLevel);
+        }
+
         public Task BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
             return BeginTransactionAsync(_isolationLevel, cancellationToken);
@@ -358,7 +367,11 @@ namespace NPoco
             {
                 TransactionCount = 0;
                 await OpenSharedConnectionInternalAsync(cancellationToken);
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
                 _transaction = await _sharedConnection.BeginTransactionAsync(isolationLevel, cancellationToken);
+#else
+                _transaction = _sharedConnection.BeginTransaction(isolationLevel);
+#endif
                 await OnBeginTransactionInternalAsync(cancellationToken);
             }
 
@@ -428,7 +441,6 @@ namespace NPoco
         {
             return Task.CompletedTask;
         }
-#endif
 
         // Abort the entire outer most transaction scope
         public void AbortTransaction()

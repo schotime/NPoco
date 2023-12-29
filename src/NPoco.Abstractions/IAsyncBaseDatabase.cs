@@ -16,7 +16,16 @@ namespace NPoco
         /// </summary>
         Task CloseSharedConnectionAsync();
 
-#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+        /// <summary>
+        /// Begins a new transaction and returns ITransaction which can be used in a using statement
+        /// </summary>        
+        Task<IAsyncTransaction> GetTransactionAsync();
+
+        /// <summary>
+        /// Begins a new transaction and returns ITransaction which can be used in a using statement
+        /// </summary>        
+        Task<IAsyncTransaction> GetTransactionAsync(IsolationLevel isolationLevel);
+
         /// <summary>
         /// Manually begin a transaction. Recommended to use GetTransaction
         /// </summary>        
@@ -36,6 +45,5 @@ namespace NPoco
         /// Manually commit a transaction
         /// </summary>        
         Task CompleteTransactionAsync(CancellationToken cancellationToken = default);
-#endif
     }
 }
