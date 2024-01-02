@@ -84,7 +84,7 @@ namespace NPoco
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 
-        private readonly DatabaseType _dbType;
+        private readonly IDatabaseType _dbType;
         public IDatabaseType DatabaseType => _dbType;
         public IsolationLevel IsolationLevel => _isolationLevel;
 
