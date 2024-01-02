@@ -1,10 +1,11 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace NPoco
 {
-    public interface IAsyncBaseDatabase : IBaseDatabase
+    public interface IAsyncBaseDatabase : IBaseDatabase, IAsyncDisposable
     {
         /// <summary>
         /// Opens the DbConnection manually

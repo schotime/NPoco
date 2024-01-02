@@ -639,5 +639,11 @@ namespace NPoco
             OnExecutedCommandInternal(cmd);
             return reader;
         }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (KeepConnectionAlive) return;
+            await CloseSharedConnectionAsync();
+        }
     }
 }
