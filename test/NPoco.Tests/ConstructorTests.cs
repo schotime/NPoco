@@ -330,5 +330,63 @@ namespace NPoco.Tests
             db.Dispose();
             Assert.IsNull(db.Connection);
         }
+
+        [Test]
+        public void OpenSharedConnectionLazy()
+        {
+            var dbType = GetConfiguredDatabaseType();
+            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
+            db.OpenSharedConnection(new OpenConnectionOptions() { Lazy = true });
+            Assert.IsNull(db.Connection);
+
+            var forty2 = db.Single<int>("select 42");
+            Assert.AreEqual(42, forty2);
+            Assert.IsNotNull(db.Connection);
+            Assert.IsTrue(db.Connection.State == ConnectionState.Open);
+
+            db.CloseSharedConnection();
+            Assert.IsNull(db.Connection);
+
+            db.Dispose();
+            Assert.IsNull(db.Connection);
+        }
+
+        [Test]
+        public void OpenSharedConnectionNotLazy()
+        {
+            var dbType = GetConfiguredDatabaseType();
+            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
+            db.OpenSharedConnection(new OpenConnectionOptions() { Lazy = false });
+            Assert.IsNotNull(db.Connection);
+
+            var forty2 = db.Single<int>("select 42");
+            Assert.AreEqual(42, forty2);
+            Assert.IsNotNull(db.Connection);
+            Assert.IsTrue(db.Connection.State == ConnectionState.Open);
+
+            db.CloseSharedConnection();
+            Assert.IsNull(db.Connection);
+
+            db.Dispose();
+            Assert.IsNull(db.Connection);
+        }
+
+        [Test]
+        public void OpenSharedConnectionImplicit()
+        {
+            var dbType = GetConfiguredDatabaseType();
+            var db = new Database(TestDatabase.ConnectionString, dbType, SqlClientFactory.Instance);
+            Assert.IsNull(db.Connection);
+
+            var forty2 = db.Single<int>("select 42");
+            Assert.AreEqual(42, forty2);
+            Assert.IsNull(db.Connection);
+
+            db.CloseSharedConnection();
+            Assert.IsNull(db.Connection);
+
+            db.Dispose();
+            Assert.IsNull(db.Connection);
+        }
     }
 }

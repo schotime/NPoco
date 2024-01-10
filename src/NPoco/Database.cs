@@ -103,15 +103,25 @@ namespace NPoco
 
         private bool ShouldCloseConnectionAutomatically { get; set; }
 
+        private OpenConnectionOptions OpenConnectionOptions { get; set; } = new();
+
         // Open a connection (can be nested)
-        public IDatabase OpenSharedConnection()
+        public IDatabase OpenSharedConnection(OpenConnectionOptions? options = null)
         {
+            OpenConnectionOptions = options ?? new();
             OpenSharedConnectionImp(false, true).RunSync();
             return this;
         }
 
         public async Task<IAsyncDatabase> OpenSharedConnectionAsync(CancellationToken cancellationToken = default)
         {
+            await OpenSharedConnectionImp(false, false, cancellationToken);
+            return this;
+        }
+
+        public async Task<IAsyncDatabase> OpenSharedConnectionAsync(OpenConnectionOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            OpenConnectionOptions = options ?? new();
             await OpenSharedConnectionImp(false, false, cancellationToken);
             return this;
         }
@@ -134,7 +144,10 @@ namespace NPoco
             if (_sharedConnection != null && _sharedConnection.State != ConnectionState.Broken && _sharedConnection.State != ConnectionState.Closed)
                 return;
 
-            ShouldCloseConnectionAutomatically = isInternal;
+            if (!isInternal && OpenConnectionOptions.Lazy)
+                return;
+
+            ShouldCloseConnectionAutomatically = isInternal && !OpenConnectionOptions.Lazy;
 
             _sharedConnection = _factory?.CreateConnection()!;
             if (_sharedConnection == null) throw new Exception("SQL Connection failed to configure.");

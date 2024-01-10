@@ -75,7 +75,7 @@ namespace NPoco
         /// <summary>
         /// Opens the DbConnection manually
         /// </summary>
-        IDatabase OpenSharedConnection();
+        IDatabase OpenSharedConnection(OpenConnectionOptions options = null);
 
         /// <summary>
         /// Closes the DBConnection manually
