@@ -119,9 +119,11 @@ namespace NPoco
             return this;
         }
 
-        public async Task<IAsyncDatabase> OpenSharedConnectionAsync(OpenConnectionOptions? options = null, CancellationToken cancellationToken = default)
+        private static readonly OpenConnectionOptions defaultOpenConnectionOptions = new();
+
+        public async Task<IAsyncDatabase> OpenSharedConnectionAsync(OpenConnectionOptions options, CancellationToken cancellationToken = default)
         {
-            OpenConnectionOptions = options ?? new();
+            OpenConnectionOptions = options ?? defaultOpenConnectionOptions;
             await OpenSharedConnectionImp(false, false, cancellationToken);
             return this;
         }
