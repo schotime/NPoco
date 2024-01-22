@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -75,7 +76,7 @@ namespace NPoco
         /// <summary>
         /// Opens the DbConnection manually
         /// </summary>
-        IDatabase OpenSharedConnection(OpenConnectionOptions options = null);
+        IDatabase OpenSharedConnection(OpenConnectionOptions? options = null);
 
         /// <summary>
         /// Closes the DBConnection manually

@@ -15,7 +15,7 @@ namespace NPoco
         /// <summary>
         /// Opens the DbConnection manually
         /// </summary>
-        Task<IAsyncDatabase> OpenSharedConnectionAsync(OpenConnectionOptions options = null, CancellationToken cancellationToken = default);
+        Task<IAsyncDatabase> OpenSharedConnectionAsync(OpenConnectionOptions options, CancellationToken cancellationToken = default);
         
         /// <summary>
         /// Closes the DBConnection manually
