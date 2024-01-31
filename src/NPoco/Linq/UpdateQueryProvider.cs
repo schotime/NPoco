@@ -1,27 +1,11 @@
 using System;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using NPoco.Expressions;
 
 namespace NPoco.Linq
 {
-    public interface IAsyncUpdateQueryProvider<T>
-    {
-        IAsyncUpdateQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
-        IAsyncUpdateQueryProvider<T> ExcludeDefaults();
-        IAsyncUpdateQueryProvider<T> OnlyFields(Expression<Func<T, object>> onlyFields);
-        Task<int> Execute(T obj);
-    }
-
-    public interface IUpdateQueryProvider<T>
-    {
-        IUpdateQueryProvider<T> Where(Expression<Func<T, bool>> whereExpression);
-        IUpdateQueryProvider<T> ExcludeDefaults();
-        IUpdateQueryProvider<T> OnlyFields(Expression<Func<T, object>> onlyFields);
-        int Execute(T obj);
-        Task<int> ExecuteAsync(T obj);
-    }
-
     public class UpdateQueryProvider<T> : AsyncUpdateQueryProvider<T>, IUpdateQueryProvider<T>
     {
         public UpdateQueryProvider(IDatabase database) : base(database)
@@ -51,16 +35,16 @@ namespace NPoco.Linq
         }
 #pragma warning restore CS0109
 
-        public Task<int> ExecuteAsync(T obj)
+        public Task<int> ExecuteAsync(T obj, CancellationToken cancellationToken = default)
         {
-            return base.Execute(obj);
+            return base.Execute(obj, cancellationToken);
         }
     }
 
     public class AsyncUpdateQueryProvider<T> : IAsyncUpdateQueryProvider<T>
     {
         protected readonly IDatabase _database;
-        protected SqlExpression<T> _sqlExpression;
+        protected ISqlExpression<T> _sqlExpression;
         protected bool _excludeDefaults;
         protected bool _onlyFields;
 
@@ -89,10 +73,10 @@ namespace NPoco.Linq
             return this;
         }
 
-        public async Task<int> Execute(T obj)
+        public async Task<int> Execute(T obj, CancellationToken cancellationToken = default)
         {
             var updateStatement = _sqlExpression.Context.ToUpdateStatement(obj, _excludeDefaults, _onlyFields);
-            return await _database.ExecuteAsync(updateStatement, _sqlExpression.Context.Params).ConfigureAwait(false);
+            return await _database.ExecuteAsync(updateStatement, _sqlExpression.Context.Params, cancellationToken).ConfigureAwait(false);
         }
     }
 }

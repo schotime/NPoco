@@ -39,7 +39,7 @@ namespace NPoco.Tests.Common
                 s.TablesNamed(y => ToLowerIf(Inflector.MakePlural(y.Name), false));
                 s.Columns.Named(x => ToLowerIf(x.Name, false));
                 s.Columns.ForceDateTimesToUtcWhere(x => x.GetMemberInfoType() == typeof(DateTime) || x.GetMemberInfoType() == typeof(DateTime?));
-                s.Columns.ResultWhere(y => ColumnInfo.FromMemberInfo(y).ResultColumn);
+                s.Columns.ResultWhere(y => ColumnInfoCreator.FromMemberInfo(y).ResultColumn);
                 s.OverrideMappingsWith(new FluentMappingOverrides());
                 s.OverrideMappingsWith(new OneToManyMappings());
             });

@@ -3,12 +3,6 @@ using System.Collections.Generic;
 
 namespace NPoco
 {
-    public interface IPocoDataFactory
-    {
-        PocoData ForType(Type type);
-        TableInfo TableInfoForType(Type type);
-        PocoData ForObject(object o, string primaryKeyName, bool autoIncrement);
-    }
 
     public class FluentPocoDataFactory : IPocoDataFactory
     {
@@ -56,9 +50,9 @@ namespace NPoco
     public class PocoDataFactory : IPocoDataFactory
     {
         private readonly static Cache<Type, InitializedPocoDataBuilder> _pocoDatas = Cache<Type, InitializedPocoDataBuilder>.CreateStaticCache();
-        private readonly MapperCollection _mapper;
+        private readonly IMapperCollection _mapper;
 
-        public PocoDataFactory(MapperCollection mapper)
+        public PocoDataFactory(IMapperCollection mapper)
         {
             _mapper = mapper;
         }
@@ -93,7 +87,7 @@ namespace NPoco
             return new PocoDataBuilder(persistedType, _mapper).Init();
         }
 
-        public static PocoData ForObjectStatic(object o, string primaryKeyName, bool autoIncrement, Func<Type, PocoData> fallback, MapperCollection mapper)
+        public static PocoData ForObjectStatic(object o, string primaryKeyName, bool autoIncrement, Func<Type, PocoData> fallback, IMapperCollection mapper)
         {
             var t = o.GetType();
             if (t == typeof (System.Dynamic.ExpandoObject) || t == typeof (PocoExpando))

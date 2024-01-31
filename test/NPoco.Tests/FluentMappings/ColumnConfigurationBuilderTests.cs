@@ -213,7 +213,7 @@ namespace NPoco.Tests.FluentMappings
             {
                 s.Assembly(typeof(User).GetTypeInfo().Assembly);
                 s.IncludeTypes(t => t == typeof(User));
-                s.Columns.ComplexPropertiesWhere(y => ColumnInfo.FromMemberInfo(y).ComplexMapping);
+                s.Columns.ComplexPropertiesWhere(y => ColumnInfoCreator.FromMemberInfo(y).ComplexMapping);
                 s.OverrideMappingsWith(new FluentMappingOverrides());
             });
 

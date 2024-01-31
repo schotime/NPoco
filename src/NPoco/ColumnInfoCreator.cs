@@ -1,35 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace NPoco
 {
-    public class ColumnInfo
+    public class ColumnInfoCreator
     {
-        public string ColumnName { get; set; }
-        public string ColumnAlias { get; set; }
-        public bool ResultColumn { get; set; }
-        public bool ComputedColumn { get; set; }
-        public ComputedColumnType ComputedColumnType { get; set; }
-        public bool IgnoreColumn { get; set; }
-        public bool VersionColumn { get; set; }
-        public VersionColumnType VersionColumnType { get; set; }
-        public bool ForceToUtc { get; set; } = true;
-        public Type ColumnType { get; set; }
-        public bool ComplexMapping { get; set; }
-        public bool ValueObjectColumn { get; set; }
-        public string ComplexPrefix { get; set; }
-        public bool SerializedColumn { get; set; }
-        public ReferenceType ReferenceType { get; set; }
-        public string ReferenceMemberName { get; set; }
-        public MemberInfo MemberInfo { get; internal set; }
-        public bool ExactColumnNameMatch { get; set; }
-
         public static ColumnInfo FromMemberInfo(MemberInfo mi)
         {
-            var ci = new ColumnInfo{MemberInfo = mi};
+            var ci = new ColumnInfo { MemberInfo = mi };
             var attrs = ReflectionUtils.GetCustomAttributes(mi).ToArray();
             var colAttrs = attrs.OfType<ColumnAttribute>().ToArray();
             var columnTypeAttrs = attrs.OfType<ColumnTypeAttribute>().ToArray();
@@ -77,7 +56,7 @@ namespace NPoco
                 ci.ColumnName = reference.First().ColumnName ?? mi.Name + "Id";
                 return ci;
             }
-            else if (PocoDataBuilder.IsList(mi))
+            else if (mi.GetMemberInfoType().IsOfGenericType(typeof(IList<>)) && !mi.GetMemberInfoType().IsArray)
             {
                 ci.ReferenceType = ReferenceType.Many;
                 return ci;

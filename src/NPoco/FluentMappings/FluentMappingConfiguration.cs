@@ -205,7 +205,7 @@ namespace NPoco.FluentMappings
         {
             foreach (var typeDefinition in config)
             {
-                var tableInfo = TableInfo.FromPoco(typeDefinition.Key);
+                var tableInfo = TableInfoCreator.FromPoco(typeDefinition.Key);
                 typeDefinition.Value.TableName = tableInfo.TableName;
                 typeDefinition.Value.PrimaryKey = tableInfo.PrimaryKey;
                 typeDefinition.Value.SequenceName = tableInfo.SequenceName;
@@ -214,7 +214,7 @@ namespace NPoco.FluentMappings
 
                 foreach (var columnDefinition in typeDefinition.Value.ColumnConfiguration)
                 {
-                    var columnInfo = ColumnInfo.FromMemberInfo(columnDefinition.Value.MemberInfo);
+                    var columnInfo = ColumnInfoCreator.FromMemberInfo(columnDefinition.Value.MemberInfo);
                     columnDefinition.Value.DbColumnName = columnInfo.ColumnName;
                     columnDefinition.Value.DbColumnAlias = columnInfo.ColumnAlias;
                     columnDefinition.Value.DbColumnType = columnInfo.ColumnType;

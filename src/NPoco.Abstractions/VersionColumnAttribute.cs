@@ -17,10 +17,4 @@ namespace NPoco
             VersionColumnType = versionColumnType;
         }
     }
-
-    public enum VersionColumnType
-    {
-        Number,
-        RowVersion
-    }
 }

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -186,17 +187,17 @@ namespace NPoco
         /// <summary>
         /// Get an object of type T by primary key value where the row may not be there
         /// </summary>
-        T SingleOrDefaultById<T>(object primaryKey);
+        T? SingleOrDefaultById<T>(object primaryKey);
         
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified
         /// </summary>
-        T SingleOrDefault<T>(string sql, params object[] args);
+        T? SingleOrDefault<T>(string sql, params object[] args);
         
         /// <summary>
         /// Fetch the only row of type T using the sql and parameters specified into the T instance provided
         /// </summary>
-        T SingleOrDefaultInto<T>(T instance, string sql, params object[] args);
+        T? SingleOrDefaultInto<T>(T instance, string sql, params object[] args);
 
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified
@@ -211,12 +212,12 @@ namespace NPoco
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified
         /// </summary>
-        T FirstOrDefault<T>(string sql, params object[] args);
+        T? FirstOrDefault<T>(string sql, params object[] args);
         
         /// <summary>
         /// Fetch the first row of type T using the sql and parameters specified into the T instance provided
         /// </summary>
-        T FirstOrDefaultInto<T>(T instance, string sql, params object[] args);
+        T? FirstOrDefaultInto<T>(T instance, string sql, params object[] args);
 
         /// <summary>
         /// Fetch the only row of type T using the Sql specified
@@ -231,12 +232,12 @@ namespace NPoco
         /// <summary>
         /// Fetch the only row of type T using the Sql specified
         /// </summary>
-        T SingleOrDefault<T>(Sql sql);
+        T? SingleOrDefault<T>(Sql sql);
         
         /// <summary>
         /// Fetch the only row of type T using the Sql specified
         /// </summary>
-        T SingleOrDefaultInto<T>(T instance, Sql sql);
+        T? SingleOrDefaultInto<T>(T instance, Sql sql);
         
         /// <summary>
         /// Fetch the first row of type T using the Sql specified
@@ -251,22 +252,22 @@ namespace NPoco
         /// <summary>
         /// Fetch the first row of type T using the Sql specified
         /// </summary>
-        T FirstOrDefault<T>(Sql sql);
+        T? FirstOrDefault<T>(Sql sql);
         
         /// <summary>
         /// Fetch the first row of type T using the Sql specified
         /// </summary>
-        T FirstOrDefaultInto<T>(T instance, Sql sql);
+        T? FirstOrDefaultInto<T>(T instance, Sql sql);
 
         /// <summary>
         /// Fetches the first two columns into a dictionary using the first value as the key and the second as the value
         /// </summary>
-        Dictionary<TKey, TValue> Dictionary<TKey, TValue>(Sql Sql);
+        Dictionary<TKey, TValue> Dictionary<TKey, TValue>(Sql sql) where TKey : notnull;
         
         /// <summary>
         /// Fetches the first two columns into a dictionary using the first value as the key and the second as the value
         /// </summary>
-        Dictionary<TKey, TValue> Dictionary<TKey, TValue>(string sql, params object[] args);
+        Dictionary<TKey, TValue> Dictionary<TKey, TValue>(string sql, params object[] args) where TKey : notnull;
         
         /// <summary>
         /// Checks if the POCO of type T exists by using the primary key value

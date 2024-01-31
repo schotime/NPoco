@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using NPoco.Internal;
@@ -29,17 +30,17 @@ namespace NPoco.SqlServer
             }
         }
 
-        public static Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, InsertBulkOptions sqlBulkCopyOptions)
+        public static Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, InsertBulkOptions sqlBulkCopyOptions, CancellationToken cancellationToken = default)
         {
-            return BulkInsertAsync(db, list, SqlBulkCopyOptions.Default, sqlBulkCopyOptions);
+            return BulkInsertAsync(db, list, SqlBulkCopyOptions.Default, sqlBulkCopyOptions, cancellationToken);
         }
 
-        public static async Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions insertBulkOptions)
+        public static async Task BulkInsertAsync<T>(IDatabase db, IEnumerable<T> list, SqlBulkCopyOptions sqlBulkCopyOptions, InsertBulkOptions insertBulkOptions, CancellationToken cancellationToken = default)
         {
             using (var bulkCopy = new SqlBulkCopy(SqlConnectionResolver(db.Connection), sqlBulkCopyOptions, SqlTransactionResolver(db.Transaction)))
             {
                 var table = BuildBulkInsertDataTable(db, list, bulkCopy, sqlBulkCopyOptions, insertBulkOptions);
-                await bulkCopy.WriteToServerAsync(table).ConfigureAwait(false);
+                await bulkCopy.WriteToServerAsync(table, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -75,6 +76,8 @@ namespace NPoco.SqlServer
                 table.Columns.Add(col.Value.MemberInfoKey, Nullable.GetUnderlyingType(col.Value.MemberInfoData.MemberType) ?? col.Value.MemberInfoData.MemberType);
             }
 
+            var itemCount = 0;
+
             foreach (var item in list)
             {
                 var values = new object[cols.Count];
@@ -86,16 +89,20 @@ namespace NPoco.SqlServer
                         value = ((SqlParameter) value).Value;
                     }
 
-                    var newType = value.GetTheType();
-                    if (newType != null && newType != typeof (DBNull))
+                    if (itemCount == 0)
                     {
-                        table.Columns[i].DataType = newType;
+                        var newType = value.GetTheType();
+                        if (newType != null && newType != typeof(DBNull))
+                        {
+                            table.Columns[i].DataType = newType;
+                        }
                     }
 
                     values[i] = value;
                 }
 
                 table.Rows.Add(values);
+                itemCount++;
             }
             return table;
         }

@@ -9,17 +9,7 @@ namespace NPoco
     {
         public static Regex rxColumns = new Regex(@"\A\s*SELECT\s+((?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|.)*?)(?<!,\s+)\bFROM\b", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
         public static Regex rxOrderBy = new Regex(@"(?!.*(?:\s+FROM[\s\(]+))ORDER\s+BY\s+([\w\.\[\]\(\)\s""`,]+)(?!.*\))", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-
-        public struct SQLParts
-        {
-            public string sql;
-            public string sqlCount;
-            public string sqlSelectRemoved;
-            public string sqlOrderBy;
-            public string sqlUnordered;
-            public string sqlColumns;
-        }
-
+                
         public static bool SplitSQL(string sql, out SQLParts parts)
         {
             parts.sql = sql;

@@ -8,18 +8,18 @@ namespace NPoco.Linq
 {
     public class QueryContext<T>
     {
-        private readonly Database _database;
+        private readonly IDatabase _database;
         private readonly PocoData _pocoData;
         private readonly Dictionary<string, JoinData> _joinExpressions;
 
-        public QueryContext(Database database, PocoData pocoData, Dictionary<string, JoinData> joinExpressions)
+        public QueryContext(IDatabase database, PocoData pocoData, Dictionary<string, JoinData> joinExpressions)
         {
             _database = database;
             _pocoData = pocoData;
             _joinExpressions = joinExpressions;
         }
 
-        public DatabaseType DatabaseType
+        public IDatabaseType DatabaseType
         {
             get { return _database.DatabaseType; }
         }

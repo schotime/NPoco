@@ -7,9 +7,10 @@ namespace NPoco
 {
     public class PocoColumn
     {
+        public static bool ForceToUTCDefault { get; set; } = true;
+
         public PocoColumn()
         {
-            ForceToUtc = true;
             MemberInfoChain = new List<MemberInfo>();
         }
 
@@ -38,7 +39,8 @@ namespace NPoco
         private List<MemberAccessor> _memberAccessorChain = new List<MemberAccessor>();
         private Action<object, object> valueObjectSetter;
         private Func<object, object> valueObjectGetter;
-        private FastCreate fastCreate;
+        private IFastCreate fastCreate;
+        private bool? forceToUtc;
 
         public Type ColumnType
         {
@@ -46,7 +48,7 @@ namespace NPoco
             set { _columnType = value; }
         }
 
-        public bool ForceToUtc { get; set; }
+        public bool ForceToUtc { get => forceToUtc ?? ForceToUTCDefault; set => forceToUtc = value; }
         public string ColumnAlias { get; set; }
 
         public ReferenceType ReferenceType { get; set; }
@@ -61,7 +63,7 @@ namespace NPoco
             _memberAccessorChain = memberAccessors;
         }
 
-        internal void SetValueObjectAccessors(FastCreate fastCreate, Action<object, object> setter, Func<object, object> getter)
+        internal void SetValueObjectAccessors(IFastCreate fastCreate, Action<object, object> setter, Func<object, object> getter)
         {
             this.fastCreate = fastCreate;
             valueObjectSetter = setter;

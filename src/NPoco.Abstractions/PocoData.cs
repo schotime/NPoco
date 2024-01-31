@@ -11,7 +11,7 @@ namespace NPoco
         public static string Separator = "__";
 
         public Type Type { get; private set; }
-        public MapperCollection Mapper { get; private set; }
+        public IMapperCollection Mapper { get; private set; }
 
         public KeyValuePair<string, PocoColumn>[] QueryColumns { get; protected internal set; }
         public TableInfo TableInfo { get; protected internal set; }
@@ -22,7 +22,7 @@ namespace NPoco
         // This is used on a per query basis, if we have cache PocoData then this will need to change.
         public bool IsQueryGenerated { get; set; }
 
-        public PocoData(Type type, MapperCollection mapper, IFastCreate creator)
+        public PocoData(Type type, IMapperCollection mapper, IFastCreate creator)
         {
             CreateDelegate = creator;
             Type = type;

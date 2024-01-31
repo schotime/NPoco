@@ -11,10 +11,10 @@ namespace NPoco.Linq
     {
         private readonly IDatabase _database;
         private readonly PocoData _pocoData;
-        private readonly SqlExpression<T> _sqlExpression;
+        private readonly ISqlExpression<T> _sqlExpression;
         private readonly Dictionary<string, JoinData> _joinSqlExpressions;
 
-        public ComplexSqlBuilder(IDatabase database, PocoData pocoData, SqlExpression<T> sqlExpression, Dictionary<string, JoinData> joinSqlExpressions)
+        public ComplexSqlBuilder(IDatabase database, PocoData pocoData, ISqlExpression<T> sqlExpression, Dictionary<string, JoinData> joinSqlExpressions)
         {
             _database = database;
             _pocoData = pocoData;
@@ -39,7 +39,7 @@ namespace NPoco.Linq
             return sql;
         }
 
-        public Sql BuildJoin(IDatabase database, SqlExpression<T> sqlExpression, List<JoinData> joinSqlExpressions, List<SelectMember> newMembers, bool count, bool distinct)
+        public Sql BuildJoin(IDatabase database, ISqlExpression<T> sqlExpression, List<JoinData> joinSqlExpressions, List<SelectMember> newMembers, bool count, bool distinct)
         {
             var modelDef = _pocoData;
             var sqlTemplate = count

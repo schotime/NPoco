@@ -19,7 +19,7 @@ namespace NPoco
 
         public object Deserialize(string value, Type targetType)
         {
-            var deserializer = new fastJSON.deserializer(JSONParameters);
+            var deserializer = new fastJSON.Deserializer(JSONParameters);
             return deserializer.ToObject(value, targetType);
         }
     }

@@ -8,19 +8,15 @@ using System.Reflection;
 
 namespace NPoco
 {
-    public interface IFastCreate
-    {
-        object Create(DbDataReader dataReader);
-    }
 
     public class FastCreate : IFastCreate
     {
         private readonly Type _type;
-        private readonly MapperCollection _mapperCollection;
+        private readonly IMapperCollection _mapperCollection;
         private ConstructorInfo _constructorInfo;
         private Func<DbDataReader, object> _createDelegate;
 
-        public FastCreate(Type type, MapperCollection mapperCollection)
+        public FastCreate(Type type, IMapperCollection mapperCollection)
         {
             _type = type;
             _mapperCollection = mapperCollection;

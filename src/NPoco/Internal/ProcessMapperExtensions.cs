@@ -28,7 +28,7 @@ namespace NPoco.Internal
             }
             if (pocoColumn.ColumnType == typeof(string) && Database.IsEnum(pocoColumn.MemberInfoData) && value != null)
             {
-                return value.ToString();
+                return value.ToString()!;
             }
 
             return database.DatabaseType.ProcessDefaultMappings(pocoColumn, value);

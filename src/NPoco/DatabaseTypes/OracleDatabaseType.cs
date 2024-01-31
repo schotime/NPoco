@@ -3,13 +3,14 @@ using System;
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NPoco.DatabaseTypes
 {
     public class OracleDatabaseType : DatabaseType
     {
-        public override SqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
+        public override ISqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
         {
             return new OracleExpression<T>(db, pocoData, prefixTableName);
         }
@@ -25,7 +26,7 @@ namespace NPoco.DatabaseTypes
             cmd.CommandText = cmd.CommandText.Replace("/*poco_dual*/", "from dual");
         }
 
-        public override string BuildPageQuery(long skip, long take, PagingHelper.SQLParts parts, ref object[] args)
+        public override string BuildPageQuery(long skip, long take, SQLParts parts, ref object[] args)
         {
             if (parts.sqlSelectRemoved.StartsWith("*"))
                 throw new Exception("Query must alias '*' when performing a paged query.\neg. select t.* from table t order by t.id");
@@ -59,29 +60,29 @@ namespace NPoco.DatabaseTypes
             return param;
         }
 
-        public override object ExecuteInsert<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override object ExecuteInsert<T>(IDatabase db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
             if (primaryKeyName != null)
             {
                 var param = AdjustSqlInsertCommandText(cmd, primaryKeyName);                
-                db.ExecuteNonQueryHelper(cmd);
+                ((IDatabaseHelpers)db).ExecuteNonQueryHelper(cmd);
                 return param.Value;
             }
 
-            db.ExecuteNonQueryHelper(cmd);
+            ((IDatabaseHelpers)db).ExecuteNonQueryHelper(cmd);
             return -1;
         }
 
-        public override async Task<object> ExecuteInsertAsync<T>(Database db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
+        public override async Task<object> ExecuteInsertAsync<T>(IDatabase db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args, CancellationToken cancellationToken = default)
         {
             if (primaryKeyName != null)
             {
                 var param = AdjustSqlInsertCommandText(cmd, primaryKeyName);
-                await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+                await ((IDatabaseHelpers)db).ExecuteNonQueryHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
                 return param.Value;
             }
 
-            await db.ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
+            await ((IDatabaseHelpers)db).ExecuteNonQueryHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
             return -1;
         }
 

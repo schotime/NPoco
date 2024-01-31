@@ -9,14 +9,14 @@ namespace NPoco.Tests.Common
         [Test]
         public void ColumnInfoShouldInheritTheBaseClassPropertyAttributes()
         {
-            var memberInfo = ColumnInfo.FromMemberInfo(typeof (OverrideTest1).GetMember("Id")[0]);
+            var memberInfo = ColumnInfoCreator.FromMemberInfo(typeof (OverrideTest1).GetMember("Id")[0]);
             Assert.AreEqual("TestId", memberInfo.ColumnName);
         }
 
         [Test]
         public void ColumnInfoShouldGetNameFromFirstAttributeWhereNotNull()
         {
-            var memberInfo = ColumnInfo.FromMemberInfo(typeof(Test1).GetMember("Result")[0]);
+            var memberInfo = ColumnInfoCreator.FromMemberInfo(typeof(Test1).GetMember("Result")[0]);
             Assert.AreEqual("MyResult", memberInfo.ColumnName);
             Assert.AreEqual(true, memberInfo.ForceToUtc);
         }
@@ -24,7 +24,7 @@ namespace NPoco.Tests.Common
         [Test]
         public void ColumnInfoShouldAggregateForceToUtcColumnValues()
         {
-            var memberInfo = ColumnInfo.FromMemberInfo(typeof(Test1).GetMember("ForceToUtc")[0]);
+            var memberInfo = ColumnInfoCreator.FromMemberInfo(typeof(Test1).GetMember("ForceToUtc")[0]);
             Assert.AreEqual("ForceToUtc", memberInfo.ColumnName);
             Assert.AreEqual(false, memberInfo.ForceToUtc);
         }
@@ -32,7 +32,7 @@ namespace NPoco.Tests.Common
         [Test]
         public void ColumnInfoShouldPreferResultColumnFirst()
         {
-            var memberInfo = ColumnInfo.FromMemberInfo(typeof(Test1).GetMember("ResultWins")[0]);
+            var memberInfo = ColumnInfoCreator.FromMemberInfo(typeof(Test1).GetMember("ResultWins")[0]);
             Assert.AreEqual("ResultWins", memberInfo.ColumnName);
             Assert.AreEqual(true, memberInfo.ResultColumn);
             Assert.AreEqual(false, memberInfo.ComputedColumn);
@@ -42,7 +42,7 @@ namespace NPoco.Tests.Common
         [Test]
         public void ColumnInfoShouldPreferVersionColumnFirst()
         {
-            var memberInfo = ColumnInfo.FromMemberInfo(typeof(Test1).GetMember("VersionWins")[0]);
+            var memberInfo = ColumnInfoCreator.FromMemberInfo(typeof(Test1).GetMember("VersionWins")[0]);
             Assert.AreEqual("VersionWins", memberInfo.ColumnName);
             Assert.AreEqual(false, memberInfo.ResultColumn);
             Assert.AreEqual(false, memberInfo.ComputedColumn);
@@ -52,7 +52,7 @@ namespace NPoco.Tests.Common
         [Test]
         public void ColumnInfoShouldPreferComputednColumnFirst()
         {
-            var memberInfo = ColumnInfo.FromMemberInfo(typeof(Test1).GetMember("ComputedWins")[0]);
+            var memberInfo = ColumnInfoCreator.FromMemberInfo(typeof(Test1).GetMember("ComputedWins")[0]);
             Assert.AreEqual("ComputedWins", memberInfo.ColumnName);
             Assert.AreEqual(false, memberInfo.ResultColumn);
             Assert.AreEqual(true, memberInfo.ComputedColumn);

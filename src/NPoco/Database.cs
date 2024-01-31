@@ -23,6 +23,8 @@ using NPoco.Expressions;
 using NPoco.Extensions;
 using NPoco.Linq;
 using NPoco.Internal;
+using System.Threading;
+using System.Runtime.CompilerServices;
 
 namespace NPoco
 {
@@ -50,7 +52,7 @@ namespace NPoco
             _connectionPassedIn = true;
             _sharedConnection = connection;
             _connectionString = connection.ConnectionString;
-            _dbType = dbType ?? DatabaseType.Resolve(_sharedConnection.GetType().Name, null);
+            _dbType = dbType ?? NPoco.DatabaseType.Resolve(_sharedConnection.GetType().Name, null);
             _providerName = _dbType.GetProviderName();
             _isolationLevel = isolationLevel ?? _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
@@ -76,14 +78,14 @@ namespace NPoco
             _sharedConnection = default!;
             _connectionString = connectionString;
             _factory = provider;
-            _dbType = databaseType ?? DatabaseType.Resolve(_factory.GetType().Name, null);
+            _dbType = databaseType ?? NPoco.DatabaseType.Resolve(_factory.GetType().Name, null);
             _providerName = _dbType.GetProviderName();
             _isolationLevel = isolationLevel ?? _dbType.GetDefaultTransactionIsolationLevel();
             _paramPrefix = _dbType.GetParameterPrefix(_connectionString);
         }
 
-        private readonly DatabaseType _dbType;
-        public DatabaseType DatabaseType => _dbType;
+        private readonly IDatabaseType _dbType;
+        public IDatabaseType DatabaseType => _dbType;
         public IsolationLevel IsolationLevel => _isolationLevel;
 
         private IDictionary<string, object>? _data;
@@ -101,19 +103,42 @@ namespace NPoco
 
         private bool ShouldCloseConnectionAutomatically { get; set; }
 
+        private OpenConnectionOptions OpenConnectionOptions { get; set; } = new();
+
         // Open a connection (can be nested)
-        public IDatabase OpenSharedConnection()
+        public IDatabase OpenSharedConnection(OpenConnectionOptions? options = null)
         {
-            OpenSharedConnectionImp(false);
+            OpenConnectionOptions = options ?? new();
+            OpenSharedConnectionImp(false, true).RunSync();
+            return this;
+        }
+
+        public async Task<IAsyncDatabase> OpenSharedConnectionAsync(CancellationToken cancellationToken = default)
+        {
+            await OpenSharedConnectionImp(false, false, cancellationToken);
+            return this;
+        }
+
+        private static readonly OpenConnectionOptions defaultOpenConnectionOptions = new();
+
+        public async Task<IAsyncDatabase> OpenSharedConnectionAsync(OpenConnectionOptions options, CancellationToken cancellationToken = default)
+        {
+            OpenConnectionOptions = options ?? defaultOpenConnectionOptions;
+            await OpenSharedConnectionImp(false, false, cancellationToken);
             return this;
         }
 
         private void OpenSharedConnectionInternal()
         {
-            OpenSharedConnectionImp(true);
+            OpenSharedConnectionImp(true, true).RunSync();
         }
 
-        private void OpenSharedConnectionImp(bool isInternal)
+        private Task OpenSharedConnectionInternalAsync(CancellationToken cancellationToken = default)
+        {
+            return OpenSharedConnectionImp(true, false, cancellationToken);
+        }
+
+        private async Task OpenSharedConnectionImp(bool isInternal, bool sync, CancellationToken cancellationToken = default)
         {
             if (_connectionPassedIn && _sharedConnection != null && _sharedConnection.State != ConnectionState.Open)
                 throw new Exception("You must explicitly open the connection before executing anything when passing in a DbConnection to Database");
@@ -121,7 +146,10 @@ namespace NPoco
             if (_sharedConnection != null && _sharedConnection.State != ConnectionState.Broken && _sharedConnection.State != ConnectionState.Closed)
                 return;
 
-            ShouldCloseConnectionAutomatically = isInternal;
+            if (!isInternal && OpenConnectionOptions.Lazy)
+                return;
+
+            ShouldCloseConnectionAutomatically = isInternal && !OpenConnectionOptions.Lazy;
 
             _sharedConnection = _factory?.CreateConnection()!;
             if (_sharedConnection == null) throw new Exception("SQL Connection failed to configure.");
@@ -130,12 +158,24 @@ namespace NPoco
 
             if (_sharedConnection.State == ConnectionState.Broken)
             {
-                _sharedConnection.Close();
+                if (sync)
+                    _sharedConnection.Close();
+                else { 
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                    await _sharedConnection.CloseAsync();
+#else
+                    _sharedConnection.Close();
+#endif
+                }
             }
 
             if (_sharedConnection.State == ConnectionState.Closed)
             {
-                _sharedConnection.Open();
+                if (sync) 
+                    _sharedConnection.Open();
+                else 
+                    await _sharedConnection.OpenAsync(cancellationToken);
+
                 _sharedConnection = OnConnectionOpenedInternal(_sharedConnection);
 
                 //using (var cmd = _sharedConnection.CreateCommand())
@@ -153,23 +193,64 @@ namespace NPoco
                 CloseSharedConnection();
         }
 
-        // Close a previously opened connection
+        private async Task CloseSharedConnectionInternalAsync()
+        {
+            if (ShouldCloseConnectionAutomatically && _transaction == null)
+                await CloseSharedConnectionAsync();
+        }
+
         public void CloseSharedConnection()
+        {
+            CloseSharedConnectionImp(true).RunSync();
+        }
+
+        public async Task CloseSharedConnectionAsync()
+        {
+            await CloseSharedConnectionImp(false);
+        }
+
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        private async Task CloseSharedConnectionImp(bool sync, CancellationToken cancellationToken = default)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             if (KeepConnectionAlive) return;
 
             if (_transaction != null)
             {
-                _transaction.Dispose();
-                _transaction = null;
+                if (sync)
+                {
+                    _transaction.Dispose();
+                }
+                else
+                {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                    await _transaction.DisposeAsync();
+#else
+                    _transaction.Dispose();
+#endif
+                    _transaction = null;
+                }
             }
 
             if (_sharedConnection == null) return;
 
             OnConnectionClosingInternal(_sharedConnection);
 
-            _sharedConnection.Close();
-            _sharedConnection.Dispose();
+            if (sync)
+            {
+                _sharedConnection.Close();
+                _sharedConnection.Dispose();
+            }
+            else
+            {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                await _sharedConnection.CloseAsync();
+                await _sharedConnection.DisposeAsync();
+#else
+                _sharedConnection.Close();
+                _sharedConnection.Dispose();
+#endif
+            }
             _sharedConnection = null!;
         }
 
@@ -280,14 +361,110 @@ namespace NPoco
             }
         }
 
+        public async Task<IAsyncTransaction> GetTransactionAsync()
+        {
+            return await AsyncTransaction.Init(this, _isolationLevel);
+        }
+
+        public async Task<IAsyncTransaction> GetTransactionAsync(IsolationLevel isolationLevel)
+        {
+            return await AsyncTransaction.Init(this, isolationLevel);
+        }
+
+        public Task BeginTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            return BeginTransactionAsync(_isolationLevel, cancellationToken);
+        }
+
+        public async Task BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+        {
+            if (_transaction == null)
+            {
+                TransactionCount = 0;
+                await OpenSharedConnectionInternalAsync(cancellationToken);
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                _transaction = await _sharedConnection.BeginTransactionAsync(isolationLevel, cancellationToken);
+#else
+                _transaction = _sharedConnection.BeginTransaction(isolationLevel);
+#endif
+                await OnBeginTransactionInternalAsync(cancellationToken);
+            }
+
+            if (_transaction != null)
+            {
+                TransactionCount++;
+            }
+        }
+
+        private async Task OnBeginTransactionInternalAsync(CancellationToken cancellationToken = default)
+        {
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine("Created new transaction using isolation level of " + _transaction?.IsolationLevel + ".");
+#endif
+            await OnBeginTransactionAsync(cancellationToken);
+            foreach (var interceptor in Interceptors.OfType<ITransactionInterceptor>())
+            {
+                interceptor.OnBeginTransaction(this);
+            }
+        }
+
+        protected virtual Task OnBeginTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task AbortTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            return AbortTransaction(false, false, cancellationToken);
+        }
+
+        private async Task OnAbortTransactionInternalAsync(CancellationToken cancellationToken = default)
+        {
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine("Rolled back a transaction");
+#endif
+            await OnAbortTransactionAsync(cancellationToken);
+            foreach (var interceptor in Interceptors.OfType<ITransactionInterceptor>())
+            {
+                interceptor.OnAbortTransaction(this);
+            }
+        }
+
+        protected virtual Task OnAbortTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task CompleteTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            return CompleteTransactionImp(false, cancellationToken);
+        }
+
+        private async Task OnCompleteTransactionInternalAsync(CancellationToken cancellationToken = default)
+        {
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine("Committed the transaction");
+#endif
+            await OnCompleteTransactionAsync(cancellationToken);
+            foreach (var interceptor in Interceptors.OfType<ITransactionInterceptor>())
+            {
+                interceptor.OnCompleteTransaction(this);
+            }
+        }
+
+        protected virtual Task OnCompleteTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
         // Abort the entire outer most transaction scope
         public void AbortTransaction()
         {
             TransactionIsAborted = true;
-            AbortTransaction(false);
+            AbortTransaction(false, true).RunSync();
         }
 
-        public void AbortTransaction(bool fromComplete)
+        private async Task AbortTransaction(bool fromComplete, bool sync, CancellationToken cancellationToken = default)
         {
             if (_transaction == null)
             {
@@ -306,27 +483,88 @@ namespace NPoco
             }
 
             if (TransactionIsOk())
-                _transaction.Rollback();
+            {
+                if (sync)
+                {
+                    _transaction.Rollback();
+                }
+                else
+                {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                    await _transaction.RollbackAsync(cancellationToken);
+#else
+                    _transaction.Rollback();
+#endif
+                }
+            }
 
             if (_transaction != null)
-                _transaction.Dispose();
-
+            {
+                if (sync)
+                {
+                    _transaction.Dispose();
+                }
+                else
+                {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                    await _transaction.DisposeAsync();
+#else
+                    _transaction.Dispose();
+#endif
+                }
+            }
             _transaction = null;
             TransactionIsAborted = false;
 
             // You cannot continue to use a connection after a transaction has been rolled back
             if (_sharedConnection != null)
             {
-                _sharedConnection.Close();
-                _sharedConnection.Open();
+                if (sync)
+                {
+                    _sharedConnection.Close();
+                    _sharedConnection.Open();
+                }
+                else
+                {
+                    if (sync)
+                    {
+                        _sharedConnection.Close();
+                    }
+                    else
+                    {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                        await _sharedConnection.CloseAsync();
+#else
+                        _sharedConnection.Close();
+#endif
+                    }
+
+                    await _sharedConnection.OpenAsync(cancellationToken);
+                }
             }
 
-            OnAbortTransactionInternal();
-            CloseSharedConnectionInternal();
+            if (sync)
+            {
+                OnAbortTransactionInternal();
+                CloseSharedConnectionInternal();
+            }
+            else
+            {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                await OnAbortTransactionInternalAsync(cancellationToken);
+#else
+                OnAbortTransactionInternal();
+#endif
+                await CloseSharedConnectionInternalAsync();
+            }
         }
 
-        // Complete the transaction
         public void CompleteTransaction()
+        {
+            CompleteTransactionImp(true).RunSync();
+        }
+
+        private async Task CompleteTransactionImp(bool sync, CancellationToken cancellationToken = default)
         {
             if (_transaction == null)
                 return;
@@ -337,18 +575,62 @@ namespace NPoco
 
             if (TransactionIsAborted)
             {
-                AbortTransaction(true);
+                if (sync)
+                {
+                    AbortTransaction(true, true).RunSync();
+                }
+                else
+                {
+                    await AbortTransaction(true, false, cancellationToken);
+                }
                 return;
             }
 
             if (TransactionIsOk())
-                _transaction.Commit();
+            {
+                if (sync)
+                {
+                    _transaction.Commit();
+                }
+                else
+                {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                    await _transaction.CommitAsync(cancellationToken);
+#else
+                    _transaction.Commit();
+#endif
+                }
+            }
 
-            _transaction?.Dispose();
+            if (sync)
+            {
+                _transaction?.Dispose();
+            }
+            else
+            {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                if (_transaction != null) await _transaction.DisposeAsync();
+#else
+                _transaction?.Dispose();
+#endif
+            }
+            
             _transaction = null;
 
-            OnCompleteTransactionInternal();
-            CloseSharedConnectionInternal();
+            if (sync)
+            {
+                OnCompleteTransactionInternal();
+                CloseSharedConnectionInternal();
+            }
+            else
+            {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                await OnCompleteTransactionInternalAsync(cancellationToken);
+#else
+                OnCompleteTransactionInternal();
+#endif
+                await CloseSharedConnectionInternalAsync();
+            }
         }
 
         internal bool TransactionIsAborted { get; set; }
@@ -633,7 +915,7 @@ namespace NPoco
                         return default!;
 
                     Type t = typeof(T);
-                    Type u = Nullable.GetUnderlyingType(t);
+                    Type? u = Nullable.GetUnderlyingType(t);
 
                     return (T)Convert.ChangeType(val, u ?? t);
                 }
@@ -674,7 +956,7 @@ namespace NPoco
                 sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
 
             // Split the SQL
-            PagingHelper.SQLParts parts;
+            SQLParts parts;
             if (!PagingHelper.SplitSQL(sql, out parts)) throw new Exception("Unable to parse SQL statement for paged query");
 
             sqlPage = _dbType.BuildPageQuery(skip, take, parts, ref args);
@@ -709,12 +991,12 @@ namespace NPoco
             return SkipTake<T>(skip, take, sql.SQL, sql.Arguments);
         }
 
-        public Dictionary<TKey, TValue> Dictionary<TKey, TValue>(Sql Sql)
+        public Dictionary<TKey, TValue> Dictionary<TKey, TValue>(Sql Sql) where TKey : notnull
         {
             return Dictionary<TKey, TValue>(Sql.SQL, Sql.Arguments);
         }
 
-        public Dictionary<TKey, TValue> Dictionary<TKey, TValue>(string sql, params object[] args)
+        public Dictionary<TKey, TValue> Dictionary<TKey, TValue>(string sql, params object[] args) where TKey : notnull
         {
             var newDict = new Dictionary<TKey, TValue>();
             bool isConverterSet = false;
@@ -757,7 +1039,7 @@ namespace NPoco
             return Query(default(T)!, Sql);
         }
 
-        private async IAsyncEnumerable<T> ReadAsync<T>(object instance, DbDataReader r, PocoData pd)
+        private async IAsyncEnumerable<T> ReadAsync<T>(object instance, DbDataReader r, PocoData pd, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var factory = new MappingFactory(pd, r);
             while (true)
@@ -765,7 +1047,7 @@ namespace NPoco
                 T poco;
                 try
                 {
-                    if (!await r.ReadAsync().ConfigureAwait(false)) yield break;
+                    if (!await r.ReadAsync(cancellationToken).ConfigureAwait(false)) yield break;
                     poco = (T)factory.Map(r, instance);
                 }
                 catch (Exception x)
@@ -778,7 +1060,7 @@ namespace NPoco
             }
         }
 
-        private async IAsyncEnumerable<T> ReadOneToManyAsync<T>(T instance, DbDataReader r, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, PocoData pocoData)
+        private async IAsyncEnumerable<T> ReadOneToManyAsync<T>(T instance, DbDataReader r, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, PocoData pocoData, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             Func<T, IList>? listFunc = null;
             PocoMember? pocoMember = null;
@@ -801,7 +1083,7 @@ namespace NPoco
                 T poco;
                 try
                 {
-                    if (!await r.ReadAsync().ConfigureAwait(false)) break;
+                    if (!await r.ReadAsync(cancellationToken).ConfigureAwait(false)) break;
                     poco = (T)factory.Map(r, instance);
                 }
                 catch (Exception x)
@@ -1009,12 +1291,12 @@ namespace NPoco
             }
         }
 
-        private async Task<DbDataReader> ExecuteDataReader(DbCommand cmd, bool sync)
+        private async Task<DbDataReader> ExecuteDataReader(DbCommand cmd, bool sync, CancellationToken cancellationToken = default)
         {
             DbDataReader r;
             try
             {
-                r = sync ? ExecuteReaderHelper(cmd) : await ExecuteReaderHelperAsync(cmd).ConfigureAwait(false);
+                r = sync ? ExecuteReaderHelper(cmd) : await ExecuteReaderHelperAsync(cmd, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -1050,7 +1332,7 @@ namespace NPoco
         }
 
         // Actual implementation of the multi-poco paging
-        private async Task<Page<T>> PageImpAsync<T>(long page, long itemsPerPage, string sql, object[] args, bool sync)
+        private async Task<Page<T>> PageImpAsync<T>(long page, long itemsPerPage, string sql, object[] args, bool sync, CancellationToken cancellationToken = default)
         {
             if (page <= 0 || itemsPerPage <= 0)
             {
@@ -1070,7 +1352,7 @@ namespace NPoco
             var result = new Page<T>();
             result.CurrentPage = page;
             result.ItemsPerPage = itemsPerPage;
-            result.TotalItems = ExecuteScalar<long>(sqlCount, args);
+            result.TotalItems = sync ? ExecuteScalar<long>(sqlCount, args) : await ExecuteScalarAsync<long>(sqlCount, args, cancellationToken).ConfigureAwait(false);
             result.TotalPages = result.TotalItems / itemsPerPage;
             if ((result.TotalItems % itemsPerPage) != 0)
                 result.TotalPages++;
@@ -1080,7 +1362,7 @@ namespace NPoco
             // Get the records
             result.Items = sync
                 ? Fetch<T>(new Sql(sqlPage, args))
-                : await FetchAsync<T>(new Sql(sqlPage, args)).ConfigureAwait(false);
+                : await FetchAsync<T>(new Sql(sqlPage, args), cancellationToken).ConfigureAwait(false);
 
             return result;
         }
@@ -1102,16 +1384,18 @@ namespace NPoco
         public class DontMap { }
 
         // Actual implementation of the multi query
-        private async Task<TRet> FetchMultipleImp<T1, T2, T3, T4, TRet>(Type[] types, object cb, Sql Sql, bool sync)
+        private async Task<TRet> FetchMultipleImp<T1, T2, T3, T4, TRet>(Type[] types, object cb, Sql Sql, bool sync, CancellationToken cancellationToken = default)
         {
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
             try
             {
-                OpenSharedConnectionInternal();
+                if (sync) OpenSharedConnectionInternal();
+                else await OpenSharedConnectionInternalAsync(cancellationToken);
+
                 using var cmd = CreateCommand(_sharedConnection, sql, args);
-                using var r = sync ? ExecuteDataReader(cmd, true).RunSync() : await ExecuteDataReader(cmd, false).ConfigureAwait(false);
+                using var r = sync ? ExecuteDataReader(cmd, true).RunSync() : await ExecuteDataReader(cmd, false, cancellationToken).ConfigureAwait(false);
 
                 var typeIndex = 1;
                 var list1 = new List<T1>();
@@ -1130,7 +1414,7 @@ namespace NPoco
                     {
                         try
                         {
-                            if (sync ? !r.Read() : !await r.ReadAsync().ConfigureAwait(false))
+                            if (sync ? !r.Read() : !await r.ReadAsync(cancellationToken).ConfigureAwait(false))
                                 break;
 
                             switch (typeIndex)
@@ -1157,7 +1441,7 @@ namespace NPoco
                     }
 
                     typeIndex++;
-                } while (sync ? r.NextResult() : await r.NextResultAsync().ConfigureAwait(false));
+                } while (sync ? r.NextResult() : await r.NextResultAsync(cancellationToken).ConfigureAwait(false));
 
                 switch (types.Length)
                 {
@@ -1173,7 +1457,8 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                if (sync) CloseSharedConnectionInternal();
+                else await CloseSharedConnectionInternalAsync();
             }
         }
 
@@ -1188,7 +1473,7 @@ namespace NPoco
             return Single<T>(sql);
         }
 
-        public T SingleOrDefaultById<T>(object primaryKey)
+        public T? SingleOrDefaultById<T>(object primaryKey)
         {
             var sql = GenerateSingleByIdSql<T>(primaryKey);
             return SingleOrDefault<T>(sql);
@@ -1212,11 +1497,11 @@ namespace NPoco
         {
             return Query(instance, new Sql(sql, args)).Single();
         }
-        public T SingleOrDefault<T>(string sql, params object[] args)
+        public T? SingleOrDefault<T>(string sql, params object[] args)
         {
             return Query<T>(sql, args).SingleOrDefault();
         }
-        public T SingleOrDefaultInto<T>(T instance, string sql, params object[] args)
+        public T? SingleOrDefaultInto<T>(T instance, string sql, params object[] args)
         {
             return Query(instance, new Sql(sql, args)).SingleOrDefault();
         }
@@ -1228,11 +1513,11 @@ namespace NPoco
         {
             return Query(instance, new Sql(sql, args)).First();
         }
-        public T FirstOrDefault<T>(string sql, params object[] args)
+        public T? FirstOrDefault<T>(string sql, params object[] args)
         {
             return Query<T>(sql, args).FirstOrDefault();
         }
-        public T FirstOrDefaultInto<T>(T instance, string sql, params object[] args)
+        public T? FirstOrDefaultInto<T>(T instance, string sql, params object[] args)
         {
             return Query(instance, new Sql(sql, args)).FirstOrDefault();
         }
@@ -1244,11 +1529,11 @@ namespace NPoco
         {
             return Query(instance, sql).Single();
         }
-        public T SingleOrDefault<T>(Sql sql)
+        public T? SingleOrDefault<T>(Sql sql)
         {
             return Query<T>(sql).SingleOrDefault();
         }
-        public T SingleOrDefaultInto<T>(T instance, Sql sql)
+        public T? SingleOrDefaultInto<T>(T instance, Sql sql)
         {
             return Query(instance, sql).SingleOrDefault();
         }
@@ -1260,11 +1545,11 @@ namespace NPoco
         {
             return Query(instance, sql).First();
         }
-        public T FirstOrDefault<T>(Sql sql)
+        public T? FirstOrDefault<T>(Sql sql)
         {
             return Query<T>(sql).FirstOrDefault();
         }
-        public T FirstOrDefaultInto<T>(T instance, Sql sql)
+        public T? FirstOrDefaultInto<T>(T instance, Sql sql)
         {
             return Query(instance, sql).FirstOrDefault();
         }
@@ -1326,11 +1611,11 @@ namespace NPoco
 
         public int UpdateBatch<T>(IEnumerable<UpdateBatch<T>> pocos, BatchOptions? options = null)
         {
-            return UpdateBatchAsyncImp<T>(pocos, options, true).RunSync();
+            return UpdateBatchAsyncImp(pocos, options, true).RunSync();
         }
 
         // Update a record with values from a poco.  primary key value can be either supplied or read from the poco
-        private async Task<int> UpdateImpAsync(string tableName, string primaryKeyName, object poco, object? primaryKeyValue, IEnumerable<string>? columns, bool sync)
+        private async Task<int> UpdateImpAsync(string tableName, string primaryKeyName, object poco, object? primaryKeyValue, IEnumerable<string>? columns, bool sync, CancellationToken cancellationToken = default)
         {
             if (!OnUpdatingInternal(new UpdateContext(poco, tableName, primaryKeyName, primaryKeyValue, columns)))
                 return 0;
@@ -1345,7 +1630,7 @@ namespace NPoco
 
             var result = sync
                 ? Execute(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray())
-                : await ExecuteAsync(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray()).ConfigureAwait(false);
+                : await ExecuteAsync(preparedStatement.Sql, preparedStatement.Rawvalues.ToArray(), cancellationToken).ConfigureAwait(false);
 
             if (result == 0 && !string.IsNullOrEmpty(preparedStatement.VersionName) && VersionException == VersionExceptionHandling.Exception)
             {
@@ -1356,7 +1641,7 @@ namespace NPoco
             // Set Version
             if (!string.IsNullOrEmpty(preparedStatement.VersionName) && preparedStatement.VersionColumnType == VersionColumnType.Number)
             {
-                PocoColumn pc;
+                PocoColumn? pc;
                 if (preparedStatement.PocoData.Columns.TryGetValue(preparedStatement.VersionName, out pc))
                 {
                     pc.SetValue(poco, Convert.ChangeType(Convert.ToInt64(preparedStatement.VersionValue) + 1, pc.MemberInfoData.MemberType));
@@ -1365,7 +1650,6 @@ namespace NPoco
 
             return result;
         }
-
 
         internal static string BuildPrimaryKeySql(Database database, Dictionary<string, object> primaryKeyValuePair, ref int index)
         {
@@ -1388,7 +1672,7 @@ namespace NPoco
                 else
                 {
                     var dict = primaryKeyValueOrPoco as Dictionary<string, object>;
-                    primaryKeyValues = dict ?? multiplePrimaryKeysNames.ToDictionary(x => x, x => primaryKeyValueOrPoco.GetType().GetProperties().Single(y => string.Equals(x, y.Name, StringComparison.OrdinalIgnoreCase)).GetValue(primaryKeyValueOrPoco, null), StringComparer.OrdinalIgnoreCase);
+                    primaryKeyValues = dict ?? multiplePrimaryKeysNames.ToDictionary(x => x, x => primaryKeyValueOrPoco.GetType().GetProperties().Single(y => string.Equals(x, y.Name, StringComparison.OrdinalIgnoreCase)).GetValue(primaryKeyValueOrPoco, null)!, StringComparer.OrdinalIgnoreCase);
                 }
             }
             else
@@ -1483,7 +1767,7 @@ namespace NPoco
             return DeleteImpAsync(tableName, primaryKeyName, poco, primaryKeyValue, true).RunSync();
         }
 
-        private async Task<int> DeleteImpAsync(string tableName, string primaryKeyName, object? poco, object? primaryKeyValue, bool sync)
+        private async Task<int> DeleteImpAsync(string tableName, string primaryKeyName, object? poco, object? primaryKeyValue, bool sync, CancellationToken cancellationToken = default)
         {
             if (!OnDeletingInternal(new DeleteContext(poco, tableName, primaryKeyName, primaryKeyValue)))
                 return 0;
@@ -1513,7 +1797,7 @@ namespace NPoco
 
             var result = sync
                 ? Execute(sql, rawValues.ToArray())
-                : await ExecuteAsync(sql, rawValues.ToArray()).ConfigureAwait(false);
+                : await ExecuteAsync(sql, rawValues.ToArray(), cancellationToken).ConfigureAwait(false);
 
             if (result == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
             {
@@ -1556,7 +1840,7 @@ namespace NPoco
             return IsNewAsync(poco, true).RunSync();
         }
 
-        private async Task<bool> IsNewAsync<T>(T poco, bool sync)
+        private async Task<bool> IsNewAsync<T>(T poco, bool sync, CancellationToken cancellationToken = default)
         {
             if (poco == null) throw new ArgumentNullException(nameof(poco));
             if (poco is System.Dynamic.ExpandoObject || poco is PocoExpando)
@@ -1566,7 +1850,7 @@ namespace NPoco
 
             var pd = PocoDataFactory.ForType(poco.GetType());
             object pk;
-            PocoColumn pc;
+            PocoColumn? pc;
 
             if (pd.Columns.TryGetValue(pd.TableInfo.PrimaryKey, out pc))
             {
@@ -1576,13 +1860,13 @@ namespace NPoco
             {
                 return sync
                     ? !PocoExistsAsync(poco, true).RunSync()
-                    : !await PocoExistsAsync(poco, false).ConfigureAwait(false);
+                    : !await PocoExistsAsync(poco, false, cancellationToken).ConfigureAwait(false);
             }
             else
             {
                 var pi = poco.GetType().GetProperty(pd.TableInfo.PrimaryKey);
                 if (pi == null) throw new ArgumentException(string.Format("The object doesn't have a property matching the primary key column name '{0}'", pd.TableInfo.PrimaryKey));
-                pk = pi.GetValue(poco, null);
+                pk = pi.GetValue(poco, null)!;
             }
 
             if (pk == null)
@@ -1670,8 +1954,8 @@ namespace NPoco
         private List<IInterceptor>? _interceptors;
         public List<IInterceptor> Interceptors => _interceptors ??= new List<IInterceptor>();
 
-        private MapperCollection? _mappers;
-        public MapperCollection Mappers
+        private IMapperCollection? _mappers;
+        public IMapperCollection Mappers
         {
             get => _mappers ??= new MapperCollection();
             set => _mappers = value;
@@ -1711,7 +1995,7 @@ namespace NPoco
             DoPreExecute(cmd);
             var result = ExecutionHook(() => cmd.ExecuteScalar());
             OnExecutedCommandInternal(cmd);
-            return result;
+            return result!;
         }
 
         internal DbDataReader ExecuteReaderHelper(DbCommand cmd)
@@ -1719,7 +2003,7 @@ namespace NPoco
             DoPreExecute(cmd);
             var result = ExecutionHook(() => cmd.ExecuteReader());
             OnExecutedCommandInternal(cmd);
-            return result;
+            return result!;
         }
 
         protected virtual T ExecutionHook<T>(Func<T> action)
@@ -1727,9 +2011,9 @@ namespace NPoco
             return action();
         }
 
-        protected virtual async Task<T> ExecutionHookAsync<T>(Func<Task<T>> action)
+        protected virtual async Task<T> ExecutionHookAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken cancellationToken = default)
         {
-            return await action().ConfigureAwait(false);
+            return await action(cancellationToken).ConfigureAwait(false);
         }
 
         int IDatabaseHelpers.ExecuteNonQueryHelper(DbCommand cmd) => ExecuteNonQueryHelper(cmd);
@@ -1738,11 +2022,11 @@ namespace NPoco
 
         DbDataReader IDatabaseHelpers.ExecuteReaderHelper(DbCommand cmd) => ExecuteReaderHelper(cmd);
 
-        Task<int> IDatabaseHelpers.ExecuteNonQueryHelperAsync(DbCommand cmd) => ExecuteNonQueryHelperAsync(cmd);
+        Task<int> IDatabaseHelpers.ExecuteNonQueryHelperAsync(DbCommand cmd, CancellationToken cancellationToken) => ExecuteNonQueryHelperAsync(cmd, cancellationToken);
 
-        Task<object> IDatabaseHelpers.ExecuteScalarHelperAsync(DbCommand cmd) => ExecuteScalarHelperAsync(cmd);
+        Task<object> IDatabaseHelpers.ExecuteScalarHelperAsync(DbCommand cmd, CancellationToken cancellationToken) => ExecuteScalarHelperAsync(cmd, cancellationToken);
 
-        Task<DbDataReader> IDatabaseHelpers.ExecuteReaderHelperAsync(DbCommand cmd) => ExecuteReaderHelperAsync(cmd);
+        Task<DbDataReader> IDatabaseHelpers.ExecuteReaderHelperAsync(DbCommand cmd, CancellationToken cancellationToken) => ExecuteReaderHelperAsync(cmd, cancellationToken);
 
         public static bool IsEnum(MemberInfoData memberInfo)
         {

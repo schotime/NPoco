@@ -9,13 +9,13 @@ namespace NPoco
 {
     public class MappingFactory
     {
-        public static List<Func<MapperCollection, IRowMapper>> RowMappers { get; private set; } 
+        public static List<Func<IMapperCollection, IRowMapper>> RowMappers { get; private set; } 
         private readonly PocoData _pocoData;
         private readonly IRowMapper _rowMapper;
 
         static MappingFactory()
         {
-            RowMappers = new List<Func<MapperCollection, IRowMapper>>()
+            RowMappers = new List<Func<IMapperCollection, IRowMapper>>()
             {
                 x => new ValueTupleRowMapper(x),
                 _ => new DictionaryMapper(),

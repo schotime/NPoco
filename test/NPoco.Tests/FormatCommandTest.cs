@@ -32,7 +32,7 @@ namespace NPoco.Tests
         public class MyDb : Database
         {
             public MyDb()
-                : base("test", DatabaseType.MySQL, SqlClientFactory.Instance)
+                : base("test", NPoco.DatabaseType.MySQL, SqlClientFactory.Instance)
             {
             }
         }

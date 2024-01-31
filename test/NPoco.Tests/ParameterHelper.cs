@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace NPoco.Tests
@@ -117,6 +118,21 @@ namespace NPoco.Tests
 
             Assert.AreEqual(2, args.Count);
             Assert.AreEqual(resultSql, "SELECT * FROM test WHERE testID in (@0, @1, @0, @0, @1)");
+        }
+
+        [Test]
+        public void ExludedIEnumerableTypeParameters()
+        {
+            var sql = "UPDATE test SET name = @0, data = @1 WHERE id = @2";
+            var args = new List<object>();
+            var data = JToken.Parse("{\"Test\":\"Test\",\"Quantity\":5}");
+            var args_src = new object[] { "test", data, Guid.NewGuid() };
+            ParameterHelper.ExcludedIEnumerableTypes.AddRange(new[] { typeof(JToken), typeof(JObject) });
+            var resultSql = ParameterHelper.ProcessParams(sql, args_src, args);
+
+            Assert.AreEqual(3, args.Count);
+            Assert.AreEqual(resultSql, "UPDATE test SET name = @0, data = @1 WHERE id = @2");
+            ParameterHelper.ExcludedIEnumerableTypes.Clear();
         }
     }
 }
