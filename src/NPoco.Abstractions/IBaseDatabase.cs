@@ -1,38 +1,12 @@
 #nullable enable
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 
 namespace NPoco
 {
-    public interface IBaseDatabase : IDisposable, IDatabaseConfig
+    public interface IBaseDatabase : IAsyncBaseDatabase, IDisposable
     {
-        /// <summary>
-        /// The underlying connection object
-        /// </summary>
-        DbConnection Connection { get; }
-
-        /// <summary>
-        /// The underlying transaction object
-        /// </summary>        
-        DbTransaction Transaction { get; }
-
-        /// <summary>
-        /// Creates a DbParameter for the specific database provider
-        /// </summary>        
-        DbParameter CreateParameter();
-
-        /// <summary>
-        /// Adds a parameter to the DbCommand specified
-        /// </summary>        
-        void AddParameter(DbCommand cmd, object value);
-
-        /// <summary>
-        /// Creates a command given a connection, command type and sql
-        /// </summary>        
-        DbCommand CreateCommand(DbConnection connection, CommandType commandType, string sql, params object[] args);
-
         /// <summary>
         /// Begins a new transaction and returns ITransaction which can be used in a using statement
         /// </summary>        
@@ -42,11 +16,6 @@ namespace NPoco
         /// Begins a new transaction and returns ITransaction which can be used in a using statement
         /// </summary>        
         ITransaction GetTransaction(IsolationLevel isolationLevel);
-
-        /// <summary>
-        /// A data bag to store whatever you like per IDatabase instance
-        /// </summary>        
-        IDictionary<string, object> Data { get; }
 
         /// <summary>
         /// A way to set the transaction from an existing DbTransaction
@@ -82,15 +51,5 @@ namespace NPoco
         /// Closes the DBConnection manually
         /// </summary>
         void CloseSharedConnection();
-
-        /// <summary>
-        /// Sets command timeout for the lifetime of the Database instance
-        /// </summary>
-        public int CommandTimeout { get; set; }
-
-        /// <summary>
-        /// Sets command timeout only for the next command, is reverted after
-        /// </summary>
-        public int OneTimeCommandTimeout { get; set; }
     }
 }

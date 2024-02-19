@@ -13,8 +13,8 @@ namespace NPoco.SqlServer.SystemData
 {
     public class SqlBulkCopyHelper
     {
-        public static Func<DbConnection, SqlConnection> SqlConnectionResolver = dbConn => (SqlConnection)dbConn;
-        public static Func<DbTransaction, SqlTransaction> SqlTransactionResolver = dbTran => (SqlTransaction)dbTran;
+        public static Func<DbConnection?, SqlConnection?> SqlConnectionResolver = dbConn => (SqlConnection?)dbConn;
+        public static Func<DbTransaction?, SqlTransaction?> SqlTransactionResolver = dbTran => (SqlTransaction?)dbTran;
 
         public static void BulkInsert<T>(IDatabase db, IEnumerable<T> list, InsertBulkOptions? insertBulkOptions)
         {

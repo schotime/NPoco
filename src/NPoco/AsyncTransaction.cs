@@ -19,7 +19,7 @@ namespace NPoco
 #if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
             await db.BeginTransactionAsync(isolationLevel);
 #else
-            db.BeginTransaction();
+            ((IBaseDatabase)db).BeginTransaction();
 #endif
       
             return new AsyncTransaction(db);
@@ -31,7 +31,7 @@ namespace NPoco
 #if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
             await _db.CompleteTransactionAsync(cancellationToken);
 #else
-            _db.CompleteTransaction();
+            ((IBaseDatabase)_db).CompleteTransaction();
 #endif
             _db = null;
         }
@@ -43,7 +43,7 @@ namespace NPoco
 #if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
                 await _db.AbortTransactionAsync();
 #else
-                _db.AbortTransaction();
+                ((IBaseDatabase)_db).AbortTransaction();
 #endif
             }
         }
@@ -51,7 +51,7 @@ namespace NPoco
 
         public void Dispose()
         {
-            _db?.AbortTransaction();
+            ((IBaseDatabase)_db)?.AbortTransaction();
         }
     }
 }

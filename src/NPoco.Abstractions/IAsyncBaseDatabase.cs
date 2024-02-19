@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace NPoco
 {
-    public interface IAsyncBaseDatabase : IBaseDatabase, IAsyncDisposable
+    public interface IAsyncBaseDatabase : IBaseCommonDatabase, IAsyncDisposable
     {
         /// <summary>
         /// Opens the DbConnection manually

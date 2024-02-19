@@ -257,7 +257,7 @@ namespace NPoco
         public VersionExceptionHandling VersionException { get; set; } = VersionExceptionHandling.Exception;
 
         // Access to our shared connection
-        public DbConnection? Connection => _sharedConnection;
+        public DbConnection Connection => _sharedConnection;
 
         public DbTransaction? Transaction => _transaction;
 
@@ -1634,8 +1634,11 @@ namespace NPoco
 
             if (result == 0 && !string.IsNullOrEmpty(preparedStatement.VersionName) && VersionException == VersionExceptionHandling.Exception)
             {
-                throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName,
+                var exception = new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName,
                     string.Join(",", preparedStatement.PrimaryKeyValuePairs.Values.Select(x => x.ToString()).ToArray()), preparedStatement.VersionValue));
+
+                OnExceptionInternal(exception);
+                throw exception;
             }
 
             // Set Version
@@ -1801,8 +1804,11 @@ namespace NPoco
 
             if (result == 0 && !string.IsNullOrEmpty(versionName) && VersionException == VersionExceptionHandling.Exception)
             {
-                throw new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName,
+                var exception = new DBConcurrencyException(string.Format("A Concurrency update occurred in table '{0}' for primary key value(s) = '{1}' and version = '{2}'", tableName,
                     string.Join(",", primaryKeyValuePairs.Values.Select(x => x?.ToString()).ToArray()), versionValue));
+
+                OnExceptionInternal(exception);
+                throw exception;
             }
 
             return result;
