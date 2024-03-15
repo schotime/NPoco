@@ -53,6 +53,9 @@ namespace NPoco.FluentMappings
             
             // Set auto alias
             var autoAlias = CreateAlias(type.Name, type);
+
+            // Copy statement hooks
+            var alterStatementHooks = typeConfig.AlterStatementHooks.ToList();
             
             return () => new TableInfo
             {
@@ -61,7 +64,8 @@ namespace NPoco.FluentMappings
                 SequenceName = sequenceName,
                 AutoIncrement = autoIncrement,
                 AutoAlias = autoAlias,
-                PersistedType = typeConfig.PersistedType
+                PersistedType = typeConfig.PersistedType,
+                AlterStatementHooks = alterStatementHooks,
             };
         }
 

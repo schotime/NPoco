@@ -27,6 +27,9 @@ namespace NPoco
             a = t.GetTypeInfo().GetCustomAttributes(typeof(PersistedTypeAttribute), true).ToArray();
             tableInfo.PersistedType = a.Length == 0 ? null : (a[0] as PersistedTypeAttribute).PersistedType;
 
+            var sphas = t.GetTypeInfo().GetCustomAttributes(typeof(StatementPreparationHookAttribute), true).Cast<StatementPreparationHookAttribute>().ToArray();
+            tableInfo.AlterStatementHooks.AddRange(sphas.Select(z => z.AlterStatementHook));
+
             return tableInfo;
         }
     }

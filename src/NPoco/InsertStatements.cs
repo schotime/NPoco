@@ -11,15 +11,7 @@ namespace NPoco
     {
         public class InsertStatements
         {
-            public class PreparedInsertSql
-            {
-                public PocoData PocoData { get; set; }
-                public string VersionName { get; set; }
-                public string Sql { get; set; }
-                public List<object> Rawvalues { get; set; }
-            }
-
-            public static PreparedInsertSql PrepareInsertSql<T>(Database database, PocoData pd, string tableName, string primaryKeyName, bool autoIncrement, T poco)
+            public static PreparedInsertStatement PrepareInsertSql<T>(Database database, PocoData pd, string tableName, string primaryKeyName, bool autoIncrement, T poco)
             {
                 var names = new List<string>();
                 var values = new List<string>();
@@ -94,16 +86,23 @@ namespace NPoco
                     sql = database.DatabaseType.GetDefaultInsertSql(tableName, primaryKeyName, pd.TableInfo.UseOutputClause, names.ToArray(), values.ToArray());
                 }
 
-                return new PreparedInsertSql()
+                var prep = new PreparedInsertStatement()
                 {
                     PocoData = pd,
                     Sql = sql,
                     Rawvalues = rawvalues,
                     VersionName = versionName
                 };
+
+                foreach (var item in pd.TableInfo.AlterStatementHooks)
+                {
+                    prep = item.AlterInsert(prep);
+                }
+
+                return prep;
             }
 
-            public static object AssignNonIncrementPrimaryKey<T>(string primaryKeyName, T poco, PreparedInsertSql preparedSql)
+            public static object AssignNonIncrementPrimaryKey<T>(string primaryKeyName, T poco, PreparedInsertStatement preparedSql)
             {
                 PocoColumn pkColumn;
                 if (primaryKeyName != null && preparedSql.PocoData.Columns.TryGetValue(primaryKeyName, out pkColumn))
@@ -111,7 +110,7 @@ namespace NPoco
                 return null;
             }
 
-            public static void AssignVersion<T>(T poco, PreparedInsertSql preparedSql)
+            public static void AssignVersion<T>(T poco, PreparedInsertStatement preparedSql)
             {
                 if (!string.IsNullOrEmpty(preparedSql.VersionName))
                 {
@@ -123,7 +122,7 @@ namespace NPoco
                 }
             }
 
-            public static void AssignPrimaryKey<T>(string primaryKeyName, T poco, object id, PreparedInsertSql preparedSql)
+            public static void AssignPrimaryKey<T>(string primaryKeyName, T poco, object id, PreparedInsertStatement preparedSql)
             {
                 if (primaryKeyName != null && id != null && id.GetType().GetTypeInfo().IsValueType)
                 {

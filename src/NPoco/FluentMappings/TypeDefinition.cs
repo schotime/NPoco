@@ -9,6 +9,7 @@ namespace NPoco.FluentMappings
         {
             Type = type;
             ColumnConfiguration = new Dictionary<string, ColumnDefinition>();
+            AlterStatementHooks = new();
         }
 
         public Type Type { get; set; }
@@ -20,5 +21,6 @@ namespace NPoco.FluentMappings
         public Dictionary<string, ColumnDefinition> ColumnConfiguration { get; set; }
         public bool? UseOutputClause { get; set; }
         public Type PersistedType { get; set; }
+        public List<IAlterStatementHook> AlterStatementHooks { get; set; }
     }
 }

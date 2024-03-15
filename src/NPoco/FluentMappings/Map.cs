@@ -122,7 +122,18 @@ namespace NPoco.FluentMappings
         {
             _petaPocoTypeDefinition.PersistedType = type;
             return this;
-        }   
+        }
+
+        public Map<T> WithAlterStatementHook(IAlterStatementHook alterStatementHook)
+        {
+            _petaPocoTypeDefinition.AlterStatementHooks.Add(alterStatementHook);
+            return this;
+        }
+
+        public Map<T> WithAlterStatementHook<THook>() where THook : IAlterStatementHook, new()
+        {
+            return WithAlterStatementHook(new THook());
+        }
 
         TypeDefinition IMap.TypeDefinition
         {
