@@ -72,6 +72,10 @@ namespace NPoco
             typeMap[typeof(DateTimeOffset?)] = DbType.DateTimeOffset;
             typeMap[typeof(TimeSpan?)] = DbType.Time;
             typeMap[typeof(Object)] = DbType.Object;
+#if NET6_0_OR_GREATER
+            typeMap[typeof(DateOnly)] = DbType.Date;
+            typeMap[typeof(DateOnly?)] = DbType.Date;
+#endif
         }
 
         /// <summary>

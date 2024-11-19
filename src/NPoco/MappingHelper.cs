@@ -36,6 +36,14 @@ namespace NPoco
                 return converter;
             }
 
+#if NET6_0_OR_GREATER
+            if (srcType == typeof(DateTime) && (dstType == typeof(DateOnly) || dstType == typeof(DateOnly?)))
+            {
+                converter = src => DateOnly.FromDateTime((DateTime)src);
+                return converter;
+            }
+#endif
+
             // Forced type conversion including integral types -> enum
             var underlyingType = UnderlyingTypes.Get(dstType, () => Nullable.GetUnderlyingType(dstType));
             if (dstType.GetTypeInfo().IsEnum || (underlyingType != null && underlyingType.GetTypeInfo().IsEnum))
@@ -54,12 +62,13 @@ namespace NPoco
             }
             else if (srcType == typeof(string) && (dstType == typeof(Guid) || dstType == typeof(Guid?)))
             {
-                converter = src => Guid.Parse((string) src);
+                converter = src => Guid.Parse((string)src);
             }
             else if ((!pc?.ValueObjectColumn ?? true) && !dstType.IsAssignableFrom(srcType))
             {
                 converter = src => Convert.ChangeType(src, (underlyingType ?? dstType), null);
             }
+
             return converter;
         }
 

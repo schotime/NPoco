@@ -228,5 +228,23 @@ namespace NPoco.Tests.Async
             Assert.ThrowsAsync<TaskCanceledException>(() =>
                 Database.FirstAsync<User>("where userid = @0", 1, source.Token));
         }
+
+        [Test]
+        public async Task QueryAsyncDateOnly()
+        {
+            var users = await Database.Query<User>().Where(x => x.UserId == 1).ToListAsync();
+            Assert.AreEqual(new DateOnly(2099, 10, 10), users[0].Expires);
+        }
+
+        [Test]
+        public async Task QueryAsyncToEnumerable()
+        {
+            var users = Database.QueryAsync<User>().ToEnumerable();
+            var i = 1;
+            await foreach (var user in users)
+            {
+                Assert.AreEqual(i++, user.UserId);
+            }            
+        }
     }
 }

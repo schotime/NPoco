@@ -96,7 +96,7 @@ namespace NPoco
 
                 foreach (var item in pd.TableInfo.AlterStatementHooks)
                 {
-                    prep = item.AlterUpdate(prep);
+                    prep = item.AlterUpdate(database, prep);
                 }
 
                 return prep;

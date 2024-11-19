@@ -162,7 +162,8 @@ namespace NPoco.Tests.Common
                     },
                     TestEnum = (i + 1) % 2 == 0 ? TestEnum.All : TestEnum.None,
                     StringObject = new StringObject { MyValue = (i % 2) == 0 ? "Even" : "Odd" },
-                    YorNBoolean = i % 3 == 0
+                    YorNBoolean = i % 3 == 0,
+                    Expires = i % 2 != 0 ? null : new DateOnly(2099, 10, 10)
                 };
                 Database.Insert(user);
                 InMemoryUsers.Add(user);
