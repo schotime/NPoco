@@ -14,7 +14,6 @@ namespace NPoco.Expressions
 {
     public abstract class SqlExpression<T> : ISqlExpression<T>
     {
-        private Expression<Func<T, bool>> underlyingExpression;
         private List<string> orderByProperties = new List<string>();
         private List<OrderByMember> orderByMembers = new List<OrderByMember>();
         private List<SelectMember> selectMembers = new List<SelectMember>();
@@ -154,7 +153,7 @@ namespace NPoco.Expressions
 
             sqlFilter = ParameterHelper.ProcessParams(sqlFilter, filterParams, _params);
 
-            appendSqlFilter(sqlFilter);
+            appendSqlFilter("(" + sqlFilter + ")");
 
             return this;
         }
@@ -186,7 +185,6 @@ namespace NPoco.Expressions
             }
             else
             {
-                underlyingExpression = null;
                 whereExpression = string.Empty;
             }
 
@@ -197,11 +195,6 @@ namespace NPoco.Expressions
         {
             if (predicate != null)
             {
-                if (underlyingExpression == null)
-                    underlyingExpression = predicate;
-                else
-                    underlyingExpression = underlyingExpression.And(predicate);
-
                 ProcessInternalExpression(predicate);
             }
             return this;
