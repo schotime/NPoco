@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
 
 namespace NPoco.RowMappers
 {
@@ -11,8 +12,7 @@ namespace NPoco.RowMappers
         private Func<DbDataReader, object> mapper = default!;
         private IMapperCollection mappers;
 
-        private static Cache<(Type, IMapperCollection), Func<DbDataReader, object>> cache
-            = new Cache<(Type, IMapperCollection), Func<DbDataReader, object>>();
+        private static Cache<(Type, string, IMapperCollection), Func<DbDataReader, object>> cache = new();
 
         public ValueTupleRowMapper(IMapperCollection mappers)
         {
@@ -54,7 +54,11 @@ namespace NPoco.RowMappers
 
         private static Func<DbDataReader, object> GetRowMapper(Type type, IMapperCollection mappers, DbDataReader dataReader)
         {
-            return cache.Get((type, mappers), () => CreateRowMapper(type, mappers, dataReader));
+            StringBuilder columnTypes = new();
+            for (var i = 0; i < dataReader.VisibleFieldCount; i++)
+                columnTypes.AppendLine(dataReader.GetFieldType(i)?.ToString());
+
+            return cache.Get((type, columnTypes.ToString(), mappers), () => CreateRowMapper(type, mappers, dataReader));
         }
 
         private static Func<DbDataReader, object> CreateRowMapper(Type type, IMapperCollection mappers, DbDataReader dataReader)

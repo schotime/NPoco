@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using NPoco.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
 
 namespace NPoco.Tests.Async
 {
