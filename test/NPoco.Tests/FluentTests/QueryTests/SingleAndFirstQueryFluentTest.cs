@@ -151,5 +151,15 @@ namespace NPoco.Tests.FluentTests.QueryTests
             var data = Database.Single<AdHocUser>("select name \"Na_me\" from users where userid = 1");
             Assert.AreEqual("Name1", data.Name);
         }
+
+        [Test]
+        public void SingleAnsi()
+        {
+            var user = Database.Single<User>("select u.* from users u where u.ansistring = @0", new AnsiString("My Ansi: 1"));
+
+            Assert.True(((Database)Database).LastCommand.Contains(" VarChar(4000)"));
+            Assert.NotNull(user);
+            AssertUserValues(InMemoryUsers[0], user);
+        }
     }
 }

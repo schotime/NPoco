@@ -106,7 +106,8 @@ namespace NPoco.Tests.Common
                     Address__City nvarchar(50) NULL,
                     StringObject nvarchar(50) NULL,
                     YorNBoolean char default('Y') NOT NULL,
-                    Expires Date NULL
+                    Expires Date NULL,
+                    AnsiString varchar(50) NULL
                 );
             ";
             cmd.ExecuteNonQuery();

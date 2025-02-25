@@ -163,7 +163,8 @@ namespace NPoco.Tests.Common
                     TestEnum = (i + 1) % 2 == 0 ? TestEnum.All : TestEnum.None,
                     StringObject = new StringObject { MyValue = (i % 2) == 0 ? "Even" : "Odd" },
                     YorNBoolean = i % 3 == 0,
-                    Expires = i % 2 != 0 ? null : new DateOnly(2099, 10, 10)
+                    Expires = i % 2 != 0 ? null : new DateOnly(2099, 10, 10),
+                    AnsiString = $"My Ansi: {(i+1)}"
                 };
                 Database.Insert(user);
                 InMemoryUsers.Add(user);
@@ -241,6 +242,7 @@ namespace NPoco.Tests.Common
                 x.Column(y => y.House).WithName("HouseId").Reference(z => z.HouseId);
                 x.Column(y => y.ExtraUserInfo).WithName("UserId").Reference(z => z.UserId, ReferenceType.OneToOne);
                 x.Column(y => y.StringObject).WithDbType<string>();
+                x.Column(y => y.AnsiString).WithDbType<AnsiString>();
             });
             For<Supervisor>().UseMap<SupervisorMap>();
             For<Supervisor>().TableName("users").Columns(x => x.Column(y => y.IsMale).WithName("is_male"));

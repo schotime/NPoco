@@ -36,6 +36,7 @@ namespace NPoco.Tests.Common
 
         public bool YorNBoolean { get; set; }
         public DateOnly? Expires { get; set; }
+        public string AnsiString { get; set; }
 
         //[ResultColumn]
         //public Supervisor Supervisor { get; set; }

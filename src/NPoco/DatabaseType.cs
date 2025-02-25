@@ -380,19 +380,14 @@ namespace NPoco
 
         public virtual string FormatCommand(DbCommand cmd)
         {
-            var parameters = cmd.Parameters.Cast<DbParameter>().Select(parameter => new FormattedParameter()
-            {
-                Type = parameter.Value.GetTheType(),
-                Value = parameter.Value,
-                Parameter = parameter
-            });
-            return FormatCommand(cmd.CommandText, parameters.Cast<object>().ToArray());
+            return FormatCommand(cmd.CommandText, cmd.Parameters.Cast<object>().ToArray());
         }
 
         public virtual string FormatCommand(string sql, object[] args)
         {
             if (sql == null)
                 return "";
+
             var sb = new StringBuilder();
             sb.Append(sql);
             if (args != null && args.Length > 0)
@@ -400,13 +395,20 @@ namespace NPoco
                 sb.Append("\n");
                 for (int i = 0; i < args.Length; i++)
                 {
-                    var type = args[i] != null ? args[i].GetType().Name : string.Empty;
-                    var value = args[i];
-                    if (args[i] is FormattedParameter formatted)
+                    string type; 
+                    string value;
+
+                    if (args[i] is DbParameter dbParameter)
                     {
-                        type = formatted.Type != null ? formatted.Type.Name : string.Format("{0}, {1}", formatted.Parameter.GetType().Name, formatted.Parameter.DbType);
-                        value = formatted.Value;
+                        type = $"{dbParameter.GetType().Name}, {dbParameter.DbType.ToString()}";
+                        value = dbParameter.Value?.ToString();
                     }
+                    else
+                    {
+                        type = args[i].GetTheType()?.Name;
+                        value = args[i]?.ToString();
+                    }
+
                     sb.AppendFormat("\t -> {0}{1} [{2}] = \"{3}\"\n", GetParameterPrefix(string.Empty), i, type, value);
                 }
                 sb.Remove(sb.Length - 1, 1);

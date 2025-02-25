@@ -1939,13 +1939,13 @@ namespace NPoco
 
             // Save it
             _lastSql = cmd.CommandText;
-            _lastArgs = (from DbParameter parameter in cmd.Parameters select parameter.Value).ToArray();
+            _lastParams = cmd.Parameters;
         }
 
         public string? LastSQL => _lastSql;
-        public object[]? LastArgs => _lastArgs;
+        public object[]? LastArgs => _lastParams?.Cast<DbParameter>().Select(x => x.Value!).ToArray();
 
-        public string LastCommand => FormatCommand(_lastSql, _lastArgs);
+        public string LastCommand => FormatCommand(_lastSql, _lastParams?.Cast<object>().ToArray() ?? []);
 
         public virtual string FormatCommand(DbCommand cmd)
         {
@@ -1984,7 +1984,7 @@ namespace NPoco
         private DbTransaction? _transaction;
         private IsolationLevel _isolationLevel;
         private string? _lastSql;
-        private object[]? _lastArgs;
+        private DbParameterCollection? _lastParams;
         private string _paramPrefix = "@";
         private readonly bool _connectionPassedIn;
 
