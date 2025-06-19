@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Threading.Tasks;
 
 namespace NPoco
 {
@@ -43,6 +44,16 @@ namespace NPoco
         ITransaction GetTransaction(IsolationLevel isolationLevel);
 
         /// <summary>
+        /// Begins a new transaction and returns IAsyncTransaction which can be used in a await using statement
+        /// </summary>
+        Task<IAsyncTransaction> GetTransactionAsync();
+
+        /// <summary>
+        /// Begins a new transaction and returns IAsyncTransaction which can be used in a await using statement
+        /// </summary>
+        Task<IAsyncTransaction> GetTransactionAsync(IsolationLevel isolationLevel);
+
+        /// <summary>
         /// A data bag to store whatever you like per IDatabase instance
         /// </summary>        
         IDictionary<string, object> Data { get; }
@@ -63,9 +74,24 @@ namespace NPoco
         void BeginTransaction(IsolationLevel isolationLevel);
 
         /// <summary>
+        /// Manually begin a transaction. Recommended to use GetTransactionAsync
+        /// </summary>
+        Task BeginTransactionAsync();
+
+        /// <summary>
+        /// Manually begin a transaction. Recommended to use GetTransactionAsync
+        /// </summary>
+        Task BeginTransactionAsync(IsolationLevel isolationLevel);
+
+        /// <summary>
         /// Manually abort/rollback a transaction
         /// </summary>        
         void AbortTransaction();
+
+        /// <summary>
+        /// Manually abort/rollback a transaction
+        /// </summary>
+        Task AbortTransactionAsync();
 
         /// <summary>
         /// Manually commit a transaction
@@ -73,14 +99,29 @@ namespace NPoco
         void CompleteTransaction();
 
         /// <summary>
+        /// Manually commit a transaction
+        /// </summary>
+        Task CompleteTransactionAsync();
+
+        /// <summary>
         /// Opens the DbConnection manually
         /// </summary>
         IDatabase OpenSharedConnection();
 
         /// <summary>
+        /// Opens the DbConnection manually
+        /// </summary>
+        Task<IDatabase> OpenSharedConnectionAsync();
+
+        /// <summary>
         /// Closes the DBConnection manually
         /// </summary>
         void CloseSharedConnection();
+
+        /// <summary>
+        /// Closes the DBConnection manually
+        /// </summary>
+        Task CloseSharedConnectionAsync();
 
         /// <summary>
         /// Sets command timeout for the lifetime of the Database instance

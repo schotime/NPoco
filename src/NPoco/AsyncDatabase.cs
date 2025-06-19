@@ -12,8 +12,241 @@ using NPoco.Linq;
 
 namespace NPoco
 {
-    public partial class Database
+    public partial class Database : IAsyncDisposable
     {
+        // Automatically close connection
+        public async ValueTask DisposeAsync()
+        {
+            if (KeepConnectionAlive) return;
+            await CloseSharedConnectionAsync();
+        }
+
+        // Open a connection (can be nested)
+        public async Task<IDatabase> OpenSharedConnectionAsync()
+        {
+            await OpenSharedConnectionImpAsync(false);
+            return this;
+        }
+
+        private Task OpenSharedConnectionInternalAsync()
+        {
+            return OpenSharedConnectionImpAsync(true);
+        }
+
+        private async Task OpenSharedConnectionImpAsync(bool isInternal)
+        {
+            if (_connectionPassedIn && _sharedConnection != null && _sharedConnection.State != ConnectionState.Open)
+                throw new Exception("You must explicitly open the connection before executing anything when passing in a DbConnection to Database");
+
+            if (_sharedConnection != null && _sharedConnection.State != ConnectionState.Broken && _sharedConnection.State != ConnectionState.Closed)
+                return;
+
+            ShouldCloseConnectionAutomatically = isInternal;
+
+            _sharedConnection = _factory?.CreateConnection()!;
+            if (_sharedConnection == null) throw new Exception("SQL Connection failed to configure.");
+
+            _sharedConnection.ConnectionString = _connectionString;
+
+            if (_sharedConnection.State == ConnectionState.Broken)
+            {
+#if NET461 || NETSTANDARD2_0
+                _sharedConnection.Close();
+#else
+                await _sharedConnection.CloseAsync();
+#endif
+            }
+
+            if (_sharedConnection.State == ConnectionState.Closed)
+            {
+                await _sharedConnection.OpenAsync();
+                _sharedConnection = OnConnectionOpenedInternal(_sharedConnection);
+
+                //using (var cmd = _sharedConnection.CreateCommand())
+                //{
+                //    cmd.CommandTimeout = CommandTimeout;
+                //    cmd.CommandText = _dbType.GetSQLForTransactionLevel(_isolationLevel);
+                //    cmd.ExecuteNonQuery();
+                //}
+            }
+        }
+
+        private async Task CloseSharedConnectionInternalAsync()
+        {
+            if (ShouldCloseConnectionAutomatically && _transaction == null)
+                await CloseSharedConnectionAsync();
+        }
+
+        // Close a previously opened connection
+        public async Task CloseSharedConnectionAsync()
+        {
+            if (KeepConnectionAlive) return;
+
+            if (_transaction != null)
+            {
+#if NET461 || NETSTANDARD2_0
+                _transaction.Dispose();
+#else
+                await _transaction.DisposeAsync();
+#endif
+                _transaction = null;
+            }
+
+            if (_sharedConnection == null) return;
+
+            OnConnectionClosingInternal(_sharedConnection);
+
+#if NET461 || NETSTANDARD2_0
+            _sharedConnection.Close();
+            _sharedConnection.Dispose();
+#else
+            await _sharedConnection.CloseAsync();
+            await _sharedConnection.DisposeAsync();
+#endif
+            _sharedConnection = null!;
+        }
+
+        // Helper to create a transaction scope
+        public Task<IAsyncTransaction> GetTransactionAsync()
+        {
+            return GetTransactionAsync(_isolationLevel);
+        }
+
+        public async Task<IAsyncTransaction> GetTransactionAsync(IsolationLevel isolationLevel)
+        {
+            var transaction = new AsyncTransaction(this, isolationLevel);
+            await transaction.BeginAsync();
+            return transaction;
+        }
+
+        public Task BeginTransactionAsync()
+        {
+            return BeginTransactionAsync(_isolationLevel);
+        }
+
+        // Start a new transaction, can be nested, every call must be
+        //	matched by a call to AbortTransaction or CompleteTransaction
+        // Use `using (var scope=db.Transaction) { scope.Complete(); }` to ensure correct semantics
+        public async Task BeginTransactionAsync(IsolationLevel isolationLevel)
+        {
+            if (_transaction == null)
+            {
+                TransactionCount = 0;
+                await OpenSharedConnectionInternalAsync();
+#if NET461 || NETSTANDARD2_0
+                _transaction = _sharedConnection.BeginTransaction(isolationLevel);
+#else
+                _transaction = await _sharedConnection.BeginTransactionAsync(isolationLevel);
+#endif
+                OnBeginTransactionInternal();
+            }
+
+            if (_transaction != null)
+            {
+                TransactionCount++;
+            }
+        }
+
+        // Abort the entire outer most transaction scope
+        public async Task AbortTransactionAsync()
+        {
+            TransactionIsAborted = true;
+            await AbortTransactionAsync(false);
+        }
+
+        public async Task AbortTransactionAsync(bool fromComplete)
+        {
+            if (_transaction == null)
+            {
+                TransactionIsAborted = false;
+                return;
+            }
+
+            if (fromComplete == false)
+            {
+                TransactionCount--;
+                if (TransactionCount >= 1)
+                {
+                    TransactionIsAborted = true;
+                    return;
+                }
+            }
+
+            if (TransactionIsOk())
+            {
+#if NET461 || NETSTANDARD2_0
+                _transaction.Rollback();
+#else
+                await _transaction.RollbackAsync();
+#endif
+            }
+
+            if (_transaction != null)
+            {
+#if NET461 || NETSTANDARD2_0
+                _transaction.Dispose();
+#else
+                await _transaction.DisposeAsync();
+#endif
+            }
+
+            _transaction = null;
+            TransactionIsAborted = false;
+
+            // You cannot continue to use a connection after a transaction has been rolled back
+            if (_sharedConnection != null)
+            {
+#if NET461 || NETSTANDARD2_0
+                _sharedConnection.Close();
+#else
+                await _sharedConnection.CloseAsync();
+#endif
+                await _sharedConnection.OpenAsync();
+            }
+
+            OnAbortTransactionInternal();
+            await CloseSharedConnectionInternalAsync();
+        }
+
+        // Complete the transaction
+        public async Task CompleteTransactionAsync()
+        {
+            if (_transaction == null)
+                return;
+
+            TransactionCount--;
+            if (TransactionCount >= 1)
+                return;
+
+            if (TransactionIsAborted)
+            {
+                await AbortTransactionAsync(true);
+                return;
+            }
+
+            if (TransactionIsOk())
+            {
+#if NET461 || NETSTANDARD2_0
+                _transaction.Commit();
+#else
+                await _transaction.CommitAsync();
+#endif
+            }
+
+            if (_transaction != null)
+            {
+#if NET461 || NETSTANDARD2_0
+                _transaction.Dispose();
+#else
+                await _transaction.DisposeAsync();
+#endif
+            }
+            _transaction = null;
+
+            OnCompleteTransactionInternal();
+            await CloseSharedConnectionInternalAsync();
+        }
+
         /// <summary>
         /// Performs an SQL Insert
         /// </summary>
@@ -64,7 +297,7 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                await OpenSharedConnectionInternalAsync();
 
                 var preparedInsert = InsertStatements.PrepareInsertSql(this, pocoData, tableName, primaryKeyName, autoIncrement, poco);
 
@@ -101,7 +334,7 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
         }
 
@@ -109,7 +342,7 @@ namespace NPoco
         {
             try
             {
-                OpenSharedConnectionInternal();
+                await OpenSharedConnectionInternalAsync();
                 await _dbType.InsertBulkAsync(this, pocos, options).ConfigureAwait(false);
             }
             catch (Exception x)
@@ -119,7 +352,7 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
         }
 
@@ -135,7 +368,7 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                await OpenSharedConnectionInternalAsync();
                 PocoData pd = null;
 
                 foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
@@ -167,7 +400,7 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
 
             return result;
@@ -215,7 +448,7 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                await OpenSharedConnectionInternalAsync();
                 PocoData pd = null;
 
                 foreach (var batchedPocos in pocos.Chunkify(options.BatchSize))
@@ -250,7 +483,7 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
 
             return result;
@@ -416,7 +649,7 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                await OpenSharedConnectionInternalAsync();
                 using var cmd = CreateCommand(_sharedConnection, sql, args); 
                 using var reader = await ExecuteDataReader(cmd, false).ConfigureAwait(false);
                 var read = (listExpression != null ? ReadOneToManyAsync(instance, reader, listExpression, idFunc, pocoData) : ReadAsync<T>(instance, reader, pocoData));
@@ -427,7 +660,7 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
         }
 
@@ -495,7 +728,7 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                await OpenSharedConnectionInternalAsync();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
                     var result = await ExecuteNonQueryHelperAsync(cmd).ConfigureAwait(false);
@@ -509,7 +742,7 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
         }
 
@@ -525,7 +758,7 @@ namespace NPoco
 
             try
             {
-                OpenSharedConnectionInternal();
+                await OpenSharedConnectionInternalAsync();
                 using (var cmd = CreateCommand(_sharedConnection, sql, args))
                 {
                     object val = await ExecuteScalarHelperAsync(cmd).ConfigureAwait(false);
@@ -546,7 +779,7 @@ namespace NPoco
             }
             finally
             {
-                CloseSharedConnectionInternal();
+                await CloseSharedConnectionInternalAsync();
             }
         }
 
