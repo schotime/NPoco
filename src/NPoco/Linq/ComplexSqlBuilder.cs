@@ -113,6 +113,27 @@ namespace NPoco.Linq
             return new Sql(newsql, _sqlExpression.Context.Params);
         }
 
+        private static IEnumerable<PocoColumn> GetJoinPocoColumns(IEnumerable<PocoMember> members)
+        {
+            foreach (var member in members)
+            {
+                switch (member.ReferenceType)
+                {
+                    case ReferenceType.Foreign:
+                        break;
+                    case ReferenceType.None:
+                    {
+                        yield return member.PocoColumn;
+                        foreach (var pocoMemberChild in GetJoinPocoColumns(member.PocoMemberChildren))
+                        {
+                            yield return pocoMemberChild;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
         private static string BuildJoinSql(IDatabase database, List<JoinData> joinSqlExpressions, ref List<StringPocoCol> cols)
         {
             var joins = new List<string>();
@@ -121,14 +142,14 @@ namespace NPoco.Linq
             {
                 var member = joinSqlExpression.PocoMemberJoin;
 
-                cols = cols.Concat(joinSqlExpression.PocoMembers
-                    .Where(x => x.ReferenceType == ReferenceType.None && x.PocoColumn != null && !x.PocoColumn.ResultColumn)
+                cols = cols.Concat(GetJoinPocoColumns(joinSqlExpression.PocoMembers)
+                    .Where(x => x != null && !x.ResultColumn)
                     .Select(x => new StringPocoCol
                 {
-                    StringCol = database.DatabaseType.EscapeTableName(x.PocoColumn.TableInfo.AutoAlias)
-                                + "." + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(x.PocoColumn.MemberInfoKey),
-                    PocoColumn = new[] { x.PocoColumn }
-                })).ToList(); 
+                    StringCol = database.DatabaseType.EscapeTableName(x.TableInfo.AutoAlias)
+                                + "." + database.DatabaseType.EscapeSqlIdentifier(x.ColumnName) + " as " + database.DatabaseType.EscapeSqlIdentifier(x.MemberInfoKey),
+                    PocoColumn = new[] { x }
+                })).ToList();
 
                 joins.Add(string.Format("  {0} JOIN " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.TableName) + " " + database.DatabaseType.EscapeTableName(member.PocoColumn.TableInfo.AutoAlias) + joinSqlExpression.Hint + " ON " + joinSqlExpression.OnSql, joinSqlExpression.JoinType == JoinType.Inner ? "INNER" : "LEFT"));
             }
