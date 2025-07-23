@@ -1042,6 +1042,11 @@ namespace NPoco.Expressions
 
         protected string CreateParam(object value)
         {
+            // If value has already been provided, reuse the parameter.
+            var indexOfExistingValue = _params.IndexOf(value);
+            if (indexOfExistingValue >= 0)
+                return paramPrefix + indexOfExistingValue;
+
             string paramPlaceholder = paramPrefix + _params.Count;
             _params.Add(value);
             return paramPlaceholder;
