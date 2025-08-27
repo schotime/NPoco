@@ -19,6 +19,7 @@ namespace NPoco
             {
                 x => new ValueTupleRowMapper(x),
                 _ => new DictionaryMapper(),
+                _ => new OrderedDictionaryMapper(),
                 _ => new ValueTypeMapper(),
                 _ => new ArrayMapper(),
                 _ => new PropertyMapper()

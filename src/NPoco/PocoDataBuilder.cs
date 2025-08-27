@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
 using NPoco.FluentMappings;
@@ -65,7 +66,7 @@ namespace NPoco
 
         public static bool IsDictionaryType(Type type)
         {
-            return new[] {typeof(object), typeof(IDictionary<string, object>), typeof(Dictionary<string, object>)}.Contains(type)
+            return new[] {typeof(object), typeof(IDictionary<string, object>), typeof(Dictionary<string, object>), typeof(OrderedDictionary)}.Contains(type)
                 || (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>) && type.GetGenericArguments().First() == typeof(string));
         }
 

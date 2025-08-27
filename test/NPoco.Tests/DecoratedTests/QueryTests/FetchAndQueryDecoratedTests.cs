@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -167,6 +168,14 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
         public void ReturnDictionaryStringObject()
         {
             var data = Database.Fetch<Dictionary<string, object>>("select userid, name from users where userid = 2");
+            Assert.AreEqual(2, data[0]["userid"]);
+            Assert.AreEqual("Name2", data[0]["name"]);
+        }
+
+        [Test]
+        public void ReturnOrderedDictionaryObject()
+        {
+            var data = Database.Fetch<OrderedDictionary>("select userid, name from users where userid = 2");
             Assert.AreEqual(2, data[0]["userid"]);
             Assert.AreEqual("Name2", data[0]["name"]);
         }

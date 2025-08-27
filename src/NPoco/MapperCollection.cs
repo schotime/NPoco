@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Data.Common;
 using System.Reflection;
@@ -17,6 +18,7 @@ namespace NPoco
             Factories.Add(typeof(object), x => new PocoExpando());
             Factories.Add(typeof(IDictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
             Factories.Add(typeof(Dictionary<string, object>), x => new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
+            Factories.Add(typeof(OrderedDictionary), x => new OrderedDictionary(StringComparer.OrdinalIgnoreCase));
         }
 
         public void RegisterFactory<T>(Func<DbDataReader, T> factory)
