@@ -38,5 +38,7 @@ namespace NPoco
         void PreExecute(DbCommand cmd);
         object ProcessDefaultMappings(PocoColumn pocoColumn, object value);
         bool UseColumnAliases();
+
+        bool EscapeTableColumAliasNames { get; set; }
     }
 }

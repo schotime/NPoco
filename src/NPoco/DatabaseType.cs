@@ -32,6 +32,8 @@ namespace NPoco
 
         readonly Dictionary<Type, DbType> typeMap;
 
+        public bool EscapeTableColumAliasNames { get; set; } = true;
+
         public DatabaseType()
         {
             typeMap = new Dictionary<Type, DbType>();
@@ -190,7 +192,7 @@ namespace NPoco
         /// <returns>The escaped identifier</returns>
         public virtual string EscapeSqlIdentifier(string str)
         {
-            return string.Format("[{0}]", str);
+            return EscapeTableColumAliasNames ? string.Format("[{0}]", str) : str;
         }
 
         /// <summary>
@@ -259,7 +261,7 @@ namespace NPoco
         /// <param name="typeName"></param>
         /// <param name="providerName"></param>
         /// <returns></returns>
-        public static DatabaseType Resolve(string typeName, string providerName)
+        public static DatabaseType Resolve(string typeName, string providerName, bool escapeTableColumAliasNames = true)
         {
             // Try using type name first (more reliable)
             if (typeName.StartsWith("MySql"))

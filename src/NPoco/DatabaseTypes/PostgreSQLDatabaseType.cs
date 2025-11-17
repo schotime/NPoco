@@ -23,17 +23,20 @@ namespace NPoco.DatabaseTypes
 
         public override string EscapeSqlIdentifier(string str)
         {
-            return string.Format("\"{0}\"", str);
+            return EscapeTableColumAliasNames ? string.Format("\"{0}\"", str) : str;
         }
-        
+
         private void AdjustSqlInsertCommandText(DbCommand cmd, string primaryKeyName)
         {
-            cmd.CommandText += string.Format(" returning {0} as NewID", EscapeSqlIdentifier(primaryKeyName));
+            if (primaryKeyName != "ID")
+            {
+                cmd.CommandText += string.Format(" returning {0} as NewID", EscapeSqlIdentifier(primaryKeyName));
+            }
         }
 
         public override object ExecuteInsert<T>(IDatabase db, DbCommand cmd, string primaryKeyName, bool useOutputClause, T poco, object[] args)
         {
-            if (primaryKeyName != null)
+            if (!string.IsNullOrEmpty(primaryKeyName))
             {
                 AdjustSqlInsertCommandText(cmd, primaryKeyName);
                 return ((IDatabaseHelpers)db).ExecuteScalarHelper(cmd);
@@ -62,7 +65,7 @@ namespace NPoco.DatabaseTypes
 
         public override string GetProviderName()
         {
-            return "Npgsql2";
+            return "Npgsql";
         }
     }
 }
