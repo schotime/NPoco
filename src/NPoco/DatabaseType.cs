@@ -192,7 +192,7 @@ namespace NPoco
         /// <returns>The escaped identifier</returns>
         public virtual string EscapeSqlIdentifier(string str)
         {
-            return EscapeTableColumAliasNames ? string.Format("[{0}]", str) : str;
+            return string.Format("[{0}]", str);
         }
 
         /// <summary>
