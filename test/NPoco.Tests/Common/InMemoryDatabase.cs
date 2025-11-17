@@ -8,17 +8,20 @@ namespace NPoco.Tests.Common
         public InMemoryDatabase()
         {
             DbType = DatabaseType.SQLite;
-            ConnectionString = "Data Source=:memory:;Version=3;";
+            var builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder()
+            {
+                Mode = Microsoft.Data.Sqlite.SqliteOpenMode.Memory
+            };
+            ConnectionString = builder.ConnectionString; // "Data Source=:memory:;Version=3;";
             ProviderName = DatabaseType.SQLite.GetProviderName();
-            
-            RecreateDataBase();
+
             EnsureSharedConnectionConfigured();
+            RecreateDataBase();
         }
 
         public override void EnsureSharedConnectionConfigured()
         {
             if (Connection != null) return;
-            
 
             lock (_syncRoot)
             {
