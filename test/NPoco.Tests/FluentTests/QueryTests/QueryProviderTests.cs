@@ -392,7 +392,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 // NewArrayExpression).
                 var users = Database.Query<User>()
                     .ProjectTo(x => new ProjectUser2 { FormattedAge = string.Format("{0:n2} {1:n2} {2:n2} {3:n2} {4:n2} {5:n2} {6:n2}",
-                        x.Age, x.Age, x.Age, x.Age, x.Age, x.Age, x.Age) });
+                        new object[] { x.Age, x.Age, x.Age, x.Age, x.Age, x.Age, x.Age }) });
 
                 Assert.AreEqual("21.00 21.00 21.00 21.00 21.00 21.00 21.00", users[0].FormattedAge);
                 Assert.AreEqual(15, users.Count);

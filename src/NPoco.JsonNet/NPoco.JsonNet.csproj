@@ -2,12 +2,8 @@
 
   <PropertyGroup>
     <Description>Provides an implementation to use Json.NET as the serializer for serialized columns</Description>
-    <VersionPrefix>5.7.1</VersionPrefix>
-    <TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
-    <VersionPrefix>5.7.0</VersionPrefix>
-    <TargetFrameworks>net461;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
-    <VersionPrefix>6.1.0</VersionPrefix>
-    <TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
+    <VersionPrefix>6.2.0</VersionPrefix>
+    <TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0;net10.0</TargetFrameworks>
     <AssemblyName>NPoco.JsonNet</AssemblyName>
     <PackageId>NPoco.JsonNet</PackageId>
     <PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
