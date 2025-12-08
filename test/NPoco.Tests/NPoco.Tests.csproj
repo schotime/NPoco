@@ -2,8 +2,8 @@
 
 	<PropertyGroup>
 		<Description>NPoco Tests</Description>
-		<VersionPrefix>5.0.0</VersionPrefix>
-		<TargetFrameworks>net8.0</TargetFrameworks>
+		<VersionPrefix>6.2.0</VersionPrefix>
+		<TargetFrameworks>net10.0</TargetFrameworks>
 		<AssemblyName>NPoco.Tests</AssemblyName>
 		<OutputType>Library</OutputType>
 		<PackageId>NPoco.Tests</PackageId>

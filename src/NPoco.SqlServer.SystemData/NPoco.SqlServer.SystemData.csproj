@@ -8,6 +8,8 @@
 	<TargetFrameworks>net461;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
 	<VersionPrefix>6.1.0</VersionPrefix>
 	<TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
+	<VersionPrefix>6.2.0</VersionPrefix>
+	<TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0;net10.0</TargetFrameworks>
 	<AssemblyName>NPoco.SqlServer.SystemData</AssemblyName>
 	<PackageId>NPoco.SqlServer.SystemData</PackageId>
 	<Authors>Adam Schröder</Authors>
