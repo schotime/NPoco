@@ -1,32 +1,34 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <Description>Provides an implementation to use Json.NET as the serializer for serialized columns</Description>
-    <VersionPrefix>5.7.1</VersionPrefix>
-    <TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
-    <VersionPrefix>5.7.0</VersionPrefix>
-    <TargetFrameworks>net461;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
-    <VersionPrefix>6.1.0</VersionPrefix>
-    <TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
-    <AssemblyName>NPoco.JsonNet</AssemblyName>
-    <PackageId>NPoco.JsonNet</PackageId>
-    <PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
-    <PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
-    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <LangVersion>latest</LangVersion>
-  </PropertyGroup>
+	<PropertyGroup>
+		<Description>Provides an implementation to use Json.NET as the serializer for serialized columns</Description>
+		<VersionPrefix>5.7.1</VersionPrefix>
+		<TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<VersionPrefix>5.7.0</VersionPrefix>
+		<TargetFrameworks>net461;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
+		<VersionPrefix>6.1.0</VersionPrefix>
+		<TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
+		<VersionPrefix>6.2.0</VersionPrefix>
+		<TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0;net10.0</TargetFrameworks>
+		<AssemblyName>NPoco.JsonNet</AssemblyName>
+		<PackageId>NPoco.JsonNet</PackageId>
+		<PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
+		<PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
+		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+		<GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+		<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\NPoco\NPoco.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\NPoco\NPoco.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
+	<ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-  </ItemGroup>
+	</ItemGroup>
 
 </Project>

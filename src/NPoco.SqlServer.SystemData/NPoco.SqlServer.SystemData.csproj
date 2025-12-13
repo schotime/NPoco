@@ -1,29 +1,31 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-	<Description>An extremely easy to use Micro-ORM supporting Sql Server.</Description>
-	<VersionPrefix>5.7.1</VersionPrefix>
-	<TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
-	<VersionPrefix>5.7.0</VersionPrefix>
-	<TargetFrameworks>net461;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
-	<VersionPrefix>6.1.0</VersionPrefix>
-	<TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
-	<AssemblyName>NPoco.SqlServer.SystemData</AssemblyName>
-	<PackageId>NPoco.SqlServer.SystemData</PackageId>
-	<Authors>Adam Schröder</Authors>
-	<PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
-	<PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
-	<LangVersion>latest</LangVersion>
-	<nullable>enable</nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<Description>An extremely easy to use Micro-ORM supporting Sql Server.</Description>
+		<VersionPrefix>5.7.1</VersionPrefix>
+		<TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<VersionPrefix>5.7.0</VersionPrefix>
+		<TargetFrameworks>net461;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
+		<VersionPrefix>6.1.0</VersionPrefix>
+		<TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
+		<VersionPrefix>6.2.0</VersionPrefix>
+		<TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0;net10.0</TargetFrameworks>
+		<AssemblyName>NPoco.SqlServer.SystemData</AssemblyName>
+		<PackageId>NPoco.SqlServer.SystemData</PackageId>
+		<Authors>Adam Schröder</Authors>
+		<PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
+		<PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
+		<LangVersion>latest</LangVersion>
+		<nullable>enable</nullable>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\NPoco\NPoco.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\NPoco\NPoco.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
+	<ItemGroup>
 	<PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
 	<PackageReference Include="Polly" Version="8.5.0" />
-  </ItemGroup>
+	</ItemGroup>
 
 </Project>
