@@ -38,6 +38,18 @@ namespace NPoco.Expressions
             return expression.NodeType != ExpressionType.Parameter;
         }
 
+        private static bool IsByRefLikeType(Type type)
+        {
+            // Check for byref-like types (Span<T>, ReadOnlySpan<T>, etc.)
+            // These types cannot be boxed or used in expression trees
+            var isByRefLikeProperty = typeof(Type).GetProperty("IsByRefLike");
+            if (isByRefLikeProperty != null)
+            {
+                return (bool)isByRefLikeProperty.GetValue(type);
+            }
+            return false;
+        }
+
         /// <summary>
         /// Evaluates & replaces sub-trees when first candidate is reached (top-down)
         /// </summary>
@@ -75,8 +87,15 @@ namespace NPoco.Expressions
                     return e;
                 }
                 Type type = e.Type;
-                if (type.GetTypeInfo().IsValueType)
+                
+                // Check for byref-like types (Span<T>, ReadOnlySpan<T>, etc.)
+                // These cannot be boxed or compiled in expression trees
+                if (IsByRefLikeType(type))
                 {
+                    return e;
+                }
+
+                if (type.GetTypeInfo().IsValueType) {
                     e = Expression.Convert(e, typeof(object));
                 }
                 Expression<Func<object>> lambda = Expression.Lambda<Func<object>>(e);
@@ -117,7 +136,12 @@ namespace NPoco.Expressions
                     base.Visit(expression);
                     if (!this.cannotBeEvaluated)
                     {
-                        if (this.fnCanBeEvaluated(expression))
+                        // Don't evaluate expressions with byref-like types
+                        if (expression.Type != null && IsByRefLikeType(expression.Type))
+                        {
+                            this.cannotBeEvaluated = true;
+                        }
+                        else if (this.fnCanBeEvaluated(expression))
                         {
                             this.candidates.Add(expression);
                         }

@@ -6,7 +6,7 @@
     <AssemblyName>NPoco</AssemblyName>
     <PackageId>NPoco</PackageId>
     <VersionPrefix>5.7.1</VersionPrefix>
-    <VersionPrefix>6.1.0</VersionPrefix>
+    <VersionPrefix>6.2.0</VersionPrefix>
     <Authors>Adam Schröder</Authors>
     <PackageTags>orm;sql;micro-orm;database;mvc</PackageTags>
     <PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>

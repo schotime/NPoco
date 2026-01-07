@@ -111,7 +111,7 @@ namespace NPoco.Tests.Async
         {
             var source = new CancellationTokenSource();
             source.Cancel();
-            Assert.ThrowsAsync<OperationCanceledException>(() => Database.Query<User>().ProjectToAsync(x => new { x.Name }, source.Token));
+            Assert.ThrowsAsync<TaskCanceledException>(() => Database.Query<User>().ProjectToAsync(x => new { x.Name }, source.Token));
         }
 
         [Test]
