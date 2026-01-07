@@ -1108,6 +1108,15 @@ namespace NPoco.Expressions
             if (_projection && VisitInnerMethodCall(m))
                 return null;
 
+            // Handle conversion operators (op_Implicit, op_Explicit) which cannot be dynamically invoked
+            // These typically wrap constant values, so we visit the operand instead
+            if (m.Method.IsSpecialName && 
+                (m.Method.Name == "op_Implicit" || m.Method.Name == "op_Explicit") && 
+                m.Arguments.Count == 1)
+            {
+                return Visit(m.Arguments[0]);
+            }
+
             return Expression.Lambda(m).Compile().DynamicInvoke();
         }
 
@@ -1201,6 +1210,18 @@ namespace NPoco.Expressions
                     Expression memberExpr = m.Arguments[0];
                     if (memberExpr.NodeType == ExpressionType.MemberAccess)
                         memberExpr = (m.Arguments[0] as MemberExpression);
+
+                    // If args[0] is already an evaluated value (not a PartialSqlString), use it directly
+                    if (!(args[0] is PartialSqlString) && args[0] is IEnumerable enumerable)
+                    {
+                        var inArgs = enumerable.Cast<object>().ToList();
+                        if (inArgs.Count == 0)
+                        {
+                            return new PartialSqlString("1 = 0");
+                        }
+                        var sIn = FlattenList(inArgs, args[1]);
+                        return new PartialSqlString(string.Format("{0} {1} ({2})", args[1], "IN", sIn));
+                    }
 
                     return new PartialSqlString(BuildInStatement(memberExpr, args[1]));
 
