@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-	<PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+	<PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
 	<PackageReference Include="Polly" Version="8.5.0" />
   </ItemGroup>
 
