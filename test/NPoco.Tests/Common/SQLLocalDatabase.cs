@@ -228,6 +228,11 @@ namespace NPoco.Tests.Common
             cmd.CommandText = "CREATE TABLE Child (ChildId int NOT NULL PRIMARY KEY, ParentId int NOT NULL, CONSTRAINT fk FOREIGN KEY (ParentId) REFERENCES Parent(ParentId))";
             cmd.ExecuteNonQuery();
 
+            cmd.CommandText = "CREATE TABLE ParentWithComplexMapping (ParentId int NOT NULL PRIMARY KEY, Id int NOT NULL, Address__Street nvarchar(100) NULL, Address__City nvarchar(100) NULL)";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = "CREATE TABLE ChildWithComplexParent (ChildId int NOT NULL PRIMARY KEY, ParentId int NOT NULL)";
+            cmd.ExecuteNonQuery();
+
 
             //            Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
             //            var dt = conn.GetSchema("Tables");
