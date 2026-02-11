@@ -44,6 +44,11 @@ namespace NPoco.Tests.Common
                     break;
 
                 case 3: // SQL Server
+                    var sqlServerConnectionString = configuration.GetSection("TestDbConnectionString").Value;
+                    TestDatabase = new SqlServerDatabase(sqlServerConnectionString);
+                    Database = new Database(TestDatabase.Connection, new SqlServer2008DatabaseType() { UseOutputClause = false }, IsolationLevel.ReadUncommitted);
+                    Database.Mappers.Insert(0, new SqlTestDefaultMapper());
+                    break;
                 case 4: // SQL CE
                 case 5: // MySQL
                 case 6: // Oracle

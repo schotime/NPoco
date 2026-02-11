@@ -1,91 +1,16 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using System.IO;
 using NPoco.DatabaseTypes;
 
 namespace NPoco.Tests.Common
 {
-    public class SQLLocalDatabase : TestDatabase
+    public static class SqlServerSchema
     {
-        protected const string DBName = "UnitTestsDB";
-        protected const string DBFileName = "UnitTestsDB.mdf";
-        protected const string LogFileName = "UnitTestsDB_log.ldf";
-        
-        protected string DBPath { get; set; }
-        protected string FQDBFile { get; set; }
-        protected string FQLogFile { get; set; }
-        protected string ConnectionStringBase { get; set; }
-
-        public SQLLocalDatabase(string dataSource)
+        public static void CreateSchema(DbCommand cmd)
         {
-            DbType = new SqlServer2012DatabaseType();
-            DBPath = Directory.GetCurrentDirectory();
-
-            FQDBFile = DBPath + "\\" + DBFileName;
-            FQLogFile = DBPath + "\\" + LogFileName;
-
-            ConnectionStringBase = String.Format("Data Source={0};Integrated Security=True;", dataSource);
-            ConnectionString = String.Format("{0}AttachDbFileName=\"{1}\";", ConnectionStringBase, FQDBFile);
-            ProviderName = "Microsoft.Data.SqlClient";
-
-            RecreateDataBase();
-            EnsureSharedConnectionConfigured();
-
-//            Console.WriteLine("Tables (Constructor): " + Environment.NewLine);
-//            var dt = ((SqlConnection)Connection).GetSchema("Tables");
-//            foreach (DataRow row in dt.Rows)
-//            {
-//                Console.WriteLine((string)row[2]);
-//            }
-        }
-
-        public override void EnsureSharedConnectionConfigured()
-        {
-            if (Connection != null) return;
-
-            lock (_syncRoot)
-            {
-                Connection = new SqlConnection(ConnectionString);
-                Connection.Open();
-            }
-        }
-
-        public override void RecreateDataBase()
-        {
-            //Console.WriteLine("----------------------------");
-            //Console.WriteLine("Using SQL Server Local DB   ");
-            //Console.WriteLine("----------------------------");
-
-            base.RecreateDataBase();
-
-            /* 
-             * Using new connection so that when a transaction is bound to Connection if it rolls back 
-             * it doesn't blow away the tables
-             */
-            var conn = new SqlConnection(ConnectionStringBase);
-            conn.Open();
-            var cmd = conn.CreateCommand();
-
-            // Try to detach the DB in case the clean up code wasn't called (usually aborted debugging)
-            cmd.CommandText = String.Format(@"
-                IF (EXISTS(SELECT name FROM master.dbo.sysdatabases WHERE ('[' + name + ']' = '{0}' OR name = '{0}')))
-                BEGIN
-                    ALTER DATABASE {0} SET single_user WITH rollback immediate
-                    DROP DATABASE {0}
-                END
-            ", DBName);
-            cmd.ExecuteNonQuery();
-            if (File.Exists(FQDBFile)) File.Delete(FQDBFile);
-            if (File.Exists(FQLogFile)) File.Delete(FQLogFile);
-
-            // Create the new DB
-            cmd.CommandText = String.Format("CREATE DATABASE {0} ON (NAME = N'{0}', FILENAME = '{1}')", DBName, FQDBFile);
-            cmd.ExecuteNonQuery();
-            if (!File.Exists(DBFileName)) throw new Exception("Database failed to create");
-            cmd.Connection.ChangeDatabase(DBName);
-
-            // Create the Schema
             cmd.CommandText = @"
                 CREATE TABLE Users(
                     UserId int IDENTITY(1,1) PRIMARY KEY NOT NULL, 
@@ -232,14 +157,74 @@ namespace NPoco.Tests.Common
             cmd.ExecuteNonQuery();
             cmd.CommandText = "CREATE TABLE ChildWithComplexParent (ChildId int NOT NULL PRIMARY KEY, ParentId int NOT NULL)";
             cmd.ExecuteNonQuery();
+        }
+    }
 
+    public class SQLLocalDatabase : TestDatabase
+    {
+        protected const string DBName = "UnitTestsDB";
+        protected const string DBFileName = "UnitTestsDB.mdf";
+        protected const string LogFileName = "UnitTestsDB_log.ldf";
+        
+        protected string DBPath { get; set; }
+        protected string FQDBFile { get; set; }
+        protected string FQLogFile { get; set; }
+        protected string ConnectionStringBase { get; set; }
 
-            //            Console.WriteLine("Tables (CreateDB): " + Environment.NewLine);
-            //            var dt = conn.GetSchema("Tables");
-            //            foreach (DataRow row in dt.Rows)
-            //            {
-            //                Console.WriteLine(row[2]);
-            //            }
+        public SQLLocalDatabase(string dataSource)
+        {
+            DbType = new SqlServer2012DatabaseType();
+            DBPath = Directory.GetCurrentDirectory();
+
+            FQDBFile = DBPath + "\\" + DBFileName;
+            FQLogFile = DBPath + "\\" + LogFileName;
+
+            ConnectionStringBase = String.Format("Data Source={0};Integrated Security=True;", dataSource);
+            ConnectionString = String.Format("{0}AttachDbFileName=\"{1}\";", ConnectionStringBase, FQDBFile);
+            ProviderName = "Microsoft.Data.SqlClient";
+
+            RecreateDataBase();
+            EnsureSharedConnectionConfigured();
+        }
+
+        public override void EnsureSharedConnectionConfigured()
+        {
+            if (Connection != null) return;
+
+            lock (_syncRoot)
+            {
+                Connection = new SqlConnection(ConnectionString);
+                Connection.Open();
+            }
+        }
+
+        public override void RecreateDataBase()
+        {
+            base.RecreateDataBase();
+
+            var conn = new SqlConnection(ConnectionStringBase);
+            conn.Open();
+            var cmd = conn.CreateCommand();
+
+            // Try to detach the DB in case the clean up code wasn't called (usually aborted debugging)
+            cmd.CommandText = String.Format(@"
+                IF (EXISTS(SELECT name FROM master.dbo.sysdatabases WHERE ('[' + name + ']' = '{0}' OR name = '{0}')))
+                BEGIN
+                    ALTER DATABASE {0} SET single_user WITH rollback immediate
+                    DROP DATABASE {0}
+                END
+            ", DBName);
+            cmd.ExecuteNonQuery();
+            if (File.Exists(FQDBFile)) File.Delete(FQDBFile);
+            if (File.Exists(FQLogFile)) File.Delete(FQLogFile);
+
+            // Create the new DB
+            cmd.CommandText = String.Format("CREATE DATABASE {0} ON (NAME = N'{0}', FILENAME = '{1}')", DBName, FQDBFile);
+            cmd.ExecuteNonQuery();
+            if (!File.Exists(DBFileName)) throw new Exception("Database failed to create");
+            cmd.Connection.ChangeDatabase(DBName);
+
+            SqlServerSchema.CreateSchema(cmd);
 
             cmd.Dispose();
             conn.Close();
