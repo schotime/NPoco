@@ -33,6 +33,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\..\src\NPoco.FluentSqlBuilder\NPoco.FluentSqlBuilder.csproj" />
 	  <ProjectReference Include="..\..\src\NPoco.SqlServer\NPoco.SqlServer.csproj" />
 	</ItemGroup>
 
