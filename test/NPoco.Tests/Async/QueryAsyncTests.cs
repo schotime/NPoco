@@ -257,5 +257,12 @@ namespace NPoco.Tests.Async
                 Assert.AreEqual(i++, user.UserId);
             }            
         }
+
+        [Test]
+        public async Task FetchNoResults()
+        {
+            var data = await Database.FetchAsync<User>("select 1 as UserId /*poco_dual*/ where 1 = 0");
+            Assert.AreEqual(data.Count, 0);
+        }
     }
 }

@@ -37,6 +37,7 @@ namespace NPoco
         object MapParameterValue(object value);
         void PreExecute(DbCommand cmd);
         object ProcessDefaultMappings(PocoColumn pocoColumn, object value);
+        void SetParameterValue(DbParameter p, object value);
         bool UseColumnAliases();
     }
 }

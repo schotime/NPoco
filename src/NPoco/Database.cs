@@ -667,7 +667,7 @@ namespace NPoco
             var p = cmd.CreateParameter();
             p.ParameterName = string.Format("{0}{1}", _paramPrefix, cmd.Parameters.Count);
 
-            ParameterHelper.SetParameterValue(_dbType, p, value);
+            _dbType.SetParameterValue(p, value);
 
             cmd.Parameters.Add(p);
         }
@@ -841,7 +841,7 @@ namespace NPoco
                         DbParameter param = cmd.CreateParameter();
                         param.ParameterName = item.Name;
 
-                        ParameterHelper.SetParameterValue(_dbType, param, item.Value);
+                        _dbType.SetParameterValue(param, item.Value);
 
                         cmd.Parameters.Add(param);
                     }

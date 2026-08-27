@@ -11,6 +11,10 @@
 	<PackageProjectUrl>https://github.com/schotime/NPoco</PackageProjectUrl>
 	<LangVersion>latest</LangVersion>
 	<nullable>enable</nullable>
+	<!-- This project's whole purpose is to target the legacy System.Data.SqlClient provider,
+	     whose types are marked [Obsolete] pointing at Microsoft.Data.SqlClient. That's expected
+	     here, not a bug to fix - NPoco.SqlServer is the Microsoft.Data.SqlClient variant. -->
+	<NoWarn>$(NoWarn);CS0618</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-	<PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
+	<PackageReference Include="System.Data.SqlClient" Version="4.9.1" />
 	<PackageReference Include="Polly" Version="8.5.0" />
   </ItemGroup>
 

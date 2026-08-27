@@ -313,7 +313,9 @@ namespace NPoco
             // Dump out the bytes
             byte[] result = new byte[stream.Position / 8];
             stream.Seek(0, SeekOrigin.Begin);
-            stream.Read(result, 0, result.Length * 8);
+            int bitsRead = stream.Read(result, 0, result.Length * 8);
+            if (bitsRead != result.Length * 8)
+                throw new InvalidDataException("Unexpected end of stream while decoding base62 value");
             return result;
         }
     }

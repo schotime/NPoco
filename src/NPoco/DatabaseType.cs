@@ -144,6 +144,99 @@ namespace NPoco
         }
 
         /// <summary>
+        /// Sets a DbParameter's Value/DbType/Size for a given CLR value. Override in a DatabaseType subclass
+        /// to customize provider-specific parameter handling (e.g. mapping DateTime to a provider-specific
+        /// enum based on DateTimeKind) instead of special-casing it here.
+        /// </summary>
+        public virtual void SetParameterValue(DbParameter p, object value)
+        {
+            if (value == null)
+            {
+                p.Value = DBNull.Value;
+                return;
+            }
+
+            // Give the database type first crack at converting to DB required type
+            value = MapParameterValue(value);
+
+            var dbtypeSet = false;
+            var t = value.GetType();
+            var underlyingT = Nullable.GetUnderlyingType(t);
+            if (t.GetTypeInfo().IsEnum || (underlyingT != null && underlyingT.GetTypeInfo().IsEnum))        // PostgreSQL .NET driver wont cast enum to int
+            {
+                p.Value = (int)value;
+            }
+            else if (t == typeof(Guid))
+            {
+                p.Value = value;
+                p.DbType = DbType.Guid;
+                p.Size = 40;
+                dbtypeSet = true;
+            }
+            else if (t == typeof(string))
+            {
+                var strValue = value as string;
+                if (strValue == null)
+                {
+                    p.Size = 0;
+                    p.Value = DBNull.Value;
+                }
+                else
+                {
+                    // out of memory exception occurs if trying to save more than 4000 characters to SQL Server CE NText column. Set before attempting to set Size, or Size will always max out at 4000
+                    if (strValue.Length + 1 > 4000 && p.GetType().Name == "SqlCeParameter")
+                    {
+                        ReflectionCache.GetSetter(p.GetType(), "SqlDbType")(p, SqlDbType.NText);
+                    }
+
+                    p.Size = Math.Max(strValue.Length + 1, 4000); // Help query plan caching by using common size
+                    p.Value = value;
+                }
+            }
+            else if (t == typeof(AnsiString))
+            {
+                var ansistrValue = value as AnsiString;
+                if (ansistrValue?.Value == null)
+                {
+                    p.Size = 0;
+                    p.Value = DBNull.Value;
+                    p.DbType = DbType.AnsiString;
+                }
+                else
+                {
+                    // Thanks @DataChomp for pointing out the SQL Server indexing performance hit of using wrong string type on varchar
+                    p.Size = Math.Max(ansistrValue.Value.Length + 1, 4000);
+                    p.Value = ansistrValue.Value;
+                    p.DbType = DbType.AnsiString;
+                }
+                dbtypeSet = true;
+            }
+            else if (value.GetType().Name == "SqlGeography") //SqlGeography is a CLR Type
+            {
+                ReflectionCache.GetSetter(p.GetType(), "UdtTypeName")(p, "geography"); //geography is the equivalent SQL Server Type
+                p.Value = value;
+            }
+            else if (value.GetType().Name == "SqlGeometry") //SqlGeometry is a CLR Type
+            {
+                ReflectionCache.GetSetter(p.GetType(), "UdtTypeName")(p, "geometry"); //geography is the equivalent SQL Server Type
+                p.Value = value;
+            }
+            else
+            {
+                p.Value = value;
+            }
+
+            if (!dbtypeSet)
+            {
+                var dbTypeLookup = LookupDbType(p.Value.GetTheType(), p.ParameterName);
+                if (dbTypeLookup.HasValue)
+                {
+                    p.DbType = dbTypeLookup.Value;
+                }
+            }
+        }
+
+        /// <summary>
         /// Builds an SQL query suitable for performing page based queries to the database
         /// </summary>
         /// <param name="skip">The number of rows that should be skipped by the query</param>

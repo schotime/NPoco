@@ -21,10 +21,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<PackageReference Condition="'$(TargetFramework)' == 'net462' " Include="System.ValueTuple" Version="4.5.0" />
-	<PackageReference Condition="'$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'netstandard2.0' " Include="Microsoft.Bcl.AsyncInterfaces" Version="1.1.1" />
-	<PackageReference Condition="'$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'netstandard2.0' or '$(TargetFramework)' == 'netstandard2.1'" Include="System.Linq.Async" Version="5.0.0" />
-	<PackageReference Condition="'$(TargetFramework)' == 'net8.0'" Include="System.Linq.Async" Version="6.0.1" />
+	<PackageReference Condition="'$(TargetFramework)' == 'net462' " Include="System.ValueTuple" Version="4.6.2" />
+	<PackageReference Condition="'$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'netstandard2.0' " Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.11" />
+	<PackageReference Condition="'$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'netstandard2.0' or '$(TargetFramework)' == 'netstandard2.1'" Include="System.Linq.Async" Version="7.0.1" />
+	<PackageReference Condition="'$(TargetFramework)' == 'net8.0'" Include="System.Linq.Async" Version="7.0.1" />
     <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
   </ItemGroup>
 
