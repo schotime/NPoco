@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Data;
-using System.Threading;
-using System.Threading.Tasks;
+using NPoco.RowMappers;
 
 namespace NPoco.FluentSqlBuilder
 {
@@ -16,19 +15,95 @@ namespace NPoco.FluentSqlBuilder
         internal int Index;
     }
 
-    internal abstract class ProjectionNode
+    /// <summary>
+    /// Everything a node needs to bind itself to a particular reader shape. Resolved once per
+    /// query in <see cref="ProjectionPlan.Init"/>, never per row.
+    /// </summary>
+    internal sealed class ProjectionInitContext
     {
-        internal abstract object Materialize(object[] values, IDatabase database);
-        internal abstract bool HasData(object[] values);
+        internal DbDataReader Reader;
+        internal IMapperCollection Mappers;
+
+        private readonly Dictionary<string, int> _exact = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _ignoringCase = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _ambiguous = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        internal void AddColumn(string name, int ordinal)
+        {
+            if (!_exact.ContainsKey(name)) _exact.Add(name, ordinal);
+            if (_ignoringCase.ContainsKey(name)) _ambiguous.Add(name);
+            else _ignoringCase.Add(name, ordinal);
+        }
+
+        internal int Ordinal(string alias)
+        {
+            int ordinal;
+
+            // An exact hit is always right, and keeps aliases that differ only by case apart.
+            if (_exact.TryGetValue(alias, out ordinal)) return ordinal;
+
+            // Otherwise fall back to a case-insensitive match, for providers that fold identifiers.
+            if (_ambiguous.Contains(alias))
+                throw new InvalidOperationException("The projected column '" + alias
+                    + "' matches more than one column returned by the query, differing only by case.");
+            if (_ignoringCase.TryGetValue(alias, out ordinal)) return ordinal;
+
+            throw new InvalidOperationException("The projected column '" + alias + "' was not returned by the query.");
+        }
     }
 
-    internal sealed class ProjectionPlan
+    internal abstract class ProjectionNode
     {
+        internal abstract void Init(ProjectionInitContext context);
+        internal abstract object Materialize(object[] values, DbDataReader reader);
+        internal abstract bool HasData(object[] values);
+
+        protected static void NotifyLoaded(object instance)
+        {
+            var loaded = instance as IOnLoaded;
+            if (loaded != null) loaded.OnLoaded();
+        }
+    }
+
+    /// <summary>
+    /// Materializes an arbitrarily shaped projection - anonymous types, constructor calls, member
+    /// initialisers, whole entities, or any nesting of those - from a single row.
+    ///
+    /// It is an <see cref="IRowMapper"/> so that NPoco's own query pipeline runs it. That pipeline
+    /// owns the connection, transaction, interceptors and exception handling; this type owns only
+    /// the mapping of reader values onto the result graph.
+    /// </summary>
+    internal sealed class ProjectionPlan : IRowMapper
+    {
+        private readonly IMapperCollection _mappers;
+
+        internal ProjectionPlan(IMapperCollection mappers)
+        {
+            _mappers = mappers;
+        }
+
         internal List<ProjectionLeaf> Leaves { get; } = new List<ProjectionLeaf>();
         internal ProjectionNode Root { get; set; }
 
-        internal TResult Materialize<TResult>(object[] values, IDatabase database)
-            => (TResult)Root.Materialize(values, database);
+        public bool ShouldMap(PocoData pocoData) => true;
+
+        public void Init(DbDataReader dataReader, PocoData pocoData)
+        {
+            var context = new ProjectionInitContext
+            {
+                Reader = dataReader,
+                Mappers = _mappers ?? (pocoData == null ? null : pocoData.Mapper)
+            };
+            for (var i = 0; i < dataReader.FieldCount; i++) context.AddColumn(dataReader.GetName(i), i);
+            Root.Init(context);
+        }
+
+        public object Map(DbDataReader dataReader, RowMapperContext context)
+        {
+            var values = new object[dataReader.FieldCount];
+            dataReader.GetValues(values);
+            return Root.Materialize(values, dataReader);
+        }
     }
 
     internal sealed class ScalarProjectionNode : ProjectionNode
@@ -37,20 +112,32 @@ namespace NPoco.FluentSqlBuilder
         internal Type Type;
         internal MemberInfo Member;
         internal PocoColumn Column;
-        internal int Index;
 
-        internal override object Materialize(object[] values, IDatabase database)
+        private int _ordinal;
+        private Func<object, object> _converter;
+        private object _default;
+
+        internal int Ordinal => _ordinal;
+
+        internal override void Init(ProjectionInitContext context)
         {
-            var value = values[Index];
-            if (value == null || value == DBNull.Value)
-                return MappingHelper.GetDefault(Type);
-            var converter = Column == null
-                ? MappingHelper.GetConverter(database.Mappers, null, value.GetType(), Type)
-                : MappingHelper.GetConverter(database.Mappers, Column, value.GetType(), Type);
-            return converter == null ? value : converter(value);
+            _ordinal = context.Ordinal(Alias);
+            _default = MappingHelper.GetDefault(Type);
+            _converter = MappingHelper.GetConverter(context.Mappers, Column, context.Reader.GetFieldType(_ordinal), Type);
         }
 
-        internal override bool HasData(object[] values) => values[Index] != null && values[Index] != DBNull.Value;
+        internal override object Materialize(object[] values, DbDataReader reader)
+        {
+            var value = values[_ordinal];
+            if (value == null || value == DBNull.Value) return _default;
+            return _converter == null ? value : _converter(value);
+        }
+
+        internal override bool HasData(object[] values)
+        {
+            var value = values[_ordinal];
+            return value != null && value != DBNull.Value;
+        }
     }
 
     internal sealed class ObjectProjectionNode : ProjectionNode
@@ -61,23 +148,74 @@ namespace NPoco.FluentSqlBuilder
         internal List<MemberInfo> Members;
         internal bool NullWhenAllNull;
 
-        internal override object Materialize(object[] values, IDatabase database)
+        private ProjectionNode[] _children;
+        private Func<object[], object> _construct;
+        private IFastCreate _create;
+        private MemberAccessor[] _setters;
+        private bool _notifyLoaded;
+
+        internal override void Init(ProjectionInitContext context)
+        {
+            _children = Children.ToArray();
+            foreach (var child in _children) child.Init(context);
+
+            _notifyLoaded = typeof(IOnLoaded).IsAssignableFrom(Type);
+
+            if (Constructor != null)
+            {
+                _construct = BuildConstructor(Constructor);
+                return;
+            }
+
+            _create = new FastCreate(Type, context.Mappers);
+            _setters = Members.Select(x => new MemberAccessor(Type, x.Name)).ToArray();
+        }
+
+        internal override object Materialize(object[] values, DbDataReader reader)
         {
             if (NullWhenAllNull && !HasData(values)) return null;
-            var childValues = Children.Select(x => x.Materialize(values, database)).ToArray();
-            if (Constructor != null) return Constructor.Invoke(childValues);
-            var instance = Activator.CreateInstance(Type, true);
-            for (var i = 0; i < Members.Count; i++) SetMember(Members[i], instance, childValues[i]);
+
+            object instance;
+            if (_construct != null)
+            {
+                var arguments = new object[_children.Length];
+                for (var i = 0; i < _children.Length; i++) arguments[i] = _children[i].Materialize(values, reader);
+                instance = _construct(arguments);
+            }
+            else
+            {
+                instance = _create.Create(reader);
+                for (var i = 0; i < _children.Length; i++)
+                    _setters[i].Set(instance, _children[i].Materialize(values, reader));
+            }
+
+            if (_notifyLoaded) NotifyLoaded(instance);
             return instance;
         }
 
-        internal override bool HasData(object[] values) => Children.Any(x => x.HasData(values));
-
-        private static void SetMember(MemberInfo member, object instance, object value)
+        internal override bool HasData(object[] values)
         {
-            var property = member as PropertyInfo;
-            if (property != null) { property.SetValue(instance, value, null); return; }
-            ((FieldInfo)member).SetValue(instance, value);
+            for (var i = 0; i < _children.Length; i++)
+                if (_children[i].HasData(values)) return true;
+            return false;
+        }
+
+        private static Func<object[], object> BuildConstructor(ConstructorInfo constructor)
+        {
+            try
+            {
+                var arguments = Expression.Parameter(typeof(object[]), "args");
+                var parameters = constructor.GetParameters()
+                    .Select((x, i) => (Expression)Expression.Convert(Expression.ArrayIndex(arguments, Expression.Constant(i)), x.ParameterType));
+                var construct = Expression.New(constructor, parameters);
+                return Expression.Lambda<Func<object[], object>>(Expression.Convert(construct, typeof(object)), arguments).Compile();
+            }
+            catch (Exception)
+            {
+                // A constructor the expression compiler will not emit a call to (an inaccessible
+                // one, or a platform without dynamic code) still works through reflection.
+                return constructor.Invoke;
+            }
         }
     }
 
@@ -86,28 +224,48 @@ namespace NPoco.FluentSqlBuilder
         internal TableReference Table;
         internal List<ScalarProjectionNode> Columns;
 
-        internal override object Materialize(object[] values, IDatabase database)
+        private ScalarProjectionNode[] _columns;
+        private PocoData _pocoData;
+        private bool _notifyLoaded;
+
+        internal override void Init(ProjectionInitContext context)
         {
-            if (Columns.All(x => values[x.Index] == null || values[x.Index] == DBNull.Value)) return null;
-            var instance = Table.PocoData.CreateObject(null);
-            foreach (var column in Columns)
+            _columns = Columns.ToArray();
+            foreach (var column in _columns) column.Init(context);
+            _pocoData = Table.PocoData;
+            _notifyLoaded = typeof(IOnLoaded).IsAssignableFrom(_pocoData.Type);
+        }
+
+        internal override object Materialize(object[] values, DbDataReader reader)
+        {
+            if (!HasData(values)) return null;
+
+            var instance = _pocoData.CreateObject(reader);
+            for (var i = 0; i < _columns.Length; i++)
             {
-                var value = values[column.Index];
+                var column = _columns[i];
+                var value = values[column.Ordinal];
                 if (value == null || value == DBNull.Value) continue;
-                var converter = MappingHelper.GetConverter(database.Mappers, column.Column, value.GetType(), column.Column.MemberInfoData.MemberType);
-                column.Column.SetValue(instance, converter == null ? value : converter(value));
+                column.Column.SetValue(instance, column.Materialize(values, reader));
             }
+
+            if (_notifyLoaded) NotifyLoaded(instance);
             return instance;
         }
 
-        internal override bool HasData(object[] values) => Columns.Any(x => x.HasData(values));
+        internal override bool HasData(object[] values)
+        {
+            for (var i = 0; i < _columns.Length; i++)
+                if (_columns[i].HasData(values)) return true;
+            return false;
+        }
     }
 
     internal static class ProjectionPlanBuilder
     {
-        internal static ProjectionPlan Build<TResult>(Expression<Func<TResult>> projection, IEnumerable<TableReference> tables)
+        internal static ProjectionPlan Build<TResult>(Expression<Func<TResult>> projection, IEnumerable<TableReference> tables, IMapperCollection mappers)
         {
-            var plan = new ProjectionPlan();
+            var plan = new ProjectionPlan(mappers);
             plan.Root = BuildNode(projection.Body, typeof(TResult), null, plan, tables.ToArray());
             return plan;
         }
@@ -126,7 +284,7 @@ namespace NPoco.FluentSqlBuilder
                     var columnExpression = BuildColumnExpression(expression, column.MemberInfoChain);
                     var index = plan.Leaves.Count;
                     plan.Leaves.Add(new ProjectionLeaf { Expression = columnExpression, Alias = alias, Index = index });
-                    return new ScalarProjectionNode { Alias = alias, Index = index, Type = column.MemberInfoData.MemberType, Member = column.MemberInfoData.MemberInfo, Column = column };
+                    return new ScalarProjectionNode { Alias = alias, Type = column.MemberInfoData.MemberType, Member = column.MemberInfoData.MemberInfo, Column = column };
                 }).ToList();
                 return new EntityProjectionNode { Table = rowTable, Columns = columns };
             }
@@ -162,7 +320,7 @@ namespace NPoco.FluentSqlBuilder
             if (string.IsNullOrEmpty(path)) throw new ArgumentException("A projection must create a result object with named members.", nameof(expression));
             var leafIndex = plan.Leaves.Count;
             plan.Leaves.Add(new ProjectionLeaf { Expression = expression, Alias = path, Index = leafIndex });
-            return new ScalarProjectionNode { Alias = path, Index = leafIndex, Type = resultType };
+            return new ScalarProjectionNode { Alias = path, Type = resultType };
         }
 
         private static Expression BuildColumnExpression(Expression row, IEnumerable<MemberInfo> members)
@@ -187,66 +345,26 @@ namespace NPoco.FluentSqlBuilder
             return expression;
         }
 
-        private static string FindMemberName(Type type, string name)
-            => type.GetMember(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase).FirstOrDefault()?.Name ?? name;
+        /// <summary>
+        /// An exact match wins; the case-insensitive pass exists so a constructor parameter
+        /// (<c>id</c>) finds its member (<c>Id</c>), and must not override a member that matches
+        /// the name as written.
+        /// </summary>
+        private static MemberInfo FindMember(Type type, string name)
+        {
+            var exact = type.GetMember(name, BindingFlags.Public | BindingFlags.Instance);
+            if (exact.Length > 0) return exact[0];
+            return type.GetMember(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase).FirstOrDefault();
+        }
+
+        private static string FindMemberName(Type type, string name) => FindMember(type, name)?.Name ?? name;
 
         private static Type GetMemberType(Type type, string name)
         {
-            var member = type.GetMember(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase).FirstOrDefault();
+            var member = FindMember(type, name);
             return member is PropertyInfo property ? property.PropertyType : (member as FieldInfo)?.FieldType;
         }
 
         private static string Combine(string prefix, string name) => string.IsNullOrEmpty(prefix) ? name : prefix + PocoData.Separator + name;
-    }
-
-    internal static class ProjectionExecutor
-    {
-        internal static List<TResult> Fetch<TResult>(IDatabase database, Sql sql, ProjectionPlan plan)
-        {
-            var rows = new List<TResult>();
-            database.OpenSharedConnection();
-            try
-            {
-                using (var command = database.CreateCommand(database.Connection, CommandType.Text, sql.SQL, sql.Arguments))
-                using (var reader = ((IDatabaseHelpers)database).ExecuteReaderHelper(command))
-                {
-                    while (reader.Read())
-                    {
-                        var values = new object[reader.FieldCount];
-                        reader.GetValues(values);
-                        rows.Add(plan.Materialize<TResult>(values, database));
-                    }
-                }
-            }
-            finally
-            {
-                database.CloseSharedConnection();
-            }
-            return rows;
-        }
-
-        internal static async Task<List<TResult>> FetchAsync<TResult>(IDatabase database, Sql sql, ProjectionPlan plan, CancellationToken cancellationToken)
-        {
-            var rows = new List<TResult>();
-            await database.OpenSharedConnectionAsync(cancellationToken).ConfigureAwait(false);
-            try
-            {
-                using (var command = database.CreateCommand(database.Connection, CommandType.Text, sql.SQL, sql.Arguments))
-                using (var reader = await ((IDatabaseHelpers)database).ExecuteReaderHelperAsync(command, cancellationToken).ConfigureAwait(false))
-                {
-                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                    {
-                        var values = new object[reader.FieldCount];
-                        reader.GetValues(values);
-                        rows.Add(plan.Materialize<TResult>(values, database));
-                    }
-                }
-            }
-            finally
-            {
-                await database.CloseSharedConnectionAsync().ConfigureAwait(false);
-            }
-            return rows;
-        }
     }
 }

@@ -33,6 +33,17 @@ namespace NPoco
             _rowMapper.Init(dataReader, pocoData);
         }
 
+        /// <summary>
+        /// Uses the supplied row mapper instead of selecting one from <see cref="RowMappers"/>.
+        /// </summary>
+        public MappingFactory(PocoData pocoData, DbDataReader dataReader, IRowMapper rowMapper)
+        {
+            if (rowMapper == null) throw new ArgumentNullException(nameof(rowMapper));
+            _pocoData = pocoData;
+            _rowMapper = rowMapper;
+            _rowMapper.Init(dataReader, pocoData);
+        }
+
         public object Map(DbDataReader dataReader, object instance)
         {
             return _rowMapper.Map(dataReader, new RowMapperContext()

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using NPoco.Extensions;
 using NPoco.Linq;
+using NPoco.RowMappers;
 using System.Threading;
 using System.Runtime.CompilerServices;
 
@@ -442,24 +443,37 @@ namespace NPoco
 
         public IAsyncEnumerable<T> QueryAsync<T>(Sql sql, CancellationToken cancellationToken = default)
         {
-            return QueryAsync(default(T), null, null, sql, null, cancellationToken);
+            return QueryAsync(default(T), null, null, sql, null, null, cancellationToken);
         }
 
-        internal async IAsyncEnumerable<T> QueryAsync<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql, PocoData pocoData = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<T> QueryAsync<T>(Sql sql, IRowMapper rowMapper, CancellationToken cancellationToken = default)
         {
-            pocoData ??= PocoDataFactory.ForType(typeof(T));
+            if (rowMapper == null) throw new ArgumentNullException(nameof(rowMapper));
+            return QueryAsync(default(T), null, null, sql, null, rowMapper, cancellationToken);
+        }
+
+        public Task<List<T>> FetchAsync<T>(Sql sql, IRowMapper rowMapper, CancellationToken cancellationToken = default)
+        {
+            return QueryAsync<T>(sql, rowMapper, cancellationToken).ToListAsync(cancellationToken).AsTask();
+        }
+
+        internal async IAsyncEnumerable<T> QueryAsync<T>(T instance, Expression<Func<T, IList>> listExpression, Func<T, object[]> idFunc, Sql Sql, PocoData pocoData = null, IRowMapper rowMapper = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            // See QueryImp: a supplied row mapper owns the result type.
+            if (rowMapper == null) pocoData ??= PocoDataFactory.ForType(typeof(T));
 
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
-            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
+            if (rowMapper != null) sql = AutoSelectHelper.StripLeadingSemicolon(sql);
+            else if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
 
             try
             {
                 await OpenSharedConnectionInternalAsync(cancellationToken);
                 using var cmd = CreateCommand(_sharedConnection, sql, args); 
                 using var reader = await ExecuteDataReader(cmd, false, cancellationToken).ConfigureAwait(false);
-                var read = (listExpression != null ? ReadOneToManyAsync(instance, reader, listExpression, idFunc, pocoData, cancellationToken) : ReadAsync<T>(instance, reader, pocoData, cancellationToken));
+                var read = (listExpression != null ? ReadOneToManyAsync(instance, reader, listExpression, idFunc, pocoData, cancellationToken) : ReadAsync<T>(instance, reader, pocoData, rowMapper, cancellationToken));
                 await foreach (var item in read.WithCancellation(cancellationToken))
                 {
                     yield return item;

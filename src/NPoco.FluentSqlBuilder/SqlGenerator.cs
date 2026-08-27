@@ -98,8 +98,7 @@ namespace NPoco.FluentSqlBuilder
                 return part.Table.PocoData.QueryColumns.Select(x =>
                 {
                     var column = x.Value;
-                    var naturalAlias = string.IsNullOrWhiteSpace(column.ColumnAlias) ? column.MemberInfoKey : column.ColumnAlias;
-                    var alias = string.IsNullOrEmpty(part.Prefix) ? naturalAlias : part.Prefix + PocoData.Separator + naturalAlias;
+                    var alias = string.IsNullOrWhiteSpace(column.ColumnAlias) ? column.MemberInfoKey : column.ColumnAlias;
                     return part.Table.EscapedAlias + "." + database.DatabaseType.EscapeSqlIdentifier(column.ColumnName) +
                            " AS " + database.DatabaseType.EscapeSqlIdentifier(alias);
                 });
@@ -107,13 +106,8 @@ namespace NPoco.FluentSqlBuilder
             var translated = part.Tables == null
                 ? TranslateList(database, parameters, part.Expression, part.Table)
                 : TranslateList(database, parameters, part.Expression, part.Tables);
-            if (translated.Count != 1 && part.AliasExpression != null)
-                throw new InvalidOperationException("An aliased select expression must select exactly one value.");
-            if (!string.IsNullOrEmpty(part.Alias))
-                return new[] { translated[0] + " AS " + database.DatabaseType.EscapeSqlIdentifier(part.Alias) };
-            var alias = part.AliasExpression == null ? null : string.Join(PocoData.Separator, MemberChainHelper.GetMembers(part.AliasExpression).Select(x => x.Name));
-            if (string.IsNullOrEmpty(alias)) return translated;
-            return new[] { translated[0] + " AS " + database.DatabaseType.EscapeSqlIdentifier(alias) };
+            if (string.IsNullOrEmpty(part.Alias)) return translated;
+            return new[] { translated[0] + " AS " + database.DatabaseType.EscapeSqlIdentifier(part.Alias) };
         }
 
         private static IList<string> TranslateList(IDatabase database, IList<object> parameters, LambdaExpression expression, TableReference table)

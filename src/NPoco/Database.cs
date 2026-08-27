@@ -23,12 +23,13 @@ using NPoco.Expressions;
 using NPoco.Extensions;
 using NPoco.Linq;
 using NPoco.Internal;
+using NPoco.RowMappers;
 using System.Threading;
 using System.Runtime.CompilerServices;
 
 namespace NPoco
 {
-    public partial class Database : IDatabase, IDatabaseHelpers
+    public partial class Database : IDatabase, IDatabaseHelpers, IRowMapperDatabase
     {
         public const bool DefaultEnableAutoSelect = true;
 
@@ -1039,9 +1040,20 @@ namespace NPoco
             return Query(default(T)!, Sql);
         }
 
-        private async IAsyncEnumerable<T> ReadAsync<T>(object instance, DbDataReader r, PocoData pd, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public IEnumerable<T> Query<T>(Sql sql, IRowMapper rowMapper)
         {
-            var factory = new MappingFactory(pd, r);
+            if (rowMapper == null) throw new ArgumentNullException(nameof(rowMapper));
+            return QueryImp(default(T)!, null, null, sql, null, rowMapper);
+        }
+
+        public List<T> Fetch<T>(Sql sql, IRowMapper rowMapper)
+        {
+            return Query<T>(sql, rowMapper).ToList();
+        }
+
+        private async IAsyncEnumerable<T> ReadAsync<T>(object instance, DbDataReader r, PocoData pd, IRowMapper? rowMapper = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var factory = rowMapper == null ? new MappingFactory(pd, r) : new MappingFactory(pd, r, rowMapper);
             while (true)
             {
                 T poco;
@@ -1116,9 +1128,9 @@ namespace NPoco
             }
         }
 
-        private IEnumerable<T> Read<T>(object? instance, DbDataReader r, PocoData pd)
+        private IEnumerable<T> Read<T>(object? instance, DbDataReader r, PocoData pd, IRowMapper? rowMapper = null)
         {
-            var factory = new MappingFactory(pd, r);
+            var factory = rowMapper == null ? new MappingFactory(pd, r) : new MappingFactory(pd, r, rowMapper);
             while (true)
             {
                 T poco;
@@ -1265,21 +1277,24 @@ namespace NPoco
             }
         }
 
-        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IList>>? listExpression, Func<T, object[]>? idFunc, Sql Sql, PocoData? pocoData = null)
+        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IList>>? listExpression, Func<T, object[]>? idFunc, Sql Sql, PocoData? pocoData = null, IRowMapper? rowMapper = null)
         {
-            pocoData ??= PocoDataFactory.ForType(typeof(T));
+            // A supplied row mapper decides how the result type is built, so NPoco does not need
+            // to model it. Anonymous projection shapes in particular may have no valid PocoData.
+            if (rowMapper == null) pocoData ??= PocoDataFactory.ForType(typeof(T));
 
             var sql = Sql.SQL;
             var args = Sql.Arguments;
 
-            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
+            if (rowMapper != null) sql = AutoSelectHelper.StripLeadingSemicolon(sql);
+            else if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
 
             try
             {
                 OpenSharedConnectionInternal();
                 using var cmd = CreateCommand(_sharedConnection, sql, args);
                 using var reader = ExecuteDataReader(cmd, true).RunSync();
-                var read = listExpression != null ? ReadOneToMany(instance, reader, listExpression, idFunc, pocoData) : Read<T>(instance, reader, pocoData);
+                var read = listExpression != null ? ReadOneToMany(instance, reader, listExpression, idFunc, pocoData) : Read<T>(instance, reader, pocoData, rowMapper);
                 foreach (var item in read)
                 {
                     yield return item;

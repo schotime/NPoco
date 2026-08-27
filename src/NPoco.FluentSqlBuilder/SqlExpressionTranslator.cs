@@ -162,6 +162,11 @@ namespace NPoco.FluentSqlBuilder
 
         private string MethodCall(MethodCallExpression expression)
         {
+            if (IsFluentSqlMarker(expression.Method))
+            {
+                if (expression.Method.Name == "Raw") return RawFragment(expression);
+                if (expression.Method.Name == "Scalar") return ScalarSubquery(expression);
+            }
             if (expression.Method.DeclaringType == typeof(FluentSqlFunctions))
             {
                 if (expression.Method.Name == "Case")
@@ -281,11 +286,76 @@ namespace NPoco.FluentSqlBuilder
 
         private static bool IsSqlServer(string provider) => provider.Contains("sqlclient") && !provider.Contains("mysql");
 
+        private static bool IsFluentSqlMarker(MethodInfo method)
+            => method.DeclaringType == typeof(FluentSql) || method.DeclaringType == typeof(FluentSqlFunctions);
+
+        private string RawFragment(MethodCallExpression expression)
+        {
+            if (!CanEvaluate(expression.Arguments[0]))
+                throw new NotSupportedException("The SQL text passed to FluentSql.Raw must be a constant or a captured value.");
+            var format = Evaluate(expression.Arguments[0]) as string;
+            if (string.IsNullOrWhiteSpace(format))
+                throw new ArgumentException("FluentSql.Raw requires SQL text.");
+
+            var operands = RawOperands(expression);
+            var rendered = new object[operands.Length];
+            for (var i = 0; i < operands.Length; i++)
+            {
+                var lambda = StripConvert(operands[i]) as LambdaExpression;
+                if (lambda == null)
+                    throw new NotSupportedException("FluentSql.Raw arguments must be lambdas, for example () => table.Row.Column.");
+                rendered[i] = Visit(lambda.Body);
+            }
+
+            try
+            {
+                return "(" + string.Format(CultureInfo.InvariantCulture, format, rendered) + ")";
+            }
+            catch (FormatException exception)
+            {
+                throw new ArgumentException("The SQL text passed to FluentSql.Raw has a placeholder that does not match its "
+                    + rendered.Length + " argument(s). Use {0}, {1}, ... and {{ }} for a literal brace. SQL: " + format, exception);
+            }
+        }
+
+        private static Expression[] RawOperands(MethodCallExpression expression)
+        {
+            if (expression.Arguments.Count < 2) return new Expression[0];
+            var argument = StripConvert(expression.Arguments[1]);
+            var array = argument as NewArrayExpression;
+            if (array != null) return array.Expressions.ToArray();
+            var values = CanEvaluate(argument) ? Evaluate(argument) as IEnumerable : null;
+            if (values == null)
+                throw new NotSupportedException("FluentSql.Raw arguments must be lambdas, for example () => table.Row.Column.");
+            return values.Cast<Expression>().ToArray();
+        }
+
+        private string ScalarSubquery(MethodCallExpression expression)
+        {
+            var query = Evaluate(expression.Arguments[0]) as IFluentSqlQueryInternal;
+            if (query == null)
+                throw new InvalidOperationException("FluentSql.Scalar requires a query built by the fluent SQL builder.");
+            RequireSingleColumn(query, "FluentSql.Scalar");
+            return "(" + query.Build(_parameters) + ")";
+        }
+
+        // A subquery standing in for a value has to yield one column. Databases reject the rest,
+        // but only once the query runs, and with a message that says nothing about which subquery.
+        private static void RequireSingleColumn(IFluentSqlQueryInternal query, string usage)
+        {
+            var columns = query.ProjectedColumnCount;
+            if (columns != 1)
+                throw new InvalidOperationException(usage + " requires a subquery projecting exactly one column, but it projects "
+                    + columns + ". Use SelectScalar, or Select with a single member.");
+        }
+
         private string Subquery(MethodCallExpression expression)
         {
             var queryExpression = expression.Arguments[expression.Arguments.Count - 1];
             var query = Evaluate(queryExpression) as IFluentSqlQueryInternal;
             if (query == null) throw new InvalidOperationException("A SQL subquery expression requires a FluentSqlQuery instance.");
+            if (expression.Method.Name == "In" || expression.Method.Name == "NotIn")
+                RequireSingleColumn(query, "FluentSql." + expression.Method.Name);
             var nestedSql = query.Build(_parameters);
             if (expression.Method.Name == "Exists") return "EXISTS (" + nestedSql + ")";
             if (expression.Method.Name == "NotExists") return "NOT EXISTS (" + nestedSql + ")";
@@ -476,6 +546,18 @@ namespace NPoco.FluentSqlBuilder
         {
             internal bool Found;
             protected override Expression VisitParameter(ParameterExpression node) { Found = true; return node; }
+
+            protected override Expression VisitMethodCall(MethodCallExpression node)
+            {
+                // A marker method has no runtime body - it only exists to be translated - so an
+                // expression containing one can never be evaluated to a constant.
+                if (IsFluentSqlMarker(node.Method))
+                {
+                    Found = true;
+                    return node;
+                }
+                return base.VisitMethodCall(node);
+            }
 
             protected override Expression VisitMember(MemberExpression node)
             {

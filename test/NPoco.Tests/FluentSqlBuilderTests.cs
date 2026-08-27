@@ -36,9 +36,7 @@ namespace NPoco.Tests
                 .From<BuilderUser>(out var users)
                 .Where(users, x => x.IsActive && x.Age >= 18)
                 .OrderByDescending(users, x => x.Name)
-                .SelectInto<UserProjection>(select => select
-                    .Column(users, x => x.Id, x => x.Id)
-                    .Column(users, x => x.Name, x => x.Name))
+                .Select(() => new UserProjection { Id = users.Row.Id, Name = users.Row.Name })
                 .ToSql();
 
             Assert.That(sql.SQL, Does.Contain("SELECT [bu].[Id] AS [Id], [bu].[Name] AS [Name]"));
@@ -55,9 +53,7 @@ namespace NPoco.Tests
             var sql = _database.FluentQuery()
                 .From<BuilderUser>(out var users)
                 .InnerJoin<BuilderOrder>(out var orders, o => o.UserId == users.Row.Id)
-                .SelectInto<BuilderSummary>(select => select
-                    .Column(users, x => x.Name, x => x.Name)
-                    .Column(orders, x => x.Amount, x => x.Total))
+                .Select(() => new BuilderSummary { Name = users.Row.Name, Total = orders.Row.Amount })
                 .ToSql();
 
             Assert.That(sql.SQL, Does.Contain("INNER JOIN [BuilderOrders] [bo] ON ([bo].[UserId] = [bu].[Id])"));
@@ -73,9 +69,7 @@ namespace NPoco.Tests
                 .LeftJoin<BuilderOrder>(out var previousOrder,
                     previous => previous.UserId == user.Row.Id && previous.Id < order.Row.Id)
                 .Where(() => user.Row.IsActive && order.Row.Amount > previousOrder.Row.Amount)
-                .SelectInto<NestedSummary>(select => select
-                    .All(user, x => x.User)
-                    .All(order, x => x.Order))
+                .Select(() => new NestedSummary { User = user.Row, Order = order.Row })
                 .ToSql();
 
             Assert.That(sql.SQL, Does.Contain("INNER JOIN [BuilderOrders] [bo] ON ([bo].[UserId] = [bu].[Id])"));
@@ -92,9 +86,7 @@ namespace NPoco.Tests
                 .InnerJoin<BuilderOrder>(out var orders, o => o.UserId == users.Row.Id)
                 .GroupBy(users, x => x.Name)
                 .Having(orders, x => FluentSql.Count(x.Id) > 1)
-                .SelectInto<BuilderSummary>(select => select
-                    .Column(users, x => x.Name, x => x.Name)
-                    .Column(orders, x => FluentSql.Sum(x.Amount), x => x.Total))
+                .Select(() => new BuilderSummary { Name = users.Row.Name, Total = FluentSql.Sum(orders.Row.Amount) })
                 .ToSql();
 
             Assert.That(sql.SQL, Does.Contain("SUM([bo].[Amount]) AS [Total]"));
@@ -152,9 +144,7 @@ namespace NPoco.Tests
             var sql = _database.FluentQuery()
                 .From<MappedRecord>(out var mapped)
                 .Where(mapped, x => states.Contains(x.State) && x.Created.Year >= cutoff.Year)
-                .SelectInto<MappedProjection>(select => select
-                    .Column(mapped, x => x.DisplayName, x => x.DisplayName)
-                    .Column(mapped, x => x.Address.City, x => x.City))
+                .Select(() => new MappedProjection { DisplayName = mapped.Row.DisplayName, City = mapped.Row.Address.City })
                 .ToSql();
 
             Assert.That(sql.SQL, Does.Contain("[mr].[display_name]"));
@@ -198,29 +188,11 @@ namespace NPoco.Tests
             var sql = _database.FluentQuery()
                 .From<BuilderUser>(out var users)
                 .InnerJoin<BuilderOrder>(out var orders, o => o.UserId == users.Row.Id)
-                .SelectInto<NestedSummary>(select => select
-                    .All(users, x => x.User)
-                    .All(orders, x => x.Order))
+                .Select(() => new NestedSummary { User = users.Row, Order = orders.Row })
                 .ToSql();
 
             Assert.That(sql.SQL, Does.Contain("[bu].[Id] AS [User__Id]"));
             Assert.That(sql.SQL, Does.Contain("[bo].[Amount] AS [Order__Amount]"));
-        }
-
-        [Test]
-        public void RequiresAResultProjection()
-        {
-            var query = _database.FluentQuery().From<BuilderUser>(out _);
-            Assert.Throws<InvalidOperationException>(() => query.SelectInto<BuilderSummary>(_ => { }));
-        }
-
-        [Test]
-        public void RejectsDuplicateProjectionDestinations()
-        {
-            var query = _database.FluentQuery().From<BuilderUser>(out var user);
-            Assert.Throws<InvalidOperationException>(() => query.SelectInto<UserProjection>(select => select
-                .Column(user, x => x.Id, x => x.Id)
-                .Column(user, x => x.Age, x => x.Id)));
         }
 
         [Test]
@@ -234,9 +206,7 @@ namespace NPoco.Tests
                     .OrderByDescending(order, o => o.Id)
                     .Take(1)
                     .Select(order))
-                .SelectInto<NestedSummary>(select => select
-                    .All(user, x => x.User)
-                    .All(latestOrder, x => x.Order))
+                .Select(() => new NestedSummary { User = user.Row, Order = latestOrder.Row })
                 .ToSql();
 
             Assert.That(sql.SQL, Does.Contain("OUTER APPLY ("));
@@ -244,8 +214,10 @@ namespace NPoco.Tests
             Assert.That(sql.SQL, Does.Contain("ORDER BY [bo].[Id] DESC"));
             Assert.That(sql.SQL, Does.Contain("LIMIT @0 OFFSET @1"));
             Assert.That(sql.Arguments, Is.EqualTo(new object[] { 1, 0 }));
-            Assert.That(sql.SQL, Does.Contain(") [bo]"));
-            Assert.That(sql.SQL, Does.Contain("[bo].[Amount] AS [Order__Amount]"));
+            // The derived table takes its own alias; it shares an alias counter with the inner
+            // query so a correlated scope can never hand out a name already in use.
+            Assert.That(sql.SQL, Does.Contain(") [bo1]"));
+            Assert.That(sql.SQL, Does.Contain("[bo1].[Amount] AS [Order__Amount]"));
         }
 
         [Test]
@@ -351,25 +323,18 @@ namespace NPoco.Tests
         {
             var sql = _database.FluentQuery()
                 .From<BuilderUser>(out var user)
-                .SelectInto<CalculatedProjection>(select => select
-                    .Expression(() => user.Row.Name + "!", x => x.Label)
-                    .Expression(() => FluentSql.Case(user.Row.IsActive, user.Row.Age + 1, 0), x => x.Score)
-                    .Expression(() => FluentSql.CountDistinct(user.Row.Name), x => x.UniqueNames))
+                .Select(() => new CalculatedProjection
+                {
+                    Label = user.Row.Name + "!",
+                    Score = FluentSql.Case(user.Row.IsActive, user.Row.Age + 1, 0),
+                    UniqueNames = FluentSql.CountDistinct(user.Row.Name)
+                })
                 .ToSql();
 
             Assert.That(sql.SQL, Does.Contain("([bu].[Name] || @0) AS [Label]"));
             Assert.That(sql.SQL, Does.Contain("CASE WHEN ([bu].[IsActive] = @1) THEN ([bu].[Age] + @2) ELSE @3 END"));
             Assert.That(sql.SQL, Does.Contain("COUNT(DISTINCT [bu].[Name]) AS [UniqueNames]"));
             Assert.That(sql.Arguments, Is.EqualTo(new object[] { "!", true, 1, 0 }));
-        }
-
-        [Test]
-        public void RejectsCollisionsFromExpandedAllProjection()
-        {
-            var query = _database.FluentQuery().From<BuilderUser>(out var user);
-            Assert.Throws<InvalidOperationException>(() => query.SelectInto<UserProjection>(select => select
-                .All(user)
-                .Column(user, x => x.Id, x => x.Id)));
         }
 
         [Test]
@@ -392,8 +357,7 @@ namespace NPoco.Tests
                 .Where(() => (mapped.Row.OptionalId.Value % 2) == 0 &&
                              (mapped.Row.OptionalId.Value & 1) == 0 &&
                              mapped.Row.Created.AddDays(1).Day > 1)
-                .SelectInto<MappedProjection>(select => select
-                    .Expression(() => string.Concat(mapped.Row.DisplayName, suffix), x => x.DisplayName))
+                .Select(() => new MappedProjection { DisplayName = string.Concat(mapped.Row.DisplayName, suffix) })
                 .ToSql();
 
             Assert.That(sql.SQL, Does.Contain("([mr].[OptionalId] % @1)"));
@@ -414,8 +378,7 @@ namespace NPoco.Tests
                 var sql = database.FluentQuery()
                     .From<MappedRecord>(out var mapped)
                     .Where(mapped, x => x.DisplayName.Contains(value) && x.Created.AddMonths(2).Year > 2020)
-                    .SelectInto<MappedProjection>(select => select
-                        .Expression(() => mapped.Row.DisplayName + "!", x => x.DisplayName))
+                    .Select(() => new MappedProjection { DisplayName = mapped.Row.DisplayName + "!" })
                     .ToSql();
 
                 Assert.That(sql.SQL, Does.Contain(concatenation));
@@ -434,9 +397,11 @@ namespace NPoco.Tests
             var row = _database.FluentQuery()
                 .From<BuilderUser>(out var user)
                 .Where(user, x => x.Id == 1)
-                .SelectInto<CalculatedProjection>(select => select
-                    .Expression(() => user.Row.Name + "!", x => x.Label)
-                    .Expression(() => FluentSql.Case(user.Row.IsActive, user.Row.Age + 1, 0), x => x.Score))
+                .Select(() => new CalculatedProjection
+                {
+                    Label = user.Row.Name + "!",
+                    Score = FluentSql.Case(user.Row.IsActive, user.Row.Age + 1, 0)
+                })
                 .Single();
 
             Assert.That(row.Label, Is.EqualTo("Ada!"));
@@ -550,21 +515,25 @@ namespace NPoco.Tests
             var aggregates = _database.FluentQuery()
                 .From<BuilderOrder>(out var order)
                 .Where(order, x => x.UserId == 1)
-                .SelectInto<NullableAggregateProjection>(select => select
-                    .Column(order, x => FluentSql.Sum((decimal?)x.Amount), x => x.Sum)
-                    .Column(order, x => FluentSql.Average((decimal?)x.Amount), x => x.Average)
-                    .Column(order, x => FluentSql.Min((decimal?)x.Amount), x => x.Min)
-                    .Column(order, x => FluentSql.Max((decimal?)x.Amount), x => x.Max))
+                .Select(() => new NullableAggregateProjection
+                {
+                    Sum = FluentSql.Sum((decimal?)order.Row.Amount),
+                    Average = FluentSql.Average((decimal?)order.Row.Amount),
+                    Min = FluentSql.Min((decimal?)order.Row.Amount),
+                    Max = FluentSql.Max((decimal?)order.Row.Amount)
+                })
                 .Single();
 
             var empty = _database.FluentQuery()
                 .From<BuilderOrder>(out var emptyOrder)
                 .Where(emptyOrder, x => x.UserId == -1)
-                .SelectInto<NullableAggregateProjection>(select => select
-                    .Column(emptyOrder, x => FluentSql.Sum((decimal?)x.Amount), x => x.Sum)
-                    .Column(emptyOrder, x => FluentSql.Average((decimal?)x.Amount), x => x.Average)
-                    .Column(emptyOrder, x => FluentSql.Min((decimal?)x.Amount), x => x.Min)
-                    .Column(emptyOrder, x => FluentSql.Max((decimal?)x.Amount), x => x.Max))
+                .Select(() => new NullableAggregateProjection
+                {
+                    Sum = FluentSql.Sum((decimal?)emptyOrder.Row.Amount),
+                    Average = FluentSql.Average((decimal?)emptyOrder.Row.Amount),
+                    Min = FluentSql.Min((decimal?)emptyOrder.Row.Amount),
+                    Max = FluentSql.Max((decimal?)emptyOrder.Row.Amount)
+                })
                 .Single();
 
             Assert.That(aggregates.Sum, Is.EqualTo(30m));

@@ -11,6 +11,16 @@ namespace NPoco
         private static Regex rxSelect = new Regex(@"\A\s*(SELECT|EXECUTE|CALL|EXEC)\s", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Multiline);
         private static Regex rxFrom = new Regex(@"\A\s*FROM\s", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
+        /// <summary>
+        /// A leading semicolon marks the statement as complete, which lets it start with
+        /// something other than SELECT (a CTE, for example) without a select clause being
+        /// generated in front of it.
+        /// </summary>
+        public static string StripLeadingSemicolon(string sql)
+        {
+            return sql.StartsWith(";") ? sql.Substring(1) : sql;
+        }
+
         public static string AddSelectClause(Database database, Type type, string sql)
         {
             if (sql.StartsWith(";"))

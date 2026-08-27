@@ -29,9 +29,7 @@ namespace NPoco.FluentSqlBuilder
         internal TableReference Table;
         internal TableReference[] Tables;
         internal LambdaExpression Expression;
-        internal LambdaExpression AliasExpression;
         internal string Alias;
-        internal string Prefix;
         internal bool All;
     }
 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using NPoco.RowMappers;
 
 namespace NPoco.FluentSqlBuilder
 {
@@ -17,6 +18,9 @@ namespace NPoco.FluentSqlBuilder
     internal interface IFluentSqlQueryInternal
     {
         string Build(IList<object> parameters);
+
+        /// <summary>Columns this query projects. A subquery used as a value must project exactly one.</summary>
+        int ProjectedColumnCount { get; }
     }
 
     public sealed class FluentSqlQuery
@@ -34,18 +38,31 @@ namespace NPoco.FluentSqlBuilder
         private readonly List<UnionPart> _unions = new List<UnionPart>();
         private readonly HashSet<TableReference> _cteTables = new HashSet<TableReference>();
         private readonly HashSet<string> _cteNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, int> _aliasCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        private readonly HashSet<TableReference> _correlationTables;
+        // Shared with any correlated sub-builder so an inner table can never be handed an alias the
+        // outer query is already using - the two scopes see each other's columns, so a collision
+        // silently produces wrong SQL rather than an error.
+        private readonly Dictionary<string, int> _aliasCounts;
+
+        // The query this one is nested inside, if any. Held as a link rather than a copy of its
+        // tables so that scope is resolved when it is read: a subquery sees whatever its parent
+        // sees, including tables joined after the subquery was created.
+        private readonly FluentSqlQuery _parent;
+
         private TableReference _from;
         private ProjectionPlan _projectionPlan;
 
-        internal FluentSqlQuery(IDatabase database) : this(database, Enumerable.Empty<TableReference>()) { }
+        internal FluentSqlQuery(IDatabase database) : this(database, null, null) { }
 
-        private FluentSqlQuery(IDatabase database, IEnumerable<TableReference> correlationTables)
+        private FluentSqlQuery(IDatabase database, FluentSqlQuery parent, Dictionary<string, int> aliasCounts)
         {
             _database = database ?? throw new ArgumentNullException(nameof(database));
-            _correlationTables = new HashSet<TableReference>(correlationTables);
+            _parent = parent;
+            _aliasCounts = aliasCounts ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         }
+
+        /// <summary>Every table this query may reference: its own, plus everything in scope outside it.</summary>
+        private IEnumerable<TableReference> AvailableTables
+            => _parent == null ? _tables : _parent.AvailableTables.Concat(_tables);
 
         public FluentSqlQueryStage From<T>(out TableReference<T> table)
         {
@@ -96,6 +113,16 @@ namespace NPoco.FluentSqlBuilder
             return new FluentSqlQueryStage(this);
         }
 
+        /// <summary>
+        /// A new query that can reference this query's tables, for a correlated subquery passed to
+        /// <see cref="FluentSql.Scalar{T}"/>, <see cref="FluentSql.Exists"/> or <see cref="FluentSql.In{T}(T, IFluentSqlQuery)"/>.
+        /// </summary>
+        internal FluentSqlQuery CreateSubquery()
+        {
+            RequireFrom();
+            return new FluentSqlQuery(_database, this, _aliasCounts);
+        }
+
         internal FluentSqlResult<T> Select<T>(TableReference<T> table)
         {
             EnsureAvailable(table);
@@ -111,24 +138,15 @@ namespace NPoco.FluentSqlBuilder
             return new FluentSqlResult<TValue>(this, _database);
         }
 
-        internal FluentSqlResult<TResult> SelectInto<TResult>(Action<FluentSqlProjection<TResult>> projection)
-        {
-            if (projection == null) throw new ArgumentNullException(nameof(projection));
-            var builder = new FluentSqlProjection<TResult>(this);
-            projection(builder);
-            if (!builder.HasSelections) throw new InvalidOperationException("SelectInto must define at least one result selection.");
-            return new FluentSqlResult<TResult>(this, _database);
-        }
-
         internal FluentSqlResult<TResult> Select<TResult>(Expression<Func<TResult>> projection)
         {
             if (projection == null) throw new ArgumentNullException(nameof(projection));
-            _projectionPlan = ProjectionPlanBuilder.Build(projection, _correlationTables.Concat(_tables).Distinct());
+            _projectionPlan = ProjectionPlanBuilder.Build(projection, AvailableTables.Distinct(), _database.Mappers);
             foreach (var leaf in _projectionPlan.Leaves)
             {
                 _selects.Add(new SelectPart
                 {
-                    Tables = _correlationTables.Concat(_tables).Distinct().ToArray(),
+                    Tables = AvailableTables.Distinct().ToArray(),
                     Expression = Expression.Lambda(leaf.Expression),
                     Alias = leaf.Alias
                 });
@@ -174,7 +192,7 @@ namespace NPoco.FluentSqlBuilder
             RequireFrom();
             table = CreateTable<TJoin>();
             if (on == null) throw new ArgumentNullException(nameof(on));
-            var available = new List<TableReference>(_correlationTables.Concat(_tables)) { table };
+            var available = new List<TableReference>(AvailableTables) { table };
             if (on.Parameters.Count != 1 || on.Parameters[0].Type != typeof(TJoin))
                 throw new ArgumentException("The join expression must accept the joined row.", nameof(on));
             _tables.Add(table);
@@ -185,7 +203,7 @@ namespace NPoco.FluentSqlBuilder
         {
             RequireFrom();
             if (subquery == null) throw new ArgumentNullException(nameof(subquery));
-            var inner = new FluentSqlQuery(_database, _tables);
+            var inner = new FluentSqlQuery(_database, this, _aliasCounts);
             var result = subquery(inner);
             if (result == null) throw new InvalidOperationException("The OUTER APPLY callback must return a projected query.");
             table = CreateTable<TApply>(true);
@@ -223,13 +241,13 @@ namespace NPoco.FluentSqlBuilder
         internal void Where(Expression<Func<bool>> predicate)
         {
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
-            _where.Add(new PredicatePart { Tables = _correlationTables.Concat(_tables).Distinct().ToArray(), Expression = predicate });
+            _where.Add(new PredicatePart { Tables = AvailableTables.Distinct().ToArray(), Expression = predicate });
         }
 
         internal void OrWhere(Expression<Func<bool>> predicate)
         {
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
-            _where.Add(new PredicatePart { Tables = _correlationTables.Concat(_tables).Distinct().ToArray(), Expression = predicate, Operator = "OR" });
+            _where.Add(new PredicatePart { Tables = AvailableTables.Distinct().ToArray(), Expression = predicate, Operator = "OR" });
         }
 
         internal void OrWhere<T>(TableReference<T> table, Expression<Func<T, bool>> predicate)
@@ -247,7 +265,7 @@ namespace NPoco.FluentSqlBuilder
         internal FluentSqlPredicate CreatePredicate(Action<FluentSqlPredicateGroup> configure)
         {
             if (configure == null) throw new ArgumentNullException(nameof(configure));
-            var group = new FluentSqlPredicateGroup(_correlationTables.Concat(_tables).Distinct().ToArray());
+            var group = new FluentSqlPredicateGroup(AvailableTables.Distinct().ToArray());
             configure(group);
             if (group.Parts.Count == 0) throw new InvalidOperationException("A predicate group must contain at least one predicate.");
             return new FluentSqlPredicate(group.Parts);
@@ -266,7 +284,7 @@ namespace NPoco.FluentSqlBuilder
         internal void Having(Expression<Func<bool>> predicate)
         {
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
-            _having.Add(new PredicatePart { Tables = _correlationTables.Concat(_tables).Distinct().ToArray(), Expression = predicate });
+            _having.Add(new PredicatePart { Tables = AvailableTables.Distinct().ToArray(), Expression = predicate });
         }
 
         internal void Take(int count)
@@ -299,51 +317,7 @@ namespace NPoco.FluentSqlBuilder
             _sorts.Add(new SortPart { Table = table, Expression = selector ?? throw new ArgumentNullException(nameof(selector)), Descending = descending });
         }
 
-        internal void AddProjection<T, TValue, TResult>(TableReference<T> table, Expression<Func<T, TValue>> selector, Expression<Func<TResult, object>> destination)
-        {
-            EnsureAvailable(table);
-            if (selector == null) throw new ArgumentNullException(nameof(selector));
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            _selects.Add(new SelectPart { Table = table, Expression = selector, AliasExpression = destination });
-        }
-
-        internal void AddProjection<TValue, TResult>(Expression<Func<TValue>> selector, Expression<Func<TResult, object>> destination)
-        {
-            if (selector == null) throw new ArgumentNullException(nameof(selector));
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            _selects.Add(new SelectPart
-            {
-                Tables = _correlationTables.Concat(_tables).Distinct().ToArray(),
-                Expression = selector,
-                AliasExpression = destination
-            });
-        }
-
-        internal void AddAllProjection<T, TResult>(TableReference<T> table, Expression<Func<TResult, object>> destination)
-        {
-            EnsureAvailable(table);
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            _selects.Add(new SelectPart { Table = table, All = true, Prefix = DestinationPath(destination) });
-        }
-
-        internal IEnumerable<string> ProjectionAliases<T>(TableReference<T> table, string prefix)
-        {
-            EnsureAvailable(table);
-            return table.PocoData.QueryColumns.Select(x =>
-            {
-                var column = x.Value;
-                var naturalAlias = string.IsNullOrWhiteSpace(column.ColumnAlias) ? column.MemberInfoKey : column.ColumnAlias;
-                return string.IsNullOrEmpty(prefix) ? naturalAlias : prefix + PocoData.Separator + naturalAlias;
-            });
-        }
-
-        internal void AddAllProjection<T>(TableReference<T> table)
-        {
-            EnsureAvailable(table);
-            _selects.Add(new SelectPart { Table = table, All = true });
-        }
-
-        internal int SelectionCount => _selects.Count;
+        internal int ProjectedColumnCount => _selects.Sum(x => x.All ? x.Table.PocoData.QueryColumns.Length : 1);
         internal ProjectionPlan ProjectionPlan => _projectionPlan;
 
         internal Sql BuildSql()
@@ -358,13 +332,6 @@ namespace NPoco.FluentSqlBuilder
             return SqlGenerator.GenerateText(_database, _ctes, _unions, _from, _selects, _joins, _applies, _where, _groups, _having, _sorts, IsDistinct, SkipCount, TakeCount, parameters);
         }
 
-        private static string DestinationPath(LambdaExpression destination)
-        {
-            var members = NPoco.Expressions.MemberChainHelper.GetMembers(destination).Select(x => x.Name).ToArray();
-            if (members.Length == 0) throw new ArgumentException("The destination must select a result property.", nameof(destination));
-            return string.Join(PocoData.Separator, members);
-        }
-
         private sealed class SqlFunctionsParameterReplacer : ExpressionVisitor
         {
             private readonly ParameterExpression _parameter;
@@ -376,7 +343,7 @@ namespace NPoco.FluentSqlBuilder
         private void RequireProjection()
         {
             RequireFrom();
-            if (_selects.Count == 0) throw new InvalidOperationException("A query must end with Select, SelectScalar, or SelectInto before SQL generation or execution.");
+            if (_selects.Count == 0) throw new InvalidOperationException("A query must end with Select or SelectScalar before SQL generation or execution.");
         }
 
         private void RequireFrom()
@@ -399,7 +366,7 @@ namespace NPoco.FluentSqlBuilder
         private void EnsureUsable(TableReference table)
         {
             EnsureDatabase(table);
-            if (!_tables.Contains(table) && !_correlationTables.Contains(table))
+            if (!AvailableTables.Contains(table))
                 throw new InvalidOperationException("The table is not available to this query or correlated subquery.");
         }
     }
@@ -598,11 +565,19 @@ namespace NPoco.FluentSqlBuilder
         public FluentSqlQueryStage ThenByDescending<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector)
             => OrderBy(table, selector, true);
 
+        /// <summary>
+        /// Starts a subquery that can reference this query's tables. Pass the result to
+        /// <see cref="FluentSql.Scalar{T}"/> to project it, or to <see cref="FluentSql.Exists"/> /
+        /// <see cref="FluentSql.In{T}(T, IFluentSqlQuery)"/> to use it in a predicate. A subquery
+        /// built from <see cref="DatabaseExtensions.FluentQuery"/> instead is uncorrelated and
+        /// cannot see the outer tables.
+        /// </summary>
+        public FluentSqlQuery Subquery() => _query.CreateSubquery();
+
         public FluentSqlResult<T> Select<T>(TableReference<T> table) => _query.Select(table);
         public FluentSqlResult<TResult> Select<TResult>(Expression<Func<TResult>> projection) => _query.Select(projection);
         public FluentSqlResult<TResult> Select<TResult>(Expression<Func<FluentSqlFunctions, TResult>> projection) => _query.Select(projection);
         public FluentSqlResult<TValue> SelectScalar<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector) => _query.SelectScalar(table, selector);
-        public FluentSqlResult<TResult> SelectInto<TResult>(Action<FluentSqlProjection<TResult>> projection) => _query.SelectInto(projection);
 
         public FluentSqlQueryStage InnerJoin<TJoin>(out TableReference<TJoin> table, Expression<Func<TJoin, bool>> on) => Join(FluentJoinType.Inner, out table, on);
         public FluentSqlQueryStage LeftJoin<TJoin>(out TableReference<TJoin> table, Expression<Func<TJoin, bool>> on) => Join(FluentJoinType.Left, out table, on);
@@ -619,73 +594,6 @@ namespace NPoco.FluentSqlBuilder
         {
             _query.AddJoin(type, out table, on);
             return this;
-        }
-    }
-
-    public sealed class FluentSqlProjection<TResult>
-    {
-        private readonly FluentSqlQuery _query;
-        private readonly HashSet<string> _destinations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private readonly int _initialSelectionCount;
-
-        internal FluentSqlProjection(FluentSqlQuery query)
-        {
-            _query = query;
-            _initialSelectionCount = query.SelectionCount;
-        }
-
-        internal bool HasSelections => _query.SelectionCount > _initialSelectionCount;
-
-        public FluentSqlProjection<TResult> Column<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector, Expression<Func<TResult, object>> destination)
-        {
-            AddDestination(destination);
-            _query.AddProjection(table, selector, destination);
-            return this;
-        }
-
-        public FluentSqlProjection<TResult> Expression<TValue>(Expression<Func<TValue>> selector, Expression<Func<TResult, object>> destination)
-        {
-            AddDestination(destination);
-            _query.AddProjection(selector, destination);
-            return this;
-        }
-
-        public FluentSqlProjection<TResult> All<T>(TableReference<T> table, Expression<Func<TResult, object>> destination)
-        {
-            var prefix = GetDestination(destination);
-            AddExpandedDestinations(_query.ProjectionAliases(table, prefix));
-            _query.AddAllProjection(table, destination);
-            return this;
-        }
-
-        public FluentSqlProjection<TResult> All<T>(TableReference<T> table)
-        {
-            AddExpandedDestinations(_query.ProjectionAliases(table, null));
-            _query.AddAllProjection(table);
-            return this;
-        }
-
-        private void AddDestination(LambdaExpression destination) => AddDestination(GetDestination(destination));
-
-        private static string GetDestination(LambdaExpression destination)
-        {
-            var path = string.Join(PocoData.Separator, NPoco.Expressions.MemberChainHelper.GetMembers(destination).Select(x => x.Name));
-            if (string.IsNullOrEmpty(path)) throw new ArgumentException("The destination must select a result property.", nameof(destination));
-            return path;
-        }
-
-        private void AddExpandedDestinations(IEnumerable<string> paths)
-        {
-            foreach (var path in paths) AddDestination(path);
-        }
-
-        private void AddDestination(string path)
-        {
-            if (_destinations.Any(x => string.Equals(x, path, StringComparison.OrdinalIgnoreCase) ||
-                                       x.StartsWith(path + PocoData.Separator, StringComparison.OrdinalIgnoreCase) ||
-                                       path.StartsWith(x + PocoData.Separator, StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidOperationException("The result destination '" + path + "' collides with another selection.");
-            _destinations.Add(path);
         }
     }
 
@@ -731,6 +639,8 @@ namespace NPoco.FluentSqlBuilder
 
         string IFluentSqlQueryInternal.Build(IList<object> parameters) => _query.Build(parameters);
 
+        int IFluentSqlQueryInternal.ProjectedColumnCount => _query.ProjectedColumnCount;
+
         public string ToDebugSql()
         {
             var sql = ToSql();
@@ -745,19 +655,27 @@ namespace NPoco.FluentSqlBuilder
             return new Sql(prefix + sql.SQL, sql.Arguments);
         }
 
+        // A projection is materialized by a ProjectionPlan, which NPoco runs as an IRowMapper.
+        // Both branches therefore go through the same query pipeline: the same connection and
+        // transaction handling, the same interceptors, the same exception reporting.
+        private IRowMapperDatabase RowMapperDatabase => (IRowMapperDatabase)_database;
+
         public List<TResult> Fetch()
         {
             if (_query.ProjectionPlan == null) return _database.Fetch<TResult>(ToSql());
-            return ProjectionExecutor.Fetch<TResult>(_database, ToSql(), _query.ProjectionPlan);
+            return RowMapperDatabase.Fetch<TResult>(ToSql(), _query.ProjectionPlan);
         }
 
         public async Task<List<TResult>> FetchAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             if (_query.ProjectionPlan == null) return await _database.FetchAsync<TResult>(ToSql(), cancellationToken).ConfigureAwait(false);
-            return await ProjectionExecutor.FetchAsync<TResult>(_database, ToSql(), _query.ProjectionPlan, cancellationToken).ConfigureAwait(false);
+            return await RowMapperDatabase.FetchAsync<TResult>(ToSql(), _query.ProjectionPlan, cancellationToken).ConfigureAwait(false);
         }
 
-        public TResult Single() => _query.ProjectionPlan == null ? _database.Single<TResult>(ToSql()) : Fetch().Single();
-        public TResult First() => _query.ProjectionPlan == null ? _database.First<TResult>(ToSql()) : Fetch().First();
+        // Streams rather than materializing a list, so Single/First stop at the rows they need.
+        private IEnumerable<TResult> Enumerate() => RowMapperDatabase.Query<TResult>(ToSql(), _query.ProjectionPlan);
+
+        public TResult Single() => _query.ProjectionPlan == null ? _database.Single<TResult>(ToSql()) : Enumerate().Single();
+        public TResult First() => _query.ProjectionPlan == null ? _database.First<TResult>(ToSql()) : Enumerate().First();
     }
 }

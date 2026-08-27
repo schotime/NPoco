@@ -46,10 +46,12 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 .InnerJoin<ExtraUserInfo>(out var extra, e => e.UserId == user.Row.UserId)
                 .Where(user, x => x.UserId <= 3)
                 .OrderBy(user, x => x.UserId)
-                .SelectInto<CustomerUser>(select => select
-                    .Column(user, x => x.UserId, x => x.Id)
-                    .Column(user, x => x.Name, x => x.CustomerName)
-                    .Column(extra, x => x.Email, x => x.CustomerEmail))
+                .Select(() => new CustomerUser
+                {
+                    Id = user.Row.UserId,
+                    CustomerName = user.Row.Name,
+                    CustomerEmail = extra.Row.Email
+                })
                 .Fetch();
 
             Assert.That(rows.Count, Is.EqualTo(3));
@@ -64,14 +66,12 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 .From<User>(out var user)
                 .InnerJoin<ExtraUserInfo>(out var extra, e => e.UserId == user.Row.UserId)
                 .Where(user, x => x.UserId == 1)
-                .SelectInto<UserWithExtraInfo>(select => select
-                    .All(user)
-                    .All(extra, x => x.ExtraUserInfo))
+                .Select(() => new { User = user.Row, Extra = extra.Row })
                 .Single();
 
-            AssertUserValues(InMemoryUsers[0], row);
-            Assert.That(row.ExtraUserInfo, Is.Not.Null);
-            AssertExtraUserInfo(InMemoryExtraUserInfos[0], row.ExtraUserInfo);
+            AssertUserValues(InMemoryUsers[0], row.User);
+            Assert.That(row.Extra, Is.Not.Null);
+            AssertExtraUserInfo(InMemoryExtraUserInfos[0], row.Extra);
         }
 
         [Test]
@@ -81,13 +81,11 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 .From<User>(out var user)
                 .LeftJoin<ExtraUserInfo>(out var extra, e => e.UserId == -1)
                 .Where(user, x => x.UserId == 1)
-                .SelectInto<UserWithExtraInfo>(select => select
-                    .All(user)
-                    .All(extra, x => x.ExtraUserInfo))
+                .Select(() => new { User = user.Row, Extra = extra.Row })
                 .Single();
 
-            Assert.That(row.UserId, Is.EqualTo(1));
-            Assert.That(row.ExtraUserInfo, Is.Null);
+            Assert.That(row.User.UserId, Is.EqualTo(1));
+            Assert.That(row.Extra, Is.Null);
         }
 
         [Test]
@@ -99,9 +97,11 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 .GroupBy(user, x => x.IsMale)
                 .Having(extra, x => FluentSql.Count(x.ExtraUserInfoId) > 7)
                 .OrderBy(user, x => x.IsMale)
-                .SelectInto<GenderSummary>(select => select
-                    .Column(user, x => x.IsMale, x => x.IsMale)
-                    .Column(extra, x => FluentSql.Count(x.ExtraUserInfoId), x => x.Count))
+                .Select(() => new GenderSummary
+                {
+                    IsMale = user.Row.IsMale,
+                    Count = FluentSql.Count(extra.Row.ExtraUserInfoId)
+                })
                 .Fetch();
 
             Assert.That(rows.Count, Is.EqualTo(1));
@@ -173,16 +173,14 @@ namespace NPoco.Tests.FluentTests.QueryTests
                     .Select(extra))
                 .Where(user, x => x.UserId <= 3)
                 .OrderBy(user, x => x.UserId)
-                .SelectInto<UserWithExtraInfo>(select => select
-                    .All(user)
-                    .All(latestExtra, x => x.ExtraUserInfo))
+                .Select(() => new { User = user.Row, Extra = latestExtra.Row })
                 .Fetch();
 
             Assert.That(rows.Count, Is.EqualTo(3));
             for (var i = 0; i < rows.Count; i++)
             {
-                AssertUserValues(InMemoryUsers[i], rows[i]);
-                AssertExtraUserInfo(InMemoryExtraUserInfos[i], rows[i].ExtraUserInfo);
+                AssertUserValues(InMemoryUsers[i], rows[i].User);
+                AssertExtraUserInfo(InMemoryExtraUserInfos[i], rows[i].Extra);
             }
         }
 

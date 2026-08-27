@@ -123,7 +123,7 @@ namespace NPoco.Linq
 
         private IAsyncEnumerable<T> ExecuteQueryAsync(Sql sql, CancellationToken cancellationToken)
         {
-            return _database.QueryAsync<T>(default, _listExpression, null, sql, _pocoData, cancellationToken);
+            return _database.QueryAsync<T>(default, _listExpression, null, sql, _pocoData, null, cancellationToken);
         }
 
         public Task<T> FirstOrDefault(CancellationToken cancellationToken = default)
