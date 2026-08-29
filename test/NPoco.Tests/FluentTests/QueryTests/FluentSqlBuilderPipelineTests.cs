@@ -54,6 +54,102 @@ namespace NPoco.Tests.FluentTests.QueryTests
         private Database CreateDatabase() => new Database(_connectionString, DatabaseType.SQLite, SqliteFactory.Instance);
 
         [Test]
+        public void QueryStreamsAProjectionAndClosesTheConnection()
+        {
+            using (var database = CreateDatabase())
+            {
+                var names = new List<string>();
+                foreach (var row in database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .OrderBy(user, x => x.UserId)
+                    .Select(() => new { user.Row.Name })
+                    .Query())
+                {
+                    names.Add(row.Name);
+                }
+
+                Assert.That(names, Is.EqualTo(new[] { "one", "two", "three" }));
+                Assert.That(database.Connection, Is.Null, "streaming left the connection open");
+            }
+        }
+
+        [Test]
+        public void QueryStreamsAnEntityProjection()
+        {
+            using (var database = CreateDatabase())
+            {
+                var rows = database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .OrderBy(user, x => x.UserId)
+                    .Select(user)
+                    .Query()
+                    .ToList();
+
+                Assert.That(rows.Select(x => x.Name), Is.EqualTo(new[] { "one", "two", "three" }));
+            }
+        }
+
+        [Test]
+        public void QueryStopsEarlyWithoutReadingEveryRow()
+        {
+            using (var database = CreateDatabase())
+            {
+                var first = database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .OrderBy(user, x => x.UserId)
+                    .Select(() => new { user.Row.Name })
+                    .Query()
+                    .Take(1)
+                    .ToList();
+
+                Assert.That(first.Single().Name, Is.EqualTo("one"));
+                // Take disposes the enumerator, which releases the connection.
+                Assert.That(database.Connection, Is.Null);
+            }
+        }
+
+        [Test]
+        public async Task QueryAsyncStreamsAProjection()
+        {
+            using (var database = CreateDatabase())
+            {
+                var names = new List<string>();
+                await foreach (var row in database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .OrderBy(user, x => x.UserId)
+                    .Select(() => new { user.Row.Name })
+                    .QueryAsync())
+                {
+                    names.Add(row.Name);
+                }
+
+                Assert.That(names, Is.EqualTo(new[] { "one", "two", "three" }));
+                Assert.That(database.Connection, Is.Null);
+            }
+        }
+
+        [Test]
+        public async Task QueryAsyncStreamsInsideATransaction()
+        {
+            using (var database = CreateDatabase())
+            using (var transaction = database.GetTransaction())
+            {
+                var names = new List<string>();
+                await foreach (var row in database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .Select(() => new { user.Row.Name })
+                    .QueryAsync())
+                {
+                    names.Add(row.Name);
+                }
+
+                Assert.That(names.Count, Is.EqualTo(3));
+                Assert.That(database.Transaction, Is.Not.Null, "streaming disposed the ambient transaction");
+                transaction.Complete();
+            }
+        }
+
+        [Test]
         public void ProjectionFetchLeavesAnAmbientTransactionUsable()
         {
             using (var database = CreateDatabase())

@@ -79,7 +79,7 @@ namespace NPoco.FluentSqlBuilder
             var cteQuery = new FluentSqlQuery(_database);
             var definition = query(cteQuery);
             if (definition == null) throw new InvalidOperationException("The CTE callback must return a projected query.");
-            if (!ReferenceEquals(definition.Query, cteQuery)) throw new InvalidOperationException("The CTE callback must return a result created from the supplied query.");
+            if (!ReferenceEquals(definition.InnerQuery, cteQuery)) throw new InvalidOperationException("The CTE callback must return a result created from the supplied query.");
             return With(name, definition, out table);
         }
 
@@ -89,7 +89,7 @@ namespace NPoco.FluentSqlBuilder
             if (!IsValidIdentifier(name)) throw new ArgumentException("A CTE name may contain only letters, digits, and underscores, and cannot start with a digit.", nameof(name));
             if (query == null) throw new ArgumentNullException(nameof(query));
             if (!ReferenceEquals(query.Database, _database)) throw new InvalidOperationException("The CTE query must use the same database instance as the containing query.");
-            if (query.Query._ctes.Count > 0) throw new InvalidOperationException("A CTE definition cannot declare nested CTEs.");
+            if (query.InnerQuery._ctes.Count > 0) throw new InvalidOperationException("A CTE definition cannot declare nested CTEs.");
             if (!_cteNames.Add(name)) throw new InvalidOperationException("A CTE named '" + name + "' has already been added.");
             table = CreateTable<T>(true, name);
             _cteTables.Add(table);
@@ -170,7 +170,7 @@ namespace NPoco.FluentSqlBuilder
             var unionQuery = new FluentSqlQuery(_database);
             var result = query(unionQuery);
             if (result == null) throw new InvalidOperationException("The UNION callback must return a projected query.");
-            if (!ReferenceEquals(result.Query, unionQuery)) throw new InvalidOperationException("The UNION callback must return a result created from the supplied query.");
+            if (!ReferenceEquals(result.InnerQuery, unionQuery)) throw new InvalidOperationException("The UNION callback must return a result created from the supplied query.");
             AddUnion(all, result);
         }
 
@@ -180,9 +180,9 @@ namespace NPoco.FluentSqlBuilder
             if (_sorts.Count > 0 || SkipCount.HasValue || TakeCount.HasValue)
                 throw new InvalidOperationException("OrderBy, Skip, and Take cannot be applied to an individual UNION operand.");
             if (!ReferenceEquals(result.Database, _database)) throw new InvalidOperationException("The UNION query must use the same database instance as the containing query.");
-            if (ReferenceEquals(result.Query, this)) throw new InvalidOperationException("A query cannot be unioned with itself.");
-            if (result.Query._ctes.Count > 0) throw new InvalidOperationException("A UNION operand cannot declare CTEs.");
-            if (result.Query._sorts.Count > 0 || result.Query.SkipCount.HasValue || result.Query.TakeCount.HasValue)
+            if (ReferenceEquals(result.InnerQuery, this)) throw new InvalidOperationException("A query cannot be unioned with itself.");
+            if (result.InnerQuery._ctes.Count > 0) throw new InvalidOperationException("A UNION operand cannot declare CTEs.");
+            if (result.InnerQuery._sorts.Count > 0 || result.InnerQuery.SkipCount.HasValue || result.InnerQuery.TakeCount.HasValue)
                 throw new InvalidOperationException("OrderBy, Skip, and Take cannot be applied to an individual UNION operand.");
             _unions.Add(new UnionPart { All = all, Query = result });
         }
@@ -608,7 +608,7 @@ namespace NPoco.FluentSqlBuilder
             _database = database;
         }
 
-        internal FluentSqlQuery Query => _query;
+        internal FluentSqlQuery InnerQuery => _query;
         internal IDatabase Database => _database;
 
         public FluentSqlResult<TResult> Union(Func<FluentSqlQuery, FluentSqlResult<TResult>> query)
@@ -672,10 +672,28 @@ namespace NPoco.FluentSqlBuilder
             return await RowMapperDatabase.FetchAsync<TResult>(ToSql(), _query.ProjectionPlan, cancellationToken).ConfigureAwait(false);
         }
 
-        // Streams rather than materializing a list, so Single/First stop at the rows they need.
-        private IEnumerable<TResult> Enumerate() => RowMapperDatabase.Query<TResult>(ToSql(), _query.ProjectionPlan);
+        /// <summary>
+        /// Streams rows instead of materializing them, mirroring <see cref="IDatabaseQuery.Query{T}(Sql)"/>.
+        /// The connection is released when enumeration finishes or the enumerator is disposed, so a
+        /// partially consumed result must be disposed - a foreach does this for you.
+        /// </summary>
+        public IEnumerable<TResult> Query()
+        {
+            if (_query.ProjectionPlan == null) return _database.Query<TResult>(ToSql());
+            return RowMapperDatabase.Query<TResult>(ToSql(), _query.ProjectionPlan);
+        }
 
-        public TResult Single() => _query.ProjectionPlan == null ? _database.Single<TResult>(ToSql()) : Enumerate().Single();
-        public TResult First() => _query.ProjectionPlan == null ? _database.First<TResult>(ToSql()) : Enumerate().First();
+        /// <summary>
+        /// Streams rows asynchronously. Same connection lifetime caveat as <see cref="Query"/>.
+        /// </summary>
+        public IAsyncEnumerable<TResult> QueryAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (_query.ProjectionPlan == null) return _database.QueryAsync<TResult>(ToSql(), cancellationToken);
+            return RowMapperDatabase.QueryAsync<TResult>(ToSql(), _query.ProjectionPlan, cancellationToken);
+        }
+
+        // Streaming means Single/First stop at the rows they need rather than reading everything.
+        public TResult Single() => _query.ProjectionPlan == null ? _database.Single<TResult>(ToSql()) : Query().Single();
+        public TResult First() => _query.ProjectionPlan == null ? _database.First<TResult>(ToSql()) : Query().First();
     }
 }
