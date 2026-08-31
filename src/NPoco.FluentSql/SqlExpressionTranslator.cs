@@ -10,20 +10,22 @@ namespace NPoco.FluentSql
 {
     internal sealed class SqlExpressionTranslator
     {
-        private readonly IDatabase _database;
+        private readonly IAsyncQueryDatabase _database;
         private readonly IList<object> _parameters;
         // Only a lambda that takes rows as parameters needs the map, and a Row-style expression
         // takes none - so the common case allocates nothing here.
         private readonly Dictionary<ParameterExpression, TableReference> _tables;
         private readonly IList<TableReference> _availableTables;
         private readonly ISqlDialect _dialect;
+        private readonly bool _projection;
 
-        internal SqlExpressionTranslator(IDatabase database, IList<object> parameters, LambdaExpression expression, IList<TableReference> tables)
+        internal SqlExpressionTranslator(IAsyncQueryDatabase database, IList<object> parameters, LambdaExpression expression, IList<TableReference> tables, bool projection = false)
         {
             _database = database;
             _parameters = parameters;
             _availableTables = tables;
             _dialect = SqlDialects.For(database.DatabaseType);
+            _projection = projection;
             if (expression.Parameters.Count > tables.Count)
                 throw new ArgumentException("Expression has more parameters than available table references.", nameof(expression));
             if (expression.Parameters.Count == 0) return;
@@ -182,6 +184,7 @@ namespace NPoco.FluentSql
             {
                 if (expression.Method.Name == "Raw") return RawFragment(expression);
                 if (expression.Method.Name == "Scalar") return ScalarSubquery(expression);
+                if (expression.Method.Name == "Cast") return Cast(expression);
             }
             if (expression.Method.DeclaringType == typeof(FSqlFunctions))
             {
@@ -225,6 +228,14 @@ namespace NPoco.FluentSql
                     return "(" + Visit(expression.Object) + " = " + Visit(expression.Arguments[0]) + ")";
                 if (expression.Method.Name == "Substring") return Substring(expression);
             }
+
+            // ProjectTo selects the source column and applies ToString after materializing the row.
+            // A FluentSql projection materializes the target shape directly, so retain the column and
+            // let its scalar mapper convert it to the projection member's string type. Outside a
+            // projection this would change SQL semantics, and must use an explicit FSql.Cast instead.
+            if (_projection && expression.Method.Name == "ToString" && expression.Object != null
+                && expression.Arguments.Count == 0)
+                return Visit(expression.Object);
 
             if (expression.Method.DeclaringType == typeof(Math)) return MathFunction(expression);
 
@@ -361,6 +372,16 @@ namespace NPoco.FluentSql
                 throw new NotSupportedException("FSql.Raw arguments must be written out in the call, "
                     + "for example FSql.Raw<string>(\"upper({0})\", table.Row.Column).");
             return array.Expressions.ToArray();
+        }
+
+        private string Cast(MethodCallExpression expression)
+        {
+            if (!CanEvaluate(expression.Arguments[1]))
+                throw new NotSupportedException("The database type passed to FSql.Cast must be a constant or a captured value.");
+            var databaseType = Evaluate(expression.Arguments[1]) as string;
+            if (string.IsNullOrWhiteSpace(databaseType))
+                throw new ArgumentException("The database type passed to FSql.Cast cannot be null, empty or whitespace.", nameof(expression));
+            return "CAST(" + Visit(expression.Arguments[0]) + " AS " + databaseType + ")";
         }
 
         private string ScalarSubquery(MethodCallExpression expression)

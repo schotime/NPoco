@@ -122,8 +122,9 @@ parameter handling. `Take` without `Skip` becomes `TOP` on SQL Server.
 
 ## Projections
 
-A query ends in `Select` or `SelectScalar`, which returns a `FluentSqlResult<T>` - the thing you
-execute. Four shapes are available.
+A query ends in `Select` or `SelectScalar`, which returns the thing you execute: a
+`FluentSqlResult<T>` from an `IDatabaseQuery`, or an async-only `FluentSqlAsyncResult<T>` from an
+`IAsyncQueryDatabase`. Four shapes are available.
 
 **A whole entity**, mapped exactly as NPoco would map it:
 
@@ -182,6 +183,11 @@ Comparisons, boolean logic, arithmetic, modulo, bitwise operators, coalescing, c
 string concatenation, date-part extraction and date addition all translate, with provider-specific SQL
 where it differs. Aggregates are `FSql.Count`, `CountDistinct`, `Sum`, `Average`, `Min`, `Max`.
 
+Inside a projection, parameterless `ToString()` on a mapped column selects that column unchanged and
+uses NPoco's normal materialization conversion. For a database-side conversion, use
+`FSql.Cast<T>(value, dbType)`; `dbType` is provider-specific, for example
+`FSql.Cast<string>(user.Row.Id, "text")` on PostgreSQL.
+
 `FSql.Raw` emits SQL the builder has no expression for. Placeholders are `string.Format` style and
 each argument is translated like any other expression rather than evaluated, so aliases resolve and
 captured values become parameters:
@@ -218,6 +224,51 @@ var rows = outer
 
 A query built from `db.FluentQuery()` instead of `Subquery()` is uncorrelated and cannot see the outer
 tables. Subqueries used as a value or an `IN` list must project exactly one column.
+
+### Writing one inline
+
+C# allows no `out` argument inside an expression tree, so `From<T>(out var t)` cannot appear in a
+`Where` or a projection. `Table<T>()` reserves the alias up front instead, and the subquery is then
+built where it is used:
+
+```csharp
+var query = db.FluentQuery();
+var order = query.Table<Order>();
+
+var rows = query
+    .From<User>(out var user)
+    .Select(() => new
+    {
+        user.Row.Name,
+        Orders = FSql.Scalar<int>(query.Subquery().From(order)
+            .Where(() => order.Row.UserId == user.Row.Id)
+            .SelectScalar(() => FSql.Count()))
+    })
+    .Fetch();
+```
+
+An alias can be reserved before the query has a FROM, so the declarations sit above one chain rather
+than splitting it in two. `Subquery()` reads the query as it stands when the subquery is built, which
+is after the FROM further down the same chain has run.
+
+An inline subquery joins the same way, because the join overloads that take a declared reference need
+no `out` either. Their condition reaches every table through `table.Row`, the joined one included,
+rather than taking the joined row as a parameter:
+
+```csharp
+var address = query.Table<Address>();
+var region = query.Table<Region>();
+
+FSql.Scalar<int>(query.Subquery().From(address)
+    .InnerJoin(region, () => region.Row.Id == address.Row.RegionId)
+    .Where(() => address.Row.UserId == user.Row.Id)
+    .SelectScalar(() => FSql.Count()));
+```
+
+A reference stands for one occurrence of a table, alias included, so exactly one `From` or join takes
+it - a table appearing twice needs a `Table<T>()` each. The reference is not in scope until then;
+until it is added, an expression that reads its columns is an error, not a silent cross join. Declared
+references work on the outer query too, if you would rather name the alias before the join reads.
 
 ## CTEs
 
@@ -290,13 +341,22 @@ project-once query pays nothing for it.
 
 ## Executing
 
-`FluentSqlResult<T>` runs through NPoco's own pipeline - the same connection and transaction handling,
-interceptors and exception reporting as a plain `Fetch`:
+Both result types run through NPoco's own pipeline - the same connection and transaction handling,
+interceptors and exception reporting as a plain query. `FluentSqlAsyncResult<T>`, returned when the
+database is typed as `IAsyncQueryDatabase` or `IAsyncDatabase`, exposes only async execution:
 
 ```csharp
-List<T>            Fetch();          Task<List<T>> FetchAsync(CancellationToken);
-IEnumerable<T>     Query();          IAsyncEnumerable<T> QueryAsync(CancellationToken);
-T                  Single();         T First();
+Task<List<T>>       FetchAsync(CancellationToken);
+IAsyncEnumerable<T> QueryAsync(CancellationToken);
+Task<T>             SingleAsync(CancellationToken);
+Task<T>             FirstAsync(CancellationToken);
+```
+
+`FluentSqlResult<T>`, returned from `IDatabaseQuery` or `IDatabase`, adds the synchronous forms:
+
+```csharp
+List<T>        Fetch();       IEnumerable<T> Query();
+T              Single();      T First();
 ```
 
 `Query()` streams rather than materializing, and releases the connection when enumeration finishes or
@@ -326,6 +386,7 @@ These fail while the query is being built, rather than as a database error later
 - a CTE or `OUTER APPLY` body that projects a single value, since its column could never be referenced;
 - `OrderBy`, `Skip` or `Take` on a `UNION` operand, and CTEs declared inside one;
 - a table reference, CTE reference or reusable predicate belonging to a different query;
+- a reference from `Table<T>()` added twice, or read before a `From` or join has added it;
 - `From` more than once per query, `Take(0)` or a negative `Skip`;
 - a query executed or rendered without a projection.
 

@@ -104,6 +104,45 @@ namespace NPoco.Tests.FluentSqlTests
         }
 
         [Test]
+        public void ProjectionToStringUsesTheUnderlyingColumnAndCastUsesSql()
+        {
+            using (var database = CreateDatabase())
+            {
+                var sql = database.FluentQuery()
+                    .From<RawSystem>(out var system)
+                    .Where(() => system.Row.Id == 1)
+                    .Select(() => new
+                    {
+                        Text = system.Row.Id.ToString(),
+                        Cast = FSql.Cast<string>(system.Row.Id, "TEXT")
+                    })
+                    .ToSql();
+
+                Assert.That(sql.SQL, Does.Contain("[rs].[id] AS [Text]"));
+                Assert.That(sql.SQL, Does.Contain("CAST([rs].[id] AS TEXT) AS [Cast]"));
+
+                var row = database.FluentQuery()
+                    .From<RawSystem>(out system)
+                    .Where(() => system.Row.Id == 1)
+                    .Select(() => new
+                    {
+                        Text = system.Row.Id.ToString(),
+                        Cast = FSql.Cast<string>(system.Row.Id, "TEXT")
+                    })
+                    .Single();
+
+                Assert.That(row.Text, Is.EqualTo("1"));
+                Assert.That(row.Cast, Is.EqualTo("1"));
+
+                Assert.Throws<NotSupportedException>(() => database.FluentQuery()
+                    .From<RawSystem>(out system)
+                    .Where(() => system.Row.Id.ToString() == "1")
+                    .Select(() => system.Row.Id)
+                    .ToSql());
+            }
+        }
+
+        [Test]
         public void RawComposesInsideALargerPredicate()
         {
             using (var database = CreateDatabase())

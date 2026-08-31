@@ -9,7 +9,7 @@ namespace NPoco.FluentSql
 {
     internal static class SqlGenerator
     {
-        internal static Sql Generate(IDatabase database, IList<CtePart> ctes, IList<UnionPart> unions, TableReference from, IList<SelectPart> selects, IList<JoinPart> joins, IList<ApplyPart> applies,
+        internal static Sql Generate(IAsyncQueryDatabase database, IList<CtePart> ctes, IList<UnionPart> unions, TableReference from, IList<SelectPart> selects, IList<JoinPart> joins, IList<ApplyPart> applies,
             IList<PredicatePart> predicates, IList<GroupPart> groups, IList<PredicatePart> having, IList<SortPart> sorts, bool distinct, int? skip, int? take)
         {
             var parameters = new List<object>();
@@ -17,7 +17,7 @@ namespace NPoco.FluentSql
             return new Sql(true, text, parameters.ToArray());
         }
 
-        internal static string GenerateText(IDatabase database, IList<CtePart> ctes, IList<UnionPart> unions, TableReference from, IList<SelectPart> selects, IList<JoinPart> joins, IList<ApplyPart> applies,
+        internal static string GenerateText(IAsyncQueryDatabase database, IList<CtePart> ctes, IList<UnionPart> unions, TableReference from, IList<SelectPart> selects, IList<JoinPart> joins, IList<ApplyPart> applies,
             IList<PredicatePart> predicates, IList<GroupPart> groups, IList<PredicatePart> having, IList<SortPart> sorts, bool distinct, int? skip, int? take, IList<object> parameters)
         {
             var sql = new StringBuilder();
@@ -78,7 +78,7 @@ namespace NPoco.FluentSql
             return sql.ToString();
         }
 
-        private static string ApplyDatabasePaging(IDatabase database, string sql, long skip, long take, IList<object> parameters)
+        private static string ApplyDatabasePaging(IAsyncQueryDatabase database, string sql, long skip, long take, IList<object> parameters)
         {
             SQLParts parts;
             if (!PagingHelper.SplitSQL(sql, out parts)) throw new InvalidOperationException("Unable to parse SQL statement for paging.");
@@ -91,7 +91,7 @@ namespace NPoco.FluentSql
 
         private static string Indent(string sql) => "    " + sql.Replace("\n", "\n    ");
 
-        private static IEnumerable<string> RenderSelect(IDatabase database, SelectPart part, IList<object> parameters, TranslatorCache translators)
+        private static IEnumerable<string> RenderSelect(IAsyncQueryDatabase database, SelectPart part, IList<object> parameters, TranslatorCache translators)
         {
             if (part.All)
             {
@@ -110,19 +110,19 @@ namespace NPoco.FluentSql
             return new[] { translated[0] + " AS " + database.DatabaseType.EscapeSqlIdentifier(part.Alias) };
         }
 
-        private static IList<string> TranslateList(IDatabase database, IList<object> parameters, LambdaExpression expression, TableReference table)
+        private static IList<string> TranslateList(IAsyncQueryDatabase database, IList<object> parameters, LambdaExpression expression, TableReference table)
         {
             var translator = new SqlExpressionTranslator(database, parameters, expression, new[] { table });
             return translator.TranslateList(expression.Body);
         }
 
-        private static IList<string> TranslateList(IDatabase database, IList<object> parameters, LambdaExpression expression, TableReference[] tables)
+        private static IList<string> TranslateList(IAsyncQueryDatabase database, IList<object> parameters, LambdaExpression expression, TableReference[] tables)
         {
             var translator = new SqlExpressionTranslator(database, parameters, expression, tables);
             return translator.TranslateList(expression.Body);
         }
 
-        private static IList<string> TranslateList(IDatabase database, IList<object> parameters, LambdaExpression expression, TableReference[] tables, TranslatorCache translators)
+        private static IList<string> TranslateList(IAsyncQueryDatabase database, IList<object> parameters, LambdaExpression expression, TableReference[] tables, TranslatorCache translators)
             => translators.For(expression, tables).TranslateList(expression.Body);
 
         /// <summary>
@@ -132,12 +132,12 @@ namespace NPoco.FluentSql
         /// </summary>
         private sealed class TranslatorCache
         {
-            private readonly IDatabase _database;
+            private readonly IAsyncQueryDatabase _database;
             private readonly IList<object> _parameters;
             private TableReference[] _tables;
             private SqlExpressionTranslator _shared;
 
-            internal TranslatorCache(IDatabase database, IList<object> parameters)
+            internal TranslatorCache(IAsyncQueryDatabase database, IList<object> parameters)
             {
                 _database = database;
                 _parameters = parameters;
@@ -146,23 +146,23 @@ namespace NPoco.FluentSql
             internal SqlExpressionTranslator For(LambdaExpression expression, TableReference[] tables)
             {
                 if (expression.Parameters.Count > 0)
-                    return new SqlExpressionTranslator(_database, _parameters, expression, tables);
+                    return new SqlExpressionTranslator(_database, _parameters, expression, tables, projection: true);
                 if (_shared == null || !ReferenceEquals(_tables, tables))
                 {
                     _tables = tables;
-                    _shared = new SqlExpressionTranslator(_database, _parameters, expression, tables);
+                    _shared = new SqlExpressionTranslator(_database, _parameters, expression, tables, projection: true);
                 }
                 return _shared;
             }
         }
 
-        private static void AppendPredicates(StringBuilder sql, string keyword, IDatabase database, IList<PredicatePart> predicates, IList<object> parameters)
+        private static void AppendPredicates(StringBuilder sql, string keyword, IAsyncQueryDatabase database, IList<PredicatePart> predicates, IList<object> parameters)
         {
             if (predicates.Count == 0) return;
             sql.Append('\n').Append(keyword).Append(' ').Append(RenderPredicateList(database, predicates, parameters));
         }
 
-        private static string RenderPredicateList(IDatabase database, IList<PredicatePart> predicates, IList<object> parameters)
+        private static string RenderPredicateList(IAsyncQueryDatabase database, IList<PredicatePart> predicates, IList<object> parameters)
         {
             var sql = new StringBuilder();
             for (var i = 0; i < predicates.Count; i++)

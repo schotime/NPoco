@@ -12,6 +12,7 @@ namespace NPoco.Tests.FluentSqlTests
     internal class DocumentationSamples
     {
         private readonly IDatabase db = null;
+        private readonly IAsyncDatabase asyncDb = null;
         private readonly decimal minimum = 0;
         private readonly int? clientId = null;
         private readonly bool includeInactive = false, recent = false;
@@ -27,6 +28,14 @@ namespace NPoco.Tests.FluentSqlTests
                 .OrderBy(() => user.Row.Name)
                 .Select(() => new { user.Row.Name, order.Row.Amount })
                 .Fetch();
+        }
+
+        public async System.Threading.Tasks.Task AsyncDatabaseEntryPoint()
+        {
+            var result = asyncDb.FluentQuery().From<User>(out var user).Select(user);
+            await result.FetchAsync();
+            await result.FirstAsync();
+            await result.SingleAsync();
         }
 
         public void References()
@@ -100,6 +109,7 @@ namespace NPoco.Tests.FluentSqlTests
             stage.SelectScalar(() => user.Row.Name);
             stage.SelectScalar(() => user.Row.Name + "/" + order.Row.Id);
             stage.Select(() => user.Row.Name);
+            stage.Select(() => FSql.Cast<string>(user.Row.Id, "text"));
             stage.Select(sql => new
             {
                 Score = sql.Case(user.Row.IsActive, user.Row.Age + 1, 0),
@@ -132,6 +142,31 @@ namespace NPoco.Tests.FluentSqlTests
                 .Where(() => FSql.Exists(orderCount))
                 .Select(() => new { user.Row.Name, Orders = FSql.Scalar<int>(orderCount) })
                 .Fetch();
+        }
+
+        public void InlineSubqueries()
+        {
+            var query = db.FluentQuery();
+            var order = query.Table<Order>();
+            var address = query.Table<Address>();
+            var region = query.Table<Region>();
+
+            var users = query.From<User>(out var user);
+
+            var rows = users
+                .Select(() => new
+                {
+                    user.Row.Name,
+                    Orders = FSql.Scalar<int>(query.Subquery().From(order)
+                        .Where(() => order.Row.UserId == user.Row.Id)
+                        .SelectScalar(() => FSql.Count()))
+                })
+                .Fetch();
+
+            users.Select(() => FSql.Scalar<int>(query.Subquery().From(address)
+                .InnerJoin(region, () => region.Row.Id == address.Row.RegionId)
+                .Where(() => address.Row.UserId == user.Row.Id)
+                .SelectScalar(() => FSql.Count())));
         }
 
         public void Ctes()

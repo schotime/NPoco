@@ -190,6 +190,7 @@ namespace NPoco.Tests.FluentSqlTests
             Assert.That(await Names().FetchAsync(), Is.EqualTo(new[] { "a", "b", "c" }));
             Assert.That(Names().Query().ToList(), Is.EqualTo(new[] { "a", "b", "c" }));
             Assert.That(Names().First(), Is.EqualTo("a"));
+            Assert.That(await Names().FirstAsync(), Is.EqualTo("a"));
 
             var streamed = new List<string>();
             await foreach (var name in Names().QueryAsync()) streamed.Add(name);
@@ -199,6 +200,42 @@ namespace NPoco.Tests.FluentSqlTests
                 .Where(() => s2.Row.Id == 2)
                 .Select(() => s2.Row.Name).Single();
             Assert.That(single, Is.EqualTo("b"));
+        }
+
+        [Test] public async Task AsyncDatabaseEntryPointExposesAndExecutesOnlyAsyncOperations()
+        {
+            using var db = Db();
+            IAsyncQueryDatabase asyncDb = db;
+
+            FluentSqlAsyncResult<string> names = asyncDb.FluentQuery()
+                .From<SelSystem>(out var s)
+                .OrderBy(() => s.Row.Id)
+                .Select(() => s.Row.Name);
+
+            Assert.That(await names.FetchAsync(), Is.EqualTo(new[] { "a", "b", "c" }));
+            Assert.That(await names.FirstAsync(), Is.EqualTo("a"));
+
+            var one = asyncDb.FluentQuery()
+                .From<SelSystem>(out var s2)
+                .Where(() => s2.Row.Id == 2)
+                .Select(() => new SelPair(s2.Row.Id, s2.Row.Name));
+            var value = await one.SingleAsync();
+            Assert.That(value.Id, Is.EqualTo(2));
+            Assert.That(value.Name, Is.EqualTo("b"));
+
+            var unioned = asyncDb.FluentQuery()
+                .From<SelSystem>(out var first)
+                .Where(() => first.Row.Id == 1)
+                .Select(() => first.Row.Name)
+                .UnionAll(q => q.From<SelSystem>(out var last)
+                    .Where(() => last.Row.Id == 3)
+                    .Select(() => last.Row.Name));
+            Assert.That((await unioned.FetchAsync()).OrderBy(x => x), Is.EqualTo(new[] { "a", "c" }));
+
+            Assert.That(typeof(FluentSqlAsyncResult<string>).GetMethod("Fetch"), Is.Null);
+            Assert.That(typeof(FluentSqlAsyncResult<string>).GetMethod("Query"), Is.Null);
+            Assert.That(typeof(FluentSqlAsyncResult<string>).GetMethod("Single"), Is.Null);
+            Assert.That(typeof(FluentSqlAsyncResult<string>).GetMethod("First"), Is.Null);
         }
 
         [Test] public void ScalarBodyWorksAsASubqueryOperand()

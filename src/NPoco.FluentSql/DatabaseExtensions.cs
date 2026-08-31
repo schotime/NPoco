@@ -12,6 +12,18 @@ namespace NPoco.FluentSql
         /// </summary>
         /// <param name="database">The database the query is built for and run against.</param>
         /// <returns>An empty query, awaiting its FROM.</returns>
-        public static FluentSqlQuery FluentQuery(this IDatabase database) => new FluentSqlQuery(database);
+        public static FluentSqlQuery FluentQuery(this IDatabaseQuery database) => new FluentSqlQuery(database);
+
+        /// <summary>
+        /// Starts a fluent query from an async-query database reference. Results built from this
+        /// entry point expose async execution methods only.
+        /// </summary>
+        /// <param name="database">The database the query is built for and run against.</param>
+        /// <returns>An empty query, awaiting its FROM.</returns>
+        public static FluentSqlAsyncQuery FluentQuery(this IAsyncQueryDatabase database)
+        {
+            if (database == null) throw new System.ArgumentNullException(nameof(database));
+            return new FluentSqlAsyncQuery(new FluentSqlQuery(database));
+        }
     }
 }

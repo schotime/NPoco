@@ -57,6 +57,8 @@ namespace NPoco.FluentSql
         public T Case<T>(bool condition, T whenTrue, T whenFalse) => throw Marker();
         /// <inheritdoc cref="FSql.Raw{T}(string, object[])"/>
         public T Raw<T>(string sql, params object[] arguments) => throw Marker();
+        /// <inheritdoc cref="FSql.Cast{T}(object, string)"/>
+        public T Cast<T>(object value, string databaseType) => throw Marker();
         /// <inheritdoc cref="FSql.Scalar{T}(IFluentSqlQuery)"/>
         public T Scalar<T>(IFluentSqlQuery subquery) => throw Marker();
 
@@ -185,6 +187,15 @@ namespace NPoco.FluentSql
         /// <param name="arguments">Expressions substituted into the placeholders. Write them
         /// inline: they are read as expressions rather than evaluated.</param>
         public static T Raw<T>(string sql, params object[] arguments) => throw Marker();
+
+        /// <summary>
+        /// Translates to <c>CAST(value AS databaseType)</c>. The database type is used verbatim, so
+        /// it must use the syntax understood by the provider being targeted.
+        /// </summary>
+        /// <typeparam name="T">The CLR type the cast result is materialized as.</typeparam>
+        /// <param name="value">The expression to cast.</param>
+        /// <param name="databaseType">The provider-specific SQL type, such as <c>text</c> or <c>varchar(36)</c>.</param>
+        public static T Cast<T>(object value, string databaseType) => throw Marker();
 
         /// <summary>
         /// Embeds a subquery that yields a single value, for use anywhere a column can appear -
