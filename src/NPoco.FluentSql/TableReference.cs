@@ -53,6 +53,9 @@ namespace NPoco.FluentSql
 
         internal abstract string GetColumn(MemberInfo[] members);
         internal abstract PocoColumn ResolveColumn(MemberInfo[] members);
+
+        /// <summary>The column a member chain maps to, or null when it maps to none.</summary>
+        internal abstract PocoColumn TryResolveColumn(MemberInfo[] members);
     }
 
     /// <summary>
@@ -109,6 +112,14 @@ namespace NPoco.FluentSql
         }
 
         internal override PocoColumn ResolveColumn(MemberInfo[] members) => ResolveColumn(Path(members), members);
+
+        internal override PocoColumn TryResolveColumn(MemberInfo[] members)
+        {
+            if (members == null || members.Length == 0) return null;
+            if (_columns == null) _columns = BuildColumnMap();
+            PocoColumn column;
+            return _columns.TryGetValue(Path(members), out column) ? column : null;
+        }
 
         private PocoColumn ResolveColumn(string path, MemberInfo[] members)
         {
