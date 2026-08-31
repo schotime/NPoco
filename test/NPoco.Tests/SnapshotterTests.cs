@@ -1,7 +1,6 @@
 ﻿using System;
 using Microsoft.Data.SqlClient;
 using System.Linq;
-using NPoco;
 using NPoco.FluentMappings;
 using NPoco.Tests.Common;
 using NUnit.Framework;
@@ -147,6 +146,32 @@ namespace NPoco.Tests
             Assert.AreEqual(1, snap.Changes().Count);
             Assert.AreEqual(1, snap.UpdatedColumns().Count);
             Assert.AreEqual("Values", snap.UpdatedColumns()[0]);
+        }
+
+        [Test]
+        public void HasChangesShouldReturnFalseWhenNoChanges()
+        {
+            var user = new Admin { UserId = 1 };
+            var snap = _database.StartSnapshot(user);
+            Assert.False(snap.HasChanges());
+        }
+
+        [Test]
+        public void HasChangesShouldReturnTrueWhenPropertyChanged()
+        {
+            var user = new Admin { UserId = 1, Age = 30 };
+            var snap = _database.StartSnapshot(user);
+            user.Age = 31;
+            Assert.True(snap.HasChanges());
+        }
+
+        [Test]
+        public void HasChangesShouldMatchChangesCountBehavior()
+        {
+            var user = new Admin { UserId = 1, Age = 30 };
+            var snap = _database.StartSnapshot(user);
+            user.Age = 31;
+            Assert.AreEqual(snap.Changes().Any(), snap.HasChanges());
         }
     }
 
