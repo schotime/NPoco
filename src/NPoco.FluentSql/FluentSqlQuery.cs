@@ -223,13 +223,16 @@ namespace NPoco.FluentSql
             EnsureAvailable(table);
             if (selector == null) throw new ArgumentNullException(nameof(selector));
             _selects.Add(new SelectPart { Table = table, Expression = selector });
+            _projectionPlan = ProjectionPlanBuilder.BuildScalar(table, selector, _database.Mappers);
             return new FluentSqlResult<TValue>(this, _database);
         }
 
         internal FluentSqlResult<TValue> SelectScalar<TValue>(Expression<Func<TValue>> selector)
         {
             if (selector == null) throw new ArgumentNullException(nameof(selector));
-            _selects.Add(new SelectPart { Tables = AvailableTables.Distinct().ToArray(), Expression = selector });
+            var tables = AvailableTables.Distinct().ToArray();
+            _selects.Add(new SelectPart { Tables = tables, Expression = selector });
+            _projectionPlan = ProjectionPlanBuilder.BuildScalar(selector, tables, _database.Mappers);
             return new FluentSqlResult<TValue>(this, _database);
         }
 
