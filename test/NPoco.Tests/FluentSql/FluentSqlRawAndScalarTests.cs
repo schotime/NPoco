@@ -2,18 +2,18 @@ using System;
 using System.IO;
 using System.Linq;
 using Microsoft.Data.Sqlite;
-using NPoco.FluentSqlBuilder;
+using NPoco.FluentSql;
 using NUnit.Framework;
 
 namespace NPoco.Tests.FluentSqlTests
 {
     /// <summary>
-    /// FluentSql.Raw and FluentSql.Scalar - the two escape hatches for SQL the expression
+    /// FSql.Raw and FSql.Scalar - the two escape hatches for SQL the expression
     /// translator has no node for. Executed against SQLite rather than asserted as text, so the
     /// fragments have to actually run and materialize.
     /// </summary>
     [TestFixture]
-    public class FluentSqlBuilderRawAndScalarTests
+    public class FluentSqlRawAndScalarTests
     {
         private string _file;
         private string _connectionString;
@@ -59,7 +59,7 @@ namespace NPoco.Tests.FluentSqlTests
                     .Select(() => new
                     {
                         system.Row.Name,
-                        Padded = FluentSql.Raw<string>("substr({0} || '____', 1, 4)", system.Row.Name)
+                        Padded = FSql.Raw<string>("substr({0} || '____', 1, 4)", system.Row.Name)
                     })
                     .Fetch();
 
@@ -77,7 +77,7 @@ namespace NPoco.Tests.FluentSqlTests
                     .From<RawSystem>(out var system)
                     .Select(() => new
                     {
-                        Doubled = FluentSql.Raw<string>("({0} || {1} || {0})", system.Row.Name, separator)
+                        Doubled = FSql.Raw<string>("({0} || {1} || {0})", system.Row.Name, separator)
                     })
                     .ToSql();
 
@@ -94,7 +94,7 @@ namespace NPoco.Tests.FluentSqlTests
             {
                 var names = database.FluentQuery()
                     .From<RawSystem>(out var system)
-                    .Where(() => FluentSql.Raw<bool>("{0} in ('a','d')", system.Row.Name))
+                    .Where(() => FSql.Raw<bool>("{0} in ('a','d')", system.Row.Name))
                     .OrderBy(system, x => x.Id)
                     .Select(() => new { system.Row.Name })
                     .Fetch();
@@ -110,7 +110,7 @@ namespace NPoco.Tests.FluentSqlTests
             {
                 var names = database.FluentQuery()
                     .From<RawSystem>(out var system)
-                    .Where(() => FluentSql.Raw<bool>("{0} = 1 or {0} = 4", system.Row.Id) && system.Row.Active)
+                    .Where(() => FSql.Raw<bool>("{0} = 1 or {0} = 4", system.Row.Id) && system.Row.Active)
                     .OrderBy(system, x => x.Id)
                     .Select(() => new { system.Row.Name })
                     .Fetch();
@@ -127,8 +127,8 @@ namespace NPoco.Tests.FluentSqlTests
             {
                 var rows = database.FluentQuery()
                     .From<RawSystem>(out var system)
-                    .Where(() => FluentSql.Raw<bool>("1 = 1"))
-                    .Select(() => new { Answer = FluentSql.Raw<int>("40 + 2") })
+                    .Where(() => FSql.Raw<bool>("1 = 1"))
+                    .Select(() => new { Answer = FSql.Raw<int>("40 + 2") })
                     .Fetch();
 
                 Assert.That(rows.Select(x => x.Answer).Distinct().Single(), Is.EqualTo(42));
@@ -147,7 +147,7 @@ namespace NPoco.Tests.FluentSqlTests
                     .Select(() => new RawGrouped
                     {
                         SiteId = system.Row.SiteId,
-                        Names = FluentSql.Raw<string>("group_concat({0}, '-')", system.Row.Name)
+                        Names = FSql.Raw<string>("group_concat({0}, '-')", system.Row.Name)
                     })
                     .Fetch();
 
@@ -163,7 +163,7 @@ namespace NPoco.Tests.FluentSqlTests
                 var rows = database.FluentQuery()
                     .From<RawSystem>(out var system)
                     .Where(system, x => x.Id == 1)
-                    .Select(() => new { Braced = FluentSql.Raw<string>("'{{' || {0} || '}}'", system.Row.Name) })
+                    .Select(() => new { Braced = FSql.Raw<string>("'{{' || {0} || '}}'", system.Row.Name) })
                     .Fetch();
 
                 Assert.That(rows.Single().Braced, Is.EqualTo("{a}"));
@@ -177,7 +177,7 @@ namespace NPoco.Tests.FluentSqlTests
             {
                 var query = database.FluentQuery()
                     .From<RawSystem>(out var system)
-                    .Select(() => new { Bad = FluentSql.Raw<string>("upper({1})", system.Row.Name) });
+                    .Select(() => new { Bad = FSql.Raw<string>("upper({1})", system.Row.Name) });
 
                 var exception = Assert.Throws<ArgumentException>(() => query.ToSql());
                 Assert.That(exception.Message, Does.Contain("1 argument(s)"));
@@ -197,11 +197,11 @@ namespace NPoco.Tests.FluentSqlTests
                 var activeSystems = query.Subquery()
                     .From<RawSystem>(out var system)
                     .Where(() => system.Row.SiteId == site.Row.Id && system.Row.Active)
-                    .SelectScalar(system, x => FluentSql.Count());
+                    .SelectScalar(system, x => FSql.Count());
 
                 var rows = query
                     .OrderBy(site, x => x.Id)
-                    .Select(() => new { site.Row.Name, ActiveSystems = FluentSql.Scalar<int>(activeSystems) })
+                    .Select(() => new { site.Row.Name, ActiveSystems = FSql.Scalar<int>(activeSystems) })
                     .Fetch();
 
                 Assert.That(rows.Select(x => x.Name), Is.EqualTo(new[] { "north", "south" }));
@@ -216,12 +216,12 @@ namespace NPoco.Tests.FluentSqlTests
             {
                 var total = database.FluentQuery()
                     .From<RawSystem>(out var all)
-                    .SelectScalar(all, x => FluentSql.Count());
+                    .SelectScalar(all, x => FSql.Count());
 
                 var rows = database.FluentQuery()
                     .From<RawSite>(out var site)
                     .OrderBy(site, x => x.Id)
-                    .Select(() => new { site.Row.Name, Total = FluentSql.Scalar<int>(total) })
+                    .Select(() => new { site.Row.Name, Total = FSql.Scalar<int>(total) })
                     .Fetch();
 
                 Assert.That(rows.Select(x => x.Total), Is.EqualTo(new[] { 4, 4 }));
@@ -238,11 +238,11 @@ namespace NPoco.Tests.FluentSqlTests
                 var systems = query.Subquery()
                     .From<RawSystem>(out var system)
                     .Where(() => system.Row.SiteId == site.Row.Id)
-                    .SelectScalar(system, x => FluentSql.Count());
+                    .SelectScalar(system, x => FSql.Count());
 
                 var rows = query
-                    .Where(() => FluentSql.Scalar<int>(systems) > 1)
-                    .Select(() => new { site.Row.Name, Plus = FluentSql.Scalar<int>(systems) + 10 })
+                    .Where(() => FSql.Scalar<int>(systems) > 1)
+                    .Select(() => new { site.Row.Name, Plus = FSql.Scalar<int>(systems) + 10 })
                     .Fetch();
 
                 Assert.That(rows.Single().Name, Is.EqualTo("north"));
@@ -265,7 +265,7 @@ namespace NPoco.Tests.FluentSqlTests
                     .SelectScalar(system, x => x.Id);
 
                 var rows = query
-                    .Where(() => FluentSql.Exists(inactive))
+                    .Where(() => FSql.Exists(inactive))
                     .Select(() => new { site.Row.Name })
                     .Fetch();
 
@@ -286,7 +286,7 @@ namespace NPoco.Tests.FluentSqlTests
                     .SelectScalar(system, x => x.Id);
 
                 var rows = query
-                    .Where(() => FluentSql.NotExists(inactive))
+                    .Where(() => FSql.NotExists(inactive))
                     .Select(() => new { site.Row.Name })
                     .Fetch();
 
@@ -303,7 +303,7 @@ namespace NPoco.Tests.FluentSqlTests
                 var uncorrelated = database.FluentQuery()
                     .From<RawSystem>(out var system)
                     .Where(() => system.Row.SiteId == site.Row.Id)
-                    .SelectScalar(system, x => FluentSql.Count());
+                    .SelectScalar(system, x => FSql.Count());
 
                 // Built from FluentQuery(), not query.Subquery(), so the outer table is out of scope.
                 Assert.Throws<InvalidOperationException>(() => uncorrelated.ToSql());
@@ -322,11 +322,11 @@ namespace NPoco.Tests.FluentSqlTests
                 var systems = query.Subquery()
                     .From<RawSystem>(out var system)
                     .Where(() => system.Row.SiteId == site.Row.Id)
-                    .SelectScalar(system, x => FluentSql.Count());
+                    .SelectScalar(system, x => FSql.Count());
 
                 Assert.That(site.Alias, Is.Not.EqualTo(system.Alias));
 
-                var sql = query.Select(() => new { Count = FluentSql.Scalar<int>(systems) }).ToSql().SQL;
+                var sql = query.Select(() => new { Count = FSql.Scalar<int>(systems) }).ToSql().SQL;
                 Assert.That(sql, Does.Contain("[" + system.Alias + "].[site_id] = [" + site.Alias + "].[id]"));
             }
         }
@@ -372,7 +372,7 @@ namespace NPoco.Tests.FluentSqlTests
                 var activeCount = query.Subquery()
                     .From<RawSystem>(out var counted)
                     .Where(() => counted.Row.SiteId == site.Row.Id && counted.Row.Active)
-                    .SelectScalar(counted, x => FluentSql.Count());
+                    .SelectScalar(counted, x => FSql.Count());
 
                 var any = query.Subquery()
                     .From<RawSystem>(out var probe)
@@ -380,9 +380,9 @@ namespace NPoco.Tests.FluentSqlTests
                     .SelectScalar(probe, x => x.Id);
 
                 var rows = query
-                    .Where(() => FluentSql.Exists(any))
+                    .Where(() => FSql.Exists(any))
                     .OrderBy(site, x => x.Name)
-                    .Select(() => new { site.Row.Id, site.Row.Name, SystemCount = FluentSql.Scalar<int>(activeCount) })
+                    .Select(() => new { site.Row.Id, site.Row.Name, SystemCount = FSql.Scalar<int>(activeCount) })
                     .Fetch();
 
                 Assert.That(rows.Select(x => x.Name), Is.EqualTo(new[] { "north", "south" }));
@@ -405,11 +405,11 @@ namespace NPoco.Tests.FluentSqlTests
 
                 var atOrAfter = sub
                     .Where(() => counted.Row.SiteId == site.Row.Id && counted.Row.Id >= flagged.Row.Id)
-                    .SelectScalar(counted, x => FluentSql.Count());
+                    .SelectScalar(counted, x => FSql.Count());
 
                 var rows = staged
                     .OrderBy(flagged, x => x.Id)
-                    .Select(() => new { site.Row.Name, From = flagged.Row.Id, N = FluentSql.Scalar<int>(atOrAfter) })
+                    .Select(() => new { site.Row.Name, From = flagged.Row.Id, N = FSql.Scalar<int>(atOrAfter) })
                     .Fetch();
 
                 Assert.That(rows.Select(x => x.From), Is.EqualTo(new[] { 1, 2, 4 }));

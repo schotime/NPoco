@@ -6,7 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace NPoco.FluentSqlBuilder
+namespace NPoco.FluentSql
 {
     internal sealed class SqlExpressionTranslator
     {
@@ -180,13 +180,13 @@ namespace NPoco.FluentSqlBuilder
                 if (expression.Method.Name == "Raw") return RawFragment(expression);
                 if (expression.Method.Name == "Scalar") return ScalarSubquery(expression);
             }
-            if (expression.Method.DeclaringType == typeof(FluentSqlFunctions))
+            if (expression.Method.DeclaringType == typeof(FSqlFunctions))
             {
                 if (expression.Method.Name == "Case")
                     return "(CASE WHEN " + Predicate(expression.Arguments[0]) + " THEN " + Visit(expression.Arguments[1]) + " ELSE " + Visit(expression.Arguments[2]) + " END)";
                 return Aggregate(expression);
             }
-            if (expression.Method.DeclaringType == typeof(FluentSql))
+            if (expression.Method.DeclaringType == typeof(FSql))
             {
                 if (IsAggregate(expression.Method.Name)) return Aggregate(expression);
                 if (typeof(IFluentSqlQuery).IsAssignableFrom(expression.Arguments.Last().Type)) return Subquery(expression);
@@ -300,15 +300,15 @@ namespace NPoco.FluentSqlBuilder
         private static bool IsSqlServer(string provider) => provider.Contains("sqlclient") && !provider.Contains("mysql");
 
         private static bool IsFluentSqlMarker(MethodInfo method)
-            => method.DeclaringType == typeof(FluentSql) || method.DeclaringType == typeof(FluentSqlFunctions);
+            => method.DeclaringType == typeof(FSql) || method.DeclaringType == typeof(FSqlFunctions);
 
         private string RawFragment(MethodCallExpression expression)
         {
             if (!CanEvaluate(expression.Arguments[0]))
-                throw new NotSupportedException("The SQL text passed to FluentSql.Raw must be a constant or a captured value.");
+                throw new NotSupportedException("The SQL text passed to FSql.Raw must be a constant or a captured value.");
             var format = Evaluate(expression.Arguments[0]) as string;
             if (string.IsNullOrWhiteSpace(format))
-                throw new ArgumentException("FluentSql.Raw requires SQL text.");
+                throw new ArgumentException("FSql.Raw requires SQL text.");
 
             var operands = RawOperands(expression);
             var rendered = new object[operands.Length];
@@ -320,7 +320,7 @@ namespace NPoco.FluentSqlBuilder
             }
             catch (FormatException exception)
             {
-                throw new ArgumentException("The SQL text passed to FluentSql.Raw has a placeholder that does not match its "
+                throw new ArgumentException("The SQL text passed to FSql.Raw has a placeholder that does not match its "
                     + rendered.Length + " argument(s). Use {0}, {1}, ... and {{ }} for a literal brace. SQL: " + format, exception);
             }
         }
@@ -334,8 +334,8 @@ namespace NPoco.FluentSqlBuilder
             var argument = StripConvert(expression.Arguments[1]);
             var array = argument as NewArrayExpression;
             if (array == null)
-                throw new NotSupportedException("FluentSql.Raw arguments must be written out in the call, "
-                    + "for example FluentSql.Raw<string>(\"upper({0})\", table.Row.Column).");
+                throw new NotSupportedException("FSql.Raw arguments must be written out in the call, "
+                    + "for example FSql.Raw<string>(\"upper({0})\", table.Row.Column).");
             return array.Expressions.ToArray();
         }
 
@@ -343,8 +343,8 @@ namespace NPoco.FluentSqlBuilder
         {
             var query = Evaluate(expression.Arguments[0]) as IFluentSqlQueryInternal;
             if (query == null)
-                throw new InvalidOperationException("FluentSql.Scalar requires a query built by the fluent SQL builder.");
-            RequireSingleColumn(query, "FluentSql.Scalar");
+                throw new InvalidOperationException("FSql.Scalar requires a query built by the fluent SQL builder.");
+            RequireSingleColumn(query, "FSql.Scalar");
             return "(" + query.Build(_parameters) + ")";
         }
 
@@ -364,7 +364,7 @@ namespace NPoco.FluentSqlBuilder
             var query = Evaluate(queryExpression) as IFluentSqlQueryInternal;
             if (query == null) throw new InvalidOperationException("A SQL subquery expression requires a FluentSqlQuery instance.");
             if (expression.Method.Name == "In" || expression.Method.Name == "NotIn")
-                RequireSingleColumn(query, "FluentSql." + expression.Method.Name);
+                RequireSingleColumn(query, "FSql." + expression.Method.Name);
             var nestedSql = query.Build(_parameters);
             if (expression.Method.Name == "Exists") return "EXISTS (" + nestedSql + ")";
             if (expression.Method.Name == "NotExists") return "NOT EXISTS (" + nestedSql + ")";

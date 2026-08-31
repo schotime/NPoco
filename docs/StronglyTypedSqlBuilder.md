@@ -1,12 +1,12 @@
 # Strongly-Typed SQL Builder for NPoco
 
-`NPoco.FluentSqlBuilder` builds SQL from C# expressions and NPoco's own mapping metadata, instead of
+`NPoco.FluentSql` builds SQL from C# expressions and NPoco's own mapping metadata, instead of
 from SQL templates or interpolated strings. Tables, columns, aliases and parameters are all derived
 from your POCOs, so a rename that breaks a query breaks the build. NPoco's existing `SqlBuilder` and
 LINQ query APIs are untouched; this is an additional package.
 
 ```csharp
-using NPoco.FluentSqlBuilder;
+using NPoco.FluentSql;
 
 var rows = db.FluentQuery()
     .From<User>(out var user)
@@ -110,8 +110,8 @@ predicates:
 
 ```csharp
 .GroupBy(() => user.Row.Name)
-.HavingIf(minimumOrders > 0, () => FluentSql.Count() > minimumOrders)
-.OrderByDescending(() => FluentSql.Count())
+.HavingIf(minimumOrders > 0, () => FSql.Count() > minimumOrders)
+.OrderByDescending(() => FSql.Count())
 .ThenBy(() => user.Row.Name)
 .Distinct()
 .Skip(20).Take(10)
@@ -163,10 +163,10 @@ and `SelectScalar(() => user.Row.Name)` are the same query. A single-value proje
 projection plan entirely and maps through NPoco's ordinary single-column path.
 
 > An aggregate over an empty set is SQL `NULL`. On the single-value path that needs a nullable result
-> type - `FluentSql.Sum(user.Row.Score)` where `Score` is `int` will fail on no rows, where `int?`
+> type - `FSql.Sum(user.Row.Score)` where `Score` is `int` will fail on no rows, where `int?`
 > yields `null`.
 
-**A discoverable functions parameter**, if you would rather not reach for the static `FluentSql`:
+**A discoverable functions parameter**, if you would rather not reach for the static `FSql`:
 
 ```csharp
 .Select(sql => new
@@ -180,16 +180,16 @@ projection plan entirely and maps through NPoco's ordinary single-column path.
 
 Comparisons, boolean logic, arithmetic, modulo, bitwise operators, coalescing, conditionals (`CASE`),
 string concatenation, date-part extraction and date addition all translate, with provider-specific SQL
-where it differs. Aggregates are `FluentSql.Count`, `CountDistinct`, `Sum`, `Average`, `Min`, `Max`.
+where it differs. Aggregates are `FSql.Count`, `CountDistinct`, `Sum`, `Average`, `Min`, `Max`.
 
-`FluentSql.Raw` emits SQL the builder has no expression for. Placeholders are `string.Format` style and
+`FSql.Raw` emits SQL the builder has no expression for. Placeholders are `string.Format` style and
 each argument is translated like any other expression rather than evaluated, so aliases resolve and
 captured values become parameters:
 
 ```csharp
 .Select(() => new
 {
-    Readings = FluentSql.Raw<string>(
+    Readings = FSql.Raw<string>(
         "json_agg(json_build_object('value', {0}, 'at', {1}) ORDER BY {1})",
         metric.Row.Value,
         metric.Row.OccurredAt)
@@ -199,7 +199,7 @@ captured values become parameters:
 ## Subqueries
 
 `Subquery()` starts a query that can see the outer query's tables, which is what makes it correlated.
-Pass the result to `FluentSql.Scalar` to project it, or to `Exists`/`NotExists`/`In`/`NotIn` to use it
+Pass the result to `FSql.Scalar` to project it, or to `Exists`/`NotExists`/`In`/`NotIn` to use it
 in a predicate:
 
 ```csharp
@@ -208,11 +208,11 @@ var outer = db.FluentQuery().From<User>(out var user);
 var orderCount = outer.Subquery()
     .From<Order>(out var order)
     .Where(() => order.Row.UserId == user.Row.Id)
-    .Select(() => FluentSql.Count());
+    .Select(() => FSql.Count());
 
 var rows = outer
-    .Where(() => FluentSql.Exists(orderCount))
-    .Select(() => new { user.Row.Name, Orders = FluentSql.Scalar<int>(orderCount) })
+    .Where(() => FSql.Exists(orderCount))
+    .Select(() => new { user.Row.Name, Orders = FSql.Scalar<int>(orderCount) })
     .Fetch();
 ```
 
@@ -281,7 +281,7 @@ var stage = db.FluentQuery()
     .OrderBy(() => user.Row.Name);
 
 var names = stage.Select(() => user.Row.Name).Fetch();
-var count = stage.Select(() => FluentSql.Count()).Single();
+var count = stage.Select(() => FSql.Count()).Single();
 var page  = stage.Take(10).Select(user).Fetch();   // does not disturb the two above
 ```
 
@@ -331,7 +331,7 @@ These fail while the query is being built, rather than as a database error later
 
 ## Keeping this document honest
 
-Every example here is compiled by `test/NPoco.Tests/FluentSql/DocumentationSamples.cs`, so an API
+Every example here is compiled by `test/NPoco.Tests/FSql/DocumentationSamples.cs`, so an API
 change that would invalidate one breaks the build.
 
 ## Providers

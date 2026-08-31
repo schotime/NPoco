@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
-using NPoco.FluentSqlBuilder;
+using NPoco.FluentSql;
 using NUnit.Framework;
 
 namespace NPoco.Tests.FluentSqlTests
@@ -16,7 +16,7 @@ namespace NPoco.Tests.FluentSqlTests
     /// takes, and that both behave the same everywhere else in the builder.
     /// </summary>
     [TestFixture]
-    public class FluentSqlBuilderSelectShapeTests
+    public class FluentSqlSelectShapeTests
     {
         private string _file;
         private string _connectionString;
@@ -119,7 +119,7 @@ namespace NPoco.Tests.FluentSqlTests
         {
             using var db = Db();
             var count = db.FluentQuery().From<SelSystem>(out var s)
-                .Select(() => FluentSql.Count()).Single();
+                .Select(() => FSql.Count()).Single();
             Assert.That(count, Is.EqualTo(3));
 
             var viaParameter = db.FluentQuery().From<SelSystem>(out var s2)
@@ -127,13 +127,13 @@ namespace NPoco.Tests.FluentSqlTests
             Assert.That(viaParameter, Is.EqualTo(3));
 
             var total = db.FluentQuery().From<SelSystem>(out var s3)
-                .Select(() => FluentSql.Sum(s3.Row.Size)).Single();
+                .Select(() => FSql.Sum(s3.Row.Size)).Single();
             Assert.That(total, Is.EqualTo(14.5));
 
             var perSite = db.FluentQuery().From<SelSystem>(out var s4)
                 .GroupBy(() => s4.Row.SiteId)
                 .OrderBy(() => s4.Row.SiteId)
-                .Select(() => FluentSql.Count()).Fetch();
+                .Select(() => FSql.Count()).Fetch();
             Assert.That(perSite, Is.EqualTo(new[] { 2, 1 }));
         }
 
@@ -142,7 +142,7 @@ namespace NPoco.Tests.FluentSqlTests
             using var db = Db();
             var upper = db.FluentQuery().From<SelSystem>(out var s)
                 .OrderBy(() => s.Row.Id)
-                .Select(() => FluentSql.Raw<string>("upper({0})", s.Row.Name)).Fetch();
+                .Select(() => FSql.Raw<string>("upper({0})", s.Row.Name)).Fetch();
             Assert.That(upper, Is.EqualTo(new[] { "A", "B", "C" }));
 
             var factor = 3;
@@ -220,10 +220,10 @@ namespace NPoco.Tests.FluentSqlTests
                 .Select(() => s2.Row.Id);
             var counted = outer.Subquery().From<SelSystem>(out var s3)
                 .Where(() => s3.Row.SiteId == site2.Row.Id)
-                .Select(() => FluentSql.Count());
-            var rows = outer.Where(() => FluentSql.Exists(owned))
+                .Select(() => FSql.Count());
+            var rows = outer.Where(() => FSql.Exists(owned))
                 .OrderBy(() => site2.Row.Id)
-                .Select(() => new { site2.Row.Name, N = FluentSql.Scalar<int>(counted) }).Fetch();
+                .Select(() => new { site2.Row.Name, N = FSql.Scalar<int>(counted) }).Fetch();
             Assert.That(rows.Select(x => x.Name), Is.EqualTo(new[] { "north", "south" }));
             Assert.That(rows.Select(x => x.N), Is.EqualTo(new[] { 2, 1 }));
         }
@@ -304,10 +304,10 @@ namespace NPoco.Tests.FluentSqlTests
 
             var count = db.FluentQuery().From<SelSystem>(out var s)
                 .Where(() => s.Row.Id == 99)
-                .Select(() => FluentSql.Count()).Single();
+                .Select(() => FSql.Count()).Single();
             var plannedCount = db.FluentQuery().From<SelSystem>(out var s2)
                 .Where(() => s2.Row.Id == 99)
-                .Select(() => new { V = FluentSql.Count() }).Single().V;
+                .Select(() => new { V = FSql.Count() }).Single().V;
             Assert.That(count, Is.EqualTo(0));
             Assert.That(plannedCount, Is.EqualTo(0));
 
@@ -316,15 +316,15 @@ namespace NPoco.Tests.FluentSqlTests
             // on the way the projection plan does.
             var sum = db.FluentQuery().From<SelSystem>(out var s3)
                 .Where(() => s3.Row.Id == 99)
-                .Select(() => FluentSql.Sum(s3.Row.Size)).Single();
+                .Select(() => FSql.Sum(s3.Row.Size)).Single();
             var plannedSum = db.FluentQuery().From<SelSystem>(out var s4)
                 .Where(() => s4.Row.Id == 99)
-                .Select(() => new { V = FluentSql.Sum(s4.Row.Size) }).Single().V;
+                .Select(() => new { V = FSql.Sum(s4.Row.Size) }).Single().V;
             Assert.That(sum, Is.Null);
             Assert.That(plannedSum, Is.Null);
 
             var populated = db.FluentQuery().From<SelSystem>(out var s5)
-                .Select(() => FluentSql.Sum(s5.Row.Size)).Single();
+                .Select(() => FSql.Sum(s5.Row.Size)).Single();
             Assert.That(populated, Is.EqualTo(14.5));
         }
 
@@ -384,7 +384,7 @@ namespace NPoco.Tests.FluentSqlTests
             var rows = db.FluentQuery().From<SelSite>(out var site)
                 .LeftJoin<SelSystem>(out var sys, x => x.SiteId == site.Row.Id && x.Id == 1)
                 .OrderBy(() => site.Row.Id)
-                .Select(() => new { Site = site.Row.Name, System = sys.Row, Upper = FluentSql.Raw<string>("upper({0})", site.Row.Name) })
+                .Select(() => new { Site = site.Row.Name, System = sys.Row, Upper = FSql.Raw<string>("upper({0})", site.Row.Name) })
                 .Fetch();
             Assert.That(rows.Select(x => x.Site), Is.EqualTo(new[] { "north", "south", "empty" }));
             Assert.That(rows[0].System.Name, Is.EqualTo("a"));

@@ -24,7 +24,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NPoco.SqlServer.SystemData"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco.Abstractions", "src\NPoco.Abstractions\NPoco.Abstractions.csproj", "{424ABBFC-43CC-40CA-B76E-9D8B72554B04}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco.FluentSqlBuilder", "src\NPoco.FluentSqlBuilder\NPoco.FluentSqlBuilder.csproj", "{24E355E8-1AE3-439D-8B28-2AAADF3BDE07}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NPoco.FluentSql", "src\NPoco.FluentSql\NPoco.FluentSql.csproj", "{24E355E8-1AE3-439D-8B28-2AAADF3BDE07}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

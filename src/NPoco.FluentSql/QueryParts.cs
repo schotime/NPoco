@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-namespace NPoco.FluentSqlBuilder
+namespace NPoco.FluentSql
 {
     internal enum FluentJoinType { Inner, Left, Right, FullOuter }
 

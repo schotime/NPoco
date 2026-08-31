@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using NPoco.Expressions;
 
-namespace NPoco.FluentSqlBuilder
+namespace NPoco.FluentSql
 {
     public abstract class TableReference
     {

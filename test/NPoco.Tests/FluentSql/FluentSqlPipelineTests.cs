@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
-using NPoco.FluentSqlBuilder;
+using NPoco.FluentSql;
 using NUnit.Framework;
 
 namespace NPoco.Tests.FluentSqlTests
@@ -21,7 +21,7 @@ namespace NPoco.Tests.FluentSqlTests
     /// problem these tests exist to catch.
     /// </summary>
     [TestFixture]
-    public class FluentSqlBuilderPipelineTests
+    public class FluentSqlPipelineTests
     {
         private string _file;
         private string _connectionString;

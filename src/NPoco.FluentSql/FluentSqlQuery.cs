@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NPoco.RowMappers;
 
-namespace NPoco.FluentSqlBuilder
+namespace NPoco.FluentSql
 {
     public interface IFluentSqlQuery
     {
@@ -136,7 +136,7 @@ namespace NPoco.FluentSqlBuilder
 
         /// <summary>
         /// A new query that can reference this query's tables, for a correlated subquery passed to
-        /// <see cref="FluentSql.Scalar{T}"/>, <see cref="FluentSql.Exists"/> or <see cref="FluentSql.In{T}(T, IFluentSqlQuery)"/>.
+        /// <see cref="FSql.Scalar{T}"/>, <see cref="FSql.Exists"/> or <see cref="FSql.In{T}(T, IFluentSqlQuery)"/>.
         /// </summary>
         internal FluentSqlQuery CreateSubquery()
         {
@@ -220,7 +220,7 @@ namespace NPoco.FluentSqlBuilder
             return new FluentSqlResult<TResult>(this, _database);
         }
 
-        internal FluentSqlResult<TResult> Select<TResult>(Expression<Func<FluentSqlFunctions, TResult>> projection)
+        internal FluentSqlResult<TResult> Select<TResult>(Expression<Func<FSqlFunctions, TResult>> projection)
         {
             if (projection == null) throw new ArgumentNullException(nameof(projection));
             var body = new SqlFunctionsParameterReplacer(projection.Parameters[0]).Visit(projection.Body);
@@ -437,7 +437,7 @@ namespace NPoco.FluentSqlBuilder
             private readonly ParameterExpression _parameter;
             internal SqlFunctionsParameterReplacer(ParameterExpression parameter) => _parameter = parameter;
             protected override Expression VisitParameter(ParameterExpression node)
-                => node == _parameter ? Expression.Constant(new FluentSqlFunctions()) : base.VisitParameter(node);
+                => node == _parameter ? Expression.Constant(new FSqlFunctions()) : base.VisitParameter(node);
         }
 
         private void RequireProjection()
@@ -703,8 +703,8 @@ namespace NPoco.FluentSqlBuilder
 
         /// <summary>
         /// Starts a subquery that can reference this query's tables. Pass the result to
-        /// <see cref="FluentSql.Scalar{T}"/> to project it, or to <see cref="FluentSql.Exists"/> /
-        /// <see cref="FluentSql.In{T}(T, IFluentSqlQuery)"/> to use it in a predicate. A subquery
+        /// <see cref="FSql.Scalar{T}"/> to project it, or to <see cref="FSql.Exists"/> /
+        /// <see cref="FSql.In{T}(T, IFluentSqlQuery)"/> to use it in a predicate. A subquery
         /// built from <see cref="DatabaseExtensions.FluentQuery"/> instead is uncorrelated and
         /// cannot see the outer tables.
         /// </summary>
@@ -712,7 +712,7 @@ namespace NPoco.FluentSqlBuilder
 
         public FluentSqlResult<T> Select<T>(TableReference<T> table) => Target().Select(table);
         public FluentSqlResult<TResult> Select<TResult>(Expression<Func<TResult>> projection) => Target().Select(projection);
-        public FluentSqlResult<TResult> Select<TResult>(Expression<Func<FluentSqlFunctions, TResult>> projection) => Target().Select(projection);
+        public FluentSqlResult<TResult> Select<TResult>(Expression<Func<FSqlFunctions, TResult>> projection) => Target().Select(projection);
         public FluentSqlResult<TValue> SelectScalar<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector) => Target().SelectScalar(table, selector);
         public FluentSqlResult<TValue> SelectScalar<TValue>(Expression<Func<TValue>> selector) => Target().SelectScalar(selector);
 

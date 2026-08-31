@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Text;
 using NPoco.Expressions;
 
-namespace NPoco.FluentSqlBuilder
+namespace NPoco.FluentSql
 {
     internal static class SqlGenerator
     {

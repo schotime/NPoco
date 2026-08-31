@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using NPoco;
-using NPoco.FluentSqlBuilder;
+using NPoco.FluentSql;
 
 namespace NPoco.Tests.FluentSqlTests
 {
@@ -75,8 +75,8 @@ namespace NPoco.Tests.FluentSqlTests
         {
             db.FluentQuery().From<User>(out var user)
                 .GroupBy(() => user.Row.Name)
-                .HavingIf(minimumOrders > 0, () => FluentSql.Count() > minimumOrders)
-                .OrderByDescending(() => FluentSql.Count())
+                .HavingIf(minimumOrders > 0, () => FSql.Count() > minimumOrders)
+                .OrderByDescending(() => FSql.Count())
                 .ThenBy(() => user.Row.Name)
                 .Distinct()
                 .Skip(20).Take(10);
@@ -112,7 +112,7 @@ namespace NPoco.Tests.FluentSqlTests
             db.FluentQuery().From<Metric>(out var metric)
                 .Select(() => new
                 {
-                    Readings = FluentSql.Raw<string>(
+                    Readings = FSql.Raw<string>(
                         "json_agg(json_build_object('value', {0}, 'at', {1}) ORDER BY {1})",
                         metric.Row.Value,
                         metric.Row.OccurredAt)
@@ -126,11 +126,11 @@ namespace NPoco.Tests.FluentSqlTests
             var orderCount = outer.Subquery()
                 .From<Order>(out var order)
                 .Where(() => order.Row.UserId == user.Row.Id)
-                .Select(() => FluentSql.Count());
+                .Select(() => FSql.Count());
 
             var rows = outer
-                .Where(() => FluentSql.Exists(orderCount))
-                .Select(() => new { user.Row.Name, Orders = FluentSql.Scalar<int>(orderCount) })
+                .Where(() => FSql.Exists(orderCount))
+                .Select(() => new { user.Row.Name, Orders = FSql.Scalar<int>(orderCount) })
                 .Fetch();
         }
 
@@ -176,7 +176,7 @@ namespace NPoco.Tests.FluentSqlTests
                 .OrderBy(() => user.Row.Name);
 
             var names = stage.Select(() => user.Row.Name).Fetch();
-            var count = stage.Select(() => FluentSql.Count()).Single();
+            var count = stage.Select(() => FSql.Count()).Single();
             var page = stage.Take(10).Select(user).Fetch();
         }
 

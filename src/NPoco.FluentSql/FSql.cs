@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace NPoco.FluentSqlBuilder
+namespace NPoco.FluentSql
 {
-    public sealed class FluentSqlFunctions
+    public sealed class FSqlFunctions
     {
-        internal FluentSqlFunctions() { }
+        internal FSqlFunctions() { }
 
         public int Count<T>(T value) => throw Marker();
         public int Count() => throw Marker();
@@ -23,7 +23,7 @@ namespace NPoco.FluentSqlBuilder
         private static InvalidOperationException Marker() => new InvalidOperationException("SQL functions can only be used in a fluent SQL expression.");
     }
 
-    public static class FluentSql
+    public static class FSql
     {
         public static int Count<T>(T value) => throw Marker();
         public static int Count() => throw Marker();
@@ -54,7 +54,7 @@ namespace NPoco.FluentSqlBuilder
         /// <code>
         /// .Select(() => new
         /// {
-        ///     Readings = FluentSql.Raw&lt;string&gt;(
+        ///     Readings = FSql.Raw&lt;string&gt;(
         ///         "json_agg(json_build_object('value', {0}, 'at', {1}) ORDER BY {1})",
         ///         metric.Row.ValueNumber,
         ///         metric.Row.OccurredAt)
@@ -82,9 +82,9 @@ namespace NPoco.FluentSqlBuilder
         /// var integrations = query.Subquery()
         ///     .From&lt;Integration&gt;(out var integration)
         ///     .Where(() => integration.Row.EnergySystemId == site.Row.Id &amp;&amp; integration.Row.Active)
-        ///     .SelectScalar(integration, x => FluentSql.Count());
+        ///     .SelectScalar(integration, x => FSql.Count());
         ///
-        /// query.Select(() => new { site.Row.Name, Count = FluentSql.Scalar&lt;int&gt;(integrations) });
+        /// query.Select(() => new { site.Row.Name, Count = FSql.Scalar&lt;int&gt;(integrations) });
         /// </code>
         /// </summary>
         /// <typeparam name="T">The type the subquery yields.</typeparam>

@@ -1,4 +1,4 @@
-namespace NPoco.FluentSqlBuilder
+namespace NPoco.FluentSql
 {
     public static class DatabaseExtensions
     {

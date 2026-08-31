@@ -1,13 +1,13 @@
 using System;
 using System.Linq;
 using Microsoft.Data.Sqlite;
-using NPoco.FluentSqlBuilder;
+using NPoco.FluentSql;
 using NUnit.Framework;
 
 namespace NPoco.Tests.FluentSqlTests
 {
     [TestFixture]
-    public class FluentSqlBuilderTests
+    public class FluentSqlTests
     {
         private SqliteConnection _connection;
         private Database _database;
@@ -85,8 +85,8 @@ namespace NPoco.Tests.FluentSqlTests
                 .From<BuilderUser>(out var users)
                 .InnerJoin<BuilderOrder>(out var orders, o => o.UserId == users.Row.Id)
                 .GroupBy(users, x => x.Name)
-                .Having(orders, x => FluentSql.Count(x.Id) > 1)
-                .Select(() => new BuilderSummary { Name = users.Row.Name, Total = FluentSql.Sum(orders.Row.Amount) })
+                .Having(orders, x => FSql.Count(x.Id) > 1)
+                .Select(() => new BuilderSummary { Name = users.Row.Name, Total = FSql.Sum(orders.Row.Amount) })
                 .ToSql();
 
             Assert.That(sql.SQL, Does.Contain("SUM([bo].[Amount]) AS [Total]"));
@@ -326,8 +326,8 @@ namespace NPoco.Tests.FluentSqlTests
                 .Select(() => new CalculatedProjection
                 {
                     Label = user.Row.Name + "!",
-                    Score = FluentSql.Case(user.Row.IsActive, user.Row.Age + 1, 0),
-                    UniqueNames = FluentSql.CountDistinct(user.Row.Name)
+                    Score = FSql.Case(user.Row.IsActive, user.Row.Age + 1, 0),
+                    UniqueNames = FSql.CountDistinct(user.Row.Name)
                 })
                 .ToSql();
 
@@ -400,7 +400,7 @@ namespace NPoco.Tests.FluentSqlTests
                 .Select(() => new CalculatedProjection
                 {
                     Label = user.Row.Name + "!",
-                    Score = FluentSql.Case(user.Row.IsActive, user.Row.Age + 1, 0)
+                    Score = FSql.Case(user.Row.IsActive, user.Row.Age + 1, 0)
                 })
                 .Single();
 
@@ -517,10 +517,10 @@ namespace NPoco.Tests.FluentSqlTests
                 .Where(order, x => x.UserId == 1)
                 .Select(() => new NullableAggregateProjection
                 {
-                    Sum = FluentSql.Sum((decimal?)order.Row.Amount),
-                    Average = FluentSql.Average((decimal?)order.Row.Amount),
-                    Min = FluentSql.Min((decimal?)order.Row.Amount),
-                    Max = FluentSql.Max((decimal?)order.Row.Amount)
+                    Sum = FSql.Sum((decimal?)order.Row.Amount),
+                    Average = FSql.Average((decimal?)order.Row.Amount),
+                    Min = FSql.Min((decimal?)order.Row.Amount),
+                    Max = FSql.Max((decimal?)order.Row.Amount)
                 })
                 .Single();
 
@@ -529,10 +529,10 @@ namespace NPoco.Tests.FluentSqlTests
                 .Where(emptyOrder, x => x.UserId == -1)
                 .Select(() => new NullableAggregateProjection
                 {
-                    Sum = FluentSql.Sum((decimal?)emptyOrder.Row.Amount),
-                    Average = FluentSql.Average((decimal?)emptyOrder.Row.Amount),
-                    Min = FluentSql.Min((decimal?)emptyOrder.Row.Amount),
-                    Max = FluentSql.Max((decimal?)emptyOrder.Row.Amount)
+                    Sum = FSql.Sum((decimal?)emptyOrder.Row.Amount),
+                    Average = FSql.Average((decimal?)emptyOrder.Row.Amount),
+                    Min = FSql.Min((decimal?)emptyOrder.Row.Amount),
+                    Max = FSql.Max((decimal?)emptyOrder.Row.Amount)
                 })
                 .Single();
 
@@ -557,10 +557,10 @@ namespace NPoco.Tests.FluentSqlTests
                 .Where(dtoOrder, x => x.UserId == 1)
                 .Select(() => new NullableAggregateProjection
                 {
-                    Sum = FluentSql.Sum((decimal?)dtoOrder.Row.Amount),
-                    Average = FluentSql.Average((decimal?)dtoOrder.Row.Amount),
-                    Min = FluentSql.Min((decimal?)dtoOrder.Row.Amount),
-                    Max = FluentSql.Max((decimal?)dtoOrder.Row.Amount)
+                    Sum = FSql.Sum((decimal?)dtoOrder.Row.Amount),
+                    Average = FSql.Average((decimal?)dtoOrder.Row.Amount),
+                    Min = FSql.Min((decimal?)dtoOrder.Row.Amount),
+                    Max = FSql.Max((decimal?)dtoOrder.Row.Amount)
                 })
                 .Single();
 
@@ -569,10 +569,10 @@ namespace NPoco.Tests.FluentSqlTests
                 .Where(anonymousOrder, x => x.UserId == 1)
                 .Select(() => new
                 {
-                    Sum = FluentSql.Sum((decimal?)anonymousOrder.Row.Amount),
-                    Average = FluentSql.Average((decimal?)anonymousOrder.Row.Amount),
-                    Min = FluentSql.Min((decimal?)anonymousOrder.Row.Amount),
-                    Max = FluentSql.Max((decimal?)anonymousOrder.Row.Amount)
+                    Sum = FSql.Sum((decimal?)anonymousOrder.Row.Amount),
+                    Average = FSql.Average((decimal?)anonymousOrder.Row.Amount),
+                    Min = FSql.Min((decimal?)anonymousOrder.Row.Amount),
+                    Max = FSql.Max((decimal?)anonymousOrder.Row.Amount)
                 })
                 .Single();
 

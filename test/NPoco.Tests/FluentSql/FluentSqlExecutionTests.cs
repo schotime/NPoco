@@ -1,12 +1,12 @@
 using System.Linq;
-using NPoco.FluentSqlBuilder;
+using NPoco.FluentSql;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
 namespace NPoco.Tests.FluentSqlTests
 {
     [TestFixture]
-    public class FluentSqlBuilderExecutionTests : BaseDBFluentTest
+    public class FluentSqlExecutionTests : BaseDBFluentTest
     {
         [Test]
         public void FetchesEntityUsingExistingFluentMappings()
@@ -95,12 +95,12 @@ namespace NPoco.Tests.FluentSqlTests
                 .From<User>(out var user)
                 .InnerJoin<ExtraUserInfo>(out var extra, e => e.UserId == user.Row.UserId)
                 .GroupBy(user, x => x.IsMale)
-                .Having(extra, x => FluentSql.Count(x.ExtraUserInfoId) > 7)
+                .Having(extra, x => FSql.Count(x.ExtraUserInfoId) > 7)
                 .OrderBy(user, x => x.IsMale)
                 .Select(() => new GenderSummary
                 {
                     IsMale = user.Row.IsMale,
-                    Count = FluentSql.Count(extra.Row.ExtraUserInfoId)
+                    Count = FSql.Count(extra.Row.ExtraUserInfoId)
                 })
                 .Fetch();
 

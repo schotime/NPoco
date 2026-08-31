@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using NPoco.RowMappers;
 
-namespace NPoco.FluentSqlBuilder
+namespace NPoco.FluentSql
 {
     internal sealed class ProjectionLeaf
     {

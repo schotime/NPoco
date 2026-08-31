@@ -1,6 +1,6 @@
 using System;
 using Microsoft.Data.Sqlite;
-using NPoco.FluentSqlBuilder;
+using NPoco.FluentSql;
 using NUnit.Framework;
 
 namespace NPoco.Tests.FluentSqlTests
@@ -11,7 +11,7 @@ namespace NPoco.Tests.FluentSqlTests
     /// being built and say why.
     /// </summary>
     [TestFixture]
-    public class FluentSqlBuilderGuardTests
+    public class FluentSqlGuardTests
     {
         private SqliteConnection _connection;
         private Database _database;
@@ -38,7 +38,7 @@ namespace NPoco.Tests.FluentSqlTests
             var two = outer.Subquery().From<GuardItem>(out var inner)
                 .Select(() => new { inner.Row.Id, inner.Row.Name });
 
-            var query = outer.Select(() => new { V = FluentSql.Scalar<int>(two) });
+            var query = outer.Select(() => new { V = FSql.Scalar<int>(two) });
 
             var exception = Assert.Throws<InvalidOperationException>(() => query.ToSql());
             Assert.That(exception.Message, Does.Contain("exactly one column"));
@@ -64,7 +64,7 @@ namespace NPoco.Tests.FluentSqlTests
                 .Where(() => inner.Row.Id == item.Row.Id)
                 .Select(() => inner.Row.Id);
 
-            Assert.DoesNotThrow(() => outer.Select(() => new { V = FluentSql.Scalar<int>(one) }).ToSql());
+            Assert.DoesNotThrow(() => outer.Select(() => new { V = FSql.Scalar<int>(one) }).ToSql());
         }
 
         [Test] public void UnionRejectsOrderBySkipAndTakeOnTheQueryBeingUnioned()
