@@ -16,14 +16,14 @@ namespace NPoco.FluentSql
         // takes none - so the common case allocates nothing here.
         private readonly Dictionary<ParameterExpression, TableReference> _tables;
         private readonly IList<TableReference> _availableTables;
-        private readonly string _provider;
+        private readonly ISqlDialect _dialect;
 
         internal SqlExpressionTranslator(IDatabase database, IList<object> parameters, LambdaExpression expression, IList<TableReference> tables)
         {
             _database = database;
             _parameters = parameters;
             _availableTables = tables;
-            _provider = (database.DatabaseType.GetProviderName() ?? string.Empty).ToLowerInvariant();
+            _dialect = SqlDialects.For(database.DatabaseType);
             if (expression.Parameters.Count > tables.Count)
                 throw new ArgumentException("Expression has more parameters than available table references.", nameof(expression));
             if (expression.Parameters.Count == 0) return;
@@ -106,11 +106,7 @@ namespace NPoco.FluentSql
             => "(" + Predicate(expression.Left) + " " + operation + " " + Predicate(expression.Right) + ")";
 
         private string Concatenate(BinaryExpression expression)
-        {
-            var provider = _provider;
-            if (provider.Contains("mysql")) return "CONCAT(" + Visit(expression.Left) + ", " + Visit(expression.Right) + ")";
-            return "(" + Visit(expression.Left) + (IsSqlServer(provider) ? " + " : " || ") + Visit(expression.Right) + ")";
-        }
+            => _dialect.Concat(new[] { Visit(expression.Left), Visit(expression.Right) });
 
         private string Predicate(Expression expression)
         {
@@ -159,11 +155,18 @@ namespace NPoco.FluentSql
             if (expression.Member.Name == "Value" && expression.Expression != null && Nullable.GetUnderlyingType(expression.Expression.Type) != null)
                 return Visit(expression.Expression);
 
-            if (IsDatePart(expression.Member.Name) && expression.Expression != null)
+            var datePart = DatePartOf(expression.Member.Name);
+            if (datePart.HasValue && expression.Expression != null)
             {
                 if (!CanEvaluate(expression.Expression))
-                    return DatePart(expression.Member.Name, Visit(expression.Expression));
+                    return DatePart(datePart.Value, Visit(expression.Expression));
             }
+
+            // Length is a member in C# and a function in SQL, so it has to be caught before the
+            // member chain is read as a column - the poco maps no such column.
+            if (expression.Member.Name == "Length" && expression.Expression != null
+                && expression.Expression.Type == typeof(string) && !CanEvaluate(expression.Expression))
+                return _dialect.StringLength(Visit(expression.Expression));
 
             TableReference table;
             MemberInfo[] chain;
@@ -213,13 +216,27 @@ namespace NPoco.FluentSql
                 if (expression.Method.Name == "Contains") return Like(expression.Object, expression.Arguments[0], "%", "%");
                 if (expression.Method.Name == "StartsWith") return Like(expression.Object, expression.Arguments[0], string.Empty, "%");
                 if (expression.Method.Name == "EndsWith") return Like(expression.Object, expression.Arguments[0], "%", string.Empty);
-                if (expression.Method.Name == "ToUpper") return "UPPER(" + Visit(expression.Object) + ")";
-                if (expression.Method.Name == "ToLower") return "LOWER(" + Visit(expression.Object) + ")";
-                if (expression.Method.Name == "Trim") return "TRIM(" + Visit(expression.Object) + ")";
-                if (expression.Method.Name == "TrimStart") return "LTRIM(" + Visit(expression.Object) + ")";
-                if (expression.Method.Name == "TrimEnd") return "RTRIM(" + Visit(expression.Object) + ")";
+                if (expression.Method.Name == "ToUpper") return _dialect.Upper(Visit(expression.Object));
+                if (expression.Method.Name == "ToLower") return _dialect.Lower(Visit(expression.Object));
+                if (expression.Method.Name == "Trim") return _dialect.Trim(Visit(expression.Object), true, true);
+                if (expression.Method.Name == "TrimStart") return _dialect.Trim(Visit(expression.Object), true, false);
+                if (expression.Method.Name == "TrimEnd") return _dialect.Trim(Visit(expression.Object), false, true);
                 if (expression.Method.Name == "Equals" && expression.Arguments.Count == 1)
                     return "(" + Visit(expression.Object) + " = " + Visit(expression.Arguments[0]) + ")";
+                if (expression.Method.Name == "Substring") return Substring(expression);
+            }
+
+            if (expression.Method.DeclaringType == typeof(Math)) return MathFunction(expression);
+
+            // A nullable read with a fallback is what COALESCE does.
+            if (expression.Method.Name == "GetValueOrDefault" && expression.Object != null
+                && Nullable.GetUnderlyingType(expression.Object.Type) != null)
+            {
+                var underlying = Nullable.GetUnderlyingType(expression.Object.Type);
+                var fallback = expression.Arguments.Count == 1
+                    ? Visit(expression.Arguments[0])
+                    : Parameter(Activator.CreateInstance(underlying));
+                return "COALESCE(" + Visit(expression.Object) + ", " + fallback + ")";
             }
 
             if (expression.Method.DeclaringType == typeof(string) && expression.Method.Name == "Concat")
@@ -232,12 +249,12 @@ namespace NPoco.FluentSql
 
             if (expression.Object != null && (expression.Object.Type == typeof(DateTime) || expression.Object.Type == typeof(DateTime?)))
             {
-                if (expression.Method.Name == "AddDays") return DateAdd("day", expression.Object, expression.Arguments[0]);
-                if (expression.Method.Name == "AddMonths") return DateAdd("month", expression.Object, expression.Arguments[0]);
-                if (expression.Method.Name == "AddYears") return DateAdd("year", expression.Object, expression.Arguments[0]);
-                if (expression.Method.Name == "AddHours") return DateAdd("hour", expression.Object, expression.Arguments[0]);
-                if (expression.Method.Name == "AddMinutes") return DateAdd("minute", expression.Object, expression.Arguments[0]);
-                if (expression.Method.Name == "AddSeconds") return DateAdd("second", expression.Object, expression.Arguments[0]);
+                if (expression.Method.Name == "AddDays") return DateAdd(SqlDatePart.Day, expression.Object, expression.Arguments[0]);
+                if (expression.Method.Name == "AddMonths") return DateAdd(SqlDatePart.Month, expression.Object, expression.Arguments[0]);
+                if (expression.Method.Name == "AddYears") return DateAdd(SqlDatePart.Year, expression.Object, expression.Arguments[0]);
+                if (expression.Method.Name == "AddHours") return DateAdd(SqlDatePart.Hour, expression.Object, expression.Arguments[0]);
+                if (expression.Method.Name == "AddMinutes") return DateAdd(SqlDatePart.Minute, expression.Object, expression.Arguments[0]);
+                if (expression.Method.Name == "AddSeconds") return DateAdd(SqlDatePart.Second, expression.Object, expression.Arguments[0]);
             }
 
             Expression collection = null;
@@ -269,35 +286,42 @@ namespace NPoco.FluentSql
             => name == "Count" || name == "CountDistinct" || name == "Sum" || name == "Average" || name == "Min" || name == "Max";
 
         private string Concatenate(IEnumerable<Expression> expressions)
+            => _dialect.Concat(expressions.Select(Visit).ToArray());
+
+        private string DateAdd(SqlDatePart part, Expression value, Expression amount)
+            => _dialect.DateAdd(part, Visit(value), Visit(amount));
+
+        /// <summary>
+        /// .NET counts string positions from zero and SQL from one, so the start moves up by one.
+        /// A constant start is folded into the parameter rather than left as arithmetic for the
+        /// database to do per row.
+        /// </summary>
+        private string Substring(MethodCallExpression expression)
         {
-            var values = expressions.Select(Visit).ToArray();
-            var provider = _provider;
-            if (provider.Contains("mysql")) return "CONCAT(" + string.Join(", ", values) + ")";
-            return "(" + string.Join(IsSqlServer(provider) ? " + " : " || ", values) + ")";
+            var value = Visit(expression.Object);
+            var start = CanEvaluate(expression.Arguments[0])
+                ? Parameter(Convert.ToInt32(Evaluate(expression.Arguments[0]), CultureInfo.InvariantCulture) + 1)
+                : "(" + Visit(expression.Arguments[0]) + " + 1)";
+            var length = expression.Arguments.Count > 1 ? Visit(expression.Arguments[1]) : null;
+            return _dialect.Substring(value, start, length);
         }
 
-        private string DateAdd(string part, Expression value, Expression amount)
+        private string MathFunction(MethodCallExpression expression)
         {
-            var provider = _provider;
-            var column = Visit(value);
-            var increment = Visit(amount);
-            if (provider.Contains("mysql")) return "DATE_ADD(" + column + ", INTERVAL " + increment + " " + part.ToUpperInvariant() + ")";
-            if (IsSqlServer(provider)) return "DATEADD(" + part + ", " + increment + ", " + column + ")";
-            if (provider.Contains("sqlite")) return "datetime(" + column + ", " + increment + " || ' " + part + "')";
-            if (provider.Contains("npgsql")) return "(" + column + " + (" + increment + " * INTERVAL '1 " + part + "'))";
-            if (provider.Contains("oracle"))
+            var value = Visit(expression.Arguments[0]);
+            switch (expression.Method.Name)
             {
-                if (part == "month") return "ADD_MONTHS(" + column + ", " + increment + ")";
-                if (part == "year") return "ADD_MONTHS(" + column + ", (" + increment + " * 12))";
-                if (part == "day") return "(" + column + " + " + increment + ")";
-                var divisor = part == "hour" ? "24" : part == "minute" ? "1440" : "86400";
-                return "(" + column + " + (" + increment + " / " + divisor + "))";
-            }
-            if (provider.Contains("firebird")) return "DATEADD(" + part.ToUpperInvariant() + ", " + increment + ", " + column + ")";
-            throw new NotSupportedException("Date addition is not supported by this database provider.");
-        }
+                case "Abs": return _dialect.Absolute(value);
+                case "Floor": return _dialect.Floor(value);
+                case "Ceiling": return _dialect.Ceiling(value);
 
-        private static bool IsSqlServer(string provider) => provider.Contains("sqlclient") && !provider.Contains("mysql");
+                // SQL rounds half away from zero where Math.Round defaults to half-to-even, so a
+                // value sitting exactly on .5 can round the other way to how it would in memory.
+                case "Round": return _dialect.Round(value, expression.Arguments.Count > 1 ? Visit(expression.Arguments[1]) : null);
+                default:
+                    throw new NotSupportedException("Method 'Math." + expression.Method.Name + "' is not supported by the fluent SQL builder.");
+            }
+        }
 
         private static bool IsFluentSqlMarker(MethodInfo method)
             => method.DeclaringType == typeof(FSql) || method.DeclaringType == typeof(FSqlFunctions);
@@ -377,8 +401,9 @@ namespace NPoco.FluentSql
             if (!CanEvaluate(value)) throw new NotSupportedException("LIKE values must be captured values or constants.");
             var evaluated = Evaluate(value);
             var text = Convert.ToString(evaluated, CultureInfo.InvariantCulture) ?? string.Empty;
-            text = text.Replace("!", "!!").Replace("%", "!%").Replace("_", "!_");
-            return "(UPPER(" + Visit(column) + ") LIKE " + Parameter(prefix + text.ToUpperInvariant() + suffix) + " ESCAPE '!')";
+            var escape = _dialect.LikeEscapeCharacter;
+            text = text.Replace(escape, escape + escape).Replace("%", escape + "%").Replace("_", escape + "_");
+            return _dialect.Like(Visit(column), Parameter(prefix + text.ToUpperInvariant() + suffix));
         }
 
         private string CollectionContains(Expression collectionExpression, Expression item)
@@ -418,7 +443,8 @@ namespace NPoco.FluentSql
             var converter = _database.Mappers.FindToDbConverter(column.ColumnType, column.MemberInfoData.MemberInfo);
             if (converter != null) return converter(value);
             if (column.SerializedColumn) return _database.Mappers.ColumnSerializer.Serialize(value);
-            if (column.ColumnType == typeof(string) && IsEnum(column.MemberInfoData.MemberType) && value != null) return value.ToString();
+            if (column.ColumnType == typeof(string) && IsEnum(column.MemberInfoData.MemberType) && value != null)
+                return EnumName(column.MemberInfoData.MemberType, value);
             if (column.ColumnType == typeof(AnsiString) && value is string) return new AnsiString((string)value);
             if ((column.MemberInfoData.MemberType == typeof(char) || column.MemberInfoData.MemberType == typeof(char?)) && value is int)
                 return Convert.ToChar(value, CultureInfo.InvariantCulture);
@@ -431,22 +457,47 @@ namespace NPoco.FluentSql
             return effective.GetTypeInfo().IsEnum;
         }
 
-        private static bool IsDatePart(string name)
-            => name == "Year" || name == "Month" || name == "Day" || name == "Hour" || name == "Minute" || name == "Second";
-
-        private string DatePart(string name, string column)
+        /// <summary>
+        /// The name a string-backed enum column stores. A comparison against a non-nullable enum
+        /// member reaches here as the underlying integer - the compiler erases the enum in the
+        /// expression tree - so it has to be read back as the enum before it is named, or the
+        /// query compares the column against an ordinal and quietly matches nothing.
+        /// </summary>
+        private static string EnumName(Type memberType, object value)
         {
-            var provider = _provider;
-            if (provider.Contains("mysql")) return name.ToUpperInvariant() + "(" + column + ")";
-            if (provider.Contains("npgsql") || provider.Contains("firebird")) return "EXTRACT(" + name.ToUpperInvariant() + " FROM " + column + ")";
-            if (provider.Contains("oracle")) return "EXTRACT(" + name.ToUpperInvariant() + " FROM CAST(" + column + " AS TIMESTAMP))";
-            if (provider.Contains("sqlite"))
-            {
-                var format = name == "Year" ? "%Y" : name == "Month" ? "%m" : name == "Day" ? "%d" : name == "Hour" ? "%H" : name == "Minute" ? "%M" : "%S";
-                return "CAST(strftime('" + format + "', " + column + ") AS INTEGER)";
-            }
-            return "DATEPART(" + name.ToLowerInvariant() + ", " + column + ")";
+            if (value is string) return (string)value;
+
+            var enumType = Nullable.GetUnderlyingType(memberType) ?? memberType;
+            if (!value.GetType().GetTypeInfo().IsEnum && IsIntegral(value.GetType()))
+                value = Enum.ToObject(enumType, value);
+
+            return value.ToString();
         }
+
+        private static bool IsIntegral(Type type)
+        {
+            return type == typeof(sbyte) || type == typeof(byte)
+                || type == typeof(short) || type == typeof(ushort)
+                || type == typeof(int) || type == typeof(uint)
+                || type == typeof(long) || type == typeof(ulong);
+        }
+
+        /// <summary>The date part a member name asks for, or null when it asks for something else.</summary>
+        private static SqlDatePart? DatePartOf(string name)
+        {
+            switch (name)
+            {
+                case "Year": return SqlDatePart.Year;
+                case "Month": return SqlDatePart.Month;
+                case "Day": return SqlDatePart.Day;
+                case "Hour": return SqlDatePart.Hour;
+                case "Minute": return SqlDatePart.Minute;
+                case "Second": return SqlDatePart.Second;
+                default: return null;
+            }
+        }
+
+        private string DatePart(SqlDatePart part, string column) => _dialect.DatePart(part, column);
 
         private bool TryResolveColumnExpression(Expression expression, out TableReference table, out MemberInfo[] chain)
         {

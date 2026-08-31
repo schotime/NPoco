@@ -41,6 +41,14 @@ namespace NPoco.Expressions
         }
 
         private string sep = string.Empty;
+
+        /// <summary>
+        /// How SQL is spelled for the database being targeted. The same dialect the fluent builder
+        /// uses, so the two agree on every function they both emit.
+        /// </summary>
+        protected ISqlDialect Dialect => _dialect;
+        private ISqlDialect _dialect;
+
         protected string EscapeChar = "\\";
         private PocoData _pocoData;
         private readonly IDatabase _database;
@@ -54,6 +62,7 @@ namespace NPoco.Expressions
             _pocoData = pocoData;
             _database = database;
             _databaseType = database.DatabaseType;
+            _dialect = SqlDialects.For(_databaseType);
             PrefixFieldWithTableName = prefixTableName;
             paramPrefix = "@";
             Context = new SqlExpressionContext(this);
@@ -1526,10 +1535,10 @@ namespace NPoco.Expressions
             switch (m.Method.Name)
             {
                 case "ToUpper":
-                    statement = string.Format("upper({0})", expression);
+                    statement = _dialect.Upper(expression.ToString());
                     break;
                 case "ToLower":
-                    statement = string.Format("lower({0})", expression);
+                    statement = _dialect.Lower(expression.ToString());
                     break;
                 case "StartsWith":
                     statement = CreateLikeStatement(expression, CreateParam(EscapeParam(args[0]) + "%"));
@@ -1567,6 +1576,10 @@ namespace NPoco.Expressions
             return new PartialSqlString(statement);
         }
 
+        // Not ISqlDialect.Like: the escape character here comes from EscapeChar, which a derived
+        // expression pairs with its own EscapeParam - MySqlSqlExpression escapes with a backslash,
+        // which has to be written doubled in the clause. Taking the character from the dialect
+        // instead would leave the clause disagreeing with the pattern it escapes.
         protected virtual string CreateLikeStatement(PartialSqlString expression, string param)
         {
             return string.Format("upper({0}) like {1} escape '{2}'", expression, param, EscapeChar);
@@ -1574,12 +1587,7 @@ namespace NPoco.Expressions
 
         protected virtual string CreateTrimStatement(PartialSqlString expression, bool start, bool end)
         {
-            var result = expression.ToString();
-
-            if (end) result = string.Format("rtrim({0})", result);
-            if (start) result = string.Format("ltrim({0})", result);
-
-            return result;
+            return _dialect.Trim(expression.ToString(), start, end);
         }
 
         protected virtual string EscapeParam(object par)
@@ -1594,10 +1602,7 @@ namespace NPoco.Expressions
         // Easy to override
         protected virtual string SubstringStatement(PartialSqlString columnName, int startIndex, int length)
         {
-            if (length >= 0)
-                return string.Format("substring({0},{1},{2})", columnName, CreateParam(startIndex), CreateParam(length));
-            else
-                return string.Format("substring({0},{1},8000)", columnName, CreateParam(startIndex));
+            return _dialect.Substring(columnName.ToString(), CreateParam(startIndex), length >= 0 ? CreateParam(length) : null);
         }
 
         protected virtual string GetDateTimeSql(string memberName, object m)

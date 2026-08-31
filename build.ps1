@@ -12,6 +12,7 @@ Properties {
     $sqlserver = "$build_dir\src\NPoco.SqlServer"
     $sqlserversysdata = "$build_dir\src\NPoco.SqlServer.SystemData"
     $abstractions = "$build_dir\src\NPoco.Abstractions"
+    $fluentsql = "$build_dir\src\NPoco.FluentSql"
 }
 
 FormatTaskName (("-" * 25) + "[{0}]" + ("-" * 25))
@@ -33,7 +34,9 @@ Task Build -depends Clean {
     Set-Location "$sqlserversysdata"
     Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix } 
     Set-Location "$abstractions"
-    Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix } 
+    Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix }
+    Set-Location "$fluentsql"
+    Exec { dotnet pack --configuration release --output $build_artifacts_dir $suffix }
 }
 
 Task Clean {

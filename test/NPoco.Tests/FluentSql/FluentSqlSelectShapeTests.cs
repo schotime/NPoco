@@ -298,6 +298,88 @@ namespace NPoco.Tests.FluentSqlTests
             Assert.That(matched, Is.EqualTo(new[] { "b" }));
         }
 
+        /// <summary>
+        /// The compiler erases a non-nullable enum to its underlying integer inside an expression
+        /// tree, so a predicate against one arrives as a plain int. It still has to be written as
+        /// the name the column stores - comparing against the ordinal matches nothing at all, and
+        /// says nothing about why.
+        /// </summary>
+        [Test] public void PredicatesCompareAStringEnumByNameNotOrdinal()
+        {
+            using var db = Db();
+
+            var sql = db.FluentQuery().From<SelSystem>(out var a)
+                .Where(() => a.Row.Mode == SelState.On)
+                .Select(() => a.Row.Name).ToSql();
+            Assert.That(sql.Arguments.Single(), Is.EqualTo("On"));
+
+            var matched = db.FluentQuery().From<SelSystem>(out var b)
+                .Where(() => b.Row.Mode == SelState.On)
+                .OrderBy(() => b.Row.Id)
+                .Select(() => b.Row.Name).Fetch();
+            Assert.That(matched, Is.EqualTo(new[] { "a", "c" }));
+
+            var negated = db.FluentQuery().From<SelSystem>(out var c)
+                .Where(() => c.Row.Mode != SelState.On)
+                .Select(() => c.Row.Name).Fetch();
+            Assert.That(negated, Is.EqualTo(new[] { "b" }));
+
+            // The same column read through a collection, where the enum type survives the tree.
+            var states = new[] { SelState.On };
+            var inList = db.FluentQuery().From<SelSystem>(out var d)
+                .Where(() => d.Row.Mode.In(states))
+                .OrderBy(() => d.Row.Id)
+                .Select(() => d.Row.Name).Fetch();
+            Assert.That(inList, Is.EqualTo(new[] { "a", "c" }));
+
+            // An int-backed enum column keeps comparing by ordinal.
+            var byOrdinal = db.FluentQuery().From<SelSystem>(out var e)
+                .Where(() => e.Row.State == SelState.On)
+                .OrderBy(() => e.Row.Id)
+                .Select(() => e.Row.Name).Fetch();
+            Assert.That(byOrdinal, Is.EqualTo(new[] { "a", "c" }));
+        }
+
+        [Test] public void AggregatesWorkInProjectionsHavingAndSubqueries()
+        {
+            using var db = Db();
+
+            var grouped = db.FluentQuery().From<SelSystem>(out var s)
+                .GroupBy(() => s.Row.SiteId)
+                .OrderBy(() => s.Row.SiteId)
+                .Select(f => new { Site = s.Row.SiteId, Total = f.Count(), Biggest = f.Max(s.Row.Size) })
+                .Fetch();
+            Assert.That(grouped.Select(x => x.Site), Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(grouped.Select(x => x.Total), Is.EqualTo(new[] { 2, 1 }));
+            Assert.That(grouped.Select(x => x.Biggest), Is.EqualTo(new double?[] { 10.5, 4.0 }));
+
+            var busy = db.FluentQuery().From<SelSystem>(out var h)
+                .GroupBy(() => h.Row.SiteId)
+                .Having(() => FSql.Count() > 1)
+                .Select(() => h.Row.SiteId).Fetch();
+            Assert.That(busy, Is.EqualTo(new[] { 1 }));
+
+            // COUNT(*) counts rows, COUNT(column) skips nulls.
+            var rows = db.FluentQuery().From<SelSystem>(out var r).Select(() => FSql.Count()).Single();
+            var sized = db.FluentQuery().From<SelSystem>(out var z).Select(() => FSql.Count(z.Row.Size)).Single();
+            var sites = db.FluentQuery().From<SelSystem>(out var y).Select(() => FSql.CountDistinct(y.Row.SiteId)).Single();
+            Assert.That(rows, Is.EqualTo(3));
+            Assert.That(sized, Is.EqualTo(2));
+            Assert.That(sites, Is.EqualTo(2));
+
+            // A correlated COUNT(*), including the site with no systems at all.
+            var query = db.FluentQuery().From<SelSite>(out var site);
+            var perSite = query.Subquery().From<SelSystem>(out var sys)
+                .Where(() => sys.Row.SiteId == site.Row.Id)
+                .SelectScalar(() => FSql.Count());
+
+            var counts = query.OrderBy(() => site.Row.Id)
+                .Select(() => new { site.Row.Name, Total = FSql.Scalar<int>(perSite) })
+                .Fetch();
+            Assert.That(counts.Select(x => x.Name), Is.EqualTo(new[] { "north", "south", "empty" }));
+            Assert.That(counts.Select(x => x.Total), Is.EqualTo(new[] { 2, 1, 0 }));
+        }
+
         [Test] public void AggregatesOverAnEmptySetAgreeAcrossBothBranches()
         {
             using var db = Db();

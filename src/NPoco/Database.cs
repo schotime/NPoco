@@ -1294,7 +1294,12 @@ namespace NPoco
                 OpenSharedConnectionInternal();
                 using var cmd = CreateCommand(_sharedConnection, sql, args);
                 using var reader = ExecuteDataReader(cmd, true).RunSync();
-                var read = listExpression != null ? ReadOneToMany(instance, reader, listExpression, idFunc, pocoData) : Read<T>(instance, reader, pocoData, rowMapper);
+                // A one-to-many read walks the poco's members, so it needs real PocoData whether or
+                // not a row mapper was supplied. The plain read only reaches here with null when a
+                // row mapper is driving, and a mapper that models its own shape ignores it.
+                var read = listExpression != null
+                    ? ReadOneToMany(instance, reader, listExpression, idFunc, pocoData ?? PocoDataFactory.ForType(typeof(T)))
+                    : Read<T>(instance, reader, pocoData!, rowMapper);
                 foreach (var item in read)
                 {
                     yield return item;

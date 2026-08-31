@@ -35,10 +35,11 @@ namespace NPoco.FluentSql
                 sql.Append('\n');
             }
             sql.Append("SELECT ");
-            var provider = (database.DatabaseType.GetProviderName() ?? string.Empty).ToLowerInvariant();
-            var sqlServer = provider.Contains("sqlclient") && !provider.Contains("mysql");
+            var dialect = SqlDialects.For(database.DatabaseType);
+            // A leading row limit, for the databases that spell one; the rest page below.
+            var takePrefix = take.HasValue && !skip.HasValue ? dialect.TakeOnlyPrefix(take.Value) : null;
             if (distinct) sql.Append("DISTINCT ");
-            if (take.HasValue && !skip.HasValue && sqlServer) sql.Append("TOP (").Append(take.Value).Append(") ");
+            if (takePrefix != null) sql.Append(takePrefix);
             var translators = new TranslatorCache(database, parameters);
             sql.Append(string.Join(", ", selects.SelectMany(x => RenderSelect(database, x, parameters, translators))));
 
@@ -53,10 +54,7 @@ namespace NPoco.FluentSql
             foreach (var apply in applies)
             {
                 var nested = apply.Query.Build(parameters);
-                if (provider.Contains("npgsql") || provider.Contains("mysql"))
-                    sql.Append("\nLEFT JOIN LATERAL (\n").Append(Indent(nested)).Append("\n) ").Append(apply.Table.EscapedAlias).Append(" ON TRUE");
-                else
-                    sql.Append("\nOUTER APPLY (\n").Append(Indent(nested)).Append("\n) ").Append(apply.Table.EscapedAlias);
+                sql.Append('\n').Append(dialect.OuterApply(Indent(nested), apply.Table.EscapedAlias));
             }
             AppendPredicates(sql, "WHERE", database, predicates, parameters);
 
@@ -75,7 +73,7 @@ namespace NPoco.FluentSql
             }
             foreach (var union in unions)
                 sql.Append(union.All ? "\nUNION ALL\n" : "\nUNION\n").Append(union.Query.Build(parameters));
-            if (skip.HasValue || (take.HasValue && !sqlServer))
+            if (skip.HasValue || (take.HasValue && takePrefix == null))
                 return ApplyDatabasePaging(database, sql.ToString(), skip ?? 0, take ?? long.MaxValue, parameters);
             return sql.ToString();
         }

@@ -1103,9 +1103,7 @@ namespace NPoco.FluentSql
         public Sql Explain()
         {
             var sql = ToSql();
-            var provider = _database.DatabaseType.GetProviderName() ?? string.Empty;
-            var prefix = provider.IndexOf("SqlClient", StringComparison.OrdinalIgnoreCase) >= 0 ? "SET SHOWPLAN_ALL ON;\n" : "EXPLAIN ";
-            return new Sql(prefix + sql.SQL, sql.Arguments);
+            return new Sql(SqlDialects.For(_database.DatabaseType).ExplainStatement(sql.SQL), sql.Arguments);
         }
 
         // A projection is materialized by a ProjectionPlan, which NPoco runs as an IRowMapper.

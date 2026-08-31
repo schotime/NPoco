@@ -16,8 +16,19 @@ namespace NPoco
     /// <summary>
     /// Base class for DatabaseType handlers - provides default/common handling for different database engines
     /// </summary>
-    public abstract partial class DatabaseType : IDatabaseType
+    public abstract partial class DatabaseType : IDatabaseType, ISqlDialectProvider
     {
+        /// <summary>
+        /// How SQL is spelled for this database. One member rather than an override per function:
+        /// a database supplies a dialect, and <see cref="SqlDialects.For"/> is where every builder
+        /// asks for it.
+        ///
+        /// Every database type NPoco ships names its own. One that does not - a third-party type
+        /// written before dialects existed - falls back to what its provider name says, which is
+        /// how the builder chose its SQL back then, so it goes on being written the same SQL.
+        /// </summary>
+        public virtual ISqlDialect SqlDialect => SqlDialects.ForProviderName(GetProviderName());
+
         // Helper Properties
         public static DatabaseType SqlServer2012 { get { return DynamicDatabaseType.MakeSqlServerType("SqlServer2012DatabaseType"); } }
         public static DatabaseType SqlServer2008 { get { return DynamicDatabaseType.MakeSqlServerType("SqlServer2008DatabaseType"); } }

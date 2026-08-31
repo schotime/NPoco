@@ -105,8 +105,8 @@ PostgreSQL and MySQL):
 
 ## Grouping, ordering and paging
 
-`GroupBy`, `Having`, `OrderBy`, `ThenBy` and their `Descending`/`If` variants take the same two forms as
-predicates:
+`GroupBy`, `Having`, `OrderBy` and `ThenBy` take the same two forms as predicates. `Having` has an
+`If` variant, and `OrderBy`/`ThenBy` have `Descending` variants:
 
 ```csharp
 .GroupBy(() => user.Row.Name)
@@ -331,7 +331,7 @@ These fail while the query is being built, rather than as a database error later
 
 ## Keeping this document honest
 
-Every example here is compiled by `test/NPoco.Tests/FSql/DocumentationSamples.cs`, so an API
+Every example here is compiled by `test/NPoco.Tests/FluentSql/DocumentationSamples.cs`, so an API
 change that would invalidate one breaks the build.
 
 ## Providers

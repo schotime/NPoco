@@ -10,6 +10,9 @@ namespace NPoco.DatabaseTypes
 {
     public class OracleDatabaseType : DatabaseType
     {
+        /// <inheritdoc cref="ISqlDialectProvider.SqlDialect"/>
+        public override ISqlDialect SqlDialect => OracleSqlDialect.Instance;
+
         public override ISqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
         {
             return new OracleExpression<T>(db, pocoData, prefixTableName);

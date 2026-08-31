@@ -9,6 +9,9 @@ namespace NPoco.DatabaseTypes
 {
     public class PostgreSQLDatabaseType : DatabaseType
     {
+        /// <inheritdoc cref="ISqlDialectProvider.SqlDialect"/>
+        public override ISqlDialect SqlDialect => PostgreSqlDialect.Instance;
+
         public override ISqlExpression<T> ExpressionVisitor<T>(IDatabase db, PocoData pocoData, bool prefixTableName)
         {
             return new PostgreSQLExpression<T>(db, pocoData, prefixTableName);

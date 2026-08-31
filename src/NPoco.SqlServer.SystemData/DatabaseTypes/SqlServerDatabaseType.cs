@@ -12,6 +12,9 @@ namespace NPoco.DatabaseTypes
 {
     public class SqlServerDatabaseType : DatabaseType
     {
+        /// <inheritdoc cref="ISqlDialectProvider.SqlDialect"/>
+        public override ISqlDialect SqlDialect => SqlServerSqlDialect.Instance;
+
         public bool UseOutputClause { get; set; }
 
         public override bool UseColumnAliases()

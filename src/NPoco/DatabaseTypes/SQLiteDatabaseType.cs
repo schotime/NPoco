@@ -8,6 +8,9 @@ namespace NPoco.DatabaseTypes
 {
     public class SQLiteDatabaseType : DatabaseType
     {
+        /// <inheritdoc cref="ISqlDialectProvider.SqlDialect"/>
+        public override ISqlDialect SqlDialect => SqliteSqlDialect.Instance;
+
         public override object MapParameterValue(object value)
         {
             if (value is uint)

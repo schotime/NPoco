@@ -6,6 +6,9 @@ namespace NPoco.DatabaseTypes
 {
     public class MySqlDatabaseType : DatabaseType
     {
+        /// <inheritdoc cref="ISqlDialectProvider.SqlDialect"/>
+        public override ISqlDialect SqlDialect => MySqlSqlDialect.Instance;
+
         public override string GetParameterPrefix(string connectionString)
         {
             if (connectionString != null && connectionString.IndexOf("Allow User Variables=true") >= 0)

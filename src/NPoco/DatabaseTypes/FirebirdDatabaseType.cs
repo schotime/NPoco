@@ -11,6 +11,9 @@ namespace NPoco.DatabaseTypes
 {
     public class FirebirdDatabaseType : DatabaseType
     {
+        /// <inheritdoc cref="ISqlDialectProvider.SqlDialect"/>
+        public override ISqlDialect SqlDialect => FirebirdSqlDialect.Instance;
+
         public override string GetParameterPrefix(string connectionString)
         {
             return "@";

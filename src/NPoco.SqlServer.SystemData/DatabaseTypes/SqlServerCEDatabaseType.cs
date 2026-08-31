@@ -9,6 +9,9 @@ namespace NPoco.DatabaseTypes
 {
     public class SqlServerCEDatabaseType : DatabaseType
     {
+        /// <inheritdoc cref="ISqlDialectProvider.SqlDialect"/>
+        public override ISqlDialect SqlDialect => SqlServerCeSqlDialect.Instance;
+
         public override string BuildPageQuery(long skip, long take, SQLParts parts, ref object[] args)
         {
             var sqlPage = string.Format("{0}\nOFFSET @{1} ROWS FETCH NEXT @{2} ROWS ONLY", parts.sql, args.Length, args.Length + 1);
