@@ -304,5 +304,31 @@ namespace NPoco.Tests.FluentSqlTests
             Assert.That(rows[0].U.Address.AddressFurtherInfo?.PostCode,
                 Is.EqualTo(plain.Address.AddressFurtherInfo?.PostCode));
         }
+
+        [Test] public void ASerializedColumnMaterializesAsAProjectedMember()
+        {
+            var plain = Database.Fetch<UserWithAddress>().First();
+
+            var rows = Database.FluentQuery().From<UserWithAddress>(out var user)
+                .Where(() => user.Row.Id == plain.Id)
+                .Select(() => new { user.Row.Id, user.Row.Address })
+                .Fetch();
+
+            Assert.That(rows[0].Address, Is.Not.Null);
+            Assert.That(rows[0].Address.StreetName, Is.EqualTo(plain.Address.StreetName));
+        }
+
+        [Test] public void ASerializedColumnMaterializesOnItsOwn()
+        {
+            var plain = Database.Fetch<UserWithAddress>().First();
+
+            var address = Database.FluentQuery().From<UserWithAddress>(out var user)
+                .Where(() => user.Row.Id == plain.Id)
+                .SelectScalar(() => user.Row.Address)
+                .Single();
+
+            Assert.That(address, Is.Not.Null);
+            Assert.That(address.StreetName, Is.EqualTo(plain.Address.StreetName));
+        }
     }
 }

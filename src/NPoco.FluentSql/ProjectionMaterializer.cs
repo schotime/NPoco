@@ -148,7 +148,11 @@ namespace NPoco.FluentSql
         internal override object Materialize(object[] values, DbDataReader reader)
         {
             var value = values[_ordinal];
-            if (value == null || value == DBNull.Value) return _default;
+            // The whole projection is this one value when it carries no alias, and a null one is
+            // handed back as null - what NPoco's own single-column mapping does. Inside an object
+            // the member takes its default instead, so a null number leaves the rest of the row
+            // intact rather than reading as absent.
+            if (value == null || value == DBNull.Value) return Alias == null ? null : _default;
             return _converter == null ? value : _converter(value);
         }
 
@@ -430,11 +434,7 @@ namespace NPoco.FluentSql
             MemberInfo[] prefix;
             var table = ResolveRowMember(StripConvert(projection.Body), tables, out row, out prefix);
             var column = table == null ? null : table.TryResolveColumn(prefix);
-            if (column == null || !column.ValueObjectColumn) return null;
-
-            var plan = new ProjectionPlan(mappers);
-            plan.Root = new ValueObjectProjectionNode { Column = column };
-            return plan;
+            return ScalarPlan(column, projection.ReturnType, mappers);
         }
 
         /// <summary>
@@ -455,10 +455,23 @@ namespace NPoco.FluentSql
 
             if (members.Count == 0 || !(current is ParameterExpression)) return null;
             var column = table.TryResolveColumn(members.ToArray());
-            if (column == null || !column.ValueObjectColumn) return null;
+            return ScalarPlan(column, selector.ReturnType, mappers);
+        }
+
+        // Every conversion that reads a value back is chosen from the column and not only from its
+        // type: a value object wraps the value, a serialized column deserializes into it, a UTC
+        // column re-kinds it, and a member can carry a converter of its own. NPoco's plain
+        // single-column mapping is handed no column and so can do none of it, which is why a scalar
+        // that names a column gets a one-leaf plan. A scalar that is any other expression - an
+        // aggregate, a concatenation - names no column, and a null plan leaves it where it was.
+        private static ProjectionPlan ScalarPlan(PocoColumn column, Type type, IMapperCollection mappers)
+        {
+            if (column == null) return null;
 
             var plan = new ProjectionPlan(mappers);
-            plan.Root = new ValueObjectProjectionNode { Column = column };
+            plan.Root = column.ValueObjectColumn
+                ? new ValueObjectProjectionNode { Column = column }
+                : new ScalarProjectionNode { Type = type, Column = column };
             return plan;
         }
 
@@ -510,11 +523,16 @@ namespace NPoco.FluentSql
 
             // A value object is a column like any other in the SQL, but the value read back has to
             // be wrapped in it rather than handed over raw.
-            var valueObject = memberTable == null ? null : memberTable.TryResolveColumn(memberPrefix);
-            if (valueObject != null && valueObject.ValueObjectColumn)
-                return new ValueObjectProjectionNode { Alias = path, Column = valueObject };
+            var leafColumn = memberTable == null ? null : memberTable.TryResolveColumn(memberPrefix);
+            if (leafColumn != null && leafColumn.ValueObjectColumn)
+                return new ValueObjectProjectionNode { Alias = path, Column = leafColumn };
 
-            return new ScalarProjectionNode { Alias = path, Type = resultType };
+            // A leaf that is a plain column keeps hold of it, because the converter that reads the
+            // value back is chosen from the column and not only from its type: that is what
+            // deserializes a serialized column, re-kinds a UTC one, and finds a converter the
+            // member itself carries. A leaf that is any other expression has no column, and is read
+            // by its type as before.
+            return new ScalarProjectionNode { Alias = path, Type = resultType, Column = leafColumn };
         }
 
         // One node builds both a whole row and a complex-mapped member of one: the only difference
