@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 using NPoco.FluentSqlBuilder;
 using NUnit.Framework;
 
-namespace NPoco.Tests.FluentTests.QueryTests
+namespace NPoco.Tests.FluentSqlTests
 {
     /// <summary>
     /// FluentSql.Raw and FluentSql.Scalar - the two escape hatches for SQL the expression
@@ -59,7 +59,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
                     .Select(() => new
                     {
                         system.Row.Name,
-                        Padded = FluentSql.Raw<string>("substr({0} || '____', 1, 4)", () => system.Row.Name)
+                        Padded = FluentSql.Raw<string>("substr({0} || '____', 1, 4)", system.Row.Name)
                     })
                     .Fetch();
 
@@ -77,7 +77,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
                     .From<RawSystem>(out var system)
                     .Select(() => new
                     {
-                        Doubled = FluentSql.Raw<string>("({0} || {1} || {0})", () => system.Row.Name, () => separator)
+                        Doubled = FluentSql.Raw<string>("({0} || {1} || {0})", system.Row.Name, separator)
                     })
                     .ToSql();
 
@@ -94,7 +94,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             {
                 var names = database.FluentQuery()
                     .From<RawSystem>(out var system)
-                    .Where(() => FluentSql.Raw<bool>("{0} in ('a','d')", () => system.Row.Name))
+                    .Where(() => FluentSql.Raw<bool>("{0} in ('a','d')", system.Row.Name))
                     .OrderBy(system, x => x.Id)
                     .Select(() => new { system.Row.Name })
                     .Fetch();
@@ -110,7 +110,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             {
                 var names = database.FluentQuery()
                     .From<RawSystem>(out var system)
-                    .Where(() => FluentSql.Raw<bool>("{0} = 1 or {0} = 4", () => system.Row.Id) && system.Row.Active)
+                    .Where(() => FluentSql.Raw<bool>("{0} = 1 or {0} = 4", system.Row.Id) && system.Row.Active)
                     .OrderBy(system, x => x.Id)
                     .Select(() => new { system.Row.Name })
                     .Fetch();
@@ -147,7 +147,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
                     .Select(() => new RawGrouped
                     {
                         SiteId = system.Row.SiteId,
-                        Names = FluentSql.Raw<string>("group_concat({0}, '-')", () => system.Row.Name)
+                        Names = FluentSql.Raw<string>("group_concat({0}, '-')", system.Row.Name)
                     })
                     .Fetch();
 
@@ -163,7 +163,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
                 var rows = database.FluentQuery()
                     .From<RawSystem>(out var system)
                     .Where(system, x => x.Id == 1)
-                    .Select(() => new { Braced = FluentSql.Raw<string>("'{{' || {0} || '}}'", () => system.Row.Name) })
+                    .Select(() => new { Braced = FluentSql.Raw<string>("'{{' || {0} || '}}'", system.Row.Name) })
                     .Fetch();
 
                 Assert.That(rows.Single().Braced, Is.EqualTo("{a}"));
@@ -177,7 +177,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             {
                 var query = database.FluentQuery()
                     .From<RawSystem>(out var system)
-                    .Select(() => new { Bad = FluentSql.Raw<string>("upper({1})", () => system.Row.Name) });
+                    .Select(() => new { Bad = FluentSql.Raw<string>("upper({1})", system.Row.Name) });
 
                 var exception = Assert.Throws<ArgumentException>(() => query.ToSql());
                 Assert.That(exception.Message, Does.Contain("1 argument(s)"));

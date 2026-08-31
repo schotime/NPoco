@@ -9,7 +9,7 @@ using Microsoft.Data.Sqlite;
 using NPoco.FluentSqlBuilder;
 using NUnit.Framework;
 
-namespace NPoco.Tests.FluentTests.QueryTests
+namespace NPoco.Tests.FluentSqlTests
 {
     /// <summary>
     /// The fluent builder's projection path materializes rows itself. These tests pin it to the
@@ -289,6 +289,109 @@ namespace NPoco.Tests.FluentTests.QueryTests
             }
         }
 
+        // A single-value body skips the projection plan entirely and maps through NPoco's ordinary
+        // query path, so the pipeline guarantees above have to hold for that branch too.
+
+        [Test]
+        public void ScalarQueryStreamsAndClosesTheConnection()
+        {
+            using (var database = CreateDatabase())
+            {
+                var names = new List<string>();
+                foreach (var name in database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .OrderBy(() => user.Row.UserId)
+                    .Select(() => user.Row.Name)
+                    .Query())
+                {
+                    names.Add(name);
+                }
+
+                Assert.That(names, Is.EqualTo(new[] { "one", "two", "three" }));
+                Assert.That(database.Connection, Is.Null, "streaming left the connection open");
+            }
+        }
+
+        [Test]
+        public void ScalarFetchLeavesAnAmbientTransactionUsable()
+        {
+            using (var database = CreateDatabase())
+            using (var transaction = database.GetTransaction())
+            {
+                database.Execute("update pipelineusers set name = 'in-transaction' where userid = 1");
+
+                var name = database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .Where(() => user.Row.UserId == 1)
+                    .Select(() => user.Row.Name)
+                    .Single();
+
+                // The read must go through the same transaction, not a fresh connection.
+                Assert.That(name, Is.EqualTo("in-transaction"));
+                Assert.That(database.Transaction, Is.Not.Null, "the scalar fetch disposed the ambient transaction");
+                Assert.That(database.Connection, Is.Not.Null, "the scalar fetch closed the transaction's connection");
+                transaction.Complete();
+            }
+        }
+
+        [Test]
+        public void ScalarFetchClosesTheConnectionItOpened()
+        {
+            using (var database = CreateDatabase())
+            {
+                database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .Select(() => user.Row.Name)
+                    .Fetch();
+
+                Assert.That(database.Connection, Is.Null);
+            }
+        }
+
+        [Test]
+        public void ScalarFetchFiresCommandInterceptorsAndRecordsLastSql()
+        {
+            using (var database = CreateDatabase())
+            {
+                var interceptor = new RecordingInterceptor();
+                database.Interceptors.Add(interceptor);
+
+                database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .Select(() => user.Row.Name)
+                    .Fetch();
+
+                Assert.That(interceptor.Executing, Is.EqualTo(1));
+                Assert.That(interceptor.Executed, Is.EqualTo(1));
+                Assert.That(database.LastSQL, Does.Contain("pipelineusers"));
+            }
+        }
+
+        [Test]
+        public void ScalarFetchReportsExceptionsToInterceptors()
+        {
+            using (var database = CreateDatabase())
+            {
+                var interceptor = new RecordingInterceptor();
+                database.Interceptors.Add(interceptor);
+
+                var query = database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .Select(() => user.Row.Name);
+
+                using (var connection = new SqliteConnection(_connectionString))
+                {
+                    connection.Open();
+                    var command = connection.CreateCommand();
+                    command.CommandText = "drop table pipelineusers";
+                    command.ExecuteNonQuery();
+                }
+
+                Assert.Throws<SqliteException>(() => query.Fetch());
+                Assert.That(interceptor.Exceptions, Is.GreaterThan(0), "OnException was never called");
+            }
+        }
+
         [Test]
         public void ProjectionCallsOnLoadedForEntitiesAndResultObjects()
         {
@@ -374,7 +477,7 @@ namespace NPoco.Tests.FluentTests.QueryTests
             using (var database = CreateDatabase())
             {
                 var rows = database.FluentQuery()
-                    .With("adults", q => q.From<PipelineUser>(out var inner)
+                    .With(q => q.From<PipelineUser>(out var inner)
                                           .Where(inner, x => x.Age > 20)
                                           .Select(inner), out var adults)
                     .From(adults)

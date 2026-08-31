@@ -40,8 +40,9 @@ namespace NPoco.FluentSqlBuilder
         private readonly HashSet<string> _cteNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         // Shared with any correlated sub-builder so an inner table can never be handed an alias the
         // outer query is already using - the two scopes see each other's columns, so a collision
-        // silently produces wrong SQL rather than an error.
-        private readonly Dictionary<string, int> _aliasCounts;
+        // silently produces wrong SQL rather than an error. CTE names are reserved here too, so a
+        // table can never be aliased as one.
+        private readonly HashSet<string> _aliases;
 
         // The query this one is nested inside, if any. Held as a link rather than a copy of its
         // tables so that scope is resolved when it is read: a subquery sees whatever its parent
@@ -51,13 +52,17 @@ namespace NPoco.FluentSqlBuilder
         private TableReference _from;
         private ProjectionPlan _projectionPlan;
 
+        // The query a snapshot was taken from, so a CTE or UNION callback can still tell that the
+        // result it was handed belongs to the query it was given.
+        private FluentSqlQuery _origin;
+
         internal FluentSqlQuery(IDatabase database) : this(database, null, null) { }
 
-        private FluentSqlQuery(IDatabase database, FluentSqlQuery parent, Dictionary<string, int> aliasCounts)
+        private FluentSqlQuery(IDatabase database, FluentSqlQuery parent, HashSet<string> aliases)
         {
             _database = database ?? throw new ArgumentNullException(nameof(database));
             _parent = parent;
-            _aliasCounts = aliasCounts ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            _aliases = aliases ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>Every table this query may reference: its own, plus everything in scope outside it.</summary>
@@ -73,34 +78,50 @@ namespace NPoco.FluentSqlBuilder
             return new FluentSqlQueryStage(this);
         }
 
-        public FluentSqlQuery With<T>(string name, Func<FluentSqlQuery, FluentSqlResult<T>> query, out TableReference<T> table)
+        /// <summary>
+        /// Declares a CTE. Its name is generated: the query is written against the reference this
+        /// hands back, so the name only has to be unique within the statement.
+        /// </summary>
+        public FluentSqlQuery With<T>(Func<FluentSqlQuery, FluentSqlResult<T>> query, out TableReference<T> table)
+            => With(NextCteName(), query, out table);
+
+        /// <inheritdoc cref="With{T}(Func{FluentSqlQuery, FluentSqlResult{T}}, out TableReference{T})"/>
+        public FluentSqlQuery With<T>(FluentSqlResult<T> query, out TableReference<T> table)
+            => With(NextCteName(), query, out table);
+
+        private string NextCteName()
+        {
+            for (var i = 1; ; i++)
+            {
+                // The leading underscores keep a generated name clear of anything a caller would
+                // pick, so mixing named and unnamed CTEs never has to renumber around a collision.
+                var name = "__w" + i;
+                if (!_cteNames.Contains(name)) return name;
+            }
+        }
+
+        private FluentSqlQuery With<T>(string name, Func<FluentSqlQuery, FluentSqlResult<T>> query, out TableReference<T> table)
         {
             if (query == null) throw new ArgumentNullException(nameof(query));
             var cteQuery = new FluentSqlQuery(_database);
             var definition = query(cteQuery);
             if (definition == null) throw new InvalidOperationException("The CTE callback must return a projected query.");
-            if (!ReferenceEquals(definition.InnerQuery, cteQuery)) throw new InvalidOperationException("The CTE callback must return a result created from the supplied query.");
+            if (!definition.InnerQuery.Projects(cteQuery)) throw new InvalidOperationException("The CTE callback must return a result created from the supplied query.");
             return With(name, definition, out table);
         }
 
-        public FluentSqlQuery With<T>(string name, FluentSqlResult<T> query, out TableReference<T> table)
+        private FluentSqlQuery With<T>(string name, FluentSqlResult<T> query, out TableReference<T> table)
         {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A CTE name is required.", nameof(name));
-            if (!IsValidIdentifier(name)) throw new ArgumentException("A CTE name may contain only letters, digits, and underscores, and cannot start with a digit.", nameof(name));
             if (query == null) throw new ArgumentNullException(nameof(query));
             if (!ReferenceEquals(query.Database, _database)) throw new InvalidOperationException("The CTE query must use the same database instance as the containing query.");
             if (query.InnerQuery._ctes.Count > 0) throw new InvalidOperationException("A CTE definition cannot declare nested CTEs.");
-            if (!_cteNames.Add(name)) throw new InvalidOperationException("A CTE named '" + name + "' has already been added.");
+            _cteNames.Add(name);
+            _aliases.Add(name);
             table = CreateTable<T>(true, name);
+            RequireReferenceableColumns(table, "A CTE");
             _cteTables.Add(table);
             _ctes.Add(new CtePart { Name = name, Query = query });
             return this;
-        }
-
-        private static bool IsValidIdentifier(string name)
-        {
-            if (!(char.IsLetter(name[0]) || name[0] == '_')) return false;
-            return name.All(x => char.IsLetterOrDigit(x) || x == '_');
         }
 
         public FluentSqlQueryStage From<T>(TableReference<T> table)
@@ -120,7 +141,40 @@ namespace NPoco.FluentSqlBuilder
         internal FluentSqlQuery CreateSubquery()
         {
             RequireFrom();
-            return new FluentSqlQuery(_database, this, _aliasCounts);
+            return new FluentSqlQuery(_database, this, _aliases);
+        }
+
+        /// <summary>Whether a projection has been taken from this query.</summary>
+        internal bool IsProjected => _selects.Count > 0 || _projectionPlan != null;
+
+        /// <summary>Whether this query is <paramref name="source"/> or was rebased from it.</summary>
+        internal bool Projects(FluentSqlQuery source) => ReferenceEquals(this, source) || ReferenceEquals(_origin, source);
+
+        // Projecting mutates this query and hands it to the result, which costs nothing extra for
+        // the usual single projection. A stage that is used again after that - projected a second
+        // time, or added to - rebases onto this copy of everything the projection did not touch,
+        // so the result already handed out keeps the query it was built from.
+        internal FluentSqlQuery Rebase()
+        {
+            var copy = new FluentSqlQuery(_database, _parent, _aliases);
+            copy._origin = _origin ?? this;
+            copy._from = _from;
+            copy.TakeCount = TakeCount;
+            copy.SkipCount = SkipCount;
+            copy.IsDistinct = IsDistinct;
+            copy._tables.AddRange(_tables);
+            copy._joins.AddRange(_joins);
+            copy._applies.AddRange(_applies);
+            copy._where.AddRange(_where);
+            copy._having.AddRange(_having);
+            copy._groups.AddRange(_groups);
+            copy._sorts.AddRange(_sorts);
+            copy._ctes.AddRange(_ctes);
+            foreach (var table in _cteTables) copy._cteTables.Add(table);
+            foreach (var name in _cteNames) copy._cteNames.Add(name);
+            // Selects, the projection plan and unions all belong to the projection being left
+            // behind: a union can only be added through a result.
+            return copy;
         }
 
         internal FluentSqlResult<T> Select<T>(TableReference<T> table)
@@ -138,15 +192,27 @@ namespace NPoco.FluentSqlBuilder
             return new FluentSqlResult<TValue>(this, _database);
         }
 
+        internal FluentSqlResult<TValue> SelectScalar<TValue>(Expression<Func<TValue>> selector)
+        {
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            _selects.Add(new SelectPart { Tables = AvailableTables.Distinct().ToArray(), Expression = selector });
+            return new FluentSqlResult<TValue>(this, _database);
+        }
+
         internal FluentSqlResult<TResult> Select<TResult>(Expression<Func<TResult>> projection)
         {
             if (projection == null) throw new ArgumentNullException(nameof(projection));
-            _projectionPlan = ProjectionPlanBuilder.Build(projection, AvailableTables.Distinct(), _database.Mappers);
+            var tables = AvailableTables.Distinct().ToArray();
+            if (ProjectionPlanBuilder.IsScalarProjection(projection, tables))
+                return SelectScalar(projection);
+            _projectionPlan = ProjectionPlanBuilder.Build(projection, tables, _database.Mappers);
             foreach (var leaf in _projectionPlan.Leaves)
             {
+                // One array for every leaf: they all see the same tables, and the generator uses
+                // that sameness to build a single translator for the whole projection.
                 _selects.Add(new SelectPart
                 {
-                    Tables = AvailableTables.Distinct().ToArray(),
+                    Tables = tables,
                     Expression = Expression.Lambda(leaf.Expression),
                     Alias = leaf.Alias
                 });
@@ -170,7 +236,7 @@ namespace NPoco.FluentSqlBuilder
             var unionQuery = new FluentSqlQuery(_database);
             var result = query(unionQuery);
             if (result == null) throw new InvalidOperationException("The UNION callback must return a projected query.");
-            if (!ReferenceEquals(result.InnerQuery, unionQuery)) throw new InvalidOperationException("The UNION callback must return a result created from the supplied query.");
+            if (!result.InnerQuery.Projects(unionQuery)) throw new InvalidOperationException("The UNION callback must return a result created from the supplied query.");
             AddUnion(all, result);
         }
 
@@ -203,21 +269,43 @@ namespace NPoco.FluentSqlBuilder
         {
             RequireFrom();
             if (subquery == null) throw new ArgumentNullException(nameof(subquery));
-            var inner = new FluentSqlQuery(_database, this, _aliasCounts);
+            var inner = new FluentSqlQuery(_database, this, _aliases);
             var result = subquery(inner);
             if (result == null) throw new InvalidOperationException("The OUTER APPLY callback must return a projected query.");
             table = CreateTable<TApply>(true);
+            RequireReferenceableColumns(table, "An OUTER APPLY");
             _tables.Add(table);
             _applies.Add(new ApplyPart { Table = table, Query = result });
+        }
+
+        // A derived table is addressed through its TableReference, so its type has to have mapped
+        // columns. A single value has none: the query would build, and then nothing could be read
+        // back out of it - a failure that otherwise surfaces much later, and about something else.
+        private static void RequireReferenceableColumns(TableReference table, string usage)
+        {
+            if (table.PocoData.QueryColumns.Length > 0) return;
+            throw new InvalidOperationException(usage + " must project a type with mapped columns, but '"
+                + table.EntityType.Name + "' has none. Project an entity or an object shape instead of a single value.");
         }
 
         private TableReference<T> CreateTable<T>(bool derived = false, string sourceName = null)
         {
             var root = TableAliasGenerator.Root(typeof(T));
-            int count;
-            _aliasCounts.TryGetValue(root, out count);
-            _aliasCounts[root] = count + 1;
-            return new TableReference<T>(_database, count == 0 ? root : root + count, derived, sourceName);
+            // A root the builder invented rather than took from a type name is always numbered, so
+            // it reads like the CTE names it sits beside: __t1 alongside __w1.
+            return new TableReference<T>(_database, Reserve(root, root == TableAliasGenerator.GeneratedRoot), derived, sourceName);
+        }
+
+        // How NPoco itself hands a PocoData its AutoAlias: the initials, then the first numbered
+        // form of them nothing has taken. Probing beats counting per root, because a name can also
+        // be taken by something the counter never saw - a CTE, or an alias a caller chose.
+        private string Reserve(string root, bool alwaysNumbered)
+        {
+            for (var i = alwaysNumbered ? 1 : 0; ; i++)
+            {
+                var alias = i == 0 ? root : root + i;
+                if (_aliases.Add(alias)) return alias;
+            }
         }
 
         internal void Where<T>(TableReference<T> table, Expression<Func<T, bool>> predicate) => AddPredicate(_where, table, predicate);
@@ -308,13 +396,25 @@ namespace NPoco.FluentSqlBuilder
         internal void GroupBy<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector)
         {
             EnsureAvailable(table);
-            _groups.Add(new GroupPart { Table = table, Expression = selector ?? throw new ArgumentNullException(nameof(selector)) });
+            _groups.Add(new GroupPart { Tables = new TableReference[] { table }, Expression = selector ?? throw new ArgumentNullException(nameof(selector)) });
+        }
+
+        internal void GroupBy<TValue>(Expression<Func<TValue>> selector)
+        {
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            _groups.Add(new GroupPart { Tables = AvailableTables.Distinct().ToArray(), Expression = selector });
         }
 
         internal void OrderBy<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector, bool descending = false)
         {
             EnsureAvailable(table);
-            _sorts.Add(new SortPart { Table = table, Expression = selector ?? throw new ArgumentNullException(nameof(selector)), Descending = descending });
+            _sorts.Add(new SortPart { Tables = new TableReference[] { table }, Expression = selector ?? throw new ArgumentNullException(nameof(selector)), Descending = descending });
+        }
+
+        internal void OrderBy<TValue>(Expression<Func<TValue>> selector, bool descending = false)
+        {
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            _sorts.Add(new SortPart { Tables = AvailableTables.Distinct().ToArray(), Expression = selector, Descending = descending });
         }
 
         internal int ProjectedColumnCount => _selects.Sum(x => x.All ? x.Table.PocoData.QueryColumns.Length : 1);
@@ -423,55 +523,64 @@ namespace NPoco.FluentSqlBuilder
 
     public sealed class FluentSqlQueryStage
     {
-        private readonly FluentSqlQuery _query;
+        private FluentSqlQuery _query;
 
         internal FluentSqlQueryStage(FluentSqlQuery query) => _query = query;
 
+        // The query to build on. Everything a stage does mutates it, which is what makes a single
+        // projection allocation-free; once a projection has been handed out, the next thing the
+        // stage does moves it onto a copy so that result stays as it was built.
+        private FluentSqlQuery Target()
+        {
+            if (_query.IsProjected) _query = _query.Rebase();
+            return _query;
+        }
+
         public FluentSqlQueryStage Where<T>(TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
-            _query.Where(table, predicate);
+            Target().Where(table, predicate);
             return this;
         }
 
         public FluentSqlQueryStage WhereIf<T>(bool condition, TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
-            if (condition) _query.Where(table, predicate);
+            if (condition) Target().Where(table, predicate);
             return this;
         }
 
         public FluentSqlQueryStage Where(Expression<Func<bool>> predicate)
         {
-            _query.Where(predicate);
+            Target().Where(predicate);
             return this;
         }
 
         public FluentSqlQueryStage WhereIf(bool condition, Expression<Func<bool>> predicate)
         {
-            if (condition) _query.Where(predicate);
+            if (condition) Target().Where(predicate);
             return this;
         }
 
         public FluentSqlQueryStage OrWhere(Expression<Func<bool>> predicate)
         {
-            _query.OrWhere(predicate);
+            Target().OrWhere(predicate);
             return this;
         }
 
         public FluentSqlQueryStage OrWhere<T>(TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
-            _query.OrWhere(table, predicate);
+            Target().OrWhere(table, predicate);
             return this;
         }
 
         public FluentSqlQueryStage OrWhereIf(bool condition, Expression<Func<bool>> predicate)
         {
-            if (condition) _query.OrWhere(predicate);
+            if (condition) Target().OrWhere(predicate);
             return this;
         }
 
         public FluentSqlQueryStage OrWhereIf<T>(bool condition, TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
-            if (condition) _query.OrWhere(table, predicate);
+            if (condition) Target().OrWhere(table, predicate);
             return this;
         }
 
@@ -480,82 +589,103 @@ namespace NPoco.FluentSqlBuilder
 
         public FluentSqlQueryStage Where(FluentSqlPredicate predicate)
         {
-            _query.Where(predicate);
+            Target().Where(predicate);
             return this;
         }
 
         public FluentSqlQueryStage WhereIf(bool condition, FluentSqlPredicate predicate)
         {
-            if (condition) _query.Where(predicate);
+            if (condition) Target().Where(predicate);
             return this;
         }
 
         public FluentSqlQueryStage OrWhere(FluentSqlPredicate predicate)
         {
-            _query.OrWhere(predicate);
+            Target().OrWhere(predicate);
             return this;
         }
 
         public FluentSqlQueryStage OrWhereIf(bool condition, FluentSqlPredicate predicate)
         {
-            if (condition) _query.OrWhere(predicate);
+            if (condition) Target().OrWhere(predicate);
             return this;
         }
 
         public FluentSqlQueryStage WhereGroup(Action<FluentSqlPredicateGroup> group)
         {
-            _query.WhereGroup(group);
+            Target().WhereGroup(group);
             return this;
         }
 
         public FluentSqlQueryStage Having<T>(TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
-            _query.Having(table, predicate);
+            Target().Having(table, predicate);
             return this;
         }
 
-        public FluentSqlQueryStage Having<T>(bool condition, TableReference<T> table, Expression<Func<T, bool>> predicate)
+        public FluentSqlQueryStage HavingIf<T>(bool condition, TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
-            if (condition) _query.Having(table, predicate);
+            if (condition) Target().Having(table, predicate);
             return this;
         }
 
         public FluentSqlQueryStage Having(Expression<Func<bool>> predicate)
         {
-            _query.Having(predicate);
+            Target().Having(predicate);
+            return this;
+        }
+
+        public FluentSqlQueryStage HavingIf(bool condition, Expression<Func<bool>> predicate)
+        {
+            if (condition) Target().Having(predicate);
             return this;
         }
 
         public FluentSqlQueryStage GroupBy<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector)
         {
-            _query.GroupBy(table, selector);
+            Target().GroupBy(table, selector);
+            return this;
+        }
+
+        public FluentSqlQueryStage GroupBy<TValue>(Expression<Func<TValue>> selector)
+        {
+            Target().GroupBy(selector);
             return this;
         }
 
         public FluentSqlQueryStage OrderBy<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector, bool descending = false)
         {
-            _query.OrderBy(table, selector, descending);
+            Target().OrderBy(table, selector, descending);
             return this;
         }
 
         public FluentSqlQueryStage OrderByDescending<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector)
             => OrderBy(table, selector, true);
 
+        public FluentSqlQueryStage OrderBy<TValue>(Expression<Func<TValue>> selector, bool descending = false)
+        {
+            Target().OrderBy(selector, descending);
+            return this;
+        }
+
+        public FluentSqlQueryStage OrderByDescending<TValue>(Expression<Func<TValue>> selector)
+            => OrderBy(selector, true);
+
         public FluentSqlQueryStage Take(int count)
         {
-            _query.Take(count);
+            Target().Take(count);
             return this;
         }
 
         public FluentSqlQueryStage Skip(int count)
         {
-            _query.Skip(count);
+            Target().Skip(count);
             return this;
         }
 
         public FluentSqlQueryStage Distinct()
         {
-            _query.Distinct();
+            Target().Distinct();
             return this;
         }
 
@@ -564,6 +694,12 @@ namespace NPoco.FluentSqlBuilder
 
         public FluentSqlQueryStage ThenByDescending<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector)
             => OrderBy(table, selector, true);
+
+        public FluentSqlQueryStage ThenBy<TValue>(Expression<Func<TValue>> selector)
+            => OrderBy(selector);
+
+        public FluentSqlQueryStage ThenByDescending<TValue>(Expression<Func<TValue>> selector)
+            => OrderBy(selector, true);
 
         /// <summary>
         /// Starts a subquery that can reference this query's tables. Pass the result to
@@ -574,10 +710,11 @@ namespace NPoco.FluentSqlBuilder
         /// </summary>
         public FluentSqlQuery Subquery() => _query.CreateSubquery();
 
-        public FluentSqlResult<T> Select<T>(TableReference<T> table) => _query.Select(table);
-        public FluentSqlResult<TResult> Select<TResult>(Expression<Func<TResult>> projection) => _query.Select(projection);
-        public FluentSqlResult<TResult> Select<TResult>(Expression<Func<FluentSqlFunctions, TResult>> projection) => _query.Select(projection);
-        public FluentSqlResult<TValue> SelectScalar<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector) => _query.SelectScalar(table, selector);
+        public FluentSqlResult<T> Select<T>(TableReference<T> table) => Target().Select(table);
+        public FluentSqlResult<TResult> Select<TResult>(Expression<Func<TResult>> projection) => Target().Select(projection);
+        public FluentSqlResult<TResult> Select<TResult>(Expression<Func<FluentSqlFunctions, TResult>> projection) => Target().Select(projection);
+        public FluentSqlResult<TValue> SelectScalar<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector) => Target().SelectScalar(table, selector);
+        public FluentSqlResult<TValue> SelectScalar<TValue>(Expression<Func<TValue>> selector) => Target().SelectScalar(selector);
 
         public FluentSqlQueryStage InnerJoin<TJoin>(out TableReference<TJoin> table, Expression<Func<TJoin, bool>> on) => Join(FluentJoinType.Inner, out table, on);
         public FluentSqlQueryStage LeftJoin<TJoin>(out TableReference<TJoin> table, Expression<Func<TJoin, bool>> on) => Join(FluentJoinType.Left, out table, on);
@@ -586,13 +723,13 @@ namespace NPoco.FluentSqlBuilder
 
         public FluentSqlQueryStage OuterApply<TApply>(out TableReference<TApply> table, Func<FluentSqlQuery, FluentSqlResult<TApply>> subquery)
         {
-            _query.OuterApply(out table, subquery);
+            Target().OuterApply(out table, subquery);
             return this;
         }
 
         private FluentSqlQueryStage Join<TJoin>(FluentJoinType type, out TableReference<TJoin> table, LambdaExpression on)
         {
-            _query.AddJoin(type, out table, on);
+            Target().AddJoin(type, out table, on);
             return this;
         }
     }

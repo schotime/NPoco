@@ -1,227 +1,341 @@
 # Strongly-Typed SQL Builder for NPoco
 
-## Goal
-
-Add a separate `NPoco.FluentSqlBuilder` API that builds SQL from expressions and NPoco metadata instead of SQL templates or interpolated SQL. The existing `SqlBuilder` and LINQ query APIs remain unchanged.
-
-The builder must provide:
-
-- strongly typed table and column references;
-- generated, escaped table aliases;
-- fluent `SELECT`, `FROM`, joins, `WHERE`, `GROUP BY`, `HAVING`, and `ORDER BY`;
-- automatic parameterization;
-- support for SQL Server, MySQL, PostgreSQL, SQLite, Oracle, and Firebird through `IDatabaseType`;
-- aggregate functions, subqueries, right/full joins, and diagnostics;
-- query execution through NPoco.
-
-## Intended API
+`NPoco.FluentSqlBuilder` builds SQL from C# expressions and NPoco's own mapping metadata, instead of
+from SQL templates or interpolated strings. Tables, columns, aliases and parameters are all derived
+from your POCOs, so a rename that breaks a query breaks the build. NPoco's existing `SqlBuilder` and
+LINQ query APIs are untouched; this is an additional package.
 
 ```csharp
-var query = db.FluentQuery()
-    .From<FieldDefinition>(out var fd)
-    .InnerJoin<Client>(out var c,
-        c => c.Id == fd.Row.ClientId)
-    .WhereIf(clientId.HasValue, c, x => x.ClientId == clientId.Value)
-    .WhereIf(fieldKeys?.Any() == true, fd,
-        x => fieldKeys.Contains(x.FieldKey))
-    .SelectInto<DefinitionView>(select => select
-        .All(fd, x => x.Definition)
-        .Column(c, x => x.ClientId, x => x.ClientNumericId));
+using NPoco.FluentSqlBuilder;
 
-var rows = query.Fetch();
-```
-
-`FluentQuery()` is intentionally named so the separate package does not collide with NPoco's existing `Query<T>()` API. A `Query()` compatibility extension is also supplied.
-
-## Architecture
-
-```text
-FluentSqlQuery
-    -> TableReference<T> and query parts
-    -> SqlExpressionTranslator
-    -> SqlGenerator
-    -> PocoData / TableInfo / PocoColumn / IDatabaseType
-    -> NPoco.Sql
-```
-
-`TableReference<T>` resolves mapped columns through `PocoData` and `MemberChainHelper`. It never accepts a raw table name. References and aliases are generated and owned by each query.
-
-The expression translator maps lambda parameters to table references. It handles comparisons, boolean logic, null semantics, captured values, string operations, collection `Contains`, aggregates, and subqueries. Values are emitted as NPoco positional parameters.
-
-Queries can also use `Distinct`, `Skip`, `Take`, `ThenBy`, `ThenByDescending`, `OrWhere`, `WhereIf`, and explicit grouped predicates. `WhereIf(condition, ...)` includes its predicate only when the condition is true. Paging is delegated to the configured `IDatabaseType`, preserving each provider's paging syntax and parameter handling.
-
-`CreatePredicate` creates a reusable predicate group for the query's table references. Groups support typed `And`/`Or`, nested `AndGroup`/`OrGroup`, and can be added through `Where`, `WhereIf`, `OrWhere`, or `OrWhereIf`:
-
-```csharp
-var predicate = query.CreatePredicate(group => group
-    .And(user, x => x.IsActive)
-    .OrGroup(nested => nested
-        .And(user, x => x.Name == "Ada")
-        .Or(user, x => x.Name == "Bob")));
-
-query.Where(predicate)
-    .OrWhereIf(includeInactive, user, x => !x.IsActive);
-```
-
-Computed result members use `Expression`, while constructor/record-style projections use `Select`:
-
-```csharp
-var result = db.FluentQuery()
-    .From<User>(out var user)
-    .WhereGroup(group => group
-        .And(() => user.Row.IsActive)
-        .Or(() => string.IsNullOrEmpty(user.Row.Name)))
-    .SelectInto<UserResult>(select => select
-        .Expression(() => user.Row.Name + "!", x => x.Label)
-        .Expression(() => FluentSql.Case(user.Row.IsActive, 1, 0), x => x.Score));
-
-var immutable = db.FluentQuery()
-    .From<User>(out var user)
-    .Select(() => new UserRecord(user.Row.Id, user.Row.Name));
-```
-
-Anonymous and constructor projections may be nested. Nested expressions are flattened to NPoco's `__` aliases and a projection-aware materializer recursively constructs nested anonymous objects, records, DTOs, and complete entity rows:
-
-```csharp
 var rows = db.FluentQuery()
     .From<User>(out var user)
     .InnerJoin<Order>(out var order, x => x.UserId == user.Row.Id)
-    .Select(() => new
-    {
-        User = user.Row,
-        Order = new { order.Row.Id, order.Row.Amount }
-    });
+    .Where(() => user.Row.IsActive && order.Row.Amount >= minimum)
+    .OrderBy(() => user.Row.Name)
+    .Select(() => new { user.Row.Name, order.Row.Amount })
+    .Fetch();
 ```
 
-Computed expressions include conditional/`CASE` values, provider-specific string concatenation, arithmetic, modulo and bitwise operators, date-part extraction, and date addition. `FluentSql.CountDistinct` emits `COUNT(DISTINCT ...)`. String `Contains`, `StartsWith`, and `EndsWith` escape `%`, `_`, and the escape character using the portable `ESCAPE '!'` form.
+```sql
+SELECT [u].[Name] AS [Name], [o].[Amount] AS [Amount]
+FROM [Users] [u]
+INNER JOIN [Orders] [o] ON ([o].[UserId] = [u].[Id])
+WHERE ((([u].[IsActive] = @0) AND ([o].[Amount] >= @1)))
+ORDER BY [u].[Name] ASC
+```
 
-`Select` optionally supplies a discoverable SQL-functions parameter for aggregates and `CASE` expressions. Ordinary arithmetic, comparisons, concatenation, and coalescing continue to use C# operators:
+`FluentQuery()` is named so the package cannot collide with NPoco's existing `Query<T>()`.
+
+## Tables and references
+
+`From<T>` and every join hand back a `TableReference<T>`. That reference is how the rest of the query
+names the table - there is no way to pass a raw table name, and aliases are generated and owned by the
+query (see [Generated names](#generated-names)).
+
+`table.Row` is a compile-time stand-in for a row of that table. It only exists inside a builder
+expression; calling it anywhere else throws.
 
 ```csharp
-var result = db.FluentQuery()
-    .From<User>(out var user)
-    .Select(sql => new
-    {
-        Label = user.Row.Name + "!",
-        Score = sql.Case(user.Row.IsActive, user.Row.Age + 1, 0),
-        UniqueNames = sql.CountDistinct(user.Row.Name)
-    });
+var query = db.FluentQuery().From<User>(out var user);   // FluentSqlQueryStage
+user.Alias;                                              // "u"
+user.GetColumn(x => x.Name);                             // "[u].[Name]"
 ```
 
-The static `FluentSql` markers remain available for predicates, `Having`, and parameterless `Select` expressions.
+## Predicates
 
-Non-recursive CTEs are typed and query-owned:
+Every predicate has two forms. Which you use is a matter of taste until an expression spans more than
+one table, at which point only the `Row` form works:
+
+```csharp
+.Where(user, x => x.IsActive)                                  // one table, lambda parameter
+.Where(() => user.Row.IsActive)                                // same thing, Row form
+.Where(() => order.Row.UserId == user.Row.Id)                  // two tables - Row form only
+```
+
+`OrWhere` adds an `OR`-joined predicate. Both have `If` variants that include the predicate only when
+the condition holds, which keeps optional filters out of `if` blocks:
+
+```csharp
+.WhereIf(clientId.HasValue, () => user.Row.ClientId == clientId.Value)
+.OrWhereIf(includeInactive, user, x => !x.IsActive)
+```
+
+Grouped predicates come from `WhereGroup`, or from `CreatePredicate` when the same group is used more
+than once. Groups nest through `AndGroup`/`OrGroup`:
+
+```csharp
+var active = query.CreatePredicate(group => group
+    .And(() => user.Row.IsActive)
+    .OrGroup(nested => nested
+        .And(() => user.Row.Name == "Ada")
+        .Or(() => user.Row.Name == "Bob")));
+
+query.Where(active).WhereIf(recent, () => user.Row.Created > cutoff);
+```
+
+Captured values become parameters, never inlined text. `In`/`NotIn` accept a collection or a subquery,
+and `string.Contains`/`StartsWith`/`EndsWith` emit `LIKE` with `%`, `_` and the escape character
+escaped using the portable `ESCAPE '!'` form.
+
+## Joins
+
+```csharp
+.InnerJoin<Order>(out var order, x => x.UserId == user.Row.Id)
+.LeftJoin<Address>(out var address, x => x.UserId == user.Row.Id)
+.RightJoin<Region>(out var region, x => x.Id == address.Row.RegionId)
+.FullOuterJoin<Audit>(out var audit, x => x.UserId == user.Row.Id)
+```
+
+The join condition takes the row being joined as its parameter, and can reference any table already in
+scope through `Row`. That parameter is the only way to name the new table - the `out var` is not
+assigned yet while the condition is being written.
+
+`OuterApply` runs a correlated subquery per row (`OUTER APPLY` on SQL Server, `LEFT JOIN LATERAL` on
+PostgreSQL and MySQL):
+
+```csharp
+.OuterApply(out var latest, apply => apply
+    .From<Order>(out var recent)
+    .Where(() => recent.Row.UserId == user.Row.Id)
+    .OrderByDescending(() => recent.Row.Created)
+    .Take(1)
+    .Select(recent))
+```
+
+## Grouping, ordering and paging
+
+`GroupBy`, `Having`, `OrderBy`, `ThenBy` and their `Descending`/`If` variants take the same two forms as
+predicates:
+
+```csharp
+.GroupBy(() => user.Row.Name)
+.HavingIf(minimumOrders > 0, () => FluentSql.Count() > minimumOrders)
+.OrderByDescending(() => FluentSql.Count())
+.ThenBy(() => user.Row.Name)
+.Distinct()
+.Skip(20).Take(10)
+```
+
+Paging is delegated to the configured `IDatabaseType`, so each provider keeps its own syntax and
+parameter handling. `Take` without `Skip` becomes `TOP` on SQL Server.
+
+## Projections
+
+A query ends in `Select` or `SelectScalar`, which returns a `FluentSqlResult<T>` - the thing you
+execute. Four shapes are available.
+
+**A whole entity**, mapped exactly as NPoco would map it:
+
+```csharp
+.Select(user)
+```
+
+**An object shape** - anonymous types, records, constructor calls and member initialisers, nested
+freely, with whole entities as members. Nested paths are flattened to NPoco's `__` aliases and rebuilt
+by a projection-aware materializer:
+
+```csharp
+.Select(() => new
+{
+    User = user.Row,
+    Order = new { order.Row.Id, order.Row.Amount },
+    Label = user.Row.Name + "!"
+})
+
+.Select(() => new UserRecord(user.Row.Id, user.Row.Name))
+.Select(() => new UserDto { Id = user.Row.Id, Name = user.Row.Name })
+```
+
+A member whose source row is absent - the null side of a `LEFT JOIN` - materializes as `null` rather
+than an object full of defaults.
+
+**A single value**, as `List<TValue>` rather than a wrapper object:
+
+```csharp
+.SelectScalar(user, x => x.Name)          // one table
+.SelectScalar(() => user.Row.Name)        // any table in scope
+.SelectScalar(() => user.Row.Name + "/" + order.Row.Id)
+```
+
+`Select` also accepts a single-value body and routes it the same way, so `Select(() => user.Row.Name)`
+and `SelectScalar(() => user.Row.Name)` are the same query. A single-value projection skips the
+projection plan entirely and maps through NPoco's ordinary single-column path.
+
+> An aggregate over an empty set is SQL `NULL`. On the single-value path that needs a nullable result
+> type - `FluentSql.Sum(user.Row.Score)` where `Score` is `int` will fail on no rows, where `int?`
+> yields `null`.
+
+**A discoverable functions parameter**, if you would rather not reach for the static `FluentSql`:
+
+```csharp
+.Select(sql => new
+{
+    Score = sql.Case(user.Row.IsActive, user.Row.Age + 1, 0),
+    UniqueNames = sql.CountDistinct(user.Row.Name)
+})
+```
+
+## Expressions
+
+Comparisons, boolean logic, arithmetic, modulo, bitwise operators, coalescing, conditionals (`CASE`),
+string concatenation, date-part extraction and date addition all translate, with provider-specific SQL
+where it differs. Aggregates are `FluentSql.Count`, `CountDistinct`, `Sum`, `Average`, `Min`, `Max`.
+
+`FluentSql.Raw` emits SQL the builder has no expression for. Placeholders are `string.Format` style and
+each argument is translated like any other expression rather than evaluated, so aliases resolve and
+captured values become parameters:
+
+```csharp
+.Select(() => new
+{
+    Readings = FluentSql.Raw<string>(
+        "json_agg(json_build_object('value', {0}, 'at', {1}) ORDER BY {1})",
+        metric.Row.Value,
+        metric.Row.OccurredAt)
+})
+```
+
+## Subqueries
+
+`Subquery()` starts a query that can see the outer query's tables, which is what makes it correlated.
+Pass the result to `FluentSql.Scalar` to project it, or to `Exists`/`NotExists`/`In`/`NotIn` to use it
+in a predicate:
+
+```csharp
+var outer = db.FluentQuery().From<User>(out var user);
+
+var orderCount = outer.Subquery()
+    .From<Order>(out var order)
+    .Where(() => order.Row.UserId == user.Row.Id)
+    .Select(() => FluentSql.Count());
+
+var rows = outer
+    .Where(() => FluentSql.Exists(orderCount))
+    .Select(() => new { user.Row.Name, Orders = FluentSql.Scalar<int>(orderCount) })
+    .Fetch();
+```
+
+A query built from `db.FluentQuery()` instead of `Subquery()` is uncorrelated and cannot see the outer
+tables. Subqueries used as a value or an `IN` list must project exactly one column.
+
+## CTEs
+
+CTEs are typed, query-owned and non-recursive. The name is generated - the reference is what the query
+is written against:
 
 ```csharp
 var query = db.FluentQuery()
-    .With<User>("active_users", cte => cte
-        .From<User>(out var user)
-        .Where(user, x => x.IsActive)
-        .Select(user), out var active)
+    .With(cte => cte
+        .From<User>(out var candidate)
+        .Where(() => candidate.Row.IsActive)
+        .Select(candidate), out var active)
     .From(active)
-    .Where(active, x => x.Age >= 18)
+    .Where(() => active.Row.Age >= 18)
     .Select(active);
 ```
 
-Multiple CTE definitions are rendered in declaration order. Their parameters precede main-query parameters, and duplicate CTE names or references owned by another query are rejected.
-
-CTE definitions can also be constructed separately:
+A definition can also be built separately and handed over:
 
 ```csharp
 var activeUsers = db.FluentQuery()
     .From<User>(out var user)
-    .Where(user, x => x.IsActive)
+    .Where(() => user.Row.IsActive)
     .Select(user);
 
 var query = db.FluentQuery()
-    .With("active_users", activeUsers, out TableReference<User> active)
+    .With(activeUsers, out var active)
     .From(active)
     .Select(active);
 ```
 
-Projected queries can be combined with typed `Union` and `UnionAll` callbacks. Every operand has the same result type, and parameters remain continuous across the compound query:
+Multiple CTEs render in declaration order, and their parameters precede the main query's.
+
+## Unions
 
 ```csharp
 var names = db.FluentQuery()
-    .From<User>(out var first)
-    .Where(first, x => x.Age < 18)
-    .SelectScalar(first, x => x.Name)
+    .From<User>(out var minor)
+    .Where(() => minor.Row.Age < 18)
+    .SelectScalar(() => minor.Row.Name)
     .UnionAll(query => query
-        .From<User>(out var second)
-        .Where(second, x => x.Age >= 65)
-        .SelectScalar(second, x => x.Name));
+        .From<User>(out var senior)
+        .Where(() => senior.Row.Age >= 65)
+        .SelectScalar(() => senior.Row.Name));
 ```
 
-Union operands cannot declare their own CTEs or apply operand-local ordering and paging. A union query can be used as a CTE definition when further composition is required.
+Operands share the result type, parameters stay continuous across the compound query, and an operand
+built separately can be passed directly to `Union(other)` / `UnionAll(other)`. An operand cannot
+declare its own CTEs or apply its own `OrderBy`/`Skip`/`Take`; wrap the compound query in a CTE when
+you need to compose further.
 
-Union operands can likewise be created independently and combined directly with `Union(otherQuery)` or `UnionAll(otherQuery)`.
+## Reusing a query
 
-## Phase 1
-
-- `From`
-- select all columns or typed columns
-- typed projection-member aliases
-- inner and left joins
-- conditional and unconditional `Where`
-- `GroupBy`
-- ascending and descending `OrderBy`
-- result-bound `ToSql`, `Fetch`, and `FetchAsync`
-- explicit select columns using NPoco's natural `__` nested mapping aliases
-- database-specific identifier escaping
-
-Join lambda parameters correspond to table order: the `FROM` table first, previous joins next, and the current join last.
-
-## Phase 2
-
-- `Count`, `Sum`, `Average`, `Min`, and `Max`
-- `In` and `Exists` subqueries
-- `Having`
-- right and full outer joins
-- typed projection aliases
-- `ToDebugSql` and `Explain`
-- correlated SQL Server `OUTER APPLY` (`LEFT JOIN LATERAL` on PostgreSQL/MySQL)
+Everything before the projection mutates the query; projecting takes a snapshot. So one partially built
+query can be projected several ways, and each result keeps the query it was built from:
 
 ```csharp
-var query = db.FluentQuery()
+var stage = db.FluentQuery()
     .From<User>(out var user)
-    .OuterApply<Order>(out var latestOrder, apply => apply
-        .From<Order>(out var order)
-        .Where(() => order.Row.UserId == user.Row.Id)
-        .OrderByDescending(order, o => o.Created)
-        .Take(1)
-        .Select(order))
-    .SelectInto<UserOrderResult>(select => select
-        .All(user, x => x.User)
-        .All(latestOrder, x => x.Order));
+    .Where(() => user.Row.IsActive)
+    .OrderBy(() => user.Row.Name);
+
+var names = stage.Select(() => user.Row.Name).Fetch();
+var count = stage.Select(() => FluentSql.Count()).Single();
+var page  = stage.Take(10).Select(user).Fetch();   // does not disturb the two above
 ```
 
-Examples:
+The copy only happens when a stage is used again after being projected, so the ordinary
+project-once query pays nothing for it.
+
+## Executing
+
+`FluentSqlResult<T>` runs through NPoco's own pipeline - the same connection and transaction handling,
+interceptors and exception reporting as a plain `Fetch`:
 
 ```csharp
-var summary = db.FluentQuery()
-    .From<User>(out var users)
-    .InnerJoin<Order>(out var orders,
-        order => order.UserId == users.Row.Id)
-    .GroupBy(users, u => u.Name)
-    .Having(orders, o => FluentSql.Count(o.Id) > 5)
-    .SelectInto<UserSummary>(select => select
-        .Column(users, u => u.Name, x => x.Name)
-        .Column(orders, o => FluentSql.Count(o.Id), x => x.OrderCount));
+List<T>            Fetch();          Task<List<T>> FetchAsync(CancellationToken);
+IEnumerable<T>     Query();          IAsyncEnumerable<T> QueryAsync(CancellationToken);
+T                  Single();         T First();
 ```
 
-```csharp
-var activeClientIds = db.FluentQuery()
-    .From<Client>(out var clients)
-    .Where(clients, x => x.IsActive)
-    .SelectScalar(clients, x => x.Id);
+`Query()` streams rather than materializing, and releases the connection when enumeration finishes or
+the enumerator is disposed - a `foreach` does that for you.
 
-var definitions = db.FluentQuery()
-    .From<FieldDefinition>(out var fieldDefinitions)
-    .Where(fieldDefinitions,
-        x => x.ClientId.In(activeClientIds))
-    .Select(fieldDefinitions);
-```
+For diagnostics: `ToSql()` returns the `Sql` with its parameters, `ToDebugSql()` formats the command as
+the provider would see it, and `Explain()` prefixes the statement for the provider's plan output.
 
-## Validation
+## Generated names
 
-Tests cover metadata lookup, aliases, parameter numbering, joins, where expressions, grouping, ordering, aggregates, having clauses, subqueries, diagnostics, database escaping, and SQLite execution. Existing NPoco tests must continue to pass.
+| what | form | example |
+| --- | --- | --- |
+| table alias | type initials, lowercase, letters only; numbered when taken | `u`, `o`, `u1` |
+| table alias for an anonymous projection | `__t1`, `__t2`, … | `FROM [__w1] [__t1]` |
+| CTE name | `__w1`, `__w2`, … | `;WITH [__w1] AS (…)` |
+| projected column | member path, nested levels joined by `__` | `Name`, `User__Id` |
+
+Aliases and CTE names share one reservation set per query - shared with correlated subqueries and
+applies - so an inner scope can never reuse an outer alias, and a table can never be aliased as an
+existing CTE. Anything prefixed `__` was named by the builder.
+
+## What the builder refuses
+
+These fail while the query is being built, rather than as a database error later:
+
+- a subquery used as a value or an `IN` list that projects more than one column;
+- a CTE or `OUTER APPLY` body that projects a single value, since its column could never be referenced;
+- `OrderBy`, `Skip` or `Take` on a `UNION` operand, and CTEs declared inside one;
+- a table reference, CTE reference or reusable predicate belonging to a different query;
+- `From` more than once per query, `Take(0)` or a negative `Skip`;
+- a query executed or rendered without a projection.
+
+## Keeping this document honest
+
+Every example here is compiled by `test/NPoco.Tests/FluentSql/DocumentationSamples.cs`, so an API
+change that would invalidate one breaks the build.
+
+## Providers
+
+SQL Server, MySQL, PostgreSQL, SQLite, Oracle and Firebird, through `IDatabaseType`: identifier
+escaping, paging, string concatenation, date parts and date arithmetic all follow the configured
+provider.

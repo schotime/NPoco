@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 using NPoco.FluentSqlBuilder;
 using NUnit.Framework;
 
-namespace NPoco.Tests
+namespace NPoco.Tests.FluentSqlTests
 {
     [TestFixture]
     public class FluentSqlBuilderTests
@@ -673,7 +673,7 @@ namespace NPoco.Tests
         public void BuildsTypedCteWithContinuousParameters()
         {
             var query = _database.FluentQuery()
-                .With<BuilderUser>("active_users", cte => cte
+                .With<BuilderUser>(cte => cte
                     .From<BuilderUser>(out var user)
                     .Where(user, x => x.IsActive)
                     .Select(user), out var active)
@@ -682,8 +682,8 @@ namespace NPoco.Tests
                 .Select(active)
                 .ToSql();
 
-            Assert.That(query.SQL, Does.StartWith(";WITH [active_users] AS (\n"));
-            Assert.That(query.SQL, Does.Contain("FROM [active_users] [bu]"));
+            Assert.That(query.SQL, Does.StartWith(";WITH [__w1] AS (\n"));
+            Assert.That(query.SQL, Does.Contain("FROM [__w1] [bu]"));
             Assert.That(query.SQL, Does.Contain("[bu].[IsActive] = @0"));
             Assert.That(query.SQL, Does.Contain("[bu].[Age] >= @1"));
             Assert.That(query.Arguments, Is.EqualTo(new object[] { true, 18 }));
@@ -696,7 +696,7 @@ namespace NPoco.Tests
             _database.Insert(new BuilderUser { Id = 2, Name = "Bob", IsActive = false, Age = 40 });
 
             var users = _database.FluentQuery()
-                .With<BuilderUser>("active_users", cte => cte
+                .With<BuilderUser>(cte => cte
                     .From<BuilderUser>(out var user)
                     .Where(user, x => x.IsActive)
                     .Select(user), out var active)
@@ -708,16 +708,13 @@ namespace NPoco.Tests
         }
 
         [Test]
-        public void RejectsDuplicateCteNamesAndForeignCteReferences()
+        public void RejectsForeignCteReferences()
         {
             var query = _database.FluentQuery()
-                .With<BuilderUser>("users", cte => cte.From<BuilderUser>(out var user).Select(user), out _);
-
-            Assert.Throws<InvalidOperationException>(() => query
-                .With<BuilderUser>("USERS", cte => cte.From<BuilderUser>(out var user).Select(user), out _));
+                .With<BuilderUser>(cte => cte.From<BuilderUser>(out var user).Select(user), out _);
 
             var owner = _database.FluentQuery()
-                .With<BuilderUser>("other_users", cte => cte.From<BuilderUser>(out var user).Select(user), out var foreign);
+                .With<BuilderUser>(cte => cte.From<BuilderUser>(out var user).Select(user), out var foreign);
             Assert.Throws<InvalidOperationException>(() => query.From(foreign));
         }
 
@@ -725,11 +722,11 @@ namespace NPoco.Tests
         public void BuildsMultipleCtesInDeclarationOrderWithContinuousParameters()
         {
             var sql = _database.FluentQuery()
-                .With<BuilderUser>("adult_users", cte => cte
+                .With<BuilderUser>(cte => cte
                     .From<BuilderUser>(out var user)
                     .Where(user, x => x.Age >= 18)
                     .Select(user), out _)
-                .With<BuilderOrder>("large_orders", cte => cte
+                .With<BuilderOrder>(cte => cte
                     .From<BuilderOrder>(out var order)
                     .Where(order, x => x.Amount >= 100m)
                     .Select(order), out var orders)
@@ -738,8 +735,8 @@ namespace NPoco.Tests
                 .Select(orders)
                 .ToSql();
 
-            Assert.That(sql.SQL.IndexOf("[adult_users] AS", StringComparison.Ordinal),
-                Is.LessThan(sql.SQL.IndexOf("[large_orders] AS", StringComparison.Ordinal)));
+            Assert.That(sql.SQL.IndexOf("[__w1] AS", StringComparison.Ordinal),
+                Is.LessThan(sql.SQL.IndexOf("[__w2] AS", StringComparison.Ordinal)));
             Assert.That(sql.SQL, Does.Contain("[bu].[Age] >= @0"));
             Assert.That(sql.SQL, Does.Contain("[bo].[Amount] >= @1"));
             Assert.That(sql.SQL, Does.Contain("[bo].[UserId] > @2"));
@@ -747,13 +744,11 @@ namespace NPoco.Tests
         }
 
         [Test]
-        public void RejectsInvalidCteNameAndForeignCallbackResult()
+        public void RejectsForeignCteCallbackResult()
         {
             var external = _database.FluentQuery().From<BuilderUser>(out var user).Select(user);
-            Assert.Throws<ArgumentException>(() => _database.FluentQuery()
-                .With<BuilderUser>("invalid name", cte => cte.From<BuilderUser>(out var row).Select(row), out _));
             Assert.Throws<InvalidOperationException>(() => _database.FluentQuery()
-                .With<BuilderUser>("users", _ => external, out _));
+                .With<BuilderUser>(_ => external, out _));
         }
 
         [Test]
@@ -809,7 +804,7 @@ namespace NPoco.Tests
         public void UsesUnionInsideCte()
         {
             var sql = _database.FluentQuery()
-                .With<BuilderUser>("selected_users", cte => cte
+                .With<BuilderUser>(cte => cte
                     .From<BuilderUser>(out var first)
                     .Where(first, x => x.Id == 1)
                     .Select(first)
@@ -821,7 +816,7 @@ namespace NPoco.Tests
                 .Select(selected)
                 .ToSql();
 
-            Assert.That(sql.SQL, Does.Contain("[selected_users] AS ("));
+            Assert.That(sql.SQL, Does.Contain("[__w1] AS ("));
             Assert.That(sql.SQL, Does.Contain("\n    UNION ALL\n    SELECT"));
             Assert.That(sql.Arguments, Is.EqualTo(new object[] { 1, 2 }));
         }
@@ -848,14 +843,14 @@ namespace NPoco.Tests
                 .Select(secondUser);
 
             var sql = _database.FluentQuery()
-                .With("active_users", cteDefinition, out TableReference<BuilderUser> active)
+                .With(cteDefinition, out TableReference<BuilderUser> active)
                 .From(active)
                 .Where(active, x => x.Age >= 18)
                 .Select(active)
                 .UnionAll(secondSet)
                 .ToSql();
 
-            Assert.That(sql.SQL, Does.Contain("[active_users] AS ("));
+            Assert.That(sql.SQL, Does.Contain("[__w1] AS ("));
             Assert.That(sql.SQL, Does.Contain("\nUNION ALL\nSELECT"));
             Assert.That(sql.Arguments, Is.EqualTo(new object[] { true, 18, 65 }));
         }

@@ -51,14 +51,14 @@ namespace NPoco.FluentSqlBuilder
 
     internal sealed class SortPart
     {
-        internal TableReference Table;
+        internal TableReference[] Tables;
         internal LambdaExpression Expression;
         internal bool Descending;
     }
 
     internal sealed class GroupPart
     {
-        internal TableReference Table;
+        internal TableReference[] Tables;
         internal LambdaExpression Expression;
     }
 }

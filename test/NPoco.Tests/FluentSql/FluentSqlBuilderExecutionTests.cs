@@ -3,7 +3,7 @@ using NPoco.FluentSqlBuilder;
 using NPoco.Tests.Common;
 using NUnit.Framework;
 
-namespace NPoco.Tests.FluentTests.QueryTests
+namespace NPoco.Tests.FluentSqlTests
 {
     [TestFixture]
     public class FluentSqlBuilderExecutionTests : BaseDBFluentTest

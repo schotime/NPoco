@@ -12,17 +12,23 @@ namespace NPoco.FluentSqlBuilder
     {
         private readonly IDatabase _database;
         private readonly IList<object> _parameters;
+        // Only a lambda that takes rows as parameters needs the map, and a Row-style expression
+        // takes none - so the common case allocates nothing here.
         private readonly Dictionary<ParameterExpression, TableReference> _tables;
-        private readonly HashSet<TableReference> _availableTables;
+        private readonly IList<TableReference> _availableTables;
+        private readonly string _provider;
 
         internal SqlExpressionTranslator(IDatabase database, IList<object> parameters, LambdaExpression expression, IList<TableReference> tables)
         {
             _database = database;
             _parameters = parameters;
-            _tables = new Dictionary<ParameterExpression, TableReference>();
-            _availableTables = new HashSet<TableReference>(tables);
+            _availableTables = tables;
+            _provider = (database.DatabaseType.GetProviderName() ?? string.Empty).ToLowerInvariant();
             if (expression.Parameters.Count > tables.Count)
                 throw new ArgumentException("Expression has more parameters than available table references.", nameof(expression));
+            if (expression.Parameters.Count == 0) return;
+
+            _tables = new Dictionary<ParameterExpression, TableReference>(expression.Parameters.Count);
             if (expression.Parameters.Count == 1)
             {
                 var parameter = expression.Parameters[0];
@@ -34,6 +40,13 @@ namespace NPoco.FluentSqlBuilder
             {
                 for (var i = 0; i < expression.Parameters.Count; i++) _tables.Add(expression.Parameters[i], tables[i]);
             }
+        }
+
+        private bool IsAvailable(TableReference table)
+        {
+            for (var i = 0; i < _availableTables.Count; i++)
+                if (ReferenceEquals(_availableTables[i], table)) return true;
+            return false;
         }
 
         internal string Translate(Expression expression) => Visit(StripConvert(expression));
@@ -94,7 +107,7 @@ namespace NPoco.FluentSqlBuilder
 
         private string Concatenate(BinaryExpression expression)
         {
-            var provider = (_database.DatabaseType.GetProviderName() ?? string.Empty).ToLowerInvariant();
+            var provider = _provider;
             if (provider.Contains("mysql")) return "CONCAT(" + Visit(expression.Left) + ", " + Visit(expression.Right) + ")";
             return "(" + Visit(expression.Left) + (IsSqlServer(provider) ? " + " : " || ") + Visit(expression.Right) + ")";
         }
@@ -258,14 +271,14 @@ namespace NPoco.FluentSqlBuilder
         private string Concatenate(IEnumerable<Expression> expressions)
         {
             var values = expressions.Select(Visit).ToArray();
-            var provider = (_database.DatabaseType.GetProviderName() ?? string.Empty).ToLowerInvariant();
+            var provider = _provider;
             if (provider.Contains("mysql")) return "CONCAT(" + string.Join(", ", values) + ")";
             return "(" + string.Join(IsSqlServer(provider) ? " + " : " || ", values) + ")";
         }
 
         private string DateAdd(string part, Expression value, Expression amount)
         {
-            var provider = (_database.DatabaseType.GetProviderName() ?? string.Empty).ToLowerInvariant();
+            var provider = _provider;
             var column = Visit(value);
             var increment = Visit(amount);
             if (provider.Contains("mysql")) return "DATE_ADD(" + column + ", INTERVAL " + increment + " " + part.ToUpperInvariant() + ")";
@@ -299,13 +312,7 @@ namespace NPoco.FluentSqlBuilder
 
             var operands = RawOperands(expression);
             var rendered = new object[operands.Length];
-            for (var i = 0; i < operands.Length; i++)
-            {
-                var lambda = StripConvert(operands[i]) as LambdaExpression;
-                if (lambda == null)
-                    throw new NotSupportedException("FluentSql.Raw arguments must be lambdas, for example () => table.Row.Column.");
-                rendered[i] = Visit(lambda.Body);
-            }
+            for (var i = 0; i < operands.Length; i++) rendered[i] = Visit(operands[i]);
 
             try
             {
@@ -318,16 +325,18 @@ namespace NPoco.FluentSqlBuilder
             }
         }
 
+        // The arguments arrive as the expression nodes the caller wrote, because a Raw call only
+        // ever appears inside an expression tree. They are translated, never evaluated - which is
+        // what lets table.Row.Column stand for a column rather than throwing.
         private static Expression[] RawOperands(MethodCallExpression expression)
         {
             if (expression.Arguments.Count < 2) return new Expression[0];
             var argument = StripConvert(expression.Arguments[1]);
             var array = argument as NewArrayExpression;
-            if (array != null) return array.Expressions.ToArray();
-            var values = CanEvaluate(argument) ? Evaluate(argument) as IEnumerable : null;
-            if (values == null)
-                throw new NotSupportedException("FluentSql.Raw arguments must be lambdas, for example () => table.Row.Column.");
-            return values.Cast<Expression>().ToArray();
+            if (array == null)
+                throw new NotSupportedException("FluentSql.Raw arguments must be written out in the call, "
+                    + "for example FluentSql.Raw<string>(\"upper({0})\", table.Row.Column).");
+            return array.Expressions.ToArray();
         }
 
         private string ScalarSubquery(MethodCallExpression expression)
@@ -427,7 +436,7 @@ namespace NPoco.FluentSqlBuilder
 
         private string DatePart(string name, string column)
         {
-            var provider = (_database.DatabaseType.GetProviderName() ?? string.Empty).ToLowerInvariant();
+            var provider = _provider;
             if (provider.Contains("mysql")) return name.ToUpperInvariant() + "(" + column + ")";
             if (provider.Contains("npgsql") || provider.Contains("firebird")) return "EXTRACT(" + name.ToUpperInvariant() + " FROM " + column + ")";
             if (provider.Contains("oracle")) return "EXTRACT(" + name.ToUpperInvariant() + " FROM CAST(" + column + " AS TIMESTAMP))";
@@ -461,7 +470,7 @@ namespace NPoco.FluentSqlBuilder
                 if (member.Member.Name == "Row" && member.Member.DeclaringType != null && member.Member.DeclaringType.GetTypeInfo().IsGenericType && member.Member.DeclaringType.GetGenericTypeDefinition() == typeof(TableReference<>))
                 {
                     var reference = Evaluate(member.Expression) as TableReference;
-                    if (reference == null || !_availableTables.Contains(reference))
+                    if (reference == null || !IsAvailable(reference))
                         throw new InvalidOperationException("The table reference is not available to this query.");
                     table = reference;
                     chain = members.ToArray();
@@ -471,7 +480,7 @@ namespace NPoco.FluentSqlBuilder
                 current = StripConvert(member.Expression);
             }
             var parameter = current as ParameterExpression;
-            if (parameter != null && _tables.TryGetValue(parameter, out table))
+            if (parameter != null && _tables != null && _tables.TryGetValue(parameter, out table))
             {
                 chain = members.ToArray();
                 return true;
@@ -512,14 +521,24 @@ namespace NPoco.FluentSqlBuilder
             return null;
         }
 
+        // Asked of nearly every node, and of the same subtrees repeatedly, so the visitor is kept
+        // per thread rather than allocated per question, and stops walking once it has an answer.
+        [ThreadStatic] private static ParameterFindingVisitor _parameterFinder;
+
         private static bool ContainsParameter(Expression expression)
         {
-            var visitor = new ParameterFindingVisitor();
+            var visitor = _parameterFinder ?? (_parameterFinder = new ParameterFindingVisitor());
+            visitor.Found = false;
             visitor.Visit(expression);
             return visitor.Found;
         }
 
-        private static object Evaluate(Expression expression)
+        /// <summary>
+        /// Reads the value of an expression that does not depend on a query parameter. Reflection
+        /// covers the shapes that actually occur - a captured closure field, a property, a call -
+        /// so that compiling a delegate stays the last resort rather than the normal path.
+        /// </summary>
+        internal static object Evaluate(Expression expression)
         {
             expression = StripConvert(expression);
             var constant = expression as ConstantExpression;
@@ -545,6 +564,7 @@ namespace NPoco.FluentSqlBuilder
         private sealed class ParameterFindingVisitor : ExpressionVisitor
         {
             internal bool Found;
+            public override Expression Visit(Expression node) => Found ? node : base.Visit(node);
             protected override Expression VisitParameter(ParameterExpression node) { Found = true; return node; }
 
             protected override Expression VisitMethodCall(MethodCallExpression node)

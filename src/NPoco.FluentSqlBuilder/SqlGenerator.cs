@@ -39,7 +39,8 @@ namespace NPoco.FluentSqlBuilder
             var sqlServer = provider.Contains("sqlclient") && !provider.Contains("mysql");
             if (distinct) sql.Append("DISTINCT ");
             if (take.HasValue && !skip.HasValue && sqlServer) sql.Append("TOP (").Append(take.Value).Append(") ");
-            sql.Append(string.Join(", ", selects.SelectMany(x => RenderSelect(database, x, parameters))));
+            var translators = new TranslatorCache(database, parameters);
+            sql.Append(string.Join(", ", selects.SelectMany(x => RenderSelect(database, x, parameters, translators))));
 
             sql.Append("\nFROM ").Append(from.EscapedTableName).Append(' ').Append(from.EscapedAlias);
             foreach (var join in joins)
@@ -61,14 +62,15 @@ namespace NPoco.FluentSqlBuilder
 
             if (groups.Count > 0)
             {
-                var expressions = groups.SelectMany(x => TranslateList(database, parameters, x.Expression, x.Table));
+                var expressions = groups.SelectMany(x => TranslateList(database, parameters, x.Expression, x.Tables));
                 sql.Append("\nGROUP BY ").Append(string.Join(", ", expressions));
             }
             AppendPredicates(sql, "HAVING", database, having, parameters);
 
             if (sorts.Count > 0)
             {
-                var expressions = sorts.SelectMany(x => TranslateList(database, parameters, x.Expression, x.Table).Select(y => y + (x.Descending ? " DESC" : " ASC")));
+                var expressions = sorts.SelectMany(x => TranslateList(database, parameters, x.Expression, x.Tables)
+                    .Select(y => y + (x.Descending ? " DESC" : " ASC")));
                 sql.Append("\nORDER BY ").Append(string.Join(", ", expressions));
             }
             foreach (var union in unions)
@@ -91,7 +93,7 @@ namespace NPoco.FluentSqlBuilder
 
         private static string Indent(string sql) => "    " + sql.Replace("\n", "\n    ");
 
-        private static IEnumerable<string> RenderSelect(IDatabase database, SelectPart part, IList<object> parameters)
+        private static IEnumerable<string> RenderSelect(IDatabase database, SelectPart part, IList<object> parameters, TranslatorCache translators)
         {
             if (part.All)
             {
@@ -105,7 +107,7 @@ namespace NPoco.FluentSqlBuilder
             }
             var translated = part.Tables == null
                 ? TranslateList(database, parameters, part.Expression, part.Table)
-                : TranslateList(database, parameters, part.Expression, part.Tables);
+                : TranslateList(database, parameters, part.Expression, part.Tables, translators);
             if (string.IsNullOrEmpty(part.Alias)) return translated;
             return new[] { translated[0] + " AS " + database.DatabaseType.EscapeSqlIdentifier(part.Alias) };
         }
@@ -120,6 +122,40 @@ namespace NPoco.FluentSqlBuilder
         {
             var translator = new SqlExpressionTranslator(database, parameters, expression, tables);
             return translator.TranslateList(expression.Body);
+        }
+
+        private static IList<string> TranslateList(IDatabase database, IList<object> parameters, LambdaExpression expression, TableReference[] tables, TranslatorCache translators)
+            => translators.For(expression, tables).TranslateList(expression.Body);
+
+        /// <summary>
+        /// A projection becomes one SELECT part per leaf, all over the same tables. A translator
+        /// binds a lambda's parameters to tables, so any two parameterless expressions over the
+        /// same tables can share one - which is every leaf of a Row-style projection.
+        /// </summary>
+        private sealed class TranslatorCache
+        {
+            private readonly IDatabase _database;
+            private readonly IList<object> _parameters;
+            private TableReference[] _tables;
+            private SqlExpressionTranslator _shared;
+
+            internal TranslatorCache(IDatabase database, IList<object> parameters)
+            {
+                _database = database;
+                _parameters = parameters;
+            }
+
+            internal SqlExpressionTranslator For(LambdaExpression expression, TableReference[] tables)
+            {
+                if (expression.Parameters.Count > 0)
+                    return new SqlExpressionTranslator(_database, _parameters, expression, tables);
+                if (_shared == null || !ReferenceEquals(_tables, tables))
+                {
+                    _tables = tables;
+                    _shared = new SqlExpressionTranslator(_database, _parameters, expression, tables);
+                }
+                return _shared;
+            }
         }
 
         private static void AppendPredicates(StringBuilder sql, string keyword, IDatabase database, IList<PredicatePart> predicates, IList<object> parameters)

@@ -270,6 +270,17 @@ namespace NPoco.FluentSqlBuilder
             return plan;
         }
 
+        // A body that is not an entity, an object construction or a member initialiser projects a
+        // single value. That needs no plan at all - NPoco's ordinary single-column mapping handles
+        // it - so the caller routes it away from here rather than building a one-leaf plan whose
+        // root would have no member name to bind itself by.
+        internal static bool IsScalarProjection(LambdaExpression projection, IEnumerable<TableReference> tables)
+        {
+            var body = StripConvert(projection.Body);
+            if (body is NewExpression || body is MemberInitExpression) return false;
+            return ResolveRow(body, tables) == null;
+        }
+
         private static ProjectionNode BuildNode(Expression expression, Type resultType, string path, ProjectionPlan plan, TableReference[] tables)
         {
             expression = StripConvert(expression);
@@ -334,7 +345,7 @@ namespace NPoco.FluentSqlBuilder
         {
             var member = expression as MemberExpression;
             if (member == null || member.Member.Name != "Row") return null;
-            var value = Expression.Lambda<Func<object>>(Expression.Convert(member.Expression, typeof(object))).Compile()() as TableReference;
+            var value = SqlExpressionTranslator.Evaluate(member.Expression) as TableReference;
             return value != null && tables.Contains(value) ? value : null;
         }
 

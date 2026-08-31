@@ -17,7 +17,7 @@ namespace NPoco.FluentSqlBuilder
         public T Min<T>(T value) => throw Marker();
         public T Max<T>(T value) => throw Marker();
         public T Case<T>(bool condition, T whenTrue, T whenFalse) => throw Marker();
-        public T Raw<T>(string sql, params Expression<Func<object>>[] arguments) => throw Marker();
+        public T Raw<T>(string sql, params object[] arguments) => throw Marker();
         public T Scalar<T>(IFluentSqlQuery subquery) => throw Marker();
 
         private static InvalidOperationException Marker() => new InvalidOperationException("SQL functions can only be used in a fluent SQL expression.");
@@ -47,17 +47,17 @@ namespace NPoco.FluentSqlBuilder
         ///
         /// Placeholders are <c>string.Format</c> style: <c>{0}</c>, <c>{1}</c> and so on are
         /// replaced with the translated <paramref name="arguments"/>, and <c>{{</c> / <c>}}</c>
-        /// produce a literal brace. Each argument is a lambda translated the same way any other
-        /// builder expression is, so table aliases resolve correctly and captured values become
-        /// query parameters rather than inlined text:
+        /// produce a literal brace. Each argument is translated the same way any other builder
+        /// expression is - they are read as expressions, never evaluated - so table aliases resolve
+        /// correctly and captured values become query parameters rather than inlined text:
         ///
         /// <code>
         /// .Select(() => new
         /// {
         ///     Readings = FluentSql.Raw&lt;string&gt;(
         ///         "json_agg(json_build_object('value', {0}, 'at', {1}) ORDER BY {1})",
-        ///         () => metric.Row.ValueNumber,
-        ///         () => metric.Row.OccurredAt)
+        ///         metric.Row.ValueNumber,
+        ///         metric.Row.OccurredAt)
         /// })
         /// </code>
         ///
@@ -65,8 +65,9 @@ namespace NPoco.FluentSqlBuilder
         /// </summary>
         /// <typeparam name="T">The type the fragment produces, used to map the value back.</typeparam>
         /// <param name="sql">SQL text with <c>{0}</c>-style placeholders. Must be a constant or captured string.</param>
-        /// <param name="arguments">Expressions substituted into the placeholders.</param>
-        public static T Raw<T>(string sql, params Expression<Func<object>>[] arguments) => throw Marker();
+        /// <param name="arguments">Expressions substituted into the placeholders. Write them
+        /// inline: they are read as expressions rather than evaluated.</param>
+        public static T Raw<T>(string sql, params object[] arguments) => throw Marker();
 
         /// <summary>
         /// Embeds a subquery that yields a single value, for use anywhere a column can appear -
