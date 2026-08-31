@@ -7,8 +7,21 @@ using NPoco.Expressions;
 
 namespace NPoco.FluentSql
 {
+    /// <summary>
+    /// One occurrence of a table in a query - a mapped table, a CTE or a derived table - together
+    /// with the alias it was given. The builder creates these: <c>From</c>, a join, <c>With</c> and
+    /// <c>OuterApply</c> each hand one back, and expressions reference columns through it, so the
+    /// same table joined twice stays unambiguous.
+    /// </summary>
     public abstract class TableReference
     {
+        /// <summary>Creates a reference to a table.</summary>
+        /// <param name="database">The database whose mapping and dialect this reference uses.</param>
+        /// <param name="alias">The alias this occurrence is given in the generated SQL.</param>
+        /// <param name="entityType">The POCO type the table's columns map onto.</param>
+        /// <param name="derived">Whether the source is a derived table or CTE rather than a mapped table.</param>
+        /// <param name="sourceName">The name to select from, when it is not the mapped table's name - a CTE name, say.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="database"/> or <paramref name="alias"/> is null.</exception>
         protected TableReference(IDatabase database, string alias, Type entityType, bool derived, string sourceName = null)
         {
             Database = database ?? throw new ArgumentNullException(nameof(database));
@@ -23,11 +36,15 @@ namespace NPoco.FluentSql
         private string _escapedTableName;
 
         internal IDatabase Database { get; }
+        /// <summary>The alias this occurrence of the table carries in the generated SQL.</summary>
         public string Alias { get; }
+        /// <summary>The POCO type the table's columns map onto.</summary>
         public Type EntityType { get; }
+        /// <summary>NPoco's mapping metadata for <see cref="EntityType"/>.</summary>
         public PocoData PocoData { get; }
         internal bool IsDerived { get; }
         internal string SourceName { get; }
+        /// <summary>The dialect of the database being targeted, which decides identifier escaping.</summary>
         public IDatabaseType DatabaseType => Database.DatabaseType;
         // Both are read once per column reference and per FROM/JOIN clause, and neither can change.
         internal string EscapedAlias => _escapedAlias ?? (_escapedAlias = DatabaseType.EscapeSqlIdentifier(Alias));
@@ -38,6 +55,11 @@ namespace NPoco.FluentSql
         internal abstract PocoColumn ResolveColumn(MemberInfo[] members);
     }
 
+    /// <summary>
+    /// A <see cref="TableReference"/> for a known entity type, which is what makes expressions
+    /// against it strongly typed.
+    /// </summary>
+    /// <typeparam name="T">The POCO type mapped to this table.</typeparam>
     public sealed class TableReference<T> : TableReference
     {
         private readonly Dictionary<string, string> _rendered = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -48,8 +70,23 @@ namespace NPoco.FluentSql
         {
         }
 
+        /// <summary>
+        /// Stands in for a row of this table inside a builder expression: reading a member of it -
+        /// <c>user.Row.Name</c> - references that column. It is never evaluated, so reading it outside
+        /// an expression throws.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Always, when actually evaluated.</exception>
         public T Row => throw new InvalidOperationException("TableReference.Row can only be used inside a fluent SQL expression.");
 
+        /// <summary>
+        /// Renders the escaped <c>alias.column</c> SQL for a mapped member, for use where a fragment of
+        /// SQL is written by hand rather than built from an expression.
+        /// </summary>
+        /// <typeparam name="TProperty">The type of the selected member.</typeparam>
+        /// <param name="selector">Selects the member, including through complex-mapped members.</param>
+        /// <returns>The column reference, escaped for the target database.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="selector"/> is null.</exception>
+        /// <exception cref="InvalidOperationException">The member is not mapped to a column.</exception>
         public string GetColumn<TProperty>(Expression<Func<T, TProperty>> selector)
         {
             if (selector == null) throw new ArgumentNullException(nameof(selector));

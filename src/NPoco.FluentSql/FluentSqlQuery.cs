@@ -8,10 +8,24 @@ using NPoco.RowMappers;
 
 namespace NPoco.FluentSql
 {
+    /// <summary>
+    /// A projected query that can be rendered as SQL. Subqueries are passed to
+    /// <see cref="FSql.Scalar{T}"/>, <see cref="FSql.Exists"/> and
+    /// <see cref="FSql.In{T}(T, IFluentSqlQuery)"/> as this.
+    /// </summary>
     public interface IFluentSqlQuery
     {
+        /// <summary>Builds the SQL and the parameters it is executed with.</summary>
+        /// <returns>The generated statement.</returns>
         Sql ToSql();
+        /// <summary>
+        /// Renders the statement with its parameter values inlined, for logging. The result is not
+        /// meant to be executed.
+        /// </summary>
+        /// <returns>The statement as readable text.</returns>
         string ToDebugSql();
+        /// <summary>Wraps the statement in the provider's execution-plan request.</summary>
+        /// <returns>The plan statement, with the query's parameters.</returns>
         Sql Explain();
     }
 
@@ -23,6 +37,13 @@ namespace NPoco.FluentSql
         int ProjectedColumnCount { get; }
     }
 
+    /// <summary>
+    /// A query being built, before it has a FROM. Obtained from
+    /// <see cref="DatabaseExtensions.FluentQuery"/>, from <see cref="FluentSqlQueryStage.Subquery"/>
+    /// for a correlated subquery, or handed to a CTE, UNION or OUTER APPLY callback. Declare any CTEs
+    /// with <c>With</c>, then call <c>From</c> to move on to the <see cref="FluentSqlQueryStage"/>
+    /// that takes the rest of the query.
+    /// </summary>
     public sealed class FluentSqlQuery
     {
         private readonly IDatabase _database;
@@ -69,6 +90,14 @@ namespace NPoco.FluentSql
         private IEnumerable<TableReference> AvailableTables
             => _parent == null ? _tables : _parent.AvailableTables.Concat(_tables);
 
+        /// <summary>
+        /// Sets the table the query selects from, and hands back the reference that expressions use to
+        /// reach its columns.
+        /// </summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <param name="table">Receives the reference for the table, with a generated alias.</param>
+        /// <returns>The stage that takes the rest of the query.</returns>
+        /// <exception cref="InvalidOperationException">A FROM has already been set.</exception>
         public FluentSqlQueryStage From<T>(out TableReference<T> table)
         {
             if (_from != null) throw new InvalidOperationException("From can only be specified once.");
@@ -124,6 +153,11 @@ namespace NPoco.FluentSql
             return this;
         }
 
+        /// <summary>Selects from a CTE declared on this query by <c>With</c>.</summary>
+        /// <typeparam name="T">The type the CTE projects.</typeparam>
+        /// <param name="table">The reference handed back by <c>With</c>.</param>
+        /// <returns>The stage that takes the rest of the query.</returns>
+        /// <exception cref="InvalidOperationException">A FROM has already been set, or the reference was not created by this query.</exception>
         public FluentSqlQueryStage From<T>(TableReference<T> table)
         {
             if (_from != null) throw new InvalidOperationException("From can only be specified once.");
@@ -471,6 +505,10 @@ namespace NPoco.FluentSql
         }
     }
 
+    /// <summary>
+    /// A group of predicates built ahead of time by <see cref="FluentSqlQueryStage.CreatePredicate"/>,
+    /// which can then be added to a query - or to several - as one parenthesised unit.
+    /// </summary>
     public sealed class FluentSqlPredicate
     {
         internal FluentSqlPredicate(List<PredicatePart> parts) => Parts = parts;
@@ -481,6 +519,11 @@ namespace NPoco.FluentSql
             => part.Children == null ? part.Tables : part.Children.SelectMany(GetTables);
     }
 
+    /// <summary>
+    /// Collects the predicates of a group while the callback that configures it runs. Each call
+    /// appends one predicate joined by AND or OR; the operator on the first is ignored, and nested
+    /// groups are parenthesised.
+    /// </summary>
     public sealed class FluentSqlPredicateGroup
     {
         private readonly TableReference[] _tables;
@@ -488,11 +531,35 @@ namespace NPoco.FluentSql
 
         internal FluentSqlPredicateGroup(TableReference[] tables) => _tables = tables;
 
+        /// <summary>Appends a predicate joined with AND, written against any table in scope.</summary>
+        /// <param name="predicate">The predicate, reaching columns through <c>table.Row</c>.</param>
+        /// <returns>This group, so calls chain.</returns>
         public FluentSqlPredicateGroup And(Expression<Func<bool>> predicate) => Add("AND", predicate);
+        /// <summary>Appends a predicate joined with OR, written against any table in scope.</summary>
+        /// <param name="predicate">The predicate, reaching columns through <c>table.Row</c>.</param>
+        /// <returns>This group, so calls chain.</returns>
         public FluentSqlPredicateGroup Or(Expression<Func<bool>> predicate) => Add("OR", predicate);
+        /// <summary>Appends a predicate over one table, joined with AND.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <param name="table">The table the predicate reads.</param>
+        /// <param name="predicate">The predicate, taking a row of that table.</param>
+        /// <returns>This group, so calls chain.</returns>
         public FluentSqlPredicateGroup And<T>(TableReference<T> table, Expression<Func<T, bool>> predicate) => Add("AND", table, predicate);
+        /// <summary>Appends a predicate over one table, joined with OR.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <param name="table">The table the predicate reads.</param>
+        /// <param name="predicate">The predicate, taking a row of that table.</param>
+        /// <returns>This group, so calls chain.</returns>
         public FluentSqlPredicateGroup Or<T>(TableReference<T> table, Expression<Func<T, bool>> predicate) => Add("OR", table, predicate);
+        /// <summary>Appends a nested, parenthesised group joined with AND.</summary>
+        /// <param name="configure">Fills the nested group. It must add at least one predicate.</param>
+        /// <returns>This group, so calls chain.</returns>
+        /// <exception cref="InvalidOperationException">The nested group is left empty.</exception>
         public FluentSqlPredicateGroup AndGroup(Action<FluentSqlPredicateGroup> configure) => AddGroup("AND", configure);
+        /// <summary>Appends a nested, parenthesised group joined with OR.</summary>
+        /// <param name="configure">Fills the nested group. It must add at least one predicate.</param>
+        /// <returns>This group, so calls chain.</returns>
+        /// <exception cref="InvalidOperationException">The nested group is left empty.</exception>
         public FluentSqlPredicateGroup OrGroup(Action<FluentSqlPredicateGroup> configure) => AddGroup("OR", configure);
 
         private FluentSqlPredicateGroup Add(string operation, Expression<Func<bool>> predicate)
@@ -521,6 +588,12 @@ namespace NPoco.FluentSql
         }
     }
 
+    /// <summary>
+    /// A query with its FROM in place, gathering clauses. Every clause method returns the same stage,
+    /// so calls chain in any order; one of the Select methods finishes it and hands back a
+    /// <see cref="FluentSqlResult{TResult}"/>. A stage stays usable after that - it rebases onto a
+    /// copy, leaving the result already handed out as it was built.
+    /// </summary>
     public sealed class FluentSqlQueryStage
     {
         private FluentSqlQuery _query;
@@ -536,168 +609,309 @@ namespace NPoco.FluentSql
             return _query;
         }
 
+        /// <summary>Adds a predicate over one table, ANDed onto the WHERE clause.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <param name="table">The table the predicate reads.</param>
+        /// <param name="predicate">The predicate, taking a row of that table.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage Where<T>(TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
             Target().Where(table, predicate);
             return this;
         }
 
+        /// <summary>Adds a predicate over one table only when <paramref name="condition"/> holds.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <param name="condition">When false, the query is left untouched.</param>
+        /// <param name="table">The table the predicate reads.</param>
+        /// <param name="predicate">The predicate, taking a row of that table.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage WhereIf<T>(bool condition, TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
             if (condition) Target().Where(table, predicate);
             return this;
         }
 
+        /// <summary>Adds a predicate over any tables in scope, ANDed onto the WHERE clause.</summary>
+        /// <param name="predicate">The predicate, reaching columns of any table in scope through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage Where(Expression<Func<bool>> predicate)
         {
             Target().Where(predicate);
             return this;
         }
 
+        /// <summary>Adds a predicate only when <paramref name="condition"/> holds.</summary>
+        /// <param name="condition">When false, the query is left untouched.</param>
+        /// <param name="predicate">The predicate, reaching columns of any table in scope through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage WhereIf(bool condition, Expression<Func<bool>> predicate)
         {
             if (condition) Target().Where(predicate);
             return this;
         }
 
+        /// <summary>Adds a predicate ORed onto the WHERE clause rather than ANDed.</summary>
+        /// <param name="predicate">The predicate, reaching columns of any table in scope through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage OrWhere(Expression<Func<bool>> predicate)
         {
             Target().OrWhere(predicate);
             return this;
         }
 
+        /// <summary>Adds a predicate over one table, ORed onto the WHERE clause.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <param name="table">The table the predicate reads.</param>
+        /// <param name="predicate">The predicate, taking a row of that table.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage OrWhere<T>(TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
             Target().OrWhere(table, predicate);
             return this;
         }
 
+        /// <summary>Adds an ORed predicate only when <paramref name="condition"/> holds.</summary>
+        /// <param name="condition">When false, the query is left untouched.</param>
+        /// <param name="predicate">The predicate, reaching columns of any table in scope through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage OrWhereIf(bool condition, Expression<Func<bool>> predicate)
         {
             if (condition) Target().OrWhere(predicate);
             return this;
         }
 
+        /// <summary>Adds an ORed predicate over one table only when <paramref name="condition"/> holds.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <param name="condition">When false, the query is left untouched.</param>
+        /// <param name="table">The table the predicate reads.</param>
+        /// <param name="predicate">The predicate, taking a row of that table.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage OrWhereIf<T>(bool condition, TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
             if (condition) Target().OrWhere(table, predicate);
             return this;
         }
 
+        /// <summary>
+        /// Builds a reusable group of predicates without adding it to the query, for passing to
+        /// <see cref="Where(FluentSqlPredicate)"/> or one of its siblings.
+        /// </summary>
+        /// <param name="configure">Fills the group. It must add at least one predicate.</param>
+        /// <returns>The predicate group, which can be added to this query or another.</returns>
+        /// <exception cref="InvalidOperationException">The group is left empty.</exception>
         public FluentSqlPredicate CreatePredicate(Action<FluentSqlPredicateGroup> configure)
             => _query.CreatePredicate(configure);
 
+        /// <summary>Adds a prebuilt predicate group, ANDed onto the WHERE clause and parenthesised.</summary>
+        /// <param name="predicate">A group from <see cref="CreatePredicate"/>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage Where(FluentSqlPredicate predicate)
         {
             Target().Where(predicate);
             return this;
         }
 
+        /// <summary>Adds a prebuilt predicate group only when <paramref name="condition"/> holds.</summary>
+        /// <param name="condition">When false, the query is left untouched.</param>
+        /// <param name="predicate">A group from <see cref="CreatePredicate"/>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage WhereIf(bool condition, FluentSqlPredicate predicate)
         {
             if (condition) Target().Where(predicate);
             return this;
         }
 
+        /// <summary>Adds a prebuilt predicate group, ORed onto the WHERE clause and parenthesised.</summary>
+        /// <param name="predicate">A group from <see cref="CreatePredicate"/>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage OrWhere(FluentSqlPredicate predicate)
         {
             Target().OrWhere(predicate);
             return this;
         }
 
+        /// <summary>Adds an ORed prebuilt predicate group only when <paramref name="condition"/> holds.</summary>
+        /// <param name="condition">When false, the query is left untouched.</param>
+        /// <param name="predicate">A group from <see cref="CreatePredicate"/>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage OrWhereIf(bool condition, FluentSqlPredicate predicate)
         {
             if (condition) Target().OrWhere(predicate);
             return this;
         }
 
+        /// <summary>Adds a parenthesised group of predicates, ANDed onto the WHERE clause.</summary>
+        /// <param name="group">Fills the group. It must add at least one predicate.</param>
+        /// <returns>This stage, so calls chain.</returns>
+        /// <exception cref="InvalidOperationException">The group is left empty.</exception>
         public FluentSqlQueryStage WhereGroup(Action<FluentSqlPredicateGroup> group)
         {
             Target().WhereGroup(group);
             return this;
         }
 
+        /// <summary>Adds a predicate over one table to the HAVING clause, filtering grouped rows.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <param name="table">The table the predicate reads.</param>
+        /// <param name="predicate">The predicate, taking a row of that table.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage Having<T>(TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
             Target().Having(table, predicate);
             return this;
         }
 
+        /// <summary>Adds a HAVING predicate over one table only when <paramref name="condition"/> holds.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <param name="condition">When false, the query is left untouched.</param>
+        /// <param name="table">The table the predicate reads.</param>
+        /// <param name="predicate">The predicate, taking a row of that table.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage HavingIf<T>(bool condition, TableReference<T> table, Expression<Func<T, bool>> predicate)
         {
             if (condition) Target().Having(table, predicate);
             return this;
         }
 
+        /// <summary>Adds a HAVING predicate, typically over an aggregate from <see cref="FSql"/>.</summary>
+        /// <param name="predicate">The predicate, reaching columns of any table in scope through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage Having(Expression<Func<bool>> predicate)
         {
             Target().Having(predicate);
             return this;
         }
 
+        /// <summary>Adds a HAVING predicate only when <paramref name="condition"/> holds.</summary>
+        /// <param name="condition">When false, the query is left untouched.</param>
+        /// <param name="predicate">The predicate, reaching columns of any table in scope through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage HavingIf(bool condition, Expression<Func<bool>> predicate)
         {
             if (condition) Target().Having(predicate);
             return this;
         }
 
+        /// <summary>Groups by an expression over one table.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <typeparam name="TValue">The type the grouping expression yields.</typeparam>
+        /// <param name="table">The table the predicate reads.</param>
+        /// <param name="selector">The grouping expression, taking a row of that table.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage GroupBy<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector)
         {
             Target().GroupBy(table, selector);
             return this;
         }
 
+        /// <summary>Groups by an expression over any tables in scope.</summary>
+        /// <typeparam name="TValue">The type the grouping expression yields.</typeparam>
+        /// <param name="selector">The grouping expression, reaching columns through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage GroupBy<TValue>(Expression<Func<TValue>> selector)
         {
             Target().GroupBy(selector);
             return this;
         }
 
+        /// <summary>Adds a sort key over one table. Keys sort in the order they are added.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <typeparam name="TValue">The type the sort expression yields.</typeparam>
+        /// <param name="table">The table the sort expression reads.</param>
+        /// <param name="selector">The sort expression, taking a row of that table.</param>
+        /// <param name="descending">Whether to sort this key descending.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage OrderBy<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector, bool descending = false)
         {
             Target().OrderBy(table, selector, descending);
             return this;
         }
 
+        /// <summary>Adds a descending sort key over one table.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <typeparam name="TValue">The type the sort expression yields.</typeparam>
+        /// <param name="table">The table the sort expression reads.</param>
+        /// <param name="selector">The sort expression, taking a row of that table.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage OrderByDescending<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector)
             => OrderBy(table, selector, true);
 
+        /// <summary>Adds a sort key over any tables in scope.</summary>
+        /// <typeparam name="TValue">The type the sort expression yields.</typeparam>
+        /// <param name="selector">The sort expression, reaching columns through <c>table.Row</c>.</param>
+        /// <param name="descending">Whether to sort this key descending.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage OrderBy<TValue>(Expression<Func<TValue>> selector, bool descending = false)
         {
             Target().OrderBy(selector, descending);
             return this;
         }
 
+        /// <summary>Adds a descending sort key over any tables in scope.</summary>
+        /// <typeparam name="TValue">The type the sort expression yields.</typeparam>
+        /// <param name="selector">The sort expression, reaching columns through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage OrderByDescending<TValue>(Expression<Func<TValue>> selector)
             => OrderBy(selector, true);
 
+        /// <summary>Limits the query to the first <paramref name="count"/> rows, using the provider's paging syntax.</summary>
+        /// <param name="count">How many rows to return. Must be greater than zero.</param>
+        /// <returns>This stage, so calls chain.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is not positive.</exception>
         public FluentSqlQueryStage Take(int count)
         {
             Target().Take(count);
             return this;
         }
 
+        /// <summary>Skips <paramref name="count"/> rows before returning any.</summary>
+        /// <param name="count">How many rows to skip. Zero or more.</param>
+        /// <returns>This stage, so calls chain.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
         public FluentSqlQueryStage Skip(int count)
         {
             Target().Skip(count);
             return this;
         }
 
+        /// <summary>Makes the projection a <c>SELECT DISTINCT</c>.</summary>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage Distinct()
         {
             Target().Distinct();
             return this;
         }
 
+        /// <summary>Adds a further ascending sort key. Reads as a continuation of <see cref="OrderBy{T, TValue}(TableReference{T}, Expression{Func{T, TValue}}, bool)"/>; sort keys apply in the order added.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <typeparam name="TValue">The type the sort expression yields.</typeparam>
+        /// <param name="table">The table the sort expression reads.</param>
+        /// <param name="selector">The sort expression, taking a row of that table.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage ThenBy<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector)
             => OrderBy(table, selector);
 
+        /// <summary>Adds a further descending sort key.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <typeparam name="TValue">The type the sort expression yields.</typeparam>
+        /// <param name="table">The table the sort expression reads.</param>
+        /// <param name="selector">The sort expression, taking a row of that table.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage ThenByDescending<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector)
             => OrderBy(table, selector, true);
 
+        /// <summary>Adds a further ascending sort key over any tables in scope.</summary>
+        /// <typeparam name="TValue">The type the sort expression yields.</typeparam>
+        /// <param name="selector">The sort expression, reaching columns through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage ThenBy<TValue>(Expression<Func<TValue>> selector)
             => OrderBy(selector);
 
+        /// <summary>Adds a further descending sort key over any tables in scope.</summary>
+        /// <typeparam name="TValue">The type the sort expression yields.</typeparam>
+        /// <param name="selector">The sort expression, reaching columns through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage ThenByDescending<TValue>(Expression<Func<TValue>> selector)
             => OrderBy(selector, true);
 
@@ -710,17 +924,78 @@ namespace NPoco.FluentSql
         /// </summary>
         public FluentSqlQuery Subquery() => _query.CreateSubquery();
 
+        /// <summary>Projects every mapped column of one table, materialising rows as <typeparamref name="T"/>.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <param name="table">The table to project.</param>
+        /// <returns>The finished query, ready to render or execute.</returns>
         public FluentSqlResult<T> Select<T>(TableReference<T> table) => Target().Select(table);
+        /// <summary>
+        /// Projects an arbitrary shape: an anonymous type, a member initialiser, a whole entity through
+        /// <c>table.Row</c>, or any nesting of those. A projection that is a single value is treated as
+        /// <see cref="SelectScalar{TValue}(Expression{Func{TValue}})"/>.
+        /// </summary>
+        /// <typeparam name="TResult">The shape each row materialises as.</typeparam>
+        /// <param name="projection">The projection expression.</param>
+        /// <returns>The finished query, ready to render or execute.</returns>
         public FluentSqlResult<TResult> Select<TResult>(Expression<Func<TResult>> projection) => Target().Select(projection);
+        /// <summary>
+        /// Projects an arbitrary shape with the SQL functions in scope through the lambda's parameter -
+        /// <c>Select(f =&gt; new { Total = f.Sum(order.Row.Amount) })</c>.
+        /// </summary>
+        /// <typeparam name="TResult">The shape each row materialises as.</typeparam>
+        /// <param name="projection">The projection expression, taking the function set.</param>
+        /// <returns>The finished query, ready to render or execute.</returns>
         public FluentSqlResult<TResult> Select<TResult>(Expression<Func<FSqlFunctions, TResult>> projection) => Target().Select(projection);
+        /// <summary>Projects a single value per row from one table.</summary>
+        /// <typeparam name="T">The POCO type mapped to the table.</typeparam>
+        /// <typeparam name="TValue">The type the projected expression yields.</typeparam>
+        /// <param name="table">The table to project from.</param>
+        /// <param name="selector">The projected expression, taking a row of that table.</param>
+        /// <returns>The finished query, ready to render or execute.</returns>
         public FluentSqlResult<TValue> SelectScalar<T, TValue>(TableReference<T> table, Expression<Func<T, TValue>> selector) => Target().SelectScalar(table, selector);
+        /// <summary>
+        /// Projects a single value per row over any tables in scope - an aggregate, or one column of a
+        /// subquery used by <see cref="FSql.Scalar{T}"/> or <see cref="FSql.In{T}(T, IFluentSqlQuery)"/>.
+        /// </summary>
+        /// <typeparam name="TValue">The type the projected expression yields.</typeparam>
+        /// <param name="selector">The projected expression, reaching columns through <c>table.Row</c>.</param>
+        /// <returns>The finished query, ready to render or execute.</returns>
         public FluentSqlResult<TValue> SelectScalar<TValue>(Expression<Func<TValue>> selector) => Target().SelectScalar(selector);
 
+        /// <summary>Adds an <c>INNER JOIN</c>.</summary>
+        /// <typeparam name="TJoin">The POCO type mapped to the joined table.</typeparam>
+        /// <param name="table">Receives the reference for the joined table, with a generated alias.</param>
+        /// <param name="on">The join condition, taking a row of the joined table and reaching the other tables through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage InnerJoin<TJoin>(out TableReference<TJoin> table, Expression<Func<TJoin, bool>> on) => Join(FluentJoinType.Inner, out table, on);
+        /// <summary>Adds a <c>LEFT JOIN</c>, so unmatched rows of the joined table come back null.</summary>
+        /// <typeparam name="TJoin">The POCO type mapped to the joined table.</typeparam>
+        /// <param name="table">Receives the reference for the joined table, with a generated alias.</param>
+        /// <param name="on">The join condition, taking a row of the joined table and reaching the other tables through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage LeftJoin<TJoin>(out TableReference<TJoin> table, Expression<Func<TJoin, bool>> on) => Join(FluentJoinType.Left, out table, on);
+        /// <summary>Adds a <c>RIGHT JOIN</c>.</summary>
+        /// <typeparam name="TJoin">The POCO type mapped to the joined table.</typeparam>
+        /// <param name="table">Receives the reference for the joined table, with a generated alias.</param>
+        /// <param name="on">The join condition, taking a row of the joined table and reaching the other tables through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage RightJoin<TJoin>(out TableReference<TJoin> table, Expression<Func<TJoin, bool>> on) => Join(FluentJoinType.Right, out table, on);
+        /// <summary>Adds a <c>FULL OUTER JOIN</c>.</summary>
+        /// <typeparam name="TJoin">The POCO type mapped to the joined table.</typeparam>
+        /// <param name="table">Receives the reference for the joined table, with a generated alias.</param>
+        /// <param name="on">The join condition, taking a row of the joined table and reaching the other tables through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
         public FluentSqlQueryStage FullOuterJoin<TJoin>(out TableReference<TJoin> table, Expression<Func<TJoin, bool>> on) => Join(FluentJoinType.FullOuter, out table, on);
 
+        /// <summary>
+        /// Adds an <c>OUTER APPLY</c> over a subquery that may correlate with this query's tables - the
+        /// usual way to pick the latest, or top N, related rows. Not every database supports it.
+        /// </summary>
+        /// <typeparam name="TApply">The type the subquery projects, which must have mapped columns.</typeparam>
+        /// <param name="table">Receives the reference for the applied derived table.</param>
+        /// <param name="subquery">Builds the subquery from the query it is handed, which sees the outer tables.</param>
+        /// <returns>This stage, so calls chain.</returns>
+        /// <exception cref="InvalidOperationException">The callback returns no projection, or projects a type with no mapped columns.</exception>
         public FluentSqlQueryStage OuterApply<TApply>(out TableReference<TApply> table, Func<FluentSqlQuery, FluentSqlResult<TApply>> subquery)
         {
             Target().OuterApply(out table, subquery);
@@ -734,6 +1009,11 @@ namespace NPoco.FluentSql
         }
     }
 
+    /// <summary>
+    /// A finished, projected query. It can be rendered as SQL, unioned with another projection of the
+    /// same shape, passed to a CTE or subquery, or executed.
+    /// </summary>
+    /// <typeparam name="TResult">The shape each row materialises as.</typeparam>
     public sealed class FluentSqlResult<TResult> : IFluentSqlQuery, IFluentSqlQueryInternal
     {
         private readonly FluentSqlQuery _query;
@@ -748,42 +1028,75 @@ namespace NPoco.FluentSql
         internal FluentSqlQuery InnerQuery => _query;
         internal IDatabase Database => _database;
 
+        /// <summary>
+        /// Appends a <c>UNION</c> operand, which drops duplicate rows across the operands.
+        /// </summary>
+        /// <param name="query">Builds the operand from the query it is handed. It must project the same shape.</param>
+        /// <returns>This result, so operands chain.</returns>
+        /// <exception cref="InvalidOperationException">The callback returns no projection, the operand declares CTEs, or this operand carries OrderBy, Skip or Take.</exception>
         public FluentSqlResult<TResult> Union(Func<FluentSqlQuery, FluentSqlResult<TResult>> query)
         {
             _query.AddUnion(false, query);
             return this;
         }
 
+        /// <summary>
+        /// Appends a <c>UNION ALL</c> operand, which keeps duplicate rows.
+        /// </summary>
+        /// <param name="query">Builds the operand from the query it is handed. It must project the same shape.</param>
+        /// <returns>This result, so operands chain.</returns>
+        /// <exception cref="InvalidOperationException">The callback returns no projection, the operand declares CTEs, or this operand carries OrderBy, Skip or Take.</exception>
         public FluentSqlResult<TResult> UnionAll(Func<FluentSqlQuery, FluentSqlResult<TResult>> query)
         {
             _query.AddUnion(true, query);
             return this;
         }
 
+        /// <summary>Appends an already-built query as a <c>UNION</c> operand.</summary>
+        /// <param name="query">The operand, projecting the same shape and built against the same database.</param>
+        /// <returns>This result, so operands chain.</returns>
+        /// <exception cref="InvalidOperationException">The operand belongs to another database, is this query itself, declares CTEs, or either side carries OrderBy, Skip or Take.</exception>
         public FluentSqlResult<TResult> Union(FluentSqlResult<TResult> query)
         {
             _query.AddUnion(false, query);
             return this;
         }
 
+        /// <summary>Appends an already-built query as a <c>UNION ALL</c> operand.</summary>
+        /// <param name="query">The operand, projecting the same shape and built against the same database.</param>
+        /// <returns>This result, so operands chain.</returns>
+        /// <exception cref="InvalidOperationException">The operand belongs to another database, is this query itself, declares CTEs, or either side carries OrderBy, Skip or Take.</exception>
         public FluentSqlResult<TResult> UnionAll(FluentSqlResult<TResult> query)
         {
             _query.AddUnion(true, query);
             return this;
         }
 
+        /// <summary>Builds the statement and the parameters it is executed with.</summary>
+        /// <returns>The generated SQL.</returns>
+        /// <exception cref="InvalidOperationException">The query has no FROM or no projection.</exception>
         public Sql ToSql() => _query.BuildSql();
 
         string IFluentSqlQueryInternal.Build(IList<object> parameters) => _query.Build(parameters);
 
         int IFluentSqlQueryInternal.ProjectedColumnCount => _query.ProjectedColumnCount;
 
+        /// <summary>
+        /// Renders the statement with its parameter values inlined, for logging. The result is not meant
+        /// to be executed.
+        /// </summary>
+        /// <returns>The statement as readable text.</returns>
         public string ToDebugSql()
         {
             var sql = ToSql();
             return _database.DatabaseType.FormatCommand(sql.SQL, sql.Arguments);
         }
 
+        /// <summary>
+        /// Wraps the statement in the provider's execution-plan request: <c>SET SHOWPLAN_ALL</c> on SQL
+        /// Server, <c>EXPLAIN</c> elsewhere.
+        /// </summary>
+        /// <returns>The plan statement, carrying this query's parameters.</returns>
         public Sql Explain()
         {
             var sql = ToSql();
@@ -797,12 +1110,17 @@ namespace NPoco.FluentSql
         // transaction handling, the same interceptors, the same exception reporting.
         private IRowMapperDatabase RowMapperDatabase => (IRowMapperDatabase)_database;
 
+        /// <summary>Executes the query and materialises every row.</summary>
+        /// <returns>The rows, in the order the database returned them.</returns>
         public List<TResult> Fetch()
         {
             if (_query.ProjectionPlan == null) return _database.Fetch<TResult>(ToSql());
             return RowMapperDatabase.Fetch<TResult>(ToSql(), _query.ProjectionPlan);
         }
 
+        /// <summary>Executes the query asynchronously and materialises every row.</summary>
+        /// <param name="cancellationToken">Cancels the database call.</param>
+        /// <returns>The rows, in the order the database returned them.</returns>
         public async Task<List<TResult>> FetchAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             if (_query.ProjectionPlan == null) return await _database.FetchAsync<TResult>(ToSql(), cancellationToken).ConfigureAwait(false);
@@ -830,7 +1148,13 @@ namespace NPoco.FluentSql
         }
 
         // Streaming means Single/First stop at the rows they need rather than reading everything.
+        /// <summary>Executes the query and returns its only row, reading no further than it needs to.</summary>
+        /// <returns>The single row.</returns>
+        /// <exception cref="InvalidOperationException">The query returned no rows, or more than one.</exception>
         public TResult Single() => _query.ProjectionPlan == null ? _database.Single<TResult>(ToSql()) : Query().Single();
+        /// <summary>Executes the query and returns its first row, reading no further than it needs to.</summary>
+        /// <returns>The first row.</returns>
+        /// <exception cref="InvalidOperationException">The query returned no rows.</exception>
         public TResult First() => _query.ProjectionPlan == null ? _database.First<TResult>(ToSql()) : Query().First();
     }
 }

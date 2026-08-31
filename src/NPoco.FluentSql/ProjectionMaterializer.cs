@@ -85,8 +85,21 @@ namespace NPoco.FluentSql
         internal List<ProjectionLeaf> Leaves { get; } = new List<ProjectionLeaf>();
         internal ProjectionNode Root { get; set; }
 
+        /// <summary>
+        /// Always true: the plan was built for this query, so it maps whatever the query returns rather
+        /// than deciding by poco type.
+        /// </summary>
+        /// <param name="pocoData">The mapping metadata NPoco would otherwise map by, unused here.</param>
+        /// <returns>Always <see langword="true"/>.</returns>
         public bool ShouldMap(PocoData pocoData) => true;
 
+        /// <summary>
+        /// Binds the plan to the shape of this reader, resolving every projected alias to an ordinal
+        /// once, before the first row.
+        /// </summary>
+        /// <param name="dataReader">The reader the query is about to be read from.</param>
+        /// <param name="pocoData">Mapping metadata, used for its mapper collection when the plan was built without one.</param>
+        /// <exception cref="InvalidOperationException">A projected column is missing from the reader, or matches more than one of its columns.</exception>
         public void Init(DbDataReader dataReader, PocoData pocoData)
         {
             var context = new ProjectionInitContext
@@ -98,6 +111,10 @@ namespace NPoco.FluentSql
             Root.Init(context);
         }
 
+        /// <summary>Materialises the current row into the projected result graph.</summary>
+        /// <param name="dataReader">The reader, positioned on the row to map.</param>
+        /// <param name="context">NPoco's per-row mapping context, unused: the plan carries its own shape.</param>
+        /// <returns>The projected row, or null when every column it reads came back null.</returns>
         public object Map(DbDataReader dataReader, RowMapperContext context)
         {
             var values = new object[dataReader.FieldCount];
@@ -225,6 +242,7 @@ namespace NPoco.FluentSql
         internal List<ScalarProjectionNode> Columns;
 
         private ScalarProjectionNode[] _columns;
+        private PocoMember[][] _owners;
         private PocoData _pocoData;
         private bool _notifyLoaded;
 
@@ -234,6 +252,26 @@ namespace NPoco.FluentSql
             foreach (var column in _columns) column.Init(context);
             _pocoData = Table.PocoData;
             _notifyLoaded = typeof(IOnLoaded).IsAssignableFrom(_pocoData.Type);
+            _owners = _columns.Select(x => ResolveOwners(x.Column)).ToArray();
+        }
+
+        // A complex-mapped column sets its value on the nested object that declares it, not on the
+        // root poco, so walk the chain that leads to it and remember the members along the way.
+        private PocoMember[] ResolveOwners(PocoColumn column)
+        {
+            var chain = column.MemberInfoChain;
+            if (chain == null || chain.Count < 2) return null;
+
+            var owners = new PocoMember[chain.Count - 1];
+            var members = _pocoData.Members;
+            for (var i = 0; i < owners.Length; i++)
+            {
+                var member = members.FirstOrDefault(x => Equals(x.MemberInfoData.MemberInfo, chain[i]));
+                if (member == null || member.IsList) return null;
+                owners[i] = member;
+                members = member.PocoMemberChildren;
+            }
+            return owners;
         }
 
         internal override object Materialize(object[] values, DbDataReader reader)
@@ -246,11 +284,32 @@ namespace NPoco.FluentSql
                 var column = _columns[i];
                 var value = values[column.Ordinal];
                 if (value == null || value == DBNull.Value) continue;
-                column.Column.SetValue(instance, column.Materialize(values, reader));
+                column.Column.SetValue(Owner(instance, _owners[i], reader), column.Materialize(values, reader));
             }
 
             if (_notifyLoaded) NotifyLoaded(instance);
             return instance;
+        }
+
+        // The nested objects are created only when a column actually has a value to set, so a
+        // complex member whose columns all came back null stays null, as it does elsewhere.
+        private static object Owner(object instance, PocoMember[] owners, DbDataReader reader)
+        {
+            if (owners == null) return instance;
+
+            var target = instance;
+            for (var i = 0; i < owners.Length; i++)
+            {
+                var member = owners[i];
+                var child = member.GetValue(target);
+                if (child == null)
+                {
+                    child = member.Create(reader);
+                    member.SetValue(target, child);
+                }
+                target = child;
+            }
+            return target;
         }
 
         internal override bool HasData(object[] values)
