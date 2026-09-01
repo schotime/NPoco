@@ -129,6 +129,10 @@ namespace NPoco.FluentSql
         internal Type Type = null!;
         internal MemberInfo? Member;
         internal PocoColumn? Column;
+        // Whether Column is the member being written to rather than the column being read. The two
+        // are the same thing for a leaf that reads a column, and different for one that computes
+        // a value the member merely receives.
+        internal bool ColumnIsDestination;
 
         private int _ordinal;
         private Func<object, object>? _converter;
@@ -142,7 +146,26 @@ namespace NPoco.FluentSql
             // the query returns is the one it asked for.
             _ordinal = Alias == null ? 0 : context.Ordinal(Alias);
             _default = MappingHelper.GetDefault(Type);
-            _converter = MappingHelper.GetConverter(context.Mappers, Column, context.Reader.GetFieldType(_ordinal), Type);
+
+            var fieldType = context.Reader.GetFieldType(_ordinal);
+            _converter = MappingHelper.GetConverter(context.Mappers, ColumnToReadBy(context, fieldType), fieldType, Type);
+        }
+
+        /// <summary>
+        /// The column the value is read back through, which is usually the one the leaf reads. A
+        /// leaf that reads no column borrows the member it is written onto instead, and there the
+        /// column describes how that member is stored rather than what this expression produced: a
+        /// serialized member says the value arrives as text to deserialize, which a value the
+        /// provider already materialized as the member's own type - a Postgres array, a blob - did
+        /// not. Deserializing it would read it as a stored form it never had, so it is read as it
+        /// stands. A converter the member carries still applies, because it is chosen first and is
+        /// about the member rather than its storage.
+        /// </summary>
+        private PocoColumn? ColumnToReadBy(ProjectionInitContext context, Type fieldType)
+        {
+            if (!ColumnIsDestination || Column == null) return Column;
+            if (!Column.SerializedColumn || !Type.IsAssignableFrom(fieldType)) return Column;
+            return context.Mappers?.FindFromDbConverter(Column.MemberInfoData.MemberInfo, fieldType) == null ? null : Column;
         }
 
         internal override object? Materialize(object[] values, DbDataReader reader)
@@ -524,6 +547,7 @@ namespace NPoco.FluentSql
             // raw fragment, a computed value - the member it is written onto says how instead, so
             // the projected poco is filled the same way NPoco fills it reading the row directly.
             var leafColumn = memberTable?.TryResolveColumn(memberPrefix!);
+            var fromDestination = leafColumn == null;
             leafColumn ??= DestinationColumn(target, tables);
 
             // A value object is a column like any other in the SQL, but the value read back has to
@@ -531,7 +555,7 @@ namespace NPoco.FluentSql
             if (leafColumn != null && leafColumn.ValueObjectColumn)
                 return new ValueObjectProjectionNode { Alias = path, Column = leafColumn };
 
-            return new ScalarProjectionNode { Alias = path, Type = resultType, Column = leafColumn };
+            return new ScalarProjectionNode { Alias = path, Type = resultType, Column = leafColumn, ColumnIsDestination = fromDestination };
         }
 
         // The column the projected member maps to on its own type, for a leaf whose expression maps

@@ -29,8 +29,8 @@ namespace NPoco.Tests.FluentSqlTests
                 connection.Open();
                 var command = connection.CreateCommand();
                 command.CommandText =
-                    "create table convrows(id integer primary key, code text, occurred datetime, perms text, note text);" +
-                    "insert into convrows values(1,'abc','2024-01-02 03:04:05','[\"read\",\"write\"]',null);";
+                    "create table convrows(id integer primary key, code text, occurred datetime, perms text, note text, data blob);" +
+                    "insert into convrows values(1,'abc','2024-01-02 03:04:05','[\"read\",\"write\"]',null,x'0102ff');";
                 command.ExecuteNonQuery();
             }
         }
@@ -119,6 +119,23 @@ namespace NPoco.Tests.FluentSqlTests
 
                 Assert.That(row.Id, Is.EqualTo(1));
                 Assert.That(row.Permissions, Is.EqualTo(new[] { "read", "write" }));
+            }
+        }
+
+        [Test]
+        public void AValueThatAlreadyArrivesAsTheMemberTypeIsNotConvertedAgain()
+        {
+            using (var database = CreateDatabase())
+            {
+                // The member is serialized, so its column says the value is stored as text - but
+                // this one was materialized by the provider and is already a byte[]. Reading it as
+                // stored text would be a cast that cannot work.
+                var row = database.FluentQuery()
+                    .From<ConvRow>(out var source)
+                    .Select(() => new BlobRow { Data = FSql.Raw<byte[]>("{0}", source.Row.Data) })
+                    .Single();
+
+                Assert.That(row.Data, Is.EqualTo(new byte[] { 1, 2, 255 }));
             }
         }
 
@@ -304,6 +321,7 @@ namespace NPoco.Tests.FluentSqlTests
             [Column("occurred", ForceToUtc = true)] public DateTime Occurred { get; set; }
             [Column("perms")] public string Perms { get; set; }
             [Column("note")] public string Note { get; set; }
+            [Column("data")] public byte[] Data { get; set; }
         }
 
         [TableName("convrows")]
@@ -325,6 +343,15 @@ namespace NPoco.Tests.FluentSqlTests
 
             [Column("id")] public int Id { get; set; }
             [Column("perms")] [SerializedColumn] public string[] Permissions { get; set; }
+        }
+
+        // A serialized member whose value the provider materializes itself - a blob here, a
+        // Postgres array or json column elsewhere - so it arrives as the member's own type rather
+        // than as the text a serialized column is stored as.
+        [TableName("convrows")]
+        public class BlobRow
+        {
+            [Column("data")] [SerializedColumn] public byte[] Data { get; set; }
         }
 
         [TableName("convrows")]
