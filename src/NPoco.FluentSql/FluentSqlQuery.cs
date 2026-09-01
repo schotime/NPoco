@@ -74,18 +74,18 @@ namespace NPoco.FluentSql
         // The query this one is nested inside, if any. Held as a link rather than a copy of its
         // tables so that scope is resolved when it is read: a subquery sees whatever its parent
         // sees, including tables joined after the subquery was created.
-        private readonly FluentSqlQuery _parent;
+        private readonly FluentSqlQuery? _parent;
 
-        private TableReference _from;
-        private ProjectionPlan _projectionPlan;
+        private TableReference? _from;
+        private ProjectionPlan? _projectionPlan;
 
         // The query a snapshot was taken from, so a CTE or UNION callback can still tell that the
         // result it was handed belongs to the query it was given.
-        private FluentSqlQuery _origin;
+        private FluentSqlQuery? _origin;
 
         internal FluentSqlQuery(IAsyncQueryDatabase database) : this(database, null, null) { }
 
-        private FluentSqlQuery(IAsyncQueryDatabase database, FluentSqlQuery parent, HashSet<string> aliases)
+        private FluentSqlQuery(IAsyncQueryDatabase database, FluentSqlQuery? parent, HashSet<string>? aliases)
         {
             _database = database ?? throw new ArgumentNullException(nameof(database));
             _parent = parent;
@@ -436,7 +436,7 @@ namespace NPoco.FluentSql
                 + table.EntityType.Name + "' has none. Project an entity or an object shape instead of a single value.");
         }
 
-        private TableReference<T> CreateTable<T>(bool derived = false, string sourceName = null)
+        private TableReference<T> CreateTable<T>(bool derived = false, string? sourceName = null)
         {
             var root = TableAliasGenerator.Root(typeof(T));
             // A root the builder invented rather than took from a type name is always numbered, so
@@ -567,19 +567,20 @@ namespace NPoco.FluentSql
             _sorts.Add(new SortPart { Tables = AvailableTables.Distinct().ToArray(), Expression = selector, Descending = descending });
         }
 
-        internal int ProjectedColumnCount => _selects.Sum(x => x.All ? x.Table.PocoData.QueryColumns.Length : 1);
-        internal ProjectionPlan ProjectionPlan => _projectionPlan;
+        internal int ProjectedColumnCount => _selects.Sum(x => x.All ? x.Table!.PocoData.QueryColumns.Length : 1);
+        internal ProjectionPlan? ProjectionPlan => _projectionPlan;
 
         internal Sql BuildSql()
         {
+            // RequireProjection checks the FROM before anything else, so it is set by here.
             RequireProjection();
-            return SqlGenerator.Generate(_database, _ctes, _unions, _from, _selects, _joins, _applies, _where, _groups, _having, _sorts, IsDistinct, SkipCount, TakeCount);
+            return SqlGenerator.Generate(_database, _ctes, _unions, _from!, _selects, _joins, _applies, _where, _groups, _having, _sorts, IsDistinct, SkipCount, TakeCount);
         }
 
         internal string Build(IList<object> parameters)
         {
             RequireProjection();
-            return SqlGenerator.GenerateText(_database, _ctes, _unions, _from, _selects, _joins, _applies, _where, _groups, _having, _sorts, IsDistinct, SkipCount, TakeCount, parameters);
+            return SqlGenerator.GenerateText(_database, _ctes, _unions, _from!, _selects, _joins, _applies, _where, _groups, _having, _sorts, IsDistinct, SkipCount, TakeCount, parameters);
         }
 
         private sealed class SqlFunctionsParameterReplacer : ExpressionVisitor
@@ -652,7 +653,7 @@ namespace NPoco.FluentSql
         internal IEnumerable<TableReference> Tables => Parts.SelectMany(GetTables).Distinct();
 
         private static IEnumerable<TableReference> GetTables(PredicatePart part)
-            => part.Children == null ? part.Tables : part.Children.SelectMany(GetTables);
+            => part.Children == null ? part.Tables! : part.Children.SelectMany(GetTables);
     }
 
     /// <summary>
@@ -1291,6 +1292,18 @@ namespace NPoco.FluentSql
             if (QueryCore.ProjectionPlan == null) return await AsyncDatabase.FirstAsync<TResult>(ToSql(), cancellationToken).ConfigureAwait(false);
             return await QueryAsync(cancellationToken).FirstAsync(cancellationToken).ConfigureAwait(false);
         }
+
+        public async Task<TResult?> SingleOrDefaultAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (QueryCore.ProjectionPlan == null) return await AsyncDatabase.SingleOrDefaultAsync<TResult>(ToSql(), cancellationToken).ConfigureAwait(false);
+            return await QueryAsync(cancellationToken).SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task<TResult?> FirstOrDefaultAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (QueryCore.ProjectionPlan == null) return await AsyncDatabase.FirstOrDefaultAsync<TResult>(ToSql(), cancellationToken).ConfigureAwait(false);
+            return await QueryAsync(cancellationToken).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public sealed class FluentSqlResult<TResult> : FluentSqlAsyncResult<TResult>
@@ -1338,5 +1351,7 @@ namespace NPoco.FluentSql
 
         public TResult Single() => QueryCore.ProjectionPlan == null ? _database.Single<TResult>(ToSql()) : Query().Single();
         public TResult First() => QueryCore.ProjectionPlan == null ? _database.First<TResult>(ToSql()) : Query().First();
+        public TResult? SingleOrDefault() => QueryCore.ProjectionPlan == null ? _database.SingleOrDefault<TResult>(ToSql()) : Query().SingleOrDefault();
+        public TResult? FirstOrDefault() => QueryCore.ProjectionPlan == null ? _database.FirstOrDefault<TResult>(ToSql()) : Query().FirstOrDefault();
     }
 }

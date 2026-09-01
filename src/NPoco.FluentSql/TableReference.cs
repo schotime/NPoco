@@ -22,7 +22,7 @@ namespace NPoco.FluentSql
         /// <param name="derived">Whether the source is a derived table or CTE rather than a mapped table.</param>
         /// <param name="sourceName">The name to select from, when it is not the mapped table's name - a CTE name, say.</param>
         /// <exception cref="ArgumentNullException"><paramref name="database"/> or <paramref name="alias"/> is null.</exception>
-        protected TableReference(IAsyncQueryDatabase database, string alias, Type entityType, bool derived, string sourceName = null)
+        protected TableReference(IAsyncQueryDatabase database, string alias, Type entityType, bool derived, string? sourceName = null)
         {
             Database = database ?? throw new ArgumentNullException(nameof(database));
             Alias = alias ?? throw new ArgumentNullException(nameof(alias));
@@ -32,8 +32,8 @@ namespace NPoco.FluentSql
             PocoData = database.PocoDataFactory.ForType(entityType);
         }
 
-        private string _escapedAlias;
-        private string _escapedTableName;
+        private string? _escapedAlias;
+        private string? _escapedTableName;
 
         internal IAsyncQueryDatabase Database { get; }
         /// <summary>The alias this occurrence of the table carries in the generated SQL.</summary>
@@ -43,11 +43,11 @@ namespace NPoco.FluentSql
         /// <summary>NPoco's mapping metadata for <see cref="EntityType"/>.</summary>
         public PocoData PocoData { get; }
         internal bool IsDerived { get; }
-        internal string SourceName { get; }
+        internal string? SourceName { get; }
         // The alias set the reference was reserved from, which every query in the statement shares.
         // Holding the set itself is what lets a reference handed out by Table<T> be recognised as
         // belonging here, without walking the query it came from.
-        internal HashSet<string> Scope { get; set; }
+        internal HashSet<string>? Scope { get; set; }
         // Whether a From or a Join has already taken this reference as an occurrence of its table.
         internal bool InUse { get; set; }
         /// <summary>The dialect of the database being targeted, which decides identifier escaping.</summary>
@@ -61,7 +61,7 @@ namespace NPoco.FluentSql
         internal abstract PocoColumn ResolveColumn(MemberInfo[] members);
 
         /// <summary>The column a member chain maps to, or null when it maps to none.</summary>
-        internal abstract PocoColumn TryResolveColumn(MemberInfo[] members);
+        internal abstract PocoColumn? TryResolveColumn(MemberInfo[] members);
     }
 
     /// <summary>
@@ -72,9 +72,9 @@ namespace NPoco.FluentSql
     public sealed class TableReference<T> : TableReference
     {
         private readonly Dictionary<string, string> _rendered = new Dictionary<string, string>(StringComparer.Ordinal);
-        private Dictionary<string, PocoColumn> _columns;
+        private Dictionary<string, PocoColumn>? _columns;
 
-        internal TableReference(IAsyncQueryDatabase database, string alias, bool derived = false, string sourceName = null)
+        internal TableReference(IAsyncQueryDatabase database, string alias, bool derived = false, string? sourceName = null)
             : base(database, alias, typeof(T), derived, sourceName)
         {
         }
@@ -105,8 +105,7 @@ namespace NPoco.FluentSql
         internal override string GetColumn(MemberInfo[] members)
         {
             var path = Path(members);
-            string sql;
-            if (_rendered.TryGetValue(path, out sql)) return sql;
+            if (_rendered.TryGetValue(path, out var sql)) return sql;
 
             var column = ResolveColumn(path, members);
             var name = IsDerived
@@ -119,12 +118,11 @@ namespace NPoco.FluentSql
 
         internal override PocoColumn ResolveColumn(MemberInfo[] members) => ResolveColumn(Path(members), members);
 
-        internal override PocoColumn TryResolveColumn(MemberInfo[] members)
+        internal override PocoColumn? TryResolveColumn(MemberInfo[] members)
         {
             if (members == null || members.Length == 0) return null;
-            if (_columns == null) _columns = BuildColumnMap();
-            PocoColumn column;
-            return _columns.TryGetValue(Path(members), out column) ? column : null;
+            _columns ??= BuildColumnMap();
+            return _columns.TryGetValue(Path(members), out var column) ? column : null;
         }
 
         private PocoColumn ResolveColumn(string path, MemberInfo[] members)
@@ -132,10 +130,9 @@ namespace NPoco.FluentSql
             if (members.Length == 0)
                 throw new ArgumentException("The expression must select a mapped property.", nameof(members));
 
-            if (_columns == null) _columns = BuildColumnMap();
+            _columns ??= BuildColumnMap();
 
-            PocoColumn column;
-            if (!_columns.TryGetValue(path, out column))
+            if (!_columns.TryGetValue(path, out var column))
                 throw new InvalidOperationException($"Property '{path}' on '{typeof(T).Name}' is not mapped to a database column.");
 
             return column;

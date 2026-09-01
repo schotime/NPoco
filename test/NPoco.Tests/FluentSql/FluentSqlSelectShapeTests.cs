@@ -202,6 +202,45 @@ namespace NPoco.Tests.FluentSqlTests
             Assert.That(single, Is.EqualTo("b"));
         }
 
+        [Test] public async Task OrDefaultFormsComeBackEmptyRatherThanThrowing()
+        {
+            using var db = Db();
+
+            // A single-value body takes no plan and maps through NPoco's own path.
+            FluentSqlResult<string> NoName() => db.FluentQuery().From<SelSystem>(out var s)
+                .Where(() => s.Row.Id == 99)
+                .Select(() => s.Row.Name);
+
+            Assert.That(NoName().SingleOrDefault(), Is.Null);
+            Assert.That(NoName().FirstOrDefault(), Is.Null);
+            Assert.That(await NoName().SingleOrDefaultAsync(), Is.Null);
+            Assert.That(await NoName().FirstOrDefaultAsync(), Is.Null);
+
+            // An object shape is materialized by the projection plan instead, so it is the other
+            // branch of every one of these.
+            FluentSqlResult<SelPair> NoPair() => db.FluentQuery().From<SelSystem>(out var s)
+                .Where(() => s.Row.Id == 99)
+                .Select(() => new SelPair(s.Row.Id, s.Row.Name));
+
+            Assert.That(NoPair().SingleOrDefault(), Is.Null);
+            Assert.That(NoPair().FirstOrDefault(), Is.Null);
+            Assert.That(await NoPair().SingleOrDefaultAsync(), Is.Null);
+            Assert.That(await NoPair().FirstOrDefaultAsync(), Is.Null);
+
+            FluentSqlResult<SelPair> One() => db.FluentQuery().From<SelSystem>(out var s)
+                .Where(() => s.Row.Id == 2)
+                .Select(() => new SelPair(s.Row.Id, s.Row.Name));
+
+            Assert.That(One().SingleOrDefault().Name, Is.EqualTo("b"));
+            Assert.That(One().FirstOrDefault().Name, Is.EqualTo("b"));
+            Assert.That((await One().SingleOrDefaultAsync()).Name, Is.EqualTo("b"));
+            Assert.That((await One().FirstOrDefaultAsync()).Name, Is.EqualTo("b"));
+
+            // Only the empty case is forgiven: more than one row is still a mistake.
+            var many = db.FluentQuery().From<SelSystem>(out var all).Select(() => all.Row.Name);
+            Assert.Throws<InvalidOperationException>(() => many.SingleOrDefault());
+        }
+
         [Test] public async Task AsyncDatabaseEntryPointExposesAndExecutesOnlyAsyncOperations()
         {
             using var db = Db();
@@ -214,6 +253,14 @@ namespace NPoco.Tests.FluentSqlTests
 
             Assert.That(await names.FetchAsync(), Is.EqualTo(new[] { "a", "b", "c" }));
             Assert.That(await names.FirstAsync(), Is.EqualTo("a"));
+            Assert.That(await names.FirstOrDefaultAsync(), Is.EqualTo("a"));
+
+            var missing = asyncDb.FluentQuery()
+                .From<SelSystem>(out var absent)
+                .Where(() => absent.Row.Id == 99)
+                .Select(() => absent.Row.Name);
+            Assert.That(await missing.SingleOrDefaultAsync(), Is.Null);
+            Assert.That(await missing.FirstOrDefaultAsync(), Is.Null);
 
             var one = asyncDb.FluentQuery()
                 .From<SelSystem>(out var s2)
@@ -236,6 +283,8 @@ namespace NPoco.Tests.FluentSqlTests
             Assert.That(typeof(FluentSqlAsyncResult<string>).GetMethod("Query"), Is.Null);
             Assert.That(typeof(FluentSqlAsyncResult<string>).GetMethod("Single"), Is.Null);
             Assert.That(typeof(FluentSqlAsyncResult<string>).GetMethod("First"), Is.Null);
+            Assert.That(typeof(FluentSqlAsyncResult<string>).GetMethod("SingleOrDefault"), Is.Null);
+            Assert.That(typeof(FluentSqlAsyncResult<string>).GetMethod("FirstOrDefault"), Is.Null);
         }
 
         [Test] public void ScalarBodyWorksAsASubqueryOperand()

@@ -10,8 +10,8 @@ namespace NPoco.FluentSql
 {
     internal sealed class ProjectionLeaf
     {
-        internal Expression Expression;
-        internal string Alias;
+        internal Expression Expression = null!;
+        internal string Alias = null!;
         internal int Index;
     }
 
@@ -21,8 +21,8 @@ namespace NPoco.FluentSql
     /// </summary>
     internal sealed class ProjectionInitContext
     {
-        internal DbDataReader Reader;
-        internal IMapperCollection Mappers;
+        internal DbDataReader Reader = null!;
+        internal IMapperCollection? Mappers;
 
         private readonly Dictionary<string, int> _exact = new Dictionary<string, int>(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _ignoringCase = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -55,7 +55,7 @@ namespace NPoco.FluentSql
     internal abstract class ProjectionNode
     {
         internal abstract void Init(ProjectionInitContext context);
-        internal abstract object Materialize(object[] values, DbDataReader reader);
+        internal abstract object? Materialize(object[] values, DbDataReader reader);
         internal abstract bool HasData(object[] values);
 
         protected static void NotifyLoaded(object instance)
@@ -75,15 +75,15 @@ namespace NPoco.FluentSql
     /// </summary>
     internal sealed class ProjectionPlan : IRowMapper
     {
-        private readonly IMapperCollection _mappers;
+        private readonly IMapperCollection? _mappers;
 
-        internal ProjectionPlan(IMapperCollection mappers)
+        internal ProjectionPlan(IMapperCollection? mappers)
         {
             _mappers = mappers;
         }
 
         internal List<ProjectionLeaf> Leaves { get; } = new List<ProjectionLeaf>();
-        internal ProjectionNode Root { get; set; }
+        internal ProjectionNode Root { get; set; } = null!;
 
         /// <summary>
         /// Always true: the plan was built for this query, so it maps whatever the query returns rather
@@ -115,7 +115,7 @@ namespace NPoco.FluentSql
         /// <param name="dataReader">The reader, positioned on the row to map.</param>
         /// <param name="context">NPoco's per-row mapping context, unused: the plan carries its own shape.</param>
         /// <returns>The projected row, or null when every column it reads came back null.</returns>
-        public object Map(DbDataReader dataReader, RowMapperContext context)
+        public object? Map(DbDataReader dataReader, RowMapperContext context)
         {
             var values = new object[dataReader.FieldCount];
             dataReader.GetValues(values);
@@ -125,14 +125,14 @@ namespace NPoco.FluentSql
 
     internal sealed class ScalarProjectionNode : ProjectionNode
     {
-        internal string Alias;
-        internal Type Type;
-        internal MemberInfo Member;
-        internal PocoColumn Column;
+        internal string? Alias;
+        internal Type Type = null!;
+        internal MemberInfo? Member;
+        internal PocoColumn? Column;
 
         private int _ordinal;
-        private Func<object, object> _converter;
-        private object _default;
+        private Func<object, object>? _converter;
+        private object? _default;
 
         internal int Ordinal => _ordinal;
 
@@ -145,7 +145,7 @@ namespace NPoco.FluentSql
             _converter = MappingHelper.GetConverter(context.Mappers, Column, context.Reader.GetFieldType(_ordinal), Type);
         }
 
-        internal override object Materialize(object[] values, DbDataReader reader)
+        internal override object? Materialize(object[] values, DbDataReader reader)
         {
             var value = values[_ordinal];
             // The whole projection is this one value when it carries no alias, and a null one is
@@ -171,13 +171,13 @@ namespace NPoco.FluentSql
     /// </summary>
     internal sealed class ValueObjectProjectionNode : ProjectionNode
     {
-        internal PocoColumn Column;
-        internal string Alias;
+        internal PocoColumn Column = null!;
+        internal string? Alias;
 
         private int _ordinal;
-        private IFastCreate _create;
-        private MemberAccessor _accessor;
-        private Func<object, object> _converter;
+        private IFastCreate _create = null!;
+        private MemberAccessor _accessor = null!;
+        private Func<object, object>? _converter;
 
         internal override void Init(ProjectionInitContext context)
         {
@@ -189,7 +189,7 @@ namespace NPoco.FluentSql
             _converter = MappingHelper.GetConverter(context.Mappers, Column, context.Reader.GetFieldType(_ordinal), Column.ColumnType);
         }
 
-        internal override object Materialize(object[] values, DbDataReader reader)
+        internal override object? Materialize(object[] values, DbDataReader reader)
         {
             var value = values[_ordinal];
             if (value == null || value == DBNull.Value) return null;
@@ -208,16 +208,16 @@ namespace NPoco.FluentSql
 
     internal sealed class ObjectProjectionNode : ProjectionNode
     {
-        internal Type Type;
-        internal ConstructorInfo Constructor;
-        internal List<ProjectionNode> Children;
-        internal List<MemberInfo> Members;
+        internal Type Type = null!;
+        internal ConstructorInfo? Constructor;
+        internal List<ProjectionNode> Children = null!;
+        internal List<MemberInfo> Members = null!;
         internal bool NullWhenAllNull;
 
-        private ProjectionNode[] _children;
-        private Func<object[], object> _construct;
-        private IFastCreate _create;
-        private MemberAccessor[] _setters;
+        private ProjectionNode[] _children = null!;
+        private Func<object[], object>? _construct;
+        private IFastCreate _create = null!;
+        private MemberAccessor[] _setters = null!;
         private bool _notifyLoaded;
 
         internal override void Init(ProjectionInitContext context)
@@ -237,7 +237,7 @@ namespace NPoco.FluentSql
             _setters = Members.Select(x => new MemberAccessor(Type, x.Name)).ToArray();
         }
 
-        internal override object Materialize(object[] values, DbDataReader reader)
+        internal override object? Materialize(object[] values, DbDataReader reader)
         {
             if (NullWhenAllNull && !HasData(values)) return null;
 
@@ -245,7 +245,7 @@ namespace NPoco.FluentSql
             if (_construct != null)
             {
                 var arguments = new object[_children.Length];
-                for (var i = 0; i < _children.Length; i++) arguments[i] = _children[i].Materialize(values, reader);
+                for (var i = 0; i < _children.Length; i++) arguments[i] = _children[i].Materialize(values, reader)!;
                 instance = _construct(arguments);
             }
             else
@@ -287,20 +287,20 @@ namespace NPoco.FluentSql
 
     internal sealed class EntityProjectionNode : ProjectionNode
     {
-        internal TableReference Table;
-        internal List<ScalarProjectionNode> Columns;
+        internal TableReference Table = null!;
+        internal List<ScalarProjectionNode> Columns = null!;
 
         /// <summary>
         /// The members leading from the row to the object being built, when the projection picked
         /// out a complex-mapped member - <c>user.Row.Address</c> - rather than the row itself.
         /// Empty or null for a whole row.
         /// </summary>
-        internal List<MemberInfo> Prefix;
+        internal List<MemberInfo>? Prefix;
 
-        private ScalarProjectionNode[] _columns;
-        private PocoMember[][] _owners;
-        private PocoData _pocoData;
-        private PocoMember _root;
+        private ScalarProjectionNode[] _columns = null!;
+        private PocoMember[]?[] _owners = null!;
+        private PocoData _pocoData = null!;
+        private PocoMember? _root;
         private bool _notifyLoaded;
 
         internal override void Init(ProjectionInitContext context)
@@ -320,7 +320,7 @@ namespace NPoco.FluentSql
             }
 
             _notifyLoaded = typeof(IOnLoaded).IsAssignableFrom(_root == null ? _pocoData.Type : _root.MemberInfoData.MemberType);
-            _owners = _columns.Select(x => ResolveOwners(x.Column, members)).ToArray();
+            _owners = _columns.Select(x => ResolveOwners(x.Column!, members)).ToArray();
         }
 
         private static PocoMember Find(List<PocoMember> members, MemberInfo member)
@@ -334,7 +334,7 @@ namespace NPoco.FluentSql
         // A complex-mapped column sets its value on the nested object that declares it, not on the
         // object this node builds, so walk the chain that leads to it - below whatever prefix this
         // node is rooted at - and remember the members along the way.
-        private PocoMember[] ResolveOwners(PocoColumn column, List<PocoMember> members)
+        private PocoMember[]? ResolveOwners(PocoColumn column, List<PocoMember> members)
         {
             var chain = column.MemberInfoChain;
             var depth = Prefix == null ? 0 : Prefix.Count;
@@ -351,7 +351,7 @@ namespace NPoco.FluentSql
             return owners;
         }
 
-        internal override object Materialize(object[] values, DbDataReader reader)
+        internal override object? Materialize(object[] values, DbDataReader reader)
         {
             if (!HasData(values)) return null;
 
@@ -361,7 +361,7 @@ namespace NPoco.FluentSql
                 var column = _columns[i];
                 var value = values[column.Ordinal];
                 if (value == null || value == DBNull.Value) continue;
-                column.Column.SetValue(Owner(instance, _owners[i], reader), column.Materialize(values, reader));
+                column.Column!.SetValue(Owner(instance, _owners[i], reader), column.Materialize(values, reader));
             }
 
             if (_notifyLoaded) NotifyLoaded(instance);
@@ -370,7 +370,7 @@ namespace NPoco.FluentSql
 
         // The nested objects are created only when a column actually has a value to set, so a
         // complex member whose columns all came back null stays null, as it does elsewhere.
-        private static object Owner(object instance, PocoMember[] owners, DbDataReader reader)
+        private static object Owner(object instance, PocoMember[]? owners, DbDataReader reader)
         {
             if (owners == null) return instance;
 
@@ -399,7 +399,7 @@ namespace NPoco.FluentSql
 
     internal static class ProjectionPlanBuilder
     {
-        internal static ProjectionPlan Build<TResult>(Expression<Func<TResult>> projection, IEnumerable<TableReference> tables, IMapperCollection mappers)
+        internal static ProjectionPlan Build<TResult>(Expression<Func<TResult>> projection, IEnumerable<TableReference> tables, IMapperCollection? mappers)
         {
             var plan = new ProjectionPlan(mappers);
             plan.Root = BuildNode(projection.Body, typeof(TResult), null, plan, tables.ToArray(), null);
@@ -418,22 +418,18 @@ namespace NPoco.FluentSql
 
             // A complex-mapped member is several columns wrapped in an object, so it needs a plan
             // even though the expression reads like a single member access.
-            Expression row;
-            MemberInfo[] prefix;
-            var table = ResolveRowMember(body, tables, out row, out prefix);
-            return table == null || !IsComplexMember(table, prefix);
+            var table = ResolveRowMember(body, tables, out _, out var prefix);
+            return table == null || !IsComplexMember(table, prefix!);
         }
 
         /// <summary>
         /// The plan for a scalar projection that needs one, or null when NPoco's own single-column
         /// mapping already reads the value correctly.
         /// </summary>
-        internal static ProjectionPlan BuildScalar(LambdaExpression projection, IEnumerable<TableReference> tables, IMapperCollection mappers)
+        internal static ProjectionPlan? BuildScalar(LambdaExpression projection, IEnumerable<TableReference> tables, IMapperCollection? mappers)
         {
-            Expression row;
-            MemberInfo[] prefix;
-            var table = ResolveRowMember(StripConvert(projection.Body), tables, out row, out prefix);
-            var column = table == null ? null : table.TryResolveColumn(prefix);
+            var table = ResolveRowMember(StripConvert(projection.Body), tables, out _, out var prefix);
+            var column = table == null ? null : table.TryResolveColumn(prefix!);
             return ScalarPlan(column, projection.ReturnType, mappers);
         }
 
@@ -441,7 +437,7 @@ namespace NPoco.FluentSql
         /// The plan for a scalar selected from a table reference - <c>SelectScalar(user, x =&gt; x.Name)</c> -
         /// whose selector is written against the row rather than against <c>table.Row</c>.
         /// </summary>
-        internal static ProjectionPlan BuildScalar(TableReference table, LambdaExpression selector, IMapperCollection mappers)
+        internal static ProjectionPlan? BuildScalar(TableReference table, LambdaExpression selector, IMapperCollection? mappers)
         {
             var members = new List<MemberInfo>();
             var current = StripConvert(selector.Body);
@@ -449,7 +445,7 @@ namespace NPoco.FluentSql
             while (member != null)
             {
                 members.Insert(0, member.Member);
-                current = StripConvert(member.Expression);
+                current = member.Expression == null ? null : StripConvert(member.Expression);
                 member = current as MemberExpression;
             }
 
@@ -464,7 +460,7 @@ namespace NPoco.FluentSql
         // single-column mapping is handed no column and so can do none of it, which is why a scalar
         // that names a column gets a one-leaf plan. A scalar that is any other expression - an
         // aggregate, a concatenation - names no column, and a null plan leaves it where it was.
-        private static ProjectionPlan ScalarPlan(PocoColumn column, Type type, IMapperCollection mappers)
+        private static ProjectionPlan? ScalarPlan(PocoColumn? column, Type type, IMapperCollection? mappers)
         {
             if (column == null) return null;
 
@@ -475,7 +471,7 @@ namespace NPoco.FluentSql
             return plan;
         }
 
-        private static ProjectionNode BuildNode(Expression expression, Type resultType, string path, ProjectionPlan plan, TableReference[] tables, MemberInfo target)
+        private static ProjectionNode BuildNode(Expression expression, Type resultType, string? path, ProjectionPlan plan, TableReference[] tables, MemberInfo? target)
         {
             expression = StripConvert(expression);
             var rowTable = ResolveRow(expression, tables);
@@ -483,16 +479,16 @@ namespace NPoco.FluentSql
 
             // The projection picked out a complex-mapped member rather than a whole row: build the
             // same node from the columns that sit underneath that member.
-            Expression rowExpression;
-            MemberInfo[] memberPrefix;
+            Expression? rowExpression;
+            MemberInfo[]? memberPrefix;
             var memberTable = ResolveRowMember(expression, tables, out rowExpression, out memberPrefix);
-            if (memberTable != null && IsComplexMember(memberTable, memberPrefix))
-                return BuildEntityNode(memberTable, rowExpression, memberPrefix, path, plan);
+            if (memberTable != null && IsComplexMember(memberTable, memberPrefix!))
+                return BuildEntityNode(memberTable, rowExpression!, memberPrefix, path, plan);
 
             var created = expression as NewExpression;
             if (created != null)
             {
-                var names = created.Members?.Select(x => x.Name).ToArray() ?? created.Constructor.GetParameters().Select(x => FindMemberName(resultType, x.Name)).ToArray();
+                var names = created.Members?.Select(x => x.Name).ToArray() ?? created.Constructor!.GetParameters().Select(x => FindMemberName(resultType, x.Name!)).ToArray();
                 return new ObjectProjectionNode
                 {
                     Type = resultType,
@@ -519,7 +515,7 @@ namespace NPoco.FluentSql
 
             if (string.IsNullOrEmpty(path)) throw new ArgumentException("A projection must create a result object with named members.", nameof(expression));
             var leafIndex = plan.Leaves.Count;
-            plan.Leaves.Add(new ProjectionLeaf { Expression = expression, Alias = path, Index = leafIndex });
+            plan.Leaves.Add(new ProjectionLeaf { Expression = expression, Alias = path!, Index = leafIndex });
 
             // A leaf keeps hold of its column, because the converter that reads the value back is
             // chosen from the column and not only from its type: that is what deserializes a
@@ -527,7 +523,7 @@ namespace NPoco.FluentSql
             // carries. The column the leaf reads says how, and where the leaf reads no column - a
             // raw fragment, a computed value - the member it is written onto says how instead, so
             // the projected poco is filled the same way NPoco fills it reading the row directly.
-            var leafColumn = memberTable?.TryResolveColumn(memberPrefix);
+            var leafColumn = memberTable?.TryResolveColumn(memberPrefix!);
             leafColumn ??= DestinationColumn(target, tables);
 
             // A value object is a column like any other in the SQL, but the value read back has to
@@ -541,7 +537,7 @@ namespace NPoco.FluentSql
         // The column the projected member maps to on its own type, for a leaf whose expression maps
         // to none. A type with no mapping of its own - an anonymous projection - has no column for
         // the member either, and the value is read by its type as it was before.
-        private static PocoColumn DestinationColumn(MemberInfo target, TableReference[] tables)
+        private static PocoColumn? DestinationColumn(MemberInfo? target, TableReference[] tables)
         {
             if (target?.DeclaringType == null || tables.Length == 0) return null;
 
@@ -558,12 +554,12 @@ namespace NPoco.FluentSql
 
         // One node builds both a whole row and a complex-mapped member of one: the only difference
         // is which columns it takes and what it creates to hang them on.
-        private static ProjectionNode BuildEntityNode(TableReference table, Expression row, MemberInfo[] prefix, string path, ProjectionPlan plan)
+        private static ProjectionNode BuildEntityNode(TableReference table, Expression row, MemberInfo[]? prefix, string? path, ProjectionPlan plan)
         {
             var depth = prefix == null ? 0 : prefix.Length;
             var columns = table.PocoData.QueryColumns
                 .Select(x => x.Value)
-                .Where(x => StartsWith(x.MemberInfoChain, prefix) && x.MemberInfoChain.Count > depth)
+                .Where(x => StartsWith(x.MemberInfoChain, prefix ?? new MemberInfo[0]) && x.MemberInfoChain.Count > depth)
                 .Select(column =>
                 {
                     // Below a prefix the path already names the member this node was reached by,
@@ -594,18 +590,18 @@ namespace NPoco.FluentSql
         /// be a single column, a complex-mapped object, or nothing the table maps at all - the
         /// caller decides which of those it wants.
         /// </summary>
-        private static TableReference ResolveRowMember(Expression expression, IEnumerable<TableReference> tables, out Expression row, out MemberInfo[] prefix)
+        private static TableReference? ResolveRowMember(Expression expression, IEnumerable<TableReference> tables, out Expression? row, out MemberInfo[]? prefix)
         {
             row = null;
             prefix = null;
 
             var members = new List<MemberInfo>();
-            var current = StripConvert(expression);
+            Expression? current = StripConvert(expression);
             var member = current as MemberExpression;
             while (member != null && member.Member.Name != "Row")
             {
                 members.Insert(0, member.Member);
-                current = StripConvert(member.Expression);
+                current = member.Expression == null ? null : StripConvert(member.Expression);
                 member = current as MemberExpression;
             }
 
@@ -634,11 +630,11 @@ namespace NPoco.FluentSql
             return expression;
         }
 
-        private static TableReference ResolveRow(Expression expression, IEnumerable<TableReference> tables)
+        private static TableReference? ResolveRow(Expression? expression, IEnumerable<TableReference> tables)
         {
             var member = expression as MemberExpression;
             if (member == null || member.Member.Name != "Row") return null;
-            var value = SqlExpressionTranslator.Evaluate(member.Expression) as TableReference;
+            var value = SqlExpressionTranslator.Evaluate(member.Expression!) as TableReference;
             return value != null && tables.Contains(value) ? value : null;
         }
 
@@ -654,7 +650,7 @@ namespace NPoco.FluentSql
         /// (<c>id</c>) finds its member (<c>Id</c>), and must not override a member that matches
         /// the name as written.
         /// </summary>
-        private static MemberInfo FindMember(Type type, string name)
+        private static MemberInfo? FindMember(Type type, string name)
         {
             var exact = type.GetMember(name, BindingFlags.Public | BindingFlags.Instance);
             if (exact.Length > 0) return exact[0];
@@ -663,12 +659,12 @@ namespace NPoco.FluentSql
 
         private static string FindMemberName(Type type, string name) => FindMember(type, name)?.Name ?? name;
 
-        private static Type GetMemberType(Type type, string name)
+        private static Type? GetMemberType(Type type, string name)
         {
             var member = FindMember(type, name);
             return member is PropertyInfo property ? property.PropertyType : (member as FieldInfo)?.FieldType;
         }
 
-        private static string Combine(string prefix, string name) => string.IsNullOrEmpty(prefix) ? name : prefix + PocoData.Separator + name;
+        private static string Combine(string? prefix, string name) => string.IsNullOrEmpty(prefix) ? name : prefix + PocoData.Separator + name;
     }
 }

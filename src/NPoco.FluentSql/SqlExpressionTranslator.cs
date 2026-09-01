@@ -14,7 +14,7 @@ namespace NPoco.FluentSql
         private readonly IList<object> _parameters;
         // Only a lambda that takes rows as parameters needs the map, and a Row-style expression
         // takes none - so the common case allocates nothing here.
-        private readonly Dictionary<ParameterExpression, TableReference> _tables;
+        private readonly Dictionary<ParameterExpression, TableReference>? _tables;
         private readonly IList<TableReference> _availableTables;
         private readonly ISqlDialect _dialect;
         private readonly bool _projection;
@@ -114,14 +114,14 @@ namespace NPoco.FluentSql
         {
             expression = StripConvert(expression);
             if (CanEvaluate(expression) && expression.Type == typeof(bool))
-                return (bool)Evaluate(expression) ? "(1 = 1)" : "(1 = 0)";
+                return (bool)Evaluate(expression)! ? "(1 = 1)" : "(1 = 0)";
             var member = expression as MemberExpression;
             if (member != null && member.Member.Name == "HasValue" && member.Expression != null && Nullable.GetUnderlyingType(member.Expression.Type) != null)
                 return "(" + Visit(member.Expression) + " IS NOT NULL)";
-            TableReference table;
-            MemberInfo[] chain;
+            TableReference? table;
+            MemberInfo[]? chain;
             if (member != null && member.Type == typeof(bool) && TryResolveColumn(member, out table, out chain))
-                return "(" + table.GetColumn(chain) + " = " + Parameter(true, table.ResolveColumn(chain)) + ")";
+                return "(" + table!.GetColumn(chain!) + " = " + Parameter(true, table.ResolveColumn(chain!)) + ")";
             return Visit(expression);
         }
 
@@ -129,10 +129,10 @@ namespace NPoco.FluentSql
         {
             var operand = StripConvert(expression.Operand);
             var member = operand as MemberExpression;
-            TableReference table;
-            MemberInfo[] chain;
+            TableReference? table;
+            MemberInfo[]? chain;
             if (member != null && member.Type == typeof(bool) && TryResolveColumn(member, out table, out chain))
-                return "(" + table.GetColumn(chain) + " = " + Parameter(false, table.ResolveColumn(chain)) + ")";
+                return "(" + table!.GetColumn(chain!) + " = " + Parameter(false, table.ResolveColumn(chain!)) + ")";
             return "(NOT " + Predicate(operand) + ")";
         }
 
@@ -141,12 +141,12 @@ namespace NPoco.FluentSql
             if (IsNull(expression.Right)) return "(" + Visit(expression.Left) + (operation == "=" ? " IS NULL" : " IS NOT NULL") + ")";
             if (IsNull(expression.Left)) return "(" + Visit(expression.Right) + (operation == "=" ? " IS NULL" : " IS NOT NULL") + ")";
 
-            TableReference table;
-            MemberInfo[] chain;
+            TableReference? table;
+            MemberInfo[]? chain;
             if (TryResolveColumnExpression(expression.Left, out table, out chain) && CanEvaluate(expression.Right))
-                return "(" + Visit(expression.Left) + " " + operation + " " + Parameter(Evaluate(expression.Right), table.ResolveColumn(chain)) + ")";
+                return "(" + Visit(expression.Left) + " " + operation + " " + Parameter(Evaluate(expression.Right), table!.ResolveColumn(chain!)) + ")";
             if (TryResolveColumnExpression(expression.Right, out table, out chain) && CanEvaluate(expression.Left))
-                return "(" + Parameter(Evaluate(expression.Left), table.ResolveColumn(chain)) + " " + operation + " " + Visit(expression.Right) + ")";
+                return "(" + Parameter(Evaluate(expression.Left), table!.ResolveColumn(chain!)) + " " + operation + " " + Visit(expression.Right) + ")";
             return Binary(expression, operation);
         }
 
@@ -170,10 +170,10 @@ namespace NPoco.FluentSql
                 && expression.Expression.Type == typeof(string) && !CanEvaluate(expression.Expression))
                 return _dialect.StringLength(Visit(expression.Expression));
 
-            TableReference table;
-            MemberInfo[] chain;
+            TableReference? table;
+            MemberInfo[]? chain;
             if (TryResolveColumn(expression, out table, out chain))
-                return table.GetColumn(chain);
+                return table!.GetColumn(chain!);
 
             return Parameter(Evaluate(expression));
         }
@@ -246,7 +246,7 @@ namespace NPoco.FluentSql
                 var underlying = Nullable.GetUnderlyingType(expression.Object.Type);
                 var fallback = expression.Arguments.Count == 1
                     ? Visit(expression.Arguments[0])
-                    : Parameter(Activator.CreateInstance(underlying));
+                    : Parameter(Activator.CreateInstance(underlying!));
                 return "COALESCE(" + Visit(expression.Object) + ", " + fallback + ")";
             }
 
@@ -268,8 +268,8 @@ namespace NPoco.FluentSql
                 if (expression.Method.Name == "AddSeconds") return DateAdd(SqlDatePart.Second, expression.Object, expression.Arguments[0]);
             }
 
-            Expression collection = null;
-            Expression item = null;
+            Expression? collection = null;
+            Expression? item = null;
             if (expression.Method.Name == "Contains" && expression.Object != null && expression.Object.Type != typeof(string))
             {
                 collection = expression.Object;
@@ -280,7 +280,7 @@ namespace NPoco.FluentSql
                 collection = expression.Arguments.Select(FindEnumerableExpression).FirstOrDefault(x => x != null);
                 item = expression.Arguments.FirstOrDefault(x => ContainsParameter(x));
             }
-            if (collection != null && CanEvaluate(collection)) return CollectionContains(collection, item);
+            if (collection != null && CanEvaluate(collection)) return CollectionContains(collection, item!);
 
             if (CanEvaluate(expression)) return Parameter(Evaluate(expression));
             throw new NotSupportedException("Method '" + expression.Method.Name + "' is not supported by the fluent SQL builder.");
@@ -309,7 +309,7 @@ namespace NPoco.FluentSql
         /// </summary>
         private string Substring(MethodCallExpression expression)
         {
-            var value = Visit(expression.Object);
+            var value = Visit(expression.Object!);
             var start = CanEvaluate(expression.Arguments[0])
                 ? Parameter(Convert.ToInt32(Evaluate(expression.Arguments[0]), CultureInfo.InvariantCulture) + 1)
                 : "(" + Visit(expression.Arguments[0]) + " + 1)";
@@ -431,9 +431,9 @@ namespace NPoco.FluentSql
         {
             var values = Evaluate(collectionExpression) as IEnumerable;
             if (values == null) return "(1 = 0)";
-            TableReference table;
-            MemberInfo[] chain;
-            var column = TryResolveColumnExpression(item, out table, out chain) ? table.ResolveColumn(chain) : null;
+            TableReference? table;
+            MemberInfo[]? chain;
+            var column = TryResolveColumnExpression(item, out table, out chain) ? table!.ResolveColumn(chain!) : null;
             var parameters = new List<string>();
             foreach (var value in values)
             {
@@ -451,14 +451,16 @@ namespace NPoco.FluentSql
             return "(" + Visit(item) + " IN (" + string.Join(", ", parameters) + "))";
         }
 
-        private string Parameter(object value, PocoColumn column = null)
+        private string Parameter(object? value, PocoColumn? column = null)
         {
             var index = _parameters.Count;
-            _parameters.Add(column == null ? value : ConvertParameter(column, value));
+            // A null is a parameter like any other - it is what makes a comparison against NULL work
+            // - and the list is handed to NPoco, which reads a null entry as one.
+            _parameters.Add((column == null ? value : ConvertParameter(column, value))!);
             return "@" + index;
         }
 
-        private object ConvertParameter(PocoColumn column, object value)
+        private object? ConvertParameter(PocoColumn column, object? value)
         {
             if (column.ValueObjectColumn && value != null) value = column.GetValueObjectValue(value);
             var converter = _database.Mappers.FindToDbConverter(column.ColumnType, column.MemberInfoData.MemberInfo);
@@ -492,7 +494,7 @@ namespace NPoco.FluentSql
             if (!value.GetType().GetTypeInfo().IsEnum && IsIntegral(value.GetType()))
                 value = Enum.ToObject(enumType, value);
 
-            return value.ToString();
+            return value.ToString()!;
         }
 
         private static bool IsIntegral(Type type)
@@ -520,7 +522,7 @@ namespace NPoco.FluentSql
 
         private string DatePart(SqlDatePart part, string column) => _dialect.DatePart(part, column);
 
-        private bool TryResolveColumnExpression(Expression expression, out TableReference table, out MemberInfo[] chain)
+        private bool TryResolveColumnExpression(Expression expression, out TableReference? table, out MemberInfo[]? chain)
         {
             expression = StripConvert(expression);
             var member = expression as MemberExpression;
@@ -532,16 +534,16 @@ namespace NPoco.FluentSql
             return false;
         }
 
-        private bool TryResolveColumn(MemberExpression expression, out TableReference table, out MemberInfo[] chain)
+        private bool TryResolveColumn(MemberExpression expression, out TableReference? table, out MemberInfo[]? chain)
         {
             var members = new List<MemberInfo>();
-            Expression current = expression;
+            Expression? current = expression;
             while (current is MemberExpression)
             {
                 var member = (MemberExpression)current;
                 if (member.Member.Name == "Row" && member.Member.DeclaringType != null && member.Member.DeclaringType.GetTypeInfo().IsGenericType && member.Member.DeclaringType.GetGenericTypeDefinition() == typeof(TableReference<>))
                 {
-                    var reference = Evaluate(member.Expression) as TableReference;
+                    var reference = Evaluate(member.Expression!) as TableReference;
                     if (reference == null || !IsAvailable(reference))
                         throw new InvalidOperationException("The table reference is not available to this query.");
                     table = reference;
@@ -549,7 +551,7 @@ namespace NPoco.FluentSql
                     return true;
                 }
                 members.Insert(0, member.Member);
-                current = StripConvert(member.Expression);
+                current = member.Expression == null ? null : StripConvert(member.Expression);
             }
             var parameter = current as ParameterExpression;
             if (parameter != null && _tables != null && _tables.TryGetValue(parameter, out table))
@@ -564,18 +566,19 @@ namespace NPoco.FluentSql
 
         private static Expression StripConvert(Expression expression)
         {
-            while (expression != null && (expression.NodeType == ExpressionType.Convert || expression.NodeType == ExpressionType.ConvertChecked || expression.NodeType == ExpressionType.Quote))
+            while (expression.NodeType == ExpressionType.Convert || expression.NodeType == ExpressionType.ConvertChecked || expression.NodeType == ExpressionType.Quote)
                 expression = ((UnaryExpression)expression).Operand;
             return expression;
         }
 
         private static bool IsNull(Expression expression) => CanEvaluate(expression) && Evaluate(expression) == null;
-        private static bool CanEvaluate(Expression expression) => !ContainsParameter(expression);
+        private static bool CanEvaluate(Expression? expression) => !ContainsParameter(expression);
 
-        private static Expression FindEnumerableExpression(Expression expression)
+        private static Expression? FindEnumerableExpression(Expression? expression)
         {
+            if (expression == null) return null;
             expression = StripConvert(expression);
-            if (expression != null && typeof(IEnumerable).IsAssignableFrom(expression.Type) && CanEvaluate(expression)) return expression;
+            if (typeof(IEnumerable).IsAssignableFrom(expression.Type) && CanEvaluate(expression)) return expression;
             var call = expression as MethodCallExpression;
             if (call != null)
             {
@@ -595,9 +598,9 @@ namespace NPoco.FluentSql
 
         // Asked of nearly every node, and of the same subtrees repeatedly, so the visitor is kept
         // per thread rather than allocated per question, and stops walking once it has an answer.
-        [ThreadStatic] private static ParameterFindingVisitor _parameterFinder;
+        [ThreadStatic] private static ParameterFindingVisitor? _parameterFinder;
 
-        private static bool ContainsParameter(Expression expression)
+        private static bool ContainsParameter(Expression? expression)
         {
             var visitor = _parameterFinder ?? (_parameterFinder = new ParameterFindingVisitor());
             visitor.Found = false;
@@ -610,7 +613,7 @@ namespace NPoco.FluentSql
         /// covers the shapes that actually occur - a captured closure field, a property, a call -
         /// so that compiling a delegate stays the last resort rather than the normal path.
         /// </summary>
-        internal static object Evaluate(Expression expression)
+        internal static object? Evaluate(Expression expression)
         {
             expression = StripConvert(expression);
             var constant = expression as ConstantExpression;
@@ -636,7 +639,7 @@ namespace NPoco.FluentSql
         private sealed class ParameterFindingVisitor : ExpressionVisitor
         {
             internal bool Found;
-            public override Expression Visit(Expression node) => Found ? node : base.Visit(node);
+            public override Expression? Visit(Expression? node) => Found ? node : base.Visit(node);
             protected override Expression VisitParameter(ParameterExpression node) { Found = true; return node; }
 
             protected override Expression VisitMethodCall(MethodCallExpression node)

@@ -93,19 +93,23 @@ namespace NPoco.FluentSql
 
         private static IEnumerable<string> RenderSelect(IAsyncQueryDatabase database, SelectPart part, IList<object> parameters, TranslatorCache translators)
         {
+            // Which of the part's members are set is decided by the shape it was built in: every
+            // column of one table, or an expression read against one table or against all of them.
             if (part.All)
             {
-                return part.Table.PocoData.QueryColumns.Select(x =>
+                var table = part.Table!;
+                return table.PocoData.QueryColumns.Select(x =>
                 {
                     var column = x.Value;
                     var alias = string.IsNullOrWhiteSpace(column.ColumnAlias) ? column.MemberInfoKey : column.ColumnAlias;
-                    return part.Table.EscapedAlias + "." + database.DatabaseType.EscapeSqlIdentifier(column.ColumnName) +
+                    return table.EscapedAlias + "." + database.DatabaseType.EscapeSqlIdentifier(column.ColumnName) +
                            " AS " + database.DatabaseType.EscapeSqlIdentifier(alias);
                 });
             }
+            var expression = part.Expression!;
             var translated = part.Tables == null
-                ? TranslateList(database, parameters, part.Expression, part.Table)
-                : TranslateList(database, parameters, part.Expression, part.Tables, translators);
+                ? TranslateList(database, parameters, expression, part.Table!)
+                : TranslateList(database, parameters, expression, part.Tables, translators);
             if (string.IsNullOrEmpty(part.Alias)) return translated;
             return new[] { translated[0] + " AS " + database.DatabaseType.EscapeSqlIdentifier(part.Alias) };
         }
@@ -134,8 +138,8 @@ namespace NPoco.FluentSql
         {
             private readonly IAsyncQueryDatabase _database;
             private readonly IList<object> _parameters;
-            private TableReference[] _tables;
-            private SqlExpressionTranslator _shared;
+            private TableReference[]? _tables;
+            private SqlExpressionTranslator? _shared;
 
             internal TranslatorCache(IAsyncQueryDatabase database, IList<object> parameters)
             {
@@ -173,8 +177,10 @@ namespace NPoco.FluentSql
                     sql.Append('(').Append(RenderPredicateList(database, part.Children, parameters)).Append(')');
                 else
                 {
-                    var translator = new SqlExpressionTranslator(database, parameters, part.Expression, part.Tables);
-                    sql.Append('(').Append(translator.TranslatePredicate(part.Expression.Body)).Append(')');
+                    // A part with no children is a predicate of its own, so it carries both.
+                    var expression = part.Expression!;
+                    var translator = new SqlExpressionTranslator(database, parameters, expression, part.Tables!);
+                    sql.Append('(').Append(translator.TranslatePredicate(expression.Body)).Append(')');
                 }
             }
             return sql.ToString();

@@ -349,14 +349,20 @@ database is typed as `IAsyncQueryDatabase` or `IAsyncDatabase`, exposes only asy
 Task<List<T>>       FetchAsync(CancellationToken);
 IAsyncEnumerable<T> QueryAsync(CancellationToken);
 Task<T>             SingleAsync(CancellationToken);
+Task<T?>            SingleOrDefaultAsync(CancellationToken);
 Task<T>             FirstAsync(CancellationToken);
+Task<T?>            FirstOrDefaultAsync(CancellationToken);
 ```
 
 `FluentSqlResult<T>`, returned from `IDatabaseQuery` or `IDatabase`, adds the synchronous forms:
 
 ```csharp
-List<T>        Fetch();       IEnumerable<T> Query();
-T              Single();      T First();
+List<T>        Fetch();
+IEnumerable<T> Query();
+T              Single();
+T?             SingleOrDefault();
+T              First();            
+T?             FirstOrDefault();
 ```
 
 `Query()` streams rather than materializing, and releases the connection when enumeration finishes or

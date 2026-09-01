@@ -8,57 +8,66 @@ namespace NPoco.FluentSql
 
     internal sealed class CtePart
     {
-        internal string Name;
-        internal IFluentSqlQueryInternal Query;
+        internal string Name = null!;
+        internal IFluentSqlQueryInternal Query = null!;
     }
 
     internal sealed class UnionPart
     {
         internal bool All;
-        internal IFluentSqlQueryInternal Query;
+        internal IFluentSqlQueryInternal Query = null!;
     }
 
     internal sealed class ApplyPart
     {
-        internal TableReference Table;
-        internal IFluentSqlQueryInternal Query;
+        internal TableReference Table = null!;
+        internal IFluentSqlQueryInternal Query = null!;
     }
 
+    /// <summary>
+    /// One entry of the SELECT list, in one of three shapes: every column of a table, an expression
+    /// read against a single table, or an expression read against all the tables in scope. Which
+    /// shape it is decides which of these are set.
+    /// </summary>
     internal sealed class SelectPart
     {
-        internal TableReference Table;
-        internal TableReference[] Tables;
-        internal LambdaExpression Expression;
-        internal string Alias;
+        internal TableReference? Table;
+        internal TableReference[]? Tables;
+        internal LambdaExpression? Expression;
+        internal string? Alias;
         internal bool All;
     }
 
     internal sealed class JoinPart
     {
         internal FluentJoinType Type;
-        internal TableReference Table;
-        internal LambdaExpression Condition;
-        internal TableReference[] Tables;
+        internal TableReference Table = null!;
+        internal LambdaExpression Condition = null!;
+        internal TableReference[] Tables = null!;
     }
 
+    /// <summary>
+    /// One predicate, or a parenthesised group of them: a group carries <see cref="Children"/> and
+    /// no expression of its own, and a leaf carries the expression and the tables it reads.
+    /// </summary>
     internal sealed class PredicatePart
     {
-        internal TableReference[] Tables;
-        internal LambdaExpression Expression;
+        internal TableReference[]? Tables;
+        internal LambdaExpression? Expression;
         internal string Operator = "AND";
-        internal List<PredicatePart> Children;
+        internal List<PredicatePart>? Children;
     }
 
     internal sealed class SortPart
     {
-        internal TableReference[] Tables;
-        internal LambdaExpression Expression;
+        internal TableReference[] Tables = null!;
+        internal LambdaExpression Expression = null!;
         internal bool Descending;
     }
 
     internal sealed class GroupPart
     {
-        internal TableReference[] Tables;
-        internal LambdaExpression Expression;
+        internal TableReference[] Tables = null!;
+        internal LambdaExpression Expression = null!;
     }
 }
