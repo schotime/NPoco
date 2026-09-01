@@ -29,6 +29,16 @@ namespace NPoco.FluentSql
         Sql Explain();
     }
 
+    /// <summary>
+    /// A projected query that yields <typeparamref name="T"/>. Saying so in the type is what lets
+    /// <see cref="FSql.Scalar{T}(IFluentSqlQuery{T})"/> infer the type it reads back rather than be
+    /// told it. Covariant, so a query projecting a derived type stands in for one projecting a base.
+    /// </summary>
+    /// <typeparam name="T">The type the projection yields.</typeparam>
+    public interface IFluentSqlQuery<out T> : IFluentSqlQuery
+    {
+    }
+
     internal interface IFluentSqlQueryInternal
     {
         string Build(IList<object> parameters);
@@ -1210,7 +1220,7 @@ namespace NPoco.FluentSql
     /// same shape, passed to a CTE or subquery, or executed.
     /// </summary>
     /// <typeparam name="TResult">The shape each row materialises as.</typeparam>
-    public class FluentSqlAsyncResult<TResult> : IFluentSqlQuery, IFluentSqlResultInternal
+    public class FluentSqlAsyncResult<TResult> : IFluentSqlQuery<TResult>, IFluentSqlResultInternal
     {
         protected readonly FluentSqlQuery QueryCore;
         protected readonly IAsyncQueryDatabase AsyncDatabase;

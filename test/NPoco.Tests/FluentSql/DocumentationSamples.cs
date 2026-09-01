@@ -140,8 +140,10 @@ namespace NPoco.Tests.FluentSqlTests
 
             var rows = outer
                 .Where(() => FSql.Exists(orderCount))
-                .Select(() => new { user.Row.Name, Orders = FSql.Scalar<int>(orderCount) })
+                .Select(() => new { user.Row.Name, Orders = FSql.Scalar(orderCount) })
                 .Fetch();
+
+            outer.Select(() => new { Orders = FSql.Scalar<long>(orderCount) });
         }
 
         public void InlineSubqueries()

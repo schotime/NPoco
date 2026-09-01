@@ -218,9 +218,13 @@ var orderCount = outer.Subquery()
 
 var rows = outer
     .Where(() => FSql.Exists(orderCount))
-    .Select(() => new { user.Row.Name, Orders = FSql.Scalar<int>(orderCount) })
+    .Select(() => new { user.Row.Name, Orders = FSql.Scalar(orderCount) })
     .Fetch();
 ```
+
+`Scalar` takes its type from the subquery, so it rarely needs one written out. Name the type when you
+want the value read back as a wider one - `FSql.Scalar<long>(orderCount)` over a subquery of `int`.
+`In`, `NotIn` and `Exists` never needed a type argument: they take it from the value being tested.
 
 A query built from `db.FluentQuery()` instead of `Subquery()` is uncorrelated and cannot see the outer
 tables. Subqueries used as a value or an `IN` list must project exactly one column.

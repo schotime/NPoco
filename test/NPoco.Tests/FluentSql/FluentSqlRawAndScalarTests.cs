@@ -268,6 +268,69 @@ namespace NPoco.Tests.FluentSqlTests
         }
 
         [Test]
+        public void ScalarTakesItsTypeFromTheSubqueryUnlessItIsGivenOne()
+        {
+            using (var database = CreateDatabase())
+            {
+                var query = database.FluentQuery().From<RawSite>(out var site);
+
+                var systems = query.Subquery()
+                    .From<RawSystem>(out var system)
+                    .Where(() => system.Row.SiteId == site.Row.Id)
+                    .SelectScalar(() => FSql.Count());
+
+                var rows = query
+                    .OrderBy(site, x => x.Id)
+                    .Select(() => new
+                    {
+                        // Inferred from the subquery, which projects an int.
+                        Inferred = FSql.Scalar(systems),
+                        // Named, which is how the same subquery is read back as a wider type.
+                        Widened = FSql.Scalar<long>(systems)
+                    })
+                    .Fetch();
+
+                Assert.That(rows.Select(x => x.Inferred), Is.EqualTo(new[] { 3, 1 }));
+                Assert.That(rows.Select(x => x.Widened), Is.EqualTo(new[] { 3L, 1L }));
+
+                // The inferred form is an int, not an object: assigning it to anything else is a
+                // compile error, which is the point of inferring it.
+                int count = rows[0].Inferred;
+                Assert.That(count, Is.EqualTo(3));
+            }
+        }
+
+        [Test]
+        public void SubqueryOperandsStillTakeTheirTypeFromTheValueBeingTested()
+        {
+            using (var database = CreateDatabase())
+            {
+                var siteIds = database.FluentQuery()
+                    .From<RawSite>(out var site)
+                    .Where(() => site.Row.Name == "north")
+                    .SelectScalar(() => site.Row.Id);
+
+                // In and NotIn infer from the left operand, so a typed subquery changes nothing -
+                // including where the operand is nullable and the subquery is not.
+                var names = database.FluentQuery()
+                    .From<RawSystem>(out var system)
+                    .Where(() => system.Row.SiteId.In(siteIds))
+                    .OrderBy(() => system.Row.Id)
+                    .Select(() => system.Row.Name)
+                    .Fetch();
+
+                var others = database.FluentQuery()
+                    .From<RawSystem>(out var other)
+                    .Where(() => other.Row.SiteId.NotIn(siteIds))
+                    .Select(() => other.Row.Name)
+                    .Fetch();
+
+                Assert.That(names, Is.EqualTo(new[] { "a", "b", "c" }));
+                Assert.That(others, Is.EqualTo(new[] { "d" }));
+            }
+        }
+
+        [Test]
         public void ScalarComposesWithOtherExpressions()
         {
             using (var database = CreateDatabase())

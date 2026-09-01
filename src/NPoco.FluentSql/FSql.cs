@@ -61,6 +61,8 @@ namespace NPoco.FluentSql
         public T Cast<T>(object value, string databaseType) => throw Marker();
         /// <inheritdoc cref="FSql.Scalar{T}(IFluentSqlQuery)"/>
         public T Scalar<T>(IFluentSqlQuery subquery) => throw Marker();
+        /// <inheritdoc cref="FSql.Scalar{T}(IFluentSqlQuery{T})"/>
+        public T Scalar<T>(IFluentSqlQuery<T> subquery) => throw Marker();
 
         private static InvalidOperationException Marker() => new InvalidOperationException("SQL functions can only be used in a fluent SQL expression.");
     }
@@ -218,6 +220,17 @@ namespace NPoco.FluentSql
         /// <typeparam name="T">The type the subquery yields.</typeparam>
         /// <param name="subquery">A query projecting exactly one column.</param>
         public static T Scalar<T>(IFluentSqlQuery subquery) => throw Marker();
+
+        /// <summary>
+        /// Embeds a subquery that yields a single value, as <see cref="Scalar{T}(IFluentSqlQuery)"/>
+        /// does, taking the type from the subquery rather than being told it:
+        /// <c>FSql.Scalar(integrations)</c> instead of <c>FSql.Scalar&lt;int&gt;(integrations)</c>.
+        /// Naming the type is still how a value is read back as a wider one - <c>Scalar&lt;long&gt;</c>
+        /// over a subquery of <c>int</c> - which resolves to the overload above.
+        /// </summary>
+        /// <typeparam name="T">The type the subquery projects, inferred from it.</typeparam>
+        /// <param name="subquery">A query projecting exactly one column.</param>
+        public static T Scalar<T>(IFluentSqlQuery<T> subquery) => throw Marker();
 
         private static InvalidOperationException Marker() => new InvalidOperationException("SQL subquery methods can only be used in a fluent SQL expression.");
     }
