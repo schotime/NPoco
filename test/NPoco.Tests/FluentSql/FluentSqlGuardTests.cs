@@ -201,11 +201,61 @@ namespace NPoco.Tests.FluentSqlTests
                 sub => sub.From<GuardItem>(out var inner).Select(inner)));
         }
 
+        [Test] public void SubqueryBeforeAnyFromIsRejected()
+        {
+            // A subquery correlates with the query it is built from, and before a FROM there is
+            // nothing there to correlate with. Nothing can be written against one either: the
+            // reference a correlated body reads is handed out by the FROM that has not run yet.
+            var query = _database.FluentQuery();
+            Assert.Throws<InvalidOperationException>(() => query.Subquery());
+        }
+
+        [Test] public void ADeclaredTableReferenceIsAddedOnce()
+        {
+            var query = _database.FluentQuery().From<GuardItem>(out var item);
+            var declared = query.Table<GuardNote>();
+
+            query.Subquery().From(declared).Where(() => declared.Row.ItemId == item.Row.Id).SelectScalar(() => 1);
+
+            Assert.Throws<InvalidOperationException>(() => query.Subquery().From(declared));
+            Assert.Throws<InvalidOperationException>(() => query.InnerJoin(declared, () => declared.Row.ItemId == item.Row.Id));
+        }
+
+        [Test] public void ADeclaredTableReferenceFromAnotherStatementIsRejected()
+        {
+            var other = _database.FluentQuery().From<GuardItem>(out _);
+            var stranger = other.Table<GuardNote>();
+
+            var query = _database.FluentQuery().From<GuardItem>(out var item);
+
+            Assert.Throws<InvalidOperationException>(() => query.Subquery().From(stranger));
+            Assert.Throws<InvalidOperationException>(() => query.InnerJoin(stranger, () => stranger.Row.ItemId == item.Row.Id));
+        }
+
+        [Test] public void ADeclaredTableReferenceIsNotInScopeUntilItIsAdded()
+        {
+            var query = _database.FluentQuery().From<GuardItem>(out var item);
+            var declared = query.Table<GuardNote>();
+
+            Assert.Throws<InvalidOperationException>(() => query
+                .Where(() => declared.Row.ItemId == item.Row.Id)
+                .Select(() => item.Row.Name)
+                .ToSql());
+        }
+
         [TableName("guarditems")]
         public class GuardItem
         {
             [Column("id")] public int Id { get; set; }
             [Column("name")] public string Name { get; set; }
+        }
+
+        // Declared with Table<T> and never executed, so the table behind it only has to map.
+        [TableName("guardnotes")]
+        public class GuardNote
+        {
+            [Column("id")] public int Id { get; set; }
+            [Column("item_id")] public int ItemId { get; set; }
         }
     }
 }

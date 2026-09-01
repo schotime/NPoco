@@ -402,7 +402,7 @@ namespace NPoco.FluentSql
         internal static ProjectionPlan Build<TResult>(Expression<Func<TResult>> projection, IEnumerable<TableReference> tables, IMapperCollection mappers)
         {
             var plan = new ProjectionPlan(mappers);
-            plan.Root = BuildNode(projection.Body, typeof(TResult), null, plan, tables.ToArray());
+            plan.Root = BuildNode(projection.Body, typeof(TResult), null, plan, tables.ToArray(), null);
             return plan;
         }
 
@@ -475,7 +475,7 @@ namespace NPoco.FluentSql
             return plan;
         }
 
-        private static ProjectionNode BuildNode(Expression expression, Type resultType, string path, ProjectionPlan plan, TableReference[] tables)
+        private static ProjectionNode BuildNode(Expression expression, Type resultType, string path, ProjectionPlan plan, TableReference[] tables, MemberInfo target)
         {
             expression = StripConvert(expression);
             var rowTable = ResolveRow(expression, tables);
@@ -497,7 +497,7 @@ namespace NPoco.FluentSql
                 {
                     Type = resultType,
                     Constructor = created.Constructor,
-                    Children = created.Arguments.Select((x, i) => BuildNode(x, GetMemberType(resultType, names[i]) ?? x.Type, Combine(path, names[i]), plan, tables)).ToList(),
+                    Children = created.Arguments.Select((x, i) => BuildNode(x, GetMemberType(resultType, names[i]) ?? x.Type, Combine(path, names[i]), plan, tables, FindMember(resultType, names[i]))).ToList(),
                     Members = new List<MemberInfo>(),
                     NullWhenAllNull = !string.IsNullOrEmpty(path)
                 };
@@ -511,7 +511,7 @@ namespace NPoco.FluentSql
                 {
                     Type = resultType,
                     Constructor = null,
-                    Children = assignments.Select(x => BuildNode(x.Expression, GetMemberType(resultType, x.Member.Name) ?? x.Expression.Type, Combine(path, x.Member.Name), plan, tables)).ToList(),
+                    Children = assignments.Select(x => BuildNode(x.Expression, GetMemberType(resultType, x.Member.Name) ?? x.Expression.Type, Combine(path, x.Member.Name), plan, tables, x.Member)).ToList(),
                     Members = assignments.Select(x => x.Member).ToList(),
                     NullWhenAllNull = !string.IsNullOrEmpty(path)
                 };
@@ -521,18 +521,39 @@ namespace NPoco.FluentSql
             var leafIndex = plan.Leaves.Count;
             plan.Leaves.Add(new ProjectionLeaf { Expression = expression, Alias = path, Index = leafIndex });
 
+            // A leaf keeps hold of its column, because the converter that reads the value back is
+            // chosen from the column and not only from its type: that is what deserializes a
+            // serialized column, re-kinds a UTC one, and finds a converter the member itself
+            // carries. The column the leaf reads says how, and where the leaf reads no column - a
+            // raw fragment, a computed value - the member it is written onto says how instead, so
+            // the projected poco is filled the same way NPoco fills it reading the row directly.
+            var leafColumn = memberTable?.TryResolveColumn(memberPrefix);
+            leafColumn ??= DestinationColumn(target, tables);
+
             // A value object is a column like any other in the SQL, but the value read back has to
             // be wrapped in it rather than handed over raw.
-            var leafColumn = memberTable == null ? null : memberTable.TryResolveColumn(memberPrefix);
             if (leafColumn != null && leafColumn.ValueObjectColumn)
                 return new ValueObjectProjectionNode { Alias = path, Column = leafColumn };
 
-            // A leaf that is a plain column keeps hold of it, because the converter that reads the
-            // value back is chosen from the column and not only from its type: that is what
-            // deserializes a serialized column, re-kinds a UTC one, and finds a converter the
-            // member itself carries. A leaf that is any other expression has no column, and is read
-            // by its type as before.
             return new ScalarProjectionNode { Alias = path, Type = resultType, Column = leafColumn };
+        }
+
+        // The column the projected member maps to on its own type, for a leaf whose expression maps
+        // to none. A type with no mapping of its own - an anonymous projection - has no column for
+        // the member either, and the value is read by its type as it was before.
+        private static PocoColumn DestinationColumn(MemberInfo target, TableReference[] tables)
+        {
+            if (target?.DeclaringType == null || tables.Length == 0) return null;
+
+            var pocoData = tables[0].Database.PocoDataFactory.ForType(target.DeclaringType);
+            foreach (var column in pocoData.Columns.Values)
+            {
+                // Only a member of the type itself: a column reached through another member is
+                // named by that member, not by this one.
+                if (column.MemberInfoChain.Count != 1) continue;
+                if (column.MemberInfoData.MemberInfo.Equals(target)) return column;
+            }
+            return null;
         }
 
         // One node builds both a whole row and a complex-mapped member of one: the only difference

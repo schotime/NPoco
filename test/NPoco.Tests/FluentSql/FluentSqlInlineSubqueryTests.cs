@@ -120,16 +120,6 @@ namespace NPoco.Tests.FluentSqlTests
         }
 
         [Test]
-        public void SubqueryBeforeAnyFromIsAnError()
-        {
-            using (var database = CreateDatabase())
-            {
-                var query = database.FluentQuery();
-                Assert.Throws<InvalidOperationException>(() => query.Subquery());
-            }
-        }
-
-        [Test]
         public void ADeclaredReferenceIsAliasedApartFromTheRest()
         {
             using (var database = CreateDatabase())
@@ -147,51 +137,6 @@ namespace NPoco.Tests.FluentSqlTests
                 Assert.That(inner.Alias, Is.Not.EqualTo(outer.Alias));
                 Assert.That(sql.SQL, Does.Contain(inner.Alias));
                 Assert.That(sql.SQL, Does.Contain(outer.Alias));
-            }
-        }
-
-        [Test]
-        public void AReferenceIsAddedOnce()
-        {
-            using (var database = CreateDatabase())
-            {
-                var query = database.FluentQuery().From<InlineSite>(out var site);
-                var system = query.Table<InlineSystem>();
-
-                query.Subquery().From(system).Where(() => system.Row.SiteId == site.Row.Id).SelectScalar(() => 1);
-
-                Assert.Throws<InvalidOperationException>(() => query.Subquery().From(system));
-                Assert.Throws<InvalidOperationException>(() => query.InnerJoin(system, () => system.Row.SiteId == site.Row.Id));
-            }
-        }
-
-        [Test]
-        public void AReferenceFromAnotherStatementIsRejected()
-        {
-            using (var database = CreateDatabase())
-            {
-                var other = database.FluentQuery().From<InlineSite>(out _);
-                var stranger = other.Table<InlineSystem>();
-
-                var query = database.FluentQuery().From<InlineSite>(out var site);
-
-                Assert.Throws<InvalidOperationException>(() => query.Subquery().From(stranger));
-                Assert.Throws<InvalidOperationException>(() => query.InnerJoin(stranger, () => stranger.Row.SiteId == site.Row.Id));
-            }
-        }
-
-        [Test]
-        public void ADeclaredReferenceIsNotInScopeUntilItIsAdded()
-        {
-            using (var database = CreateDatabase())
-            {
-                var query = database.FluentQuery().From<InlineSite>(out var site);
-                var system = query.Table<InlineSystem>();
-
-                Assert.Throws<InvalidOperationException>(() => query
-                    .Where(() => system.Row.SiteId == site.Row.Id)
-                    .Select(() => site.Row.Name)
-                    .ToSql());
             }
         }
 

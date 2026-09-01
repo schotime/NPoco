@@ -29,8 +29,8 @@ namespace NPoco.Tests.FluentSqlTests
                 connection.Open();
                 var command = connection.CreateCommand();
                 command.CommandText =
-                    "create table convrows(id integer primary key, code text, occurred datetime);" +
-                    "insert into convrows values(1,'abc','2024-01-02 03:04:05');";
+                    "create table convrows(id integer primary key, code text, occurred datetime, perms text, note text);" +
+                    "insert into convrows values(1,'abc','2024-01-02 03:04:05','[\"read\",\"write\"]',null);";
                 command.ExecuteNonQuery();
             }
         }
@@ -101,6 +101,42 @@ namespace NPoco.Tests.FluentSqlTests
         }
 
         [Test]
+        public void AnExpressionIsReadBackThroughTheMemberItIsWrittenOnto()
+        {
+            using (var database = CreateDatabase())
+            {
+                // The fragment is a value the projection computes, not a column it reads, so nothing
+                // in the query says how to read it back. The member it lands on is serialized, and
+                // that is what says so - the same thing NPoco reads the row by.
+                var row = database.FluentQuery()
+                    .From<ConvRow>(out var source)
+                    .Select(() => new PermissionRow
+                    {
+                        Id = source.Row.Id,
+                        Permissions = FSql.Raw<string[]>("{0}", source.Row.Perms)
+                    })
+                    .Single();
+
+                Assert.That(row.Id, Is.EqualTo(1));
+                Assert.That(row.Permissions, Is.EqualTo(new[] { "read", "write" }));
+            }
+        }
+
+        [Test]
+        public void AProjectionWithNoMappedMemberToReadBackThroughStillReadsByType()
+        {
+            using (var database = CreateDatabase())
+            {
+                // An anonymous projection maps no member, so there is no column on either side and
+                // the value is read by its type - which cannot turn the text into an array.
+                Assert.Throws<InvalidCastException>(() => database.FluentQuery()
+                    .From<ConvRow>(out var source)
+                    .Select(() => new { Permissions = FSql.Raw<string[]>("{0}", source.Row.Perms) })
+                    .Single());
+            }
+        }
+
+        [Test]
         public void AnExpressionThatNamesNoColumnStillReadsByItsType()
         {
             using (var database = CreateDatabase())
@@ -120,12 +156,142 @@ namespace NPoco.Tests.FluentSqlTests
             }
         }
 
+        [Test]
+        public void TheColumnTheValueIsReadFromWinsOverTheOneItIsWrittenTo()
+        {
+            using (var database = CreateDatabase())
+            {
+                // Both members carry a converter, and which prefix comes back says which column the
+                // read was planned from: the column named by the expression, or - where the
+                // expression names none - the member it lands on.
+                var row = database.FluentQuery()
+                    .From<ConvRow>(out var source)
+                    .Select(() => new PermissionRow
+                    {
+                        Code = source.Row.Code,
+                        Permissions = FSql.Raw<string[]>("{0}", source.Row.Perms)
+                    })
+                    .Single();
+
+                var computed = database.FluentQuery()
+                    .From<ConvRow>(out var other)
+                    .Select(() => new PermissionRow { Code = FSql.Raw<string>("{0}", other.Row.Code) })
+                    .Single();
+
+                Assert.That(row.Code, Is.EqualTo("code:abc"));
+                Assert.That(computed.Code, Is.EqualTo("dest:abc"));
+            }
+        }
+
+        [Test]
+        public void AConstructedProjectionReadsBackThroughTheMemberItsArgumentFills()
+        {
+            using (var database = CreateDatabase())
+            {
+                // The constructor names its arguments, not its members, so the member each argument
+                // fills is found by name - and it is that member the value is read back through.
+                var row = database.FluentQuery()
+                    .From<ConvRow>(out var source)
+                    .Select(() => new PermissionRecord(source.Row.Id, FSql.Raw<string[]>("{0}", source.Row.Perms)))
+                    .Single();
+
+                Assert.That(row.Id, Is.EqualTo(1));
+                Assert.That(row.Permissions, Is.EqualTo(new[] { "read", "write" }));
+            }
+        }
+
+        [Test]
+        public void ANestedProjectionReadsBackThroughTheMemberOfTheTypeItSitsOn()
+        {
+            using (var database = CreateDatabase())
+            {
+                var row = database.FluentQuery()
+                    .From<ConvRow>(out var source)
+                    .Select(() => new PermissionWrapper
+                    {
+                        Id = source.Row.Id,
+                        Inner = new PermissionRow { Permissions = FSql.Raw<string[]>("{0}", source.Row.Perms) }
+                    })
+                    .Single();
+
+                Assert.That(row.Id, Is.EqualTo(1));
+                Assert.That(row.Inner.Permissions, Is.EqualTo(new[] { "read", "write" }));
+            }
+        }
+
+        [Test]
+        public void AValueObjectMemberWrapsAComputedValueToo()
+        {
+            using (var database = CreateDatabase())
+            {
+                var row = database.FluentQuery()
+                    .From<ConvRow>(out var source)
+                    .Select(() => new LabelRow { Label = FSql.Raw<CodeValue>("{0}", source.Row.Code) })
+                    .Single();
+
+                Assert.That(row.Label, Is.Not.Null);
+                Assert.That(row.Label.Value, Is.EqualTo("abc"));
+            }
+        }
+
+        [Test]
+        public void ANullIsNotHandedToTheConversionOnEitherSide()
+        {
+            using (var database = CreateDatabase())
+            {
+                var written = database.FluentQuery()
+                    .From<ConvRow>(out var source)
+                    .Select(() => new PermissionRow { Permissions = FSql.Raw<string[]>("{0}", source.Row.Note) })
+                    .Single();
+
+                var read = database.FluentQuery()
+                    .From<ConvRow>(out var other)
+                    .Select(() => new { other.Row.Note })
+                    .Single();
+
+                var alone = database.FluentQuery()
+                    .From<ConvRow>(out var third)
+                    .SelectScalar(() => third.Row.Note)
+                    .Single();
+
+                Assert.That(written.Permissions, Is.Null);
+                Assert.That(read.Note, Is.Null);
+                Assert.That(alone, Is.Null);
+            }
+        }
+
+        [Test]
+        public void EveryWayOfProjectingOneColumnConvertsIt()
+        {
+            using (var database = CreateDatabase())
+            {
+                var selectScalar = database.FluentQuery()
+                    .From<ConvRow>(out var a).SelectScalar(() => a.Row.Code).Single();
+
+                var selectScalarFromRow = database.FluentQuery()
+                    .From<ConvRow>(out var b).SelectScalar(b, x => x.Code).Single();
+
+                var selectOfOneColumn = database.FluentQuery()
+                    .From<ConvRow>(out var c).Select(() => c.Row.Code).Single();
+
+                var member = database.FluentQuery()
+                    .From<ConvRow>(out var d).Select(() => new { d.Row.Code }).Single();
+
+                Assert.That(selectScalar, Is.EqualTo("code:abc"));
+                Assert.That(selectScalarFromRow, Is.EqualTo("code:abc"));
+                Assert.That(selectOfOneColumn, Is.EqualTo("code:abc"));
+                Assert.That(member.Code, Is.EqualTo("code:abc"));
+            }
+        }
+
         private class CodeMapper : DefaultMapper
         {
             public override Func<object, object> GetFromDbConverter(MemberInfo memberInfo, Type sourceType)
             {
                 if (memberInfo.DeclaringType == typeof(ConvRow) && memberInfo.Name == nameof(ConvRow.Code))
                     return value => "code:" + value;
+                if (memberInfo.DeclaringType == typeof(PermissionRow) && memberInfo.Name == nameof(PermissionRow.Code))
+                    return value => "dest:" + value;
                 return base.GetFromDbConverter(memberInfo, sourceType);
             }
         }
@@ -136,6 +302,46 @@ namespace NPoco.Tests.FluentSqlTests
             [Column("id")] public int Id { get; set; }
             [Column("code")] public string Code { get; set; }
             [Column("occurred", ForceToUtc = true)] public DateTime Occurred { get; set; }
+            [Column("perms")] public string Perms { get; set; }
+            [Column("note")] public string Note { get; set; }
+        }
+
+        [TableName("convrows")]
+        public class PermissionRow
+        {
+            [Column("id")] public int Id { get; set; }
+            [Column("perms")] [SerializedColumn] public string[] Permissions { get; set; }
+            [Column("code")] public string Code { get; set; }
+        }
+
+        [TableName("convrows")]
+        public class PermissionRecord
+        {
+            public PermissionRecord(int id, string[] permissions)
+            {
+                Id = id;
+                Permissions = permissions;
+            }
+
+            [Column("id")] public int Id { get; set; }
+            [Column("perms")] [SerializedColumn] public string[] Permissions { get; set; }
+        }
+
+        [TableName("convrows")]
+        public class LabelRow
+        {
+            [Column("code")] public CodeValue Label { get; set; }
+        }
+
+        public class CodeValue : IValueObject<string>
+        {
+            public string Value { get; set; }
+        }
+
+        public class PermissionWrapper
+        {
+            public int Id { get; set; }
+            public PermissionRow Inner { get; set; }
         }
     }
 }
