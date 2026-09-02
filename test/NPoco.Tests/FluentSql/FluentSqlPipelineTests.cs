@@ -477,9 +477,9 @@ namespace NPoco.Tests.FluentSqlTests
             using (var database = CreateDatabase())
             {
                 var rows = database.FluentQuery()
-                    .With(q => q.From<PipelineUser>(out var inner)
+                    .With(out var adults, q => q.From<PipelineUser>(out var inner)
                                           .Where(inner, x => x.Age > 20)
-                                          .Select(inner), out var adults)
+                                          .Select(inner))
                     .From(adults)
                     .OrderBy(adults, x => x.UserId)
                     .Select(() => new { adults.Row.Name })

@@ -46,8 +46,12 @@ namespace NPoco.FluentSql
             sql.Append("\nFROM ").Append(from.EscapedTableName).Append(' ').Append(from.EscapedAlias);
             foreach (var join in joins)
             {
-                sql.Append('\n').Append(JoinKeyword(join.Type)).Append(' ')
-                    .Append(join.Table.EscapedTableName).Append(' ').Append(join.Table.EscapedAlias).Append(" ON ");
+                sql.Append('\n').Append(JoinKeyword(join.Type)).Append(' ');
+                if (join.Query == null)
+                    sql.Append(join.Table.EscapedTableName);
+                else
+                    sql.Append("(\n").Append(Indent(join.Query.Build(parameters))).Append("\n)");
+                sql.Append(' ').Append(join.Table.EscapedAlias).Append(" ON ");
                 var translator = new SqlExpressionTranslator(database, parameters, join.Condition, join.Tables);
                 sql.Append(translator.TranslatePredicate(join.Condition.Body));
             }

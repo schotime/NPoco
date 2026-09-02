@@ -171,13 +171,40 @@ namespace NPoco.Tests.FluentSqlTests
                 .SelectScalar(() => FSql.Count())));
         }
 
+        public void JoinedSubquery()
+        {
+            db.FluentQuery()
+                .From<User>(out var user)
+                .LeftJoin<UserTotal>(out var totals,
+                    sub => sub.From<Order>(out var order)
+                        .GroupBy(() => order.Row.UserId)
+                        .Select(() => new UserTotal { UserId = order.Row.UserId, Total = FSql.Sum(order.Row.Amount) }),
+                    t => t.UserId == user.Row.Id)
+                .Select(() => new { user.Row.Name, totals.Row.Total });
+        }
+
+        public void CteJoinedBack()
+        {
+            var query = db.FluentQuery();
+
+            var rows = query
+                .With(out var totals, sub => sub
+                    .From<Order>(out var order)
+                    .GroupBy(() => order.Row.UserId)
+                    .Select(() => new UserTotal { UserId = order.Row.UserId, Total = FSql.Sum(order.Row.Amount) }))
+                .From<User>(out var user)
+                .LeftJoin(totals, () => totals.Row.UserId == user.Row.Id)
+                .Select(() => new { user.Row.Name, totals.Row.Total })
+                .Fetch();
+        }
+
         public void Ctes()
         {
             var query = db.FluentQuery()
-                .With(cte => cte
+                .With(out var active, cte => cte
                     .From<User>(out var candidate)
                     .Where(() => candidate.Row.IsActive)
-                    .Select(candidate), out var active)
+                    .Select(candidate))
                 .From(active)
                 .Where(() => active.Row.Age >= 18)
                 .Select(active);
@@ -188,7 +215,7 @@ namespace NPoco.Tests.FluentSqlTests
                 .Select(user);
 
             var second = db.FluentQuery()
-                .With(activeUsers, out var reference)
+                .With(out var reference, activeUsers)
                 .From(reference)
                 .Select(reference);
         }
@@ -247,6 +274,7 @@ namespace NPoco.Tests.FluentSqlTests
         public class Audit { public int Id { get; set; } public int UserId { get; set; } }
         public class Metric { public decimal Value { get; set; } public DateTime OccurredAt { get; set; } }
         public class UserDto { public int Id { get; set; } public string Name { get; set; } }
+        public class UserTotal { public int UserId { get; set; } public decimal Total { get; set; } }
         public class UserRecord
         {
             public UserRecord(int id, string name) { Id = id; Name = name; }

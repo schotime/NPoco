@@ -136,8 +136,8 @@ namespace NPoco.Tests.FluentSqlTests
             using var db = Db();
             var query = db.FluentQuery();
             var result = query
-                .With(sub => sub.From<RawSystem>(out var s).Where(() => s.Row.Active).Select(s), out var active)
-                .With(sub => sub.From<RawSite>(out var site).Select(site), out var sites)
+                .With(out var active, sub => sub.From<RawSystem>(out var s).Where(() => s.Row.Active).Select(s))
+                .With(out var sites, sub => sub.From<RawSite>(out var site).Select(site))
                 .From(active)
                 .InnerJoin<RawSite>(out var joined, x => x.Id == active.Row.SiteId)
                 .OrderBy(() => active.Row.Id)
@@ -154,8 +154,8 @@ namespace NPoco.Tests.FluentSqlTests
             using var db = Db();
             var query = db.FluentQuery();
             var rows = query
-                .With(sub => sub.From<RawSystem>(out var s)
-                                .Select(() => new { s.Row.Id, s.Row.Name }), out var summary)
+                .With(out var summary, sub => sub.From<RawSystem>(out var s)
+                                .Select(() => new { s.Row.Id, s.Row.Name }))
                 .From(summary)
                 .OrderBy(() => summary.Row.Id)
                 .Select(() => new { summary.Row.Name });
@@ -163,6 +163,261 @@ namespace NPoco.Tests.FluentSqlTests
             Assert.That(summary.Alias, Is.EqualTo("__t1"));
             Assert.That(rows.ToSql().SQL, Does.Not.Contain("<"));
             Assert.That(rows.Fetch().Select(x => x.Name), Is.EqualTo(new[] { "a", "b", "c", "d" }));
+        }
+
+        [Test] public void ACteCanBeLeftJoinedBackToTheTableItSummarises()
+        {
+            using var db = Db();
+            var query = db.FluentQuery();
+
+            // The shape a per-group aggregate takes when it is written as a CTE: summarise once,
+            // then join the summary back so every row keeps its own, including the ones with none.
+            var counts = query.With(out var summary, sub => sub
+                    .From<RawSystem>(out var system)
+                    .Where(() => system.Row.Active)
+                    .GroupBy(() => system.Row.SiteId)
+                    .Select(() => new SiteCount { SiteId = system.Row.SiteId, Active = FSql.Count() }));
+
+            var rows = counts
+                .From<RawSite>(out var site)
+                .LeftJoin(summary, () => summary.Row.SiteId == site.Row.Id)
+                .OrderBy(() => site.Row.Id)
+                .Select(() => new { site.Row.Name, Active = summary.Row.Active })
+                .Fetch();
+
+            Assert.That(rows.Select(x => x.Name), Is.EqualTo(new[] { "north", "south" }));
+            Assert.That(rows.Select(x => x.Active), Is.EqualTo(new[] { 2, 1 }));
+        }
+
+        [Test] public void ACteJoinsUnderTheNameItWasDeclaredWith()
+        {
+            using var db = Db();
+            var query = db.FluentQuery();
+
+            var sql = query
+                .With(out var summary, sub => sub.From<RawSystem>(out var s).Select(() => new SiteCount { SiteId = s.Row.SiteId, Active = FSql.Count() }))
+                .From<RawSite>(out var site)
+                .LeftJoin(summary, () => summary.Row.SiteId == site.Row.Id)
+                .Select(() => site.Row.Name)
+                .ToSql().SQL;
+
+            Assert.That(sql, Does.Contain("LEFT JOIN [__w1] [" + summary.Alias + "] ON"));
+        }
+
+        [Test] public void TwoDifferentCtesCanBothBeJoined()
+        {
+            using var db = Db();
+            var query = db.FluentQuery();
+
+            var rows = query
+                .With(out var active, sub => sub.From<RawSystem>(out var a).Where(() => a.Row.Active)
+                    .GroupBy(() => a.Row.SiteId)
+                    .Select(() => new SiteCount { SiteId = a.Row.SiteId, Active = FSql.Count() }))
+                .With(out var inactive, sub => sub.From<RawSystem>(out var b).Where(() => !b.Row.Active)
+                    .GroupBy(() => b.Row.SiteId)
+                    .Select(() => new SiteCount { SiteId = b.Row.SiteId, Active = FSql.Count() }))
+                .From<RawSite>(out var site)
+                .LeftJoin(active, () => active.Row.SiteId == site.Row.Id)
+                .LeftJoin(inactive, () => inactive.Row.SiteId == site.Row.Id)
+                .OrderBy(() => site.Row.Id)
+                .Select(() => new { site.Row.Name, On = active.Row.Active, Off = inactive.Row.Active })
+                .Fetch();
+
+            Assert.That(rows.Select(x => x.Name), Is.EqualTo(new[] { "north", "south" }));
+            Assert.That(rows.Select(x => x.On), Is.EqualTo(new[] { 2, 1 }));
+            Assert.That(rows.Select(x => x.Off), Is.EqualTo(new[] { 1, 0 }));
+        }
+
+        [Test] public void ACteCanBeJoinedTwiceThroughASecondReference()
+        {
+            using var db = Db();
+            var query = db.FluentQuery();
+
+            var counted = query.With(out var counts, sub => sub
+                .From<RawSystem>(out var s).Where(() => s.Row.Active)
+                .GroupBy(() => s.Row.SiteId)
+                .Select(() => new SiteCount { SiteId = s.Row.SiteId, Active = FSql.Count() }));
+
+            // Two occurrences of the one CTE: each site's own count, beside north's to compare it to.
+            var own = counted.Table(counts);
+            var north = counted.Table(counts);
+
+            var rows = counted
+                .From<RawSite>(out var site)
+                .LeftJoin(own, () => own.Row.SiteId == site.Row.Id)
+                .LeftJoin(north, () => north.Row.SiteId == 1)
+                .OrderBy(() => site.Row.Id)
+                .Select(() => new { site.Row.Name, Own = own.Row.Active, North = north.Row.Active })
+                .Fetch();
+
+            Assert.That(own.Alias, Is.Not.EqualTo(north.Alias));
+            Assert.That(rows.Select(x => x.Own), Is.EqualTo(new[] { 2, 1 }));
+            Assert.That(rows.Select(x => x.North), Is.EqualTo(new[] { 2, 2 }));
+        }
+
+        [Test] public void ASubqueryCanReadACteDeclaredOutsideIt()
+        {
+            using var db = Db();
+            var query = db.FluentQuery();
+
+            // A CTE is in scope for the whole statement, so a correlated subquery reads one the same
+            // way the query that declared it does.
+            var counted = query.With(out var counts, sub => sub
+                .From<RawSystem>(out var s).Where(() => s.Row.Active)
+                .GroupBy(() => s.Row.SiteId)
+                .Select(() => new SiteCount { SiteId = s.Row.SiteId, Active = FSql.Count() }));
+
+            var busy = counted.Table(counts);
+
+            var names = counted
+                .From<RawSite>(out var site)
+                .Where(() => FSql.Exists(query.Subquery()
+                    .From(busy)
+                    .Where(() => busy.Row.SiteId == site.Row.Id && busy.Row.Active > 1)
+                    .SelectScalar(() => 1)))
+                .Select(() => site.Row.Name)
+                .Fetch();
+
+            Assert.That(names, Is.EqualTo(new[] { "north" }));
+        }
+
+        [Test] public void AnOuterApplyReferenceIsReadWhereItIsAndNotAddedAgain()
+        {
+            using var db = Db();
+            var query = db.FluentQuery();
+
+            var stage = query
+                .From<RawSite>(out var site)
+                .OuterApply(out var latest, sub => sub
+                    .From<RawSystem>(out var s)
+                    .Where(() => s.Row.SiteId == site.Row.Id)
+                    .OrderByDescending(() => s.Row.Id)
+                    .Take(1)
+                    .Select(s));
+
+            // The apply writes its body into the query, so the reference names nothing a From or a
+            // Join could select from, and there is no second occurrence of it to take.
+            Assert.Throws<InvalidOperationException>(() => stage.InnerJoin(latest, () => latest.Row.SiteId == site.Row.Id));
+            Assert.Throws<InvalidOperationException>(() => query.Table(latest));
+
+            // Read where it is, though - SQLite cannot run an apply, so this only has to build.
+            var sql = stage.Select(() => new { site.Row.Name, Latest = latest.Row.Name }).ToSql().SQL;
+            Assert.That(sql, Does.Contain(latest.Alias));
+        }
+
+        [Test] public void ASubqueryCanBeJoinedWhereItIsWritten()
+        {
+            using var db = Db();
+
+            var rows = db.FluentQuery()
+                .From<RawSite>(out var site)
+                .LeftJoin<SiteCount>(out var counts,
+                    sub => sub.From<RawSystem>(out var s).Where(() => s.Row.Active)
+                        .GroupBy(() => s.Row.SiteId)
+                        .Select(() => new SiteCount { SiteId = s.Row.SiteId, Active = FSql.Count() }),
+                    c => c.SiteId == site.Row.Id)
+                .OrderBy(() => site.Row.Id)
+                .Select(() => new { site.Row.Name, counts.Row.Active });
+
+            Assert.That(rows.ToSql().SQL, Does.Contain("LEFT JOIN (\n"));
+            Assert.That(rows.Fetch().Select(x => x.Active), Is.EqualTo(new[] { 2, 1 }));
+        }
+
+        [Test] public void AJoinedSubqueryIsAliasedApartFromTheQueryItJoins()
+        {
+            using var db = Db();
+
+            var rows = db.FluentQuery()
+                .From<RawSystem>(out var outer)
+                .InnerJoin<RawSystem>(out var newest,
+                    sub => sub.From<RawSystem>(out var s)
+                        .GroupBy(() => s.Row.SiteId)
+                        .Select(() => new RawSystem { SiteId = s.Row.SiteId, Id = FSql.Max(s.Row.Id) }),
+                    n => n.Id == outer.Row.Id)
+                .OrderBy(() => outer.Row.Id)
+                .Select(() => outer.Row.Name)
+                .Fetch();
+
+            // The same table inside and outside, so the aliases have to come from one set.
+            Assert.That(rows, Is.EqualTo(new[] { "c", "d" }));
+        }
+
+        [Test] public void AJoinedSubqueryCannotReadTheQueryItIsJoinedTo()
+        {
+            using var db = Db();
+            var stage = db.FluentQuery().From<RawSite>(out var site);
+
+            // A plain join is not lateral: the condition is where the two meet, not the body.
+            Assert.Throws<InvalidOperationException>(() => stage
+                .InnerJoin<SiteCount>(out var counts,
+                    sub => sub.From<RawSystem>(out var s)
+                        .Where(() => s.Row.SiteId == site.Row.Id)
+                        .GroupBy(() => s.Row.SiteId)
+                        .Select(() => new SiteCount { SiteId = s.Row.SiteId, Active = FSql.Count() }),
+                    c => c.SiteId == site.Row.Id)
+                .Select(() => site.Row.Name)
+                .ToSql());
+        }
+
+        [Test] public void AJoinedSubqueryMustProjectSomethingWithColumns()
+        {
+            using var db = Db();
+            var stage = db.FluentQuery().From<RawSite>(out var site);
+
+            Assert.Throws<InvalidOperationException>(() => stage
+                .InnerJoin<int>(out var counts,
+                    sub => sub.From<RawSystem>(out var s).Select(() => FSql.Count()),
+                    c => c == site.Row.Id));
+        }
+
+        [Test] public void ACteIsOneOccurrenceOfItselfInAQuery()
+        {
+            using var db = Db();
+            var query = db.FluentQuery();
+
+            var stage = query
+                .With(out var summary, sub => sub.From<RawSystem>(out var s).Select(() => new SiteCount { SiteId = s.Row.SiteId, Active = FSql.Count() }))
+                .From<RawSite>(out var site)
+                .LeftJoin(summary, () => summary.Row.SiteId == site.Row.Id);
+
+            // The reference carries one alias, so joining it again would put that alias in the
+            // query twice and quietly change what the join means.
+            Assert.Throws<InvalidOperationException>(() => stage.LeftJoin(summary, () => summary.Row.SiteId == site.Row.Id));
+        }
+
+        [Test] public void ACteSummarisesThroughARawJoinConditionAndJoinsBack()
+        {
+            using var db = Db();
+            var query = db.FluentQuery();
+
+            // The shape of a real query: a CTE that summarises through a join whose condition needs
+            // SQL the builder has no expression for - a CASE compared one way and matched another -
+            // and is then joined back so every row carries its own summary, or none.
+            var summarised = query.With(out var summary, sub =>
+            {
+                var system = sub.Table<RawSystem>();
+                return sub
+                    .From<RawSite>(out var site)
+                    .LeftJoin(system, () => system.Row.SiteId == site.Row.Id
+                        && FSql.Raw<bool>("({0} = {1} OR {0} LIKE {1} || '.%')",
+                               system.Row.Name,
+                               FSql.Case(site.Row.Name == "north", "a", "b")))
+                    .GroupBy(() => site.Row.Id)
+                    .Select(() => new SiteMax { SiteId = site.Row.Id, MaxSystem = FSql.Max(system.Row.Id) });
+            });
+
+            var rows = summarised
+                .From<RawSite>(out var outer)
+                .LeftJoin(summary, () => summary.Row.SiteId == outer.Row.Id)
+                .OrderBy(() => outer.Row.Name)
+                .Select(() => new { outer.Row.Name, summary.Row.MaxSystem })
+                .Fetch();
+
+            // north matches the system named 'a', which is one of its own; south's 'b' belongs to
+            // north, so the join finds nothing for it and the summary column comes back null.
+            Assert.That(rows.Select(x => x.Name), Is.EqualTo(new[] { "north", "south" }));
+            Assert.That(rows[0].MaxSystem, Is.EqualTo(1));
+            Assert.That(rows[1].MaxSystem, Is.Null);
         }
 
         [Test] public void AStageCanBeProjectedMoreThanOnce()
@@ -310,9 +565,9 @@ namespace NPoco.Tests.FluentSqlTests
         {
             using var db = Db();
             var q = db.FluentQuery();
-            var r = q.With(sub => sub.From<RawSystem>(out var s)
+            var r = q.With(out var t, sub => sub.From<RawSystem>(out var s)
                                      .Where(s, x => x.Active)
-                                     .Select(s), out var t)
+                                     .Select(s))
                 .From(t)
                 .OrderBy(t, x => x.Id)
                 .Select(() => new { t.Row.Name }).Fetch();
@@ -323,9 +578,9 @@ namespace NPoco.Tests.FluentSqlTests
         {
             using var db = Db();
             var r = db.FluentQuery()
-                .With(sub => sub.From<RawSystem>(out var s)
+                .With(out var t, sub => sub.From<RawSystem>(out var s)
                                 .Where(() => FSql.Raw<bool>("{0} in (1,4)", s.Row.Id))
-                                .Select(s), out var t)
+                                .Select(s))
                 .From(t)
                 .OrderBy(t, x => x.Id)
                 .Select(() => new { t.Row.Name }).Fetch();
@@ -681,6 +936,18 @@ namespace NPoco.Tests.FluentSqlTests
             [Column("site_id")] public int SiteId { get; set; }
             [Column("name")] public string Name { get; set; }
             [Column("active")] public bool Active { get; set; }
+        }
+
+        public class SiteCount
+        {
+            public int SiteId { get; set; }
+            public int Active { get; set; }
+        }
+
+        public class SiteMax
+        {
+            public int SiteId { get; set; }
+            public int? MaxSystem { get; set; }
         }
     }
 }

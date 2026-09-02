@@ -103,6 +103,25 @@ PostgreSQL and MySQL):
     .Select(recent))
 ```
 
+A join can also take a subquery written where it is joined, rather than declared above as a CTE. The
+reference it hands back is read like any other table's:
+
+```csharp
+db.FluentQuery()
+    .From<User>(out var user)
+    .LeftJoin<UserTotal>(out var totals,
+        sub => sub.From<Order>(out var order)
+            .GroupBy(() => order.Row.UserId)
+            .Select(() => new UserTotal { UserId = order.Row.UserId, Total = FSql.Sum(order.Row.Amount) }),
+        t => t.UserId == user.Row.Id)
+    .Select(() => new { user.Row.Name, totals.Row.Total });
+```
+
+A plain join is not lateral, so the subquery cannot read the tables it is joined to - the condition
+is where the two meet, and reading an outer table inside the body is an error rather than silently
+valid SQL. Use `OUTER APPLY` where the body itself has to correlate. Like a CTE, what it projects
+must have mapped columns, since the reference is how its columns are named.
+
 ## Grouping, ordering and paging
 
 `GroupBy`, `Having`, `OrderBy` and `ThenBy` take the same two forms as predicates. `Having` has an
@@ -281,10 +300,10 @@ is written against:
 
 ```csharp
 var query = db.FluentQuery()
-    .With(cte => cte
+    .With(out var active, cte => cte
         .From<User>(out var candidate)
         .Where(() => candidate.Row.IsActive)
-        .Select(candidate), out var active)
+        .Select(candidate))
     .From(active)
     .Where(() => active.Row.Age >= 18)
     .Select(active);
@@ -299,12 +318,51 @@ var activeUsers = db.FluentQuery()
     .Select(user);
 
 var query = db.FluentQuery()
-    .With(activeUsers, out var active)
+    .With(out var active, activeUsers)
     .From(active)
     .Select(active);
 ```
 
 Multiple CTEs render in declaration order, and their parameters precede the main query's.
+
+A CTE reference is also what a join takes, so a summary can be joined back to the rows it summarises:
+
+```csharp
+var query = db.FluentQuery();
+
+var rows = query
+    .With(out var totals, sub => sub
+        .From<Order>(out var order)
+        .GroupBy(() => order.Row.UserId)
+        .Select(() => new UserTotal { UserId = order.Row.UserId, Total = FSql.Sum(order.Row.Amount) }))
+    .From<User>(out var user)
+    .LeftJoin(totals, () => totals.Row.UserId == user.Row.Id)
+    .Select(() => new { user.Row.Name, totals.Row.Total })
+    .Fetch();
+```
+
+The join condition takes no parameter: like every join against a declared reference, it reaches both
+sides through `table.Row`.
+
+A CTE reference is a table reference like any other, and follows the same rules. It stands for one
+occurrence, so a CTE read twice in a query takes a reference each - `Table<T>()` names a mapped table
+by its type, and `Table(cte)` names a CTE by the reference `With` handed back:
+
+```csharp
+var own = query.Table(totals);
+var reference = query.Table(totals);
+
+query.From<User>(out var user)
+    .LeftJoin(own, () => own.Row.UserId == user.Row.Id)
+    .LeftJoin(reference, () => reference.Row.UserId == benchmarkUserId);
+```
+
+And a CTE is in scope for the whole statement, so a correlated subquery reads one just as the query
+that declared it does.
+
+An `OUTER APPLY` reference is the exception, and only because it names nothing: the apply writes its
+body into the query where it stands, so there is nowhere for a second occurrence to select from. It
+is read through `table.Row` like the rest.
 
 ## Unions
 

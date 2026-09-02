@@ -673,10 +673,10 @@ namespace NPoco.Tests.FluentSqlTests
         public void BuildsTypedCteWithContinuousParameters()
         {
             var query = _database.FluentQuery()
-                .With<BuilderUser>(cte => cte
+                .With(out var active, cte => cte
                     .From<BuilderUser>(out var user)
                     .Where(user, x => x.IsActive)
-                    .Select(user), out var active)
+                    .Select(user))
                 .From(active)
                 .Where(active, x => x.Age >= 18)
                 .Select(active)
@@ -696,10 +696,10 @@ namespace NPoco.Tests.FluentSqlTests
             _database.Insert(new BuilderUser { Id = 2, Name = "Bob", IsActive = false, Age = 40 });
 
             var users = _database.FluentQuery()
-                .With<BuilderUser>(cte => cte
+                .With<BuilderUser>(out var active, cte => cte
                     .From<BuilderUser>(out var user)
                     .Where(user, x => x.IsActive)
-                    .Select(user), out var active)
+                    .Select(user))
                 .From(active)
                 .Select(active)
                 .Fetch();
@@ -711,10 +711,10 @@ namespace NPoco.Tests.FluentSqlTests
         public void RejectsForeignCteReferences()
         {
             var query = _database.FluentQuery()
-                .With<BuilderUser>(cte => cte.From<BuilderUser>(out var user).Select(user), out _);
+                .With<BuilderUser>(out _, cte => cte.From<BuilderUser>(out var user).Select(user));
 
             var owner = _database.FluentQuery()
-                .With<BuilderUser>(cte => cte.From<BuilderUser>(out var user).Select(user), out var foreign);
+                .With<BuilderUser>(out var foreign, cte => cte.From<BuilderUser>(out var user).Select(user));
             Assert.Throws<InvalidOperationException>(() => query.From(foreign));
         }
 
@@ -722,14 +722,14 @@ namespace NPoco.Tests.FluentSqlTests
         public void BuildsMultipleCtesInDeclarationOrderWithContinuousParameters()
         {
             var sql = _database.FluentQuery()
-                .With<BuilderUser>(cte => cte
+                .With<BuilderUser>(out _, cte => cte
                     .From<BuilderUser>(out var user)
                     .Where(user, x => x.Age >= 18)
-                    .Select(user), out _)
-                .With<BuilderOrder>(cte => cte
+                    .Select(user))
+                .With<BuilderOrder>(out var orders, cte => cte
                     .From<BuilderOrder>(out var order)
                     .Where(order, x => x.Amount >= 100m)
-                    .Select(order), out var orders)
+                    .Select(order))
                 .From(orders)
                 .Where(orders, x => x.UserId > 5)
                 .Select(orders)
@@ -748,7 +748,7 @@ namespace NPoco.Tests.FluentSqlTests
         {
             var external = _database.FluentQuery().From<BuilderUser>(out var user).Select(user);
             Assert.Throws<InvalidOperationException>(() => _database.FluentQuery()
-                .With<BuilderUser>(_ => external, out _));
+                .With<BuilderUser>(out _, _ => external));
         }
 
         [Test]
@@ -804,14 +804,14 @@ namespace NPoco.Tests.FluentSqlTests
         public void UsesUnionInsideCte()
         {
             var sql = _database.FluentQuery()
-                .With<BuilderUser>(cte => cte
+                .With<BuilderUser>(out var selected, cte => cte
                     .From<BuilderUser>(out var first)
                     .Where(first, x => x.Id == 1)
                     .Select(first)
                     .UnionAll(query => query
                         .From<BuilderUser>(out var second)
                         .Where(second, x => x.Id == 2)
-                        .Select(second)), out var selected)
+                        .Select(second)))
                 .From(selected)
                 .Select(selected)
                 .ToSql();
@@ -843,7 +843,7 @@ namespace NPoco.Tests.FluentSqlTests
                 .Select(secondUser);
 
             var sql = _database.FluentQuery()
-                .With(cteDefinition, out TableReference<BuilderUser> active)
+                .With(out TableReference<BuilderUser> active, cteDefinition)
                 .From(active)
                 .Where(active, x => x.Age >= 18)
                 .Select(active)

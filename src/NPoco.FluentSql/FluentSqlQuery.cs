@@ -156,6 +156,35 @@ namespace NPoco.FluentSql
         /// <returns>A reference with a generated alias, unique across the whole statement.</returns>
         public TableReference<T> Table<T>() => CreateTable<T>();
 
+        /// <summary>
+        /// Reserves another alias over what <paramref name="source"/> already names, for a table that
+        /// appears in the query more than once. <see cref="Table{T}()"/> covers a mapped table, whose
+        /// type says what to select from; a CTE is named by the reference <c>With</c> handed back and
+        /// nothing else, so a second occurrence of one is asked for through that reference:
+        ///
+        /// <code>
+        /// var mine = query.Table(totals);
+        /// var theirs = query.Table(totals);
+        ///
+        /// query.From&lt;User&gt;(out var user)
+        ///     .LeftJoin(mine, () => mine.Row.UserId == user.Row.Id)
+        ///     .LeftJoin(theirs, () => theirs.Row.UserId == user.Row.ManagerId);
+        /// </code>
+        /// </summary>
+        /// <typeparam name="T">The type the source projects or is mapped to.</typeparam>
+        /// <param name="source">A reference to the table or CTE another occurrence is wanted of.</param>
+        /// <returns>A reference to the same source, with an alias of its own.</returns>
+        /// <exception cref="InvalidOperationException">The reference belongs to another statement, or is an OUTER APPLY, which names nothing to take a second occurrence of.</exception>
+        public TableReference<T> Table<T>(TableReference<T> source)
+        {
+            EnsureDatabase(source);
+            if (!ReferenceEquals(source.Scope, _aliases))
+                throw new InvalidOperationException("Table(source) requires a reference from this statement.");
+            if (source.SourceName == null && source.IsDerived)
+                throw new InvalidOperationException("Table(source) cannot take an OUTER APPLY reference: the apply writes its body into the query, so there is no name to take a second occurrence of.");
+            return CreateTable<T>(source.IsDerived, source.SourceName);
+        }
+
         /// <inheritdoc cref="FluentSqlQueryStage.Subquery()"/>
         /// <remarks>
         /// Reads from this query as it stands when the subquery is built, which is what lets one be
@@ -168,25 +197,25 @@ namespace NPoco.FluentSql
         /// Declares a CTE. Its name is generated: the query is written against the reference this
         /// hands back, so the name only has to be unique within the statement.
         /// </summary>
-        public FluentSqlQuery With<T>(Func<FluentSqlQuery, FluentSqlResult<T>> query, out TableReference<T> table)
-            => With(NextCteName(), query, out table);
+        public FluentSqlQuery With<T>(out TableReference<T> table, Func<FluentSqlQuery, FluentSqlResult<T>> query)
+            => With(NextCteName(), out table, query);
 
-        /// <inheritdoc cref="With{T}(Func{FluentSqlQuery, FluentSqlResult{T}}, out TableReference{T})"/>
-        public FluentSqlQuery With<T>(FluentSqlResult<T> query, out TableReference<T> table)
-            => With(NextCteName(), query, out table);
+        /// <inheritdoc cref="With{T}(out TableReference{T}, Func{FluentSqlQuery, FluentSqlResult{T}})"/>
+        public FluentSqlQuery With<T>(out TableReference<T> table, FluentSqlResult<T> query)
+            => With(NextCteName(), out table, query);
 
-        internal FluentSqlQuery WithAsync<T>(Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<T>> query, out TableReference<T> table)
+        internal FluentSqlQuery WithAsync<T>(out TableReference<T> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<T>> query)
         {
             if (query == null) throw new ArgumentNullException(nameof(query));
             var cteQuery = new FluentSqlQuery(_database);
             var definition = query(new FluentSqlAsyncQuery(cteQuery));
             if (definition == null) throw new InvalidOperationException("The CTE callback must return a projected query.");
             if (!definition.InnerQuery.Projects(cteQuery)) throw new InvalidOperationException("The CTE callback must return a result created from the supplied query.");
-            return With(NextCteName(), definition, out table);
+            return With(NextCteName(), out table, definition);
         }
 
-        internal FluentSqlQuery WithAsync<T>(FluentSqlAsyncResult<T> query, out TableReference<T> table)
-            => With(NextCteName(), query, out table);
+        internal FluentSqlQuery WithAsync<T>(out TableReference<T> table, FluentSqlAsyncResult<T> query)
+            => With(NextCteName(), out table, query);
 
         private string NextCteName()
         {
@@ -199,17 +228,17 @@ namespace NPoco.FluentSql
             }
         }
 
-        private FluentSqlQuery With<T>(string name, Func<FluentSqlQuery, FluentSqlResult<T>> query, out TableReference<T> table)
+        private FluentSqlQuery With<T>(string name, out TableReference<T> table, Func<FluentSqlQuery, FluentSqlResult<T>> query)
         {
             if (query == null) throw new ArgumentNullException(nameof(query));
             var cteQuery = new FluentSqlQuery(_database);
             var definition = query(cteQuery);
             if (definition == null) throw new InvalidOperationException("The CTE callback must return a projected query.");
             if (!definition.InnerQuery.Projects(cteQuery)) throw new InvalidOperationException("The CTE callback must return a result created from the supplied query.");
-            return With(name, definition, out table);
+            return With(name, out table, definition);
         }
 
-        private FluentSqlQuery With<T>(string name, IFluentSqlResultInternal query, out TableReference<T> table)
+        private FluentSqlQuery With<T>(string name, out TableReference<T> table, IFluentSqlResultInternal query)
         {
             if (query == null) throw new ArgumentNullException(nameof(query));
             if (!ReferenceEquals(query.Database, _database)) throw new InvalidOperationException("The CTE query must use the same database instance as the containing query.");
@@ -234,15 +263,7 @@ namespace NPoco.FluentSql
         internal FluentSqlQuery FromCore<T>(TableReference<T> table)
         {
             if (_from != null) throw new InvalidOperationException("From can only be specified once.");
-            EnsureDatabase(table);
-            // A CTE reference carries the name it was declared under, so it is selected from as it
-            // stands. Anything else has to be a mapped table this statement handed out: a derived
-            // table has no name of its own, and selecting from the reference alone cannot work.
-            if (!_cteTables.Contains(table))
-            {
-                EnsureDeclared(table, "From(table)");
-                Consume(table);
-            }
+            EnsureAddable(table, "From(table)");
             _from = table;
             _tables.Add(table);
             return this;
@@ -397,18 +418,43 @@ namespace NPoco.FluentSql
         internal void AddJoin<TJoin>(FluentJoinType type, TableReference<TJoin> table, LambdaExpression on)
         {
             RequireFrom();
-            EnsureDeclared(table, "Join(table, on)");
+            EnsureAddable(table, "Join(table, on)");
             if (on == null) throw new ArgumentNullException(nameof(on));
             // The joined table is reached through table.Row like every other one here, so the
             // condition takes no parameter - which is also what lets it be written inside an
             // expression tree, where a parameter would have nothing to bind to.
             if (on.Parameters.Count != 0)
                 throw new ArgumentException("The join condition must reach columns through table.Row rather than take the joined row.", nameof(on));
-            Consume(table);
             var available = new List<TableReference>(AvailableTables) { table };
             _tables.Add(table);
             _joins.Add(new JoinPart { Type = type, Table = table, Condition = on, Tables = available.ToArray() });
         }
+
+        /// <summary>
+        /// Joins a subquery written where it is joined, rather than declared above it as a CTE. The
+        /// subquery is its own scope: a plain join is not lateral, so its body cannot read the
+        /// tables it is joined to - the condition is where the two meet. It shares the statement's
+        /// aliases, so nothing inside it can be mistaken for something outside.
+        /// </summary>
+        internal void AddDerivedJoin<TJoin>(FluentJoinType type, out TableReference<TJoin> table, IFluentSqlResultInternal result, LambdaExpression on)
+        {
+            RequireFrom();
+            if (on == null) throw new ArgumentNullException(nameof(on));
+            if (!ReferenceEquals(result.Database, _database)) throw new InvalidOperationException("The joined subquery must use the same database instance as the containing query.");
+            if (on.Parameters.Count != 1 || on.Parameters[0].Type != typeof(TJoin))
+                throw new ArgumentException("The join expression must accept the joined row.", nameof(on));
+
+            table = CreateTable<TJoin>(true);
+            RequireReferenceableColumns(table, "A joined subquery");
+            var available = new List<TableReference>(AvailableTables) { table };
+            _tables.Add(table);
+            _joins.Add(new JoinPart { Type = type, Table = table, Condition = on, Tables = available.ToArray(), Query = result });
+        }
+
+        // The scope a joined subquery is built in: no parent, because a plain join cannot read the
+        // query it is joined to, but the statement's alias set, so its tables are named apart from
+        // everything around it.
+        internal FluentSqlQuery CreateDerivedScope() => new FluentSqlQuery(_database, null, _aliases);
 
         internal void OuterApply<TApply>(out TableReference<TApply> table, Func<FluentSqlQuery, FluentSqlResult<TApply>> subquery)
         {
@@ -621,20 +667,24 @@ namespace NPoco.FluentSql
         // The alias set is shared by every query in the statement, so a reference that was reserved
         // from this one came from Table<T> here or on a query this is nested in - the only scopes
         // whose columns are in view anyway.
-        private void EnsureDeclared(TableReference table, string usage)
+        /// <summary>
+        /// Whether a reference can be added to a query, which asks the same of every kind of them:
+        /// it belongs to this statement, and it names something that can be selected from - a mapped
+        /// table, or a CTE under the name it was declared with. An OUTER APPLY reference names
+        /// nothing, because the apply writes its body into the query itself, so it can be read from
+        /// but never added again. And a reference stands for one occurrence, alias and all: adding
+        /// it twice would put that alias in the statement twice, which reads as valid SQL and means
+        /// something else entirely.
+        /// </summary>
+        private void EnsureAddable(TableReference table, string usage)
         {
             EnsureDatabase(table);
-            if (table.IsDerived || !ReferenceEquals(table.Scope, _aliases))
-                throw new InvalidOperationException(usage + " requires a table reference from Table<T>() on this query or one it is nested in.");
-        }
-
-        // A reference stands for one occurrence of a table, alias and all, so adding it twice would
-        // put the same alias in the statement twice. That reads as valid SQL and means something
-        // else entirely, so each occurrence takes its own Table<T>.
-        private static void Consume(TableReference table)
-        {
+            if (!ReferenceEquals(table.Scope, _aliases))
+                throw new InvalidOperationException(usage + " requires a table reference from this query, one it is nested in, or a CTE declared in the same statement.");
+            if (table.SourceName == null && table.IsDerived)
+                throw new InvalidOperationException(usage + " cannot take an OUTER APPLY reference: the apply writes it into the query, so it is read from where it already is.");
             if (table.InUse)
-                throw new InvalidOperationException("The table reference has already been added with From or Join. Declare a separate reference with Table<T>() for each occurrence of a table.");
+                throw new InvalidOperationException("The table reference has already been added with From or Join. Each occurrence takes its own reference: Table<T>() for a table, Table<T>(cte) for a CTE.");
             table.InUse = true;
         }
 
@@ -1162,6 +1212,9 @@ namespace NPoco.FluentSql
         /// <inheritdoc cref="FluentSqlQuery.Table{T}()"/>
         public TableReference<T> Table<T>() => _query.Table<T>();
 
+        /// <inheritdoc cref="FluentSqlQuery.Table{T}(TableReference{T})"/>
+        public TableReference<T> Table<T>(TableReference<T> source) => _query.Table(source);
+
         /// <summary>Adds an <c>INNER JOIN</c> of a table declared by <see cref="Table{T}()"/>.</summary>
         /// <typeparam name="TJoin">The POCO type mapped to the joined table.</typeparam>
         /// <param name="table">The reference handed back by <see cref="Table{T}()"/>, not yet added to a query.</param>
@@ -1208,9 +1261,42 @@ namespace NPoco.FluentSql
             return this;
         }
 
+        /// <summary>
+        /// Adds an <c>INNER JOIN</c> against a subquery written here rather than declared above as a
+        /// CTE, and hands back the reference its columns are read through.
+        /// </summary>
+        /// <typeparam name="TJoin">The type the subquery projects, which must have mapped columns.</typeparam>
+        /// <param name="table">Receives the reference for the joined subquery.</param>
+        /// <param name="subquery">Builds the subquery from the query it is handed. A join is not lateral, so it cannot read the tables it is joined to.</param>
+        /// <param name="on">The join condition, taking a row of the subquery and reaching the other tables through <c>table.Row</c>.</param>
+        /// <returns>This stage, so calls chain.</returns>
+        public FluentSqlQueryStage InnerJoin<TJoin>(out TableReference<TJoin> table, Func<FluentSqlQuery, FluentSqlResult<TJoin>> subquery, Expression<Func<TJoin, bool>> on)
+            => Join(FluentJoinType.Inner, out table, subquery, on);
+        /// <inheritdoc cref="InnerJoin{TJoin}(out TableReference{TJoin}, Func{FluentSqlQuery, FluentSqlResult{TJoin}}, Expression{Func{TJoin, bool}})"/>
+        public FluentSqlQueryStage LeftJoin<TJoin>(out TableReference<TJoin> table, Func<FluentSqlQuery, FluentSqlResult<TJoin>> subquery, Expression<Func<TJoin, bool>> on)
+            => Join(FluentJoinType.Left, out table, subquery, on);
+        /// <inheritdoc cref="InnerJoin{TJoin}(out TableReference{TJoin}, Func{FluentSqlQuery, FluentSqlResult{TJoin}}, Expression{Func{TJoin, bool}})"/>
+        public FluentSqlQueryStage RightJoin<TJoin>(out TableReference<TJoin> table, Func<FluentSqlQuery, FluentSqlResult<TJoin>> subquery, Expression<Func<TJoin, bool>> on)
+            => Join(FluentJoinType.Right, out table, subquery, on);
+        /// <inheritdoc cref="InnerJoin{TJoin}(out TableReference{TJoin}, Func{FluentSqlQuery, FluentSqlResult{TJoin}}, Expression{Func{TJoin, bool}})"/>
+        public FluentSqlQueryStage FullOuterJoin<TJoin>(out TableReference<TJoin> table, Func<FluentSqlQuery, FluentSqlResult<TJoin>> subquery, Expression<Func<TJoin, bool>> on)
+            => Join(FluentJoinType.FullOuter, out table, subquery, on);
+
         private FluentSqlQueryStage Join<TJoin>(FluentJoinType type, TableReference<TJoin> table, LambdaExpression on)
         {
             Target().AddJoin(type, table, on);
+            return this;
+        }
+
+        private FluentSqlQueryStage Join<TJoin>(FluentJoinType type, out TableReference<TJoin> table, Func<FluentSqlQuery, FluentSqlResult<TJoin>> subquery, LambdaExpression on)
+        {
+            if (subquery == null) throw new ArgumentNullException(nameof(subquery));
+            var query = Target();
+            var scope = query.CreateDerivedScope();
+            var result = subquery(scope);
+            if (result == null) throw new InvalidOperationException("The join callback must return a projected query.");
+            if (!result.InnerQuery.Projects(scope)) throw new InvalidOperationException("The join callback must return a result created from the supplied query.");
+            query.AddDerivedJoin(type, out table, result, on);
             return this;
         }
     }

@@ -44,6 +44,8 @@ namespace NPoco.FluentSql
         internal TableReference Table = null!;
         internal LambdaExpression Condition = null!;
         internal TableReference[] Tables = null!;
+        /// <summary>The subquery joined, when the join is against one rather than a named source.</summary>
+        internal IFluentSqlQueryInternal? Query;
     }
 
     /// <summary>

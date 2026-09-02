@@ -13,15 +13,15 @@ namespace NPoco.FluentSql
         public FluentSqlAsyncQueryStage From<T>(out TableReference<T> table)
             => new FluentSqlAsyncQueryStage(_query.FromCore(out table));
 
-        public FluentSqlAsyncQuery With<T>(Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<T>> query, out TableReference<T> table)
+        public FluentSqlAsyncQuery With<T>(out TableReference<T> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<T>> query)
         {
-            _query.WithAsync(query, out table);
+            _query.WithAsync(out table, query);
             return this;
         }
 
-        public FluentSqlAsyncQuery With<T>(FluentSqlAsyncResult<T> query, out TableReference<T> table)
+        public FluentSqlAsyncQuery With<T>(out TableReference<T> table, FluentSqlAsyncResult<T> query)
         {
-            _query.WithAsync(query, out table);
+            _query.WithAsync(out table, query);
             return this;
         }
 
@@ -30,6 +30,9 @@ namespace NPoco.FluentSql
 
         /// <inheritdoc cref="FluentSqlQuery.Table{T}()"/>
         public TableReference<T> Table<T>() => _query.Table<T>();
+
+        /// <inheritdoc cref="FluentSqlQuery.Table{T}(TableReference{T})"/>
+        public TableReference<T> Table<T>(TableReference<T> source) => _query.Table(source);
 
         /// <inheritdoc cref="FluentSqlQuery.Subquery()"/>
         public FluentSqlAsyncQuery Subquery() => new FluentSqlAsyncQuery(_query.CreateSubquery());
@@ -128,6 +131,9 @@ namespace NPoco.FluentSql
         /// <inheritdoc cref="FluentSqlQuery.Table{T}()"/>
         public TableReference<T> Table<T>() => _query.Table<T>();
 
+        /// <inheritdoc cref="FluentSqlQuery.Table{T}(TableReference{T})"/>
+        public TableReference<T> Table<T>(TableReference<T> source) => _query.Table(source);
+
         public FluentSqlAsyncQueryStage InnerJoin<TJoin>(TableReference<TJoin> table, Expression<Func<bool>> on) => Join(FluentJoinType.Inner, table, on);
         public FluentSqlAsyncQueryStage LeftJoin<TJoin>(TableReference<TJoin> table, Expression<Func<bool>> on) => Join(FluentJoinType.Left, table, on);
         public FluentSqlAsyncQueryStage RightJoin<TJoin>(TableReference<TJoin> table, Expression<Func<bool>> on) => Join(FluentJoinType.Right, table, on);
@@ -136,6 +142,31 @@ namespace NPoco.FluentSql
         public FluentSqlAsyncQueryStage OuterApply<TApply>(out TableReference<TApply> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<TApply>> subquery)
         {
             Target().OuterApplyAsync(out table, subquery);
+            return this;
+        }
+
+        /// <inheritdoc cref="FluentSqlQueryStage.InnerJoin{TJoin}(out TableReference{TJoin}, Func{FluentSqlQuery, FluentSqlResult{TJoin}}, Expression{Func{TJoin, bool}})"/>
+        public FluentSqlAsyncQueryStage InnerJoin<TJoin>(out TableReference<TJoin> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<TJoin>> subquery, Expression<Func<TJoin, bool>> on)
+            => Join(FluentJoinType.Inner, out table, subquery, on);
+        /// <inheritdoc cref="FluentSqlQueryStage.InnerJoin{TJoin}(out TableReference{TJoin}, Func{FluentSqlQuery, FluentSqlResult{TJoin}}, Expression{Func{TJoin, bool}})"/>
+        public FluentSqlAsyncQueryStage LeftJoin<TJoin>(out TableReference<TJoin> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<TJoin>> subquery, Expression<Func<TJoin, bool>> on)
+            => Join(FluentJoinType.Left, out table, subquery, on);
+        /// <inheritdoc cref="FluentSqlQueryStage.InnerJoin{TJoin}(out TableReference{TJoin}, Func{FluentSqlQuery, FluentSqlResult{TJoin}}, Expression{Func{TJoin, bool}})"/>
+        public FluentSqlAsyncQueryStage RightJoin<TJoin>(out TableReference<TJoin> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<TJoin>> subquery, Expression<Func<TJoin, bool>> on)
+            => Join(FluentJoinType.Right, out table, subquery, on);
+        /// <inheritdoc cref="FluentSqlQueryStage.InnerJoin{TJoin}(out TableReference{TJoin}, Func{FluentSqlQuery, FluentSqlResult{TJoin}}, Expression{Func{TJoin, bool}})"/>
+        public FluentSqlAsyncQueryStage FullOuterJoin<TJoin>(out TableReference<TJoin> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<TJoin>> subquery, Expression<Func<TJoin, bool>> on)
+            => Join(FluentJoinType.FullOuter, out table, subquery, on);
+
+        private FluentSqlAsyncQueryStage Join<TJoin>(FluentJoinType type, out TableReference<TJoin> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<TJoin>> subquery, LambdaExpression on)
+        {
+            if (subquery == null) throw new ArgumentNullException(nameof(subquery));
+            var query = Target();
+            var scope = query.CreateDerivedScope();
+            var result = subquery(new FluentSqlAsyncQuery(scope));
+            if (result == null) throw new InvalidOperationException("The join callback must return a projected query.");
+            if (!result.InnerQuery.Projects(scope)) throw new InvalidOperationException("The join callback must return a result created from the supplied query.");
+            query.AddDerivedJoin(type, out table, result, on);
             return this;
         }
 

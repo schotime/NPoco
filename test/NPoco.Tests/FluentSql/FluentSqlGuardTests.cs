@@ -175,8 +175,7 @@ namespace NPoco.Tests.FluentSqlTests
             // used to surface much later as "a query must end with Select".
             var query = _database.FluentQuery();
 
-            var exception = Assert.Throws<InvalidOperationException>(() => query.With(
-                sub => sub.From<GuardItem>(out var item).Select(() => item.Row.Name), out var t));
+            var exception = Assert.Throws<InvalidOperationException>(() => query.With(out var t, sub => sub.From<GuardItem>(out var item).Select(() => item.Row.Name)));
             Assert.That(exception.Message, Does.Contain("A CTE must project a type with mapped columns"));
             Assert.That(exception.Message, Does.Contain("String"));
         }
@@ -193,8 +192,7 @@ namespace NPoco.Tests.FluentSqlTests
         [Test] public void CtesAndAppliesProjectingAShapeWithColumnsAreAccepted()
         {
             var query = _database.FluentQuery();
-            Assert.DoesNotThrow(() => query.With(
-                sub => sub.From<GuardItem>(out var item).Select(() => new { item.Row.Id, item.Row.Name }), out var t));
+            Assert.DoesNotThrow(() => query.With(out var t, sub => sub.From<GuardItem>(out var item).Select(() => new { item.Row.Id, item.Row.Name })));
 
             var stage = _database.FluentQuery().From<GuardItem>(out var outerItem);
             Assert.DoesNotThrow(() => stage.OuterApply(out var applied,

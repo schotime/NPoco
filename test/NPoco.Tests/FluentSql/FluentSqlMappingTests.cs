@@ -115,9 +115,9 @@ namespace NPoco.Tests.FluentSqlTests
         [Test] public void EntityWithAComplexMemberMaterializesThroughACte()
         {
             var rows = Database.FluentQuery()
-                .With(q => q.From<User>(out var inner)
+                .With(out var cte, q => q.From<User>(out var inner)
                     .Where(inner, x => x.UserId <= 3)
-                    .Select(inner), out var cte)
+                    .Select(inner))
                 .From(cte)
                 .OrderBy(cte, x => x.UserId)
                 .Select(() => new { U = cte.Row })
