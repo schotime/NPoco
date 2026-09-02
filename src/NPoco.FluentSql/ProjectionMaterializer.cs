@@ -137,6 +137,7 @@ namespace NPoco.FluentSql
         private int _ordinal;
         private Func<object, object>? _converter;
         private object? _default;
+        private bool _serializedFromMember;
 
         internal int Ordinal => _ordinal;
 
@@ -148,24 +149,10 @@ namespace NPoco.FluentSql
             _default = MappingHelper.GetDefault(Type);
 
             var fieldType = context.Reader.GetFieldType(_ordinal);
-            _converter = MappingHelper.GetConverter(context.Mappers, ColumnToReadBy(context, fieldType), fieldType, Type);
-        }
-
-        /// <summary>
-        /// The column the value is read back through, which is usually the one the leaf reads. A
-        /// leaf that reads no column borrows the member it is written onto instead, and there the
-        /// column describes how that member is stored rather than what this expression produced: a
-        /// serialized member says the value arrives as text to deserialize, which a value the
-        /// provider already materialized as the member's own type - a Postgres array, a blob - did
-        /// not. Deserializing it would read it as a stored form it never had, so it is read as it
-        /// stands. A converter the member carries still applies, because it is chosen first and is
-        /// about the member rather than its storage.
-        /// </summary>
-        private PocoColumn? ColumnToReadBy(ProjectionInitContext context, Type fieldType)
-        {
-            if (!ColumnIsDestination || Column == null) return Column;
-            if (!Column.SerializedColumn || !Type.IsAssignableFrom(fieldType)) return Column;
-            return context.Mappers?.FindFromDbConverter(Column.MemberInfoData.MemberInfo, fieldType) == null ? null : Column;
+            _serializedFromMember = ColumnIsDestination && Column != null && Column.SerializedColumn
+                && context.Mappers?.FindFromDbConverter(Column.MemberInfoData.MemberInfo, fieldType) == null;
+            var column = _serializedFromMember && Type.IsAssignableFrom(fieldType) ? null : Column;
+            _converter = MappingHelper.GetConverter(context.Mappers, column, fieldType, Type);
         }
 
         internal override object? Materialize(object[] values, DbDataReader reader)
@@ -176,6 +163,15 @@ namespace NPoco.FluentSql
             // the member takes its default instead, so a null number leaves the rest of the row
             // intact rather than reading as absent.
             if (value == null || value == DBNull.Value) return Alias == null ? null : _default;
+
+            // A leaf that reads no column borrows the member it is written onto to know how to read
+            // its value, and where that member is serialized the column says the value arrives as
+            // text to deserialize. A computed value need not have: a provider can hand back the
+            // array or the document itself. The reader's declared type is not reliable enough to
+            // tell - it can be vaguer than what actually arrives - so the value decides. Only text
+            // is deserialized; anything else is already what it is.
+            if (_serializedFromMember && !(value is string)) return value;
+
             return _converter == null ? value : _converter(value);
         }
 

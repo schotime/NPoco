@@ -140,6 +140,23 @@ namespace NPoco.Tests.FluentSqlTests
         }
 
         [Test]
+        public void AValueDecidesForItselfWhenTheReaderWillNotSay()
+        {
+            using (var database = CreateDatabase())
+            {
+                // The column is an expression, so the reader has no declared type to report for it
+                // and can only say something vaguer than what it hands back. What arrives is still
+                // the member's own type, and reading it as stored text would be a cast that fails.
+                var row = database.FluentQuery()
+                    .From<ConvRow>(out var source)
+                    .Select(() => new BlobRow { Data = FSql.Raw<byte[]>("coalesce({0}, {0})", source.Row.Data) })
+                    .Single();
+
+                Assert.That(row.Data, Is.EqualTo(new byte[] { 1, 2, 255 }));
+            }
+        }
+
+        [Test]
         public void AProjectionWithNoMappedMemberToReadBackThroughStillReadsByType()
         {
             using (var database = CreateDatabase())
