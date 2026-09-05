@@ -104,7 +104,7 @@ namespace NPoco.Tests.FluentSqlTests
 
             var sql = _database.FluentQuery()
                 .From<BuilderOrder>(out var orders)
-                .Where(orders, x => x.UserId.In(subquery) && x.Amount > 10m)
+                .Where(orders, x => x.UserId.IsIn(subquery) && x.Amount > 10m)
                 .Select(orders)
                 .ToSql();
 

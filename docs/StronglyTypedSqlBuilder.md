@@ -140,7 +140,7 @@ var sources = query.Table<Source>();          // the derived table's alias
 query.From<User>(out var user)
     .Select(() => new { user.Row.Name, All = FSql.Scalar(query.Subquery()
         .From(sources, sub => sub. /* … reads user.Row.Id … */ )
-        .SelectScalar(() => FSql.Raw<string[]>("json_agg(DISTINCT {0})", sources.Row.Name))) });
+        .SelectScalar(() => FSql.Aggregate<string[]>("json_agg", FSql.Distinct(sources.Row.Name)))) });
 ```
 
 Inside an expression the reference comes from `Table<T>()`, for the same reason a correlated
@@ -224,16 +224,46 @@ projection plan entirely and maps through NPoco's ordinary single-column path.
 
 ## Expressions
 
+`IN` is `x.IsIn(...)`, taking either a list of values or a subquery, with `x.IsNotIn(...)` for the
+negation. It is named apart from `In` deliberately: NPoco's older expression API declares
+`NPoco.Expressions.S.In` as an extension of the same shape, and a second `In` would make every
+`.In(...)` ambiguous in a file importing both namespaces. `S.In` still translates to an `IN` inside a
+builder expression, so code already written against it keeps working.
+
 Comparisons, boolean logic, arithmetic, modulo, bitwise operators, coalescing, conditionals (`CASE`),
 string concatenation, date-part extraction and date addition all translate, with provider-specific SQL
 where it differs. Aggregates are `FSql.Count`, `CountDistinct`, `Sum`, `Average`, `Min`, `Max`.
+
+`FSql.Aggregate<T>(function, arguments...)` calls an aggregate the builder has no method for -
+`json_agg`, `string_agg`, `array_agg`, `percentile_cont` - with the two modifiers that only mean
+something inside an aggregate: `FSql.Distinct` wrapping the first argument, and `FSql.OrderBy` passed
+last, whose keys take `FSql.Descending` / `FSql.Ascending` for a direction. The function name is used
+verbatim; the arguments are translated like any other expression, so aliases resolve and captured
+values become parameters:
+
+```csharp
+.Select(() => new
+{
+    Names = FSql.Aggregate<string[]>("json_agg",
+        FSql.Distinct(source.Row.Name),
+        FSql.OrderBy(source.Row.Name)),
+    Recent = FSql.Aggregate<string>("string_agg", source.Row.Name, ", ",
+        FSql.OrderBy(FSql.Descending(source.Row.CreatedOn)))
+})
+```
+
+which renders `json_agg(DISTINCT s.Name ORDER BY s.Name)` and
+`string_agg(s.Name, @0 ORDER BY s.CreatedOn DESC)`. `FSql.Distinct` also applies to the built-in
+aggregates - `FSql.Sum(FSql.Distinct(x))` is `SUM(DISTINCT x)`. Both modifiers are rejected outside
+the position they belong in, rather than rendered somewhere SQL would not accept them.
 
 Inside a projection, parameterless `ToString()` on a mapped column selects that column unchanged and
 uses NPoco's normal materialization conversion. For a database-side conversion, use
 `FSql.Cast<T>(value, dbType)`; `dbType` is provider-specific, for example
 `FSql.Cast<string>(user.Row.Id, "text")` on PostgreSQL.
 
-`FSql.Raw` emits SQL the builder has no expression for. Placeholders are `string.Format` style and
+`FSql.Raw` emits SQL that fits none of the above - an operator, an unusual construct, a function
+whose shape is not a call. Placeholders are `string.Format` style and
 each argument is translated like any other expression rather than evaluated, so aliases resolve and
 captured values become parameters:
 

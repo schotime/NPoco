@@ -129,6 +129,22 @@ namespace NPoco.Tests.FluentSqlTests
                 });
         }
 
+        public void Aggregates()
+        {
+            db.FluentQuery().From<Source>(out var source)
+                .Select(() => new
+                {
+                    Names = FSql.Aggregate<string[]>("json_agg",
+                        FSql.Distinct(source.Row.Name),
+                        FSql.OrderBy(source.Row.Name)),
+                    Recent = FSql.Aggregate<string>("string_agg", source.Row.Name, ", ",
+                        FSql.OrderBy(FSql.Descending(source.Row.CreatedOn)))
+                });
+
+            db.FluentQuery().From<Order>(out var order)
+                .Select(() => FSql.Sum(FSql.Distinct(order.Row.Amount)));
+        }
+
         public void Subqueries()
         {
             var outer = db.FluentQuery().From<User>(out var user);
@@ -273,6 +289,7 @@ namespace NPoco.Tests.FluentSqlTests
         public class Region { public int Id { get; set; } }
         public class Audit { public int Id { get; set; } public int UserId { get; set; } }
         public class Metric { public decimal Value { get; set; } public DateTime OccurredAt { get; set; } }
+        public class Source { public string Name { get; set; } public DateTime CreatedOn { get; set; } }
         public class UserDto { public int Id { get; set; } public string Name { get; set; } }
         public class UserTotal { public int UserId { get; set; } public decimal Total { get; set; } }
         public class UserRecord

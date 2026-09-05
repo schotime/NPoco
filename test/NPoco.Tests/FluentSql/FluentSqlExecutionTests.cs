@@ -30,7 +30,7 @@ namespace NPoco.Tests.FluentSqlTests
             var users = Database.FluentQuery()
                 .From<User>(out var user)
                 .WhereIf(false, user, x => x.Name == "not-used")
-                .Where(user, x => x.UserId.In(ids))
+                .Where(user, x => x.UserId.IsIn(ids))
                 .OrderBy(user, x => x.UserId)
                 .Select(user)
                 .Fetch();
@@ -119,7 +119,7 @@ namespace NPoco.Tests.FluentSqlTests
 
             var users = Database.FluentQuery()
                 .From<User>(out var user)
-                .Where(user, x => x.UserId.In(subquery))
+                .Where(user, x => x.UserId.IsIn(subquery))
                 .OrderBy(user, x => x.UserId)
                 .Select(user)
                 .Fetch();

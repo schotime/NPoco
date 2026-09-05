@@ -51,7 +51,7 @@ namespace NPoco.Tests.FluentSqlTests
             var two = outer.Subquery().From<GuardItem>(out var inner)
                 .Select(() => new { inner.Row.Id, inner.Row.Name });
 
-            var query = outer.Where(() => item.Row.Id.In(two)).Select(() => new { item.Row.Name });
+            var query = outer.Where(() => item.Row.Id.IsIn(two)).Select(() => new { item.Row.Name });
 
             var exception = Assert.Throws<InvalidOperationException>(() => query.ToSql());
             Assert.That(exception.Message, Does.Contain("exactly one column"));

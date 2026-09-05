@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Microsoft.Data.Sqlite;
+using NPoco.Expressions;
 using NPoco.FluentSql;
 using NUnit.Framework;
 
@@ -301,6 +302,53 @@ namespace NPoco.Tests.FluentSqlTests
         }
 
         [Test]
+        public void BothFormsOfIsInResolveBesideTheOlderApisIn()
+        {
+            using (var database = CreateDatabase())
+            {
+                // This file imports NPoco.Expressions as well as NPoco.FluentSql. IsIn takes either
+                // a list or a subquery and collides with nothing, so no call needs qualifying - and
+                // the older API's In, which is what used to collide, still translates to an IN too.
+                var names = new[] { "north" };
+
+                var byList = database.FluentQuery()
+                    .From<RawSite>(out var site)
+                    .Where(() => site.Row.Name.IsIn(names))
+                    .Select(() => site.Row.Id)
+                    .Fetch();
+
+                var ids = database.FluentQuery()
+                    .From<RawSite>(out var source)
+                    .Where(() => source.Row.Name.IsIn(names))
+                    .SelectScalar(() => source.Row.Id);
+
+                var bySubquery = database.FluentQuery()
+                    .From<RawSystem>(out var system)
+                    .Where(() => system.Row.SiteId.IsIn(ids))
+                    .OrderBy(() => system.Row.Id)
+                    .Select(() => system.Row.Name)
+                    .Fetch();
+
+                var excluded = database.FluentQuery()
+                    .From<RawSite>(out var other)
+                    .Where(() => other.Row.Name.IsNotIn(names))
+                    .Select(() => other.Row.Id)
+                    .Fetch();
+
+                var olderApi = database.FluentQuery()
+                    .From<RawSite>(out var legacy)
+                    .Where(() => S.In(legacy.Row.Name, names))
+                    .Select(() => legacy.Row.Id)
+                    .Fetch();
+
+                Assert.That(byList, Is.EqualTo(new[] { 1 }));
+                Assert.That(olderApi, Is.EqualTo(new[] { 1 }));
+                Assert.That(bySubquery, Is.EqualTo(new[] { "a", "b", "c" }));
+                Assert.That(excluded, Is.EqualTo(new[] { 2 }));
+            }
+        }
+
+        [Test]
         public void SubqueryOperandsStillTakeTheirTypeFromTheValueBeingTested()
         {
             using (var database = CreateDatabase())
@@ -314,14 +362,14 @@ namespace NPoco.Tests.FluentSqlTests
                 // including where the operand is nullable and the subquery is not.
                 var names = database.FluentQuery()
                     .From<RawSystem>(out var system)
-                    .Where(() => system.Row.SiteId.In(siteIds))
+                    .Where(() => system.Row.SiteId.IsIn(siteIds))
                     .OrderBy(() => system.Row.Id)
                     .Select(() => system.Row.Name)
                     .Fetch();
 
                 var others = database.FluentQuery()
                     .From<RawSystem>(out var other)
-                    .Where(() => other.Row.SiteId.NotIn(siteIds))
+                    .Where(() => other.Row.SiteId.IsNotIn(siteIds))
                     .Select(() => other.Row.Name)
                     .Fetch();
 
@@ -542,6 +590,128 @@ namespace NPoco.Tests.FluentSqlTests
                 // The innermost apply reaches two levels out to the original FROM.
                 Assert.That(sql, Does.Contain("].[site_id] = [" + site.Alias + "].[id]"));
                 Assert.That(sql, Does.Contain("[" + site.Alias + "].[id])"));
+            }
+        }
+
+        // ---- Aggregate ----------------------------------------------------------
+
+        [Test]
+        public void AggregateProjectsAVendorAggregateWithDistinct()
+        {
+            using (var database = CreateDatabase())
+            {
+                var rows = database.FluentQuery()
+                    .From<RawSystem>(out var system)
+                    .GroupBy(system, x => x.SiteId)
+                    .OrderBy(system, x => x.SiteId)
+                    .Select(() => new RawGrouped
+                    {
+                        SiteId = system.Row.SiteId,
+                        Names = FSql.Aggregate<string>("group_concat", FSql.Distinct(system.Row.Name))
+                    })
+                    .Fetch();
+
+                Assert.That(rows.Select(x => x.Names), Is.EqualTo(new[] { "a,b,c", "d" }));
+            }
+        }
+
+        [Test]
+        public void AggregateOrdersInsideTheCall()
+        {
+            using (var database = CreateDatabase())
+            {
+                var rows = database.FluentQuery()
+                    .From<RawSystem>(out var system)
+                    .GroupBy(system, x => x.SiteId)
+                    .OrderBy(system, x => x.SiteId)
+                    .Select(() => new RawGrouped
+                    {
+                        SiteId = system.Row.SiteId,
+                        Names = FSql.Aggregate<string>("group_concat", system.Row.Name, "|",
+                            FSql.OrderBy(FSql.Descending(system.Row.Id)))
+                    })
+                    .Fetch();
+
+                Assert.That(rows.Select(x => x.Names), Is.EqualTo(new[] { "c|b|a", "d" }));
+            }
+        }
+
+        [Test]
+        public void AggregateRendersDistinctAndOrderedKeys()
+        {
+            using (var database = CreateDatabase())
+            {
+                var sql = database.FluentQuery()
+                    .From<RawSystem>(out var system)
+                    .Select(() => new
+                    {
+                        // What the same call has to be written as against Postgres, where the
+                        // aggregate is json_agg rather than group_concat.
+                        Names = FSql.Aggregate<string>("json_agg",
+                            FSql.Distinct(system.Row.Name),
+                            FSql.OrderBy(system.Row.Name, FSql.Ascending(system.Row.Id))),
+                        Sum = FSql.Sum(FSql.Distinct(system.Row.Id))
+                    })
+                    .ToSql();
+
+                Assert.That(sql.SQL, Does.Contain("json_agg(DISTINCT [rs].[name] ORDER BY [rs].[name], [rs].[id] ASC) AS [Names]"));
+                Assert.That(sql.SQL, Does.Contain("SUM(DISTINCT [rs].[id]) AS [Sum]"));
+            }
+        }
+
+        [Test]
+        public void AggregateParameterizesCapturedArguments()
+        {
+            using (var database = CreateDatabase())
+            {
+                var separator = "|";
+                var sql = database.FluentQuery()
+                    .From<RawSystem>(out var system)
+                    .Select(() => new { Names = FSql.Aggregate<string>("group_concat", system.Row.Name, separator) })
+                    .ToSql();
+
+                Assert.That(sql.SQL, Does.Contain("group_concat([rs].[name], @0)"));
+                Assert.That(sql.Arguments, Is.EqualTo(new object[] { "|" }));
+            }
+        }
+
+        [Test]
+        public void AggregateModifiersAreRejectedOutsideThePositionTheyBelongIn()
+        {
+            using (var database = CreateDatabase())
+            {
+                var loose = database.FluentQuery()
+                    .From<RawSystem>(out var system)
+                    .Select(() => new { Name = FSql.Distinct(system.Row.Name) });
+                Assert.That(Assert.Throws<NotSupportedException>(() => loose.ToSql()).Message,
+                    Does.Contain("FSql.Distinct can only be used inside an aggregate call"));
+
+                var late = database.FluentQuery()
+                    .From<RawSystem>(out system)
+                    .Select(() => new
+                    {
+                        Names = FSql.Aggregate<string>("group_concat", system.Row.Id, FSql.Distinct(system.Row.Name))
+                    });
+                Assert.That(Assert.Throws<ArgumentException>(() => late.ToSql()).Message,
+                    Does.Contain("can only wrap the first argument"));
+
+                var ordered = database.FluentQuery()
+                    .From<RawSystem>(out system)
+                    .Select(() => new
+                    {
+                        Names = FSql.Aggregate<string>("group_concat", FSql.OrderBy(system.Row.Id), system.Row.Name)
+                    });
+                Assert.That(Assert.Throws<ArgumentException>(() => ordered.ToSql()).Message,
+                    Does.Contain("must come after its arguments"));
+
+                var direction = database.FluentQuery()
+                    .From<RawSystem>(out system)
+                    .Select(() => new
+                    {
+                        Names = FSql.Aggregate<string>("group_concat", FSql.Descending(system.Row.Name))
+                    });
+                Assert.That(Assert.Throws<ArgumentException>(() => direction.ToSql()).Message,
+                    Does.Contain("is not an aggregate argument"));
             }
         }
 

@@ -11,7 +11,7 @@ namespace NPoco.FluentSql
     /// <summary>
     /// A projected query that can be rendered as SQL. Subqueries are passed to
     /// <see cref="FSql.Scalar{T}"/>, <see cref="FSql.Exists"/> and
-    /// <see cref="FSql.In{T}(T, IFluentSqlQuery)"/> as this.
+    /// <see cref="FSql.IsIn{T}(T, IFluentSqlQuery)"/> as this.
     /// </summary>
     public interface IFluentSqlQuery
     {
@@ -345,7 +345,7 @@ namespace NPoco.FluentSql
 
         /// <summary>
         /// A new query that can reference this query's tables, for a correlated subquery passed to
-        /// <see cref="FSql.Scalar{T}"/>, <see cref="FSql.Exists"/> or <see cref="FSql.In{T}(T, IFluentSqlQuery)"/>.
+        /// <see cref="FSql.Scalar{T}"/>, <see cref="FSql.Exists"/> or <see cref="FSql.IsIn{T}(T, IFluentSqlQuery)"/>.
         /// </summary>
         internal FluentSqlQuery CreateSubquery()
         {
@@ -1197,7 +1197,7 @@ namespace NPoco.FluentSql
         /// <summary>
         /// Starts a subquery that can reference this query's tables. Pass the result to
         /// <see cref="FSql.Scalar{T}"/> to project it, or to <see cref="FSql.Exists"/> /
-        /// <see cref="FSql.In{T}(T, IFluentSqlQuery)"/> to use it in a predicate. A subquery
+        /// <see cref="FSql.IsIn{T}(T, IFluentSqlQuery)"/> to use it in a predicate. A subquery
         /// built from <see cref="DatabaseExtensions.FluentQuery"/> instead is uncorrelated and
         /// cannot see the outer tables.
         /// </summary>
@@ -1254,7 +1254,7 @@ namespace NPoco.FluentSql
         }
         /// <summary>
         /// Projects a single value per row over any tables in scope - an aggregate, or one column of a
-        /// subquery used by <see cref="FSql.Scalar{T}"/> or <see cref="FSql.In{T}(T, IFluentSqlQuery)"/>.
+        /// subquery used by <see cref="FSql.Scalar{T}"/> or <see cref="FSql.IsIn{T}(T, IFluentSqlQuery)"/>.
         /// </summary>
         /// <typeparam name="TValue">The type the projected expression yields.</typeparam>
         /// <param name="selector">The projected expression, reaching columns through <c>table.Row</c>.</param>

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using S = NPoco.Expressions.S;
 
 namespace NPoco.FluentSql
 {
@@ -185,6 +186,10 @@ namespace NPoco.FluentSql
                 if (expression.Method.Name == "Raw") return RawFragment(expression);
                 if (expression.Method.Name == "Scalar") return ScalarSubquery(expression);
                 if (expression.Method.Name == "Cast") return Cast(expression);
+                if (expression.Method.Name == "Aggregate") return AggregateFunction(expression);
+                if (IsAggregateModifier(expression.Method.Name))
+                    throw new NotSupportedException("FSql." + expression.Method.Name + " can only be used inside an aggregate call, "
+                        + "for example FSql.Aggregate<string>(\"json_agg\", FSql.Distinct(table.Row.Name), FSql.OrderBy(table.Row.Name)).");
             }
             if (expression.Method.DeclaringType == typeof(FSqlFunctions))
             {
@@ -192,14 +197,20 @@ namespace NPoco.FluentSql
                     return "(CASE WHEN " + Predicate(expression.Arguments[0]) + " THEN " + Visit(expression.Arguments[1]) + " ELSE " + Visit(expression.Arguments[2]) + " END)";
                 return Aggregate(expression);
             }
+            // NPoco's older expression API has an IN of its own. It is translated here too, so code
+            // already written against S reads as an IN inside a builder expression rather than being
+            // run against a Row that only exists to be translated.
+            if (expression.Method.DeclaringType == typeof(S) && expression.Method.Name == "In")
+                return CollectionContains(expression.Arguments[1], expression.Arguments[0]);
+
             if (expression.Method.DeclaringType == typeof(FSql))
             {
                 if (IsAggregate(expression.Method.Name)) return Aggregate(expression);
                 if (typeof(IFluentSqlQuery).IsAssignableFrom(expression.Arguments.Last().Type)) return Subquery(expression);
-                if (expression.Method.Name == "In" || expression.Method.Name == "NotIn")
+                if (expression.Method.Name == "IsIn" || expression.Method.Name == "IsNotIn")
                 {
                     var contains = CollectionContains(expression.Arguments[1], expression.Arguments[0]);
-                    return expression.Method.Name == "NotIn" ? "(NOT " + contains + ")" : contains;
+                    return expression.Method.Name == "IsNotIn" ? "(NOT " + contains + ")" : contains;
                 }
                 if (expression.Method.Name == "Case")
                     return "(CASE WHEN " + Predicate(expression.Arguments[0]) + " THEN " + Visit(expression.Arguments[1]) + " ELSE " + Visit(expression.Arguments[2]) + " END)";
@@ -290,8 +301,88 @@ namespace NPoco.FluentSql
         {
             if (expression.Method.Name == "CountDistinct") return "COUNT(DISTINCT " + Visit(expression.Arguments[0]) + ")";
             var name = expression.Method.Name == "Average" ? "AVG" : expression.Method.Name.ToUpperInvariant();
-            return name + "(" + (expression.Arguments.Count == 0 ? "*" : Visit(expression.Arguments[0])) + ")";
+            // The one-argument aggregates take the same DISTINCT marker the open-ended one does, so
+            // SUM(DISTINCT x) reads the way COUNT(DISTINCT x) already did.
+            return name + "(" + (expression.Arguments.Count == 0 ? "*" : AggregateArgument(expression.Arguments[0])) + ")";
         }
+
+        /// <summary>
+        /// Renders an aggregate or function call named by the caller - the aggregates SQL has and the
+        /// builder does not - with the DISTINCT and ORDER BY that only appear inside one.
+        /// </summary>
+        private string AggregateFunction(MethodCallExpression expression)
+        {
+            if (!CanEvaluate(expression.Arguments[0]))
+                throw new NotSupportedException("The function name passed to FSql.Aggregate must be a constant or a captured value.");
+            var function = Evaluate(expression.Arguments[0]) as string;
+            if (string.IsNullOrWhiteSpace(function))
+                throw new ArgumentException("FSql.Aggregate requires a function name.", nameof(expression));
+
+            var arguments = new List<string>();
+            string? ordering = null;
+            foreach (var operand in MarkerArguments(expression, 1))
+            {
+                var modifier = AggregateModifier(operand);
+                var name = modifier == null ? null : modifier.Method.Name;
+                if (name == "OrderBy")
+                {
+                    if (ordering != null)
+                        throw new ArgumentException("An aggregate takes one FSql.OrderBy.", nameof(expression));
+                    ordering = Ordering(modifier!);
+                    continue;
+                }
+                if (ordering != null)
+                    throw new ArgumentException("The FSql.OrderBy passed to FSql.Aggregate must come after its arguments.", nameof(expression));
+                if (name == "Distinct" && arguments.Count > 0)
+                    throw new ArgumentException("DISTINCT applies to an aggregate's whole argument list, so FSql.Distinct "
+                        + "can only wrap the first argument.", nameof(expression));
+                arguments.Add(AggregateArgument(operand));
+            }
+
+            if (ordering == null) return function + "(" + string.Join(", ", arguments) + ")";
+            if (arguments.Count == 0)
+                throw new ArgumentException("An aggregate ordered by FSql.OrderBy needs at least one argument to order.", nameof(expression));
+            return function + "(" + string.Join(", ", arguments) + " ORDER BY " + ordering + ")";
+        }
+
+        // DISTINCT is written as a marker around the value rather than a flag beside it, so it sits
+        // where it sits in SQL and reads the same in every aggregate.
+        private string AggregateArgument(Expression expression)
+        {
+            var modifier = AggregateModifier(expression);
+            if (modifier == null) return Visit(expression);
+            if (modifier.Method.Name == "Distinct") return "DISTINCT " + Visit(modifier.Arguments[0]);
+            throw new ArgumentException("FSql." + modifier.Method.Name + " is not an aggregate argument. Use FSql.Distinct "
+                + "to mark one, and FSql.OrderBy to order the aggregate.", nameof(expression));
+        }
+
+        private string Ordering(MethodCallExpression expression)
+        {
+            var keys = MarkerArguments(expression, 0);
+            if (keys.Length == 0) throw new ArgumentException("FSql.OrderBy requires at least one ordering key.", nameof(expression));
+            return string.Join(", ", keys.Select(OrderingKey));
+        }
+
+        private string OrderingKey(Expression expression)
+        {
+            var modifier = AggregateModifier(expression);
+            if (modifier == null) return Visit(expression);
+            if (modifier.Method.Name == "Descending") return Visit(modifier.Arguments[0]) + " DESC";
+            if (modifier.Method.Name == "Ascending") return Visit(modifier.Arguments[0]) + " ASC";
+            throw new ArgumentException("FSql." + modifier.Method.Name + " is not an ordering key. Use FSql.Descending or "
+                + "FSql.Ascending to give one a direction.", nameof(expression));
+        }
+
+        // A modifier is recognised structurally, before Visit gets to it - the markers have no SQL of
+        // their own, and outside the position they belong in they are an error rather than a value.
+        private static MethodCallExpression? AggregateModifier(Expression expression)
+        {
+            var call = StripConvert(expression) as MethodCallExpression;
+            return call != null && IsFluentSqlMarker(call.Method) && IsAggregateModifier(call.Method.Name) ? call : null;
+        }
+
+        private static bool IsAggregateModifier(string name)
+            => name == "Distinct" || name == "OrderBy" || name == "Descending" || name == "Ascending";
 
         private static bool IsAggregate(string name)
             => name == "Count" || name == "CountDistinct" || name == "Sum" || name == "Average" || name == "Min" || name == "Max";
@@ -337,6 +428,12 @@ namespace NPoco.FluentSql
         private static bool IsFluentSqlMarker(MethodInfo method)
             => method.DeclaringType == typeof(FSql) || method.DeclaringType == typeof(FSqlFunctions);
 
+        // What has to be translated rather than run: the markers, which have no runtime body, and
+        // S, whose methods do have one - S.In really would test a list in memory, over a Row that
+        // exists only to be translated.
+        private static bool IsTranslated(MethodInfo method)
+            => IsFluentSqlMarker(method) || method.DeclaringType == typeof(S);
+
         private string RawFragment(MethodCallExpression expression)
         {
             if (!CanEvaluate(expression.Arguments[0]))
@@ -345,7 +442,7 @@ namespace NPoco.FluentSql
             if (string.IsNullOrWhiteSpace(format))
                 throw new ArgumentException("FSql.Raw requires SQL text.");
 
-            var operands = RawOperands(expression);
+            var operands = MarkerArguments(expression, 1);
             var rendered = new object[operands.Length];
             for (var i = 0; i < operands.Length; i++) rendered[i] = Visit(operands[i]);
 
@@ -360,16 +457,16 @@ namespace NPoco.FluentSql
             }
         }
 
-        // The arguments arrive as the expression nodes the caller wrote, because a Raw call only
-        // ever appears inside an expression tree. They are translated, never evaluated - which is
+        // The arguments arrive as the expression nodes the caller wrote, because these calls only
+        // ever appear inside an expression tree. They are translated, never evaluated - which is
         // what lets table.Row.Column stand for a column rather than throwing.
-        private static Expression[] RawOperands(MethodCallExpression expression)
+        private static Expression[] MarkerArguments(MethodCallExpression expression, int index)
         {
-            if (expression.Arguments.Count < 2) return new Expression[0];
-            var argument = StripConvert(expression.Arguments[1]);
+            if (expression.Arguments.Count <= index) return new Expression[0];
+            var argument = StripConvert(expression.Arguments[index]);
             var array = argument as NewArrayExpression;
             if (array == null)
-                throw new NotSupportedException("FSql.Raw arguments must be written out in the call, "
+                throw new NotSupportedException("FSql." + expression.Method.Name + " arguments must be written out in the call, "
                     + "for example FSql.Raw<string>(\"upper({0})\", table.Row.Column).");
             return array.Expressions.ToArray();
         }
@@ -408,12 +505,12 @@ namespace NPoco.FluentSql
             var queryExpression = expression.Arguments[expression.Arguments.Count - 1];
             var query = Evaluate(queryExpression) as IFluentSqlQueryInternal;
             if (query == null) throw new InvalidOperationException("A SQL subquery expression requires a FluentSqlQuery instance.");
-            if (expression.Method.Name == "In" || expression.Method.Name == "NotIn")
+            if (expression.Method.Name == "IsIn" || expression.Method.Name == "IsNotIn")
                 RequireSingleColumn(query, "FSql." + expression.Method.Name);
             var nestedSql = query.Build(_parameters);
             if (expression.Method.Name == "Exists") return "EXISTS (" + nestedSql + ")";
             if (expression.Method.Name == "NotExists") return "NOT EXISTS (" + nestedSql + ")";
-            var op = expression.Method.Name == "NotIn" ? " NOT IN " : " IN ";
+            var op = expression.Method.Name == "IsNotIn" ? " NOT IN " : " IN ";
             return "(" + Visit(expression.Arguments[0]) + op + "(" + nestedSql + ")" + ")";
         }
 
@@ -646,7 +743,7 @@ namespace NPoco.FluentSql
             {
                 // A marker method has no runtime body - it only exists to be translated - so an
                 // expression containing one can never be evaluated to a constant.
-                if (IsFluentSqlMarker(node.Method))
+                if (IsTranslated(node.Method))
                 {
                     Found = true;
                     return node;

@@ -808,11 +808,11 @@ namespace NPoco.Tests.FluentSqlTests
             var two = db.FluentQuery().From<RawSystem>(out var s)
                 .Select(() => new { s.Row.Id, s.Row.Name });
             var query = db.FluentQuery().From<RawSite>(out var site)
-                .Where(() => site.Row.Id.In(two))
+                .Where(() => site.Row.Id.IsIn(two))
                 .Select(() => new { site.Row.Name });
 
             var exception = Assert.Throws<InvalidOperationException>(() => query.ToSql());
-            Assert.That(exception.Message, Does.Contain("FSql.In"));
+            Assert.That(exception.Message, Does.Contain("FSql.IsIn"));
         }
 
         [Test] public void ExistsAcceptsAMultiColumnSubquery()

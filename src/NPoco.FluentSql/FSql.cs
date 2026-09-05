@@ -6,6 +6,15 @@ using System.Linq.Expressions;
 namespace NPoco.FluentSql
 {
     /// <summary>
+    /// An ordering inside an aggregate call, produced by <see cref="FSql.OrderBy(object[])"/>.
+    /// It exists only to be recognised and translated - no instance is ever created.
+    /// </summary>
+    public sealed class FSqlOrdering
+    {
+        private FSqlOrdering() { }
+    }
+
+    /// <summary>
     /// The SQL functions in scope inside a projection that takes one of these as its lambda
     /// parameter - <c>Select(f =&gt; new { Total = f.Sum(order.Row.Amount) })</c>. The members exist
     /// only to be recognised and translated, so calling one outside a fluent SQL expression throws.
@@ -48,6 +57,16 @@ namespace NPoco.FluentSql
         /// <param name="value">The expression to take the largest value of.</param>
         /// <returns>Never returns a value - the call is translated to SQL.</returns>
         public T Max<T>(T value) => throw Marker();
+        /// <inheritdoc cref="FSql.Aggregate{T}(string, object[])"/>
+        public T Aggregate<T>(string function, params object[] arguments) => throw Marker();
+        /// <inheritdoc cref="FSql.Distinct{T}(T)"/>
+        public T Distinct<T>(T value) => throw Marker();
+        /// <inheritdoc cref="FSql.OrderBy(object[])"/>
+        public FSqlOrdering OrderBy(params object[] keys) => throw Marker();
+        /// <inheritdoc cref="FSql.Descending{T}(T)"/>
+        public object Descending<T>(T value) => throw Marker();
+        /// <inheritdoc cref="FSql.Ascending{T}(T)"/>
+        public object Ascending<T>(T value) => throw Marker();
         /// <summary>Translates to <c>CASE WHEN ... THEN ... ELSE ... END</c>.</summary>
         /// <typeparam name="T">The type both branches produce.</typeparam>
         /// <param name="condition">The predicate tested by the WHEN clause.</param>
@@ -70,8 +89,8 @@ namespace NPoco.FluentSql
     /// <summary>
     /// The SQL functions and subquery operators the builder recognises inside an expression:
     /// aggregates, <c>IN</c>, <c>EXISTS</c>, <c>CASE</c>, scalar subqueries and raw fragments.
-    /// Apart from the sequence overloads of <see cref="In{T}(T, IEnumerable{T})"/> and
-    /// <see cref="NotIn{T}(T, IEnumerable{T})"/>, these exist only to be translated, so calling one
+    /// Apart from the sequence overloads of <see cref="IsIn{T}(T, IEnumerable{T})"/> and
+    /// <see cref="IsNotIn{T}(T, IEnumerable{T})"/>, these exist only to be translated, so calling one
     /// outside a fluent SQL expression throws.
     /// </summary>
     public static class FSql
@@ -109,6 +128,71 @@ namespace NPoco.FluentSql
         /// <param name="value">The expression to take the largest value of.</param>
         /// <returns>Never returns a value - the call is translated to SQL.</returns>
         public static T Max<T>(T value) => throw Marker();
+
+        /// <summary>
+        /// Translates to an aggregate or function call the builder has no expression for -
+        /// <c>json_agg</c>, <c>string_agg</c>, <c>array_agg</c>, <c>percentile_cont</c> - with the
+        /// modifiers that only make sense inside one. The function name is used verbatim, so it is
+        /// the caller's job to keep it valid for the database being targeted.
+        ///
+        /// Arguments are translated the same way any other builder expression is - they are read as
+        /// expressions, never evaluated - so table aliases resolve and captured values become query
+        /// parameters. Wrap the first argument in <see cref="Distinct{T}"/> for <c>DISTINCT</c>, and
+        /// pass <see cref="OrderBy(object[])"/> last for an ordering inside the call:
+        ///
+        /// <code>
+        /// .Select(() => new
+        /// {
+        ///     Names = FSql.Aggregate&lt;string[]&gt;("json_agg",
+        ///         FSql.Distinct(source.Row.Name),
+        ///         FSql.OrderBy(source.Row.Name)),
+        ///     Csv = FSql.Aggregate&lt;string&gt;("string_agg", source.Row.Name, ", ",
+        ///         FSql.OrderBy(FSql.Descending(source.Row.CreatedOn)))
+        /// })
+        /// </code>
+        ///
+        /// which renders <c>json_agg(DISTINCT s.Name ORDER BY s.Name)</c> and
+        /// <c>string_agg(s.Name, @0 ORDER BY s.CreatedOn DESC)</c>.
+        /// </summary>
+        /// <typeparam name="T">The type the call produces, used to map the value back.</typeparam>
+        /// <param name="function">The SQL function name, used verbatim. Must be a constant or captured string.</param>
+        /// <param name="arguments">The call's arguments, optionally with a leading
+        /// <see cref="Distinct{T}"/> and a trailing <see cref="OrderBy(object[])"/>. Write them
+        /// inline: they are read as expressions rather than evaluated.</param>
+        /// <returns>Never returns a value - the call is translated to SQL.</returns>
+        public static T Aggregate<T>(string function, params object[] arguments) => throw Marker();
+
+        /// <summary>
+        /// Marks the first argument of an aggregate as <c>DISTINCT</c> - <c>COUNT(DISTINCT x)</c>,
+        /// <c>json_agg(DISTINCT x)</c>. <c>DISTINCT</c> applies to the whole argument list, so it can
+        /// only wrap the first one. Valid inside <see cref="Aggregate{T}"/> and the aggregates above.
+        /// </summary>
+        /// <typeparam name="T">The type of the aggregated expression.</typeparam>
+        /// <param name="value">The expression whose distinct values are aggregated.</param>
+        /// <returns>Never returns a value - the call is translated to SQL.</returns>
+        public static T Distinct<T>(T value) => throw Marker();
+
+        /// <summary>
+        /// The ordering inside an aggregate call - <c>json_agg(x ORDER BY y, z DESC)</c>. Pass it as
+        /// the last argument of <see cref="Aggregate{T}"/>; wrap a key in <see cref="Descending{T}"/>
+        /// or <see cref="Ascending{T}"/> to give it a direction.
+        /// </summary>
+        /// <param name="keys">The ordering keys, written inline: they are read as expressions rather
+        /// than evaluated.</param>
+        /// <returns>Never returns a value - the call is translated to SQL.</returns>
+        public static FSqlOrdering OrderBy(params object[] keys) => throw Marker();
+
+        /// <summary>Orders an aggregate's ordering key descending. Valid only inside <see cref="OrderBy(object[])"/>.</summary>
+        /// <typeparam name="T">The type of the ordering key.</typeparam>
+        /// <param name="value">The expression to order by.</param>
+        /// <returns>Never returns a value - the call is translated to SQL.</returns>
+        public static object Descending<T>(T value) => throw Marker();
+
+        /// <summary>Orders an aggregate's ordering key ascending. Valid only inside <see cref="OrderBy(object[])"/>.</summary>
+        /// <typeparam name="T">The type of the ordering key.</typeparam>
+        /// <param name="value">The expression to order by.</param>
+        /// <returns>Never returns a value - the call is translated to SQL.</returns>
+        public static object Ascending<T>(T value) => throw Marker();
         /// <summary>
         /// Translates to <c>value IN (subquery)</c>. Build <paramref name="subquery"/> from
         /// <see cref="FluentSqlQueryStage.Subquery"/> to correlate it with the outer query.
@@ -117,13 +201,13 @@ namespace NPoco.FluentSql
         /// <param name="value">The expression being tested for membership.</param>
         /// <param name="subquery">A query projecting exactly one column.</param>
         /// <returns>Never returns a value - the call is translated to SQL.</returns>
-        public static bool In<T>(this T value, IFluentSqlQuery subquery) => throw Marker();
+        public static bool IsIn<T>(this T value, IFluentSqlQuery subquery) => throw Marker();
         /// <summary>Translates to <c>value NOT IN (subquery)</c>.</summary>
         /// <typeparam name="T">The type of the tested expression.</typeparam>
         /// <param name="value">The expression being tested for membership.</param>
         /// <param name="subquery">A query projecting exactly one column.</param>
         /// <returns>Never returns a value - the call is translated to SQL.</returns>
-        public static bool NotIn<T>(this T value, IFluentSqlQuery subquery) => throw Marker();
+        public static bool IsNotIn<T>(this T value, IFluentSqlQuery subquery) => throw Marker();
         /// <summary>
         /// Inside a fluent SQL expression, translates to <c>value IN (...)</c> with one query parameter
         /// per element. Called anywhere else it behaves as written, testing membership in memory.
@@ -132,7 +216,7 @@ namespace NPoco.FluentSql
         /// <param name="value">The expression being tested for membership.</param>
         /// <param name="values">The values to test against.</param>
         /// <returns>Whether <paramref name="value"/> is one of <paramref name="values"/>, when evaluated in memory.</returns>
-        public static bool In<T>(this T value, IEnumerable<T> values) => values.Contains(value);
+        public static bool IsIn<T>(this T value, IEnumerable<T> values) => values.Contains(value);
         /// <summary>
         /// Inside a fluent SQL expression, translates to <c>value NOT IN (...)</c> with one query
         /// parameter per element. Called anywhere else it behaves as written, testing membership in memory.
@@ -141,7 +225,7 @@ namespace NPoco.FluentSql
         /// <param name="value">The expression being tested for membership.</param>
         /// <param name="values">The values to test against.</param>
         /// <returns>Whether <paramref name="value"/> is absent from <paramref name="values"/>, when evaluated in memory.</returns>
-        public static bool NotIn<T>(this T value, IEnumerable<T> values) => !values.Contains(value);
+        public static bool IsNotIn<T>(this T value, IEnumerable<T> values) => !values.Contains(value);
         /// <summary>
         /// Translates to <c>EXISTS (subquery)</c>. Build <paramref name="subquery"/> from
         /// <see cref="FluentSqlQueryStage.Subquery"/> to correlate it with the outer query.
@@ -201,7 +285,7 @@ namespace NPoco.FluentSql
 
         /// <summary>
         /// Embeds a subquery that yields a single value, for use anywhere a column can appear -
-        /// most usefully in a projection, which <see cref="Exists"/> and <see cref="In{T}(T, IFluentSqlQuery)"/>
+        /// most usefully in a projection, which <see cref="Exists"/> and <see cref="IsIn{T}(T, IFluentSqlQuery)"/>
         /// do not cover.
         ///
         /// To correlate the subquery with the outer query, build it from

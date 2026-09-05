@@ -121,7 +121,7 @@ namespace NPoco.Tests.FluentSqlTests
             var wanted = new[] { TestEnum.All };
 
             var ids = Database.FluentQuery().From<User>(out var user)
-                .Where(() => user.Row.TestEnum.In(wanted))
+                .Where(() => user.Row.TestEnum.IsIn(wanted))
                 .OrderBy(user, x => x.UserId)
                 .SelectScalar(user, x => x.UserId).Fetch();
 

@@ -295,7 +295,7 @@ namespace NPoco.Tests.FluentSqlTests
                 .Where(() => s.Row.Active)
                 .Select(() => s.Row.SiteId);
             var byIn = db.FluentQuery().From<SelSite>(out var site)
-                .Where(() => site.Row.Id.In(active))
+                .Where(() => site.Row.Id.IsIn(active))
                 .OrderBy(() => site.Row.Id)
                 .Select(() => site.Row.Name).Fetch();
             Assert.That(byIn, Is.EqualTo(new[] { "north", "south" }));
@@ -413,7 +413,7 @@ namespace NPoco.Tests.FluentSqlTests
             // The same column read through a collection, where the enum type survives the tree.
             var states = new[] { SelState.On };
             var inList = db.FluentQuery().From<SelSystem>(out var d)
-                .Where(() => d.Row.Mode.In(states))
+                .Where(() => d.Row.Mode.IsIn(states))
                 .OrderBy(() => d.Row.Id)
                 .Select(() => d.Row.Name).Fetch();
             Assert.That(inList, Is.EqualTo(new[] { "a", "c" }));
