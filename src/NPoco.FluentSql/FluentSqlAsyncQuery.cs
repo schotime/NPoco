@@ -13,6 +13,14 @@ namespace NPoco.FluentSql
         public FluentSqlAsyncQueryStage From<T>(out TableReference<T> table)
             => new FluentSqlAsyncQueryStage(_query.FromCore(out table));
 
+        /// <inheritdoc cref="FluentSqlQuery.From{T}(out TableReference{T}, Func{FluentSqlQuery, FluentSqlResult{T}})"/>
+        public FluentSqlAsyncQueryStage From<T>(out TableReference<T> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<T>> subquery)
+            => new FluentSqlAsyncQueryStage(_query.FromCore(out table, _query.BuildDerivedAsync(subquery)));
+
+        /// <inheritdoc cref="FluentSqlQuery.From{T}(TableReference{T}, Func{FluentSqlQuery, FluentSqlResult{T}})"/>
+        public FluentSqlAsyncQueryStage From<T>(TableReference<T> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<T>> subquery)
+            => new FluentSqlAsyncQueryStage(_query.FromCore(table, _query.BuildDerivedAsync(subquery)));
+
         public FluentSqlAsyncQuery With<T>(out TableReference<T> table, Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<T>> query)
         {
             _query.WithAsync(out table, query);

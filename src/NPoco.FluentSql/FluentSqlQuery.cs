@@ -87,6 +87,7 @@ namespace NPoco.FluentSql
         private readonly FluentSqlQuery? _parent;
 
         private TableReference? _from;
+        private IFluentSqlQueryInternal? _fromQuery;
         private ProjectionPlan? _projectionPlan;
 
         // The query a snapshot was taken from, so a CTE or UNION callback can still tell that the
@@ -119,11 +120,84 @@ namespace NPoco.FluentSql
         public FluentSqlQueryStage From<T>(out TableReference<T> table)
             => new FluentSqlQueryStage(FromCore(out table));
 
+        /// <summary>
+        /// Selects from a subquery written here rather than declared above as a CTE, and hands back
+        /// the reference its columns are read through. The subquery is its own scope: it cannot read
+        /// the query it is selected into, but it can read one that query is nested in - which is what
+        /// lets a derived table inside a correlated subquery carry the correlation down.
+        /// </summary>
+        /// <typeparam name="T">The type the subquery projects, which must have mapped columns.</typeparam>
+        /// <param name="table">Receives the reference for the subquery, with a generated alias.</param>
+        /// <param name="subquery">Builds the subquery from the query it is handed.</param>
+        /// <returns>The stage that takes the rest of the query.</returns>
+        /// <exception cref="InvalidOperationException">A FROM has already been set, the callback returns no projection, or it projects a type with no mapped columns.</exception>
+        public FluentSqlQueryStage From<T>(out TableReference<T> table, Func<FluentSqlQuery, FluentSqlResult<T>> subquery)
+            => new FluentSqlQueryStage(FromCore(out table, BuildDerived(subquery)));
+
+        /// <summary>
+        /// Selects from a subquery through a reference reserved by <see cref="Table{T}()"/>, for the
+        /// places an <c>out</c> argument cannot go - inside an expression, where a correlated
+        /// subquery is written. What the reference names is settled here: a subquery, read by the
+        /// names its projection gave the columns.
+        /// </summary>
+        /// <typeparam name="T">The type the subquery projects, which must have mapped columns.</typeparam>
+        /// <param name="table">A reference from <see cref="Table{T}()"/>, not yet added to a query.</param>
+        /// <param name="subquery">Builds the subquery from the query it is handed.</param>
+        public FluentSqlQueryStage From<T>(TableReference<T> table, Func<FluentSqlQuery, FluentSqlResult<T>> subquery)
+            => new FluentSqlQueryStage(FromCore(table, BuildDerived(subquery)));
+
+        private IFluentSqlResultInternal BuildDerived<T>(Func<FluentSqlQuery, FluentSqlResult<T>> subquery)
+        {
+            if (subquery == null) throw new ArgumentNullException(nameof(subquery));
+            var scope = CreateDerivedScope();
+            var result = subquery(scope);
+            if (result == null) throw new InvalidOperationException("The From callback must return a projected query.");
+            if (!result.InnerQuery.Projects(scope)) throw new InvalidOperationException("The From callback must return a result created from the supplied query.");
+            return result;
+        }
+
+        internal IFluentSqlResultInternal BuildDerivedAsync<T>(Func<FluentSqlAsyncQuery, FluentSqlAsyncResult<T>> subquery)
+        {
+            if (subquery == null) throw new ArgumentNullException(nameof(subquery));
+            var scope = CreateDerivedScope();
+            var result = subquery(new FluentSqlAsyncQuery(scope));
+            if (result == null) throw new InvalidOperationException("The From callback must return a projected query.");
+            if (!result.InnerQuery.Projects(scope)) throw new InvalidOperationException("The From callback must return a result created from the supplied query.");
+            return result;
+        }
+
         internal FluentSqlQuery FromCore<T>(out TableReference<T> table)
         {
             if (_from != null) throw new InvalidOperationException("From can only be specified once.");
             table = CreateTable<T>();
             _from = table;
+            _tables.Add(table);
+            return this;
+        }
+
+        internal FluentSqlQuery FromCore<T>(TableReference<T> table, IFluentSqlResultInternal result)
+        {
+            if (_from != null) throw new InvalidOperationException("From can only be specified once.");
+            EnsureAddable(table, "From(table, subquery)");
+            if (!ReferenceEquals(result.Database, _database)) throw new InvalidOperationException("The subquery selected from must use the same database instance as the containing query.");
+            // The reference was reserved as a name; selecting a subquery through it is what makes it
+            // one, and its columns are read by the names the projection gave them.
+            table.IsDerived = true;
+            RequireReferenceableColumns(table, "A subquery selected from");
+            _from = table;
+            _fromQuery = result;
+            _tables.Add(table);
+            return this;
+        }
+
+        internal FluentSqlQuery FromCore<T>(out TableReference<T> table, IFluentSqlResultInternal result)
+        {
+            if (_from != null) throw new InvalidOperationException("From can only be specified once.");
+            if (!ReferenceEquals(result.Database, _database)) throw new InvalidOperationException("The subquery selected from must use the same database instance as the containing query.");
+            table = CreateTable<T>(true);
+            RequireReferenceableColumns(table, "A subquery selected from");
+            _from = table;
+            _fromQuery = result;
             _tables.Add(table);
             return this;
         }
@@ -294,6 +368,7 @@ namespace NPoco.FluentSql
             var copy = new FluentSqlQuery(_database, _parent, _aliases);
             copy._origin = _origin ?? this;
             copy._from = _from;
+            copy._fromQuery = _fromQuery;
             copy.TakeCount = TakeCount;
             copy.SkipCount = SkipCount;
             copy.IsDistinct = IsDistinct;
@@ -370,7 +445,7 @@ namespace NPoco.FluentSql
             if (_sorts.Count > 0 || SkipCount.HasValue || TakeCount.HasValue)
                 throw new InvalidOperationException("OrderBy, Skip, and Take cannot be applied to an individual UNION operand.");
 
-            var unionQuery = new FluentSqlQuery(_database);
+            var unionQuery = CreateUnionScope();
             var result = query(unionQuery);
             if (result == null) throw new InvalidOperationException("The UNION callback must return a projected query.");
             if (!result.InnerQuery.Projects(unionQuery)) throw new InvalidOperationException("The UNION callback must return a result created from the supplied query.");
@@ -396,7 +471,7 @@ namespace NPoco.FluentSql
             if (_sorts.Count > 0 || SkipCount.HasValue || TakeCount.HasValue)
                 throw new InvalidOperationException("OrderBy, Skip, and Take cannot be applied to an individual UNION operand.");
 
-            var unionQuery = new FluentSqlQuery(_database);
+            var unionQuery = CreateUnionScope();
             var result = query(new FluentSqlAsyncQuery(unionQuery));
             if (result == null) throw new InvalidOperationException("The UNION callback must return a projected query.");
             if (!result.InnerQuery.Projects(unionQuery)) throw new InvalidOperationException("The UNION callback must return a result created from the supplied query.");
@@ -454,7 +529,14 @@ namespace NPoco.FluentSql
         // The scope a joined subquery is built in: no parent, because a plain join cannot read the
         // query it is joined to, but the statement's alias set, so its tables are named apart from
         // everything around it.
-        internal FluentSqlQuery CreateDerivedScope() => new FluentSqlQuery(_database, null, _aliases);
+        internal FluentSqlQuery CreateDerivedScope() => new FluentSqlQuery(_database, _parent, _aliases);
+
+        // A UNION operand is a sibling SELECT. Where this query has nothing around it, the operand
+        // has nothing to correlate with and is named in its own right, which keeps a plain union
+        // reading as it always has. Nested in a query that can correlate, it takes the statement's
+        // aliases too, so a table it reads from an enclosing block cannot be shadowed by one of its
+        // own carrying the same name.
+        private FluentSqlQuery CreateUnionScope() => _parent == null ? new FluentSqlQuery(_database) : CreateDerivedScope();
 
         internal void OuterApply<TApply>(out TableReference<TApply> table, Func<FluentSqlQuery, FluentSqlResult<TApply>> subquery)
         {
@@ -630,13 +712,13 @@ namespace NPoco.FluentSql
         {
             // RequireProjection checks the FROM before anything else, so it is set by here.
             RequireProjection();
-            return SqlGenerator.Generate(_database, _ctes, _unions, _from!, _selects, _joins, _applies, _where, _groups, _having, _sorts, IsDistinct, SkipCount, TakeCount);
+            return SqlGenerator.Generate(_database, _ctes, _unions, _from!, _fromQuery, _selects, _joins, _applies, _where, _groups, _having, _sorts, IsDistinct, SkipCount, TakeCount);
         }
 
         internal string Build(IList<object> parameters)
         {
             RequireProjection();
-            return SqlGenerator.GenerateText(_database, _ctes, _unions, _from!, _selects, _joins, _applies, _where, _groups, _having, _sorts, IsDistinct, SkipCount, TakeCount, parameters);
+            return SqlGenerator.GenerateText(_database, _ctes, _unions, _from!, _fromQuery, _selects, _joins, _applies, _where, _groups, _having, _sorts, IsDistinct, SkipCount, TakeCount, parameters);
         }
 
         private sealed class SqlFunctionsParameterReplacer : ExpressionVisitor

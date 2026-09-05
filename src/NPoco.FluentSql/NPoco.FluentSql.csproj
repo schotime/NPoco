@@ -4,7 +4,7 @@
     <TargetFrameworks>net462;netstandard2.0;netstandard2.1;net8.0;net10.0</TargetFrameworks>
     <AssemblyName>NPoco.FluentSql</AssemblyName>
     <PackageId>NPoco.FluentSql</PackageId>
-    <VersionPrefix>0.3.0</VersionPrefix>
+    <VersionPrefix>0.3.1</VersionPrefix>
     <Authors>Adam Schröder</Authors>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>

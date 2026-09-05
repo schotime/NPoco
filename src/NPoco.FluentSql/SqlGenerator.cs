@@ -9,15 +9,15 @@ namespace NPoco.FluentSql
 {
     internal static class SqlGenerator
     {
-        internal static Sql Generate(IAsyncQueryDatabase database, IList<CtePart> ctes, IList<UnionPart> unions, TableReference from, IList<SelectPart> selects, IList<JoinPart> joins, IList<ApplyPart> applies,
+        internal static Sql Generate(IAsyncQueryDatabase database, IList<CtePart> ctes, IList<UnionPart> unions, TableReference from, IFluentSqlQueryInternal? fromQuery, IList<SelectPart> selects, IList<JoinPart> joins, IList<ApplyPart> applies,
             IList<PredicatePart> predicates, IList<GroupPart> groups, IList<PredicatePart> having, IList<SortPart> sorts, bool distinct, int? skip, int? take)
         {
             var parameters = new List<object>();
-            var text = GenerateText(database, ctes, unions, from, selects, joins, applies, predicates, groups, having, sorts, distinct, skip, take, parameters);
+            var text = GenerateText(database, ctes, unions, from, fromQuery, selects, joins, applies, predicates, groups, having, sorts, distinct, skip, take, parameters);
             return new Sql(true, text, parameters.ToArray());
         }
 
-        internal static string GenerateText(IAsyncQueryDatabase database, IList<CtePart> ctes, IList<UnionPart> unions, TableReference from, IList<SelectPart> selects, IList<JoinPart> joins, IList<ApplyPart> applies,
+        internal static string GenerateText(IAsyncQueryDatabase database, IList<CtePart> ctes, IList<UnionPart> unions, TableReference from, IFluentSqlQueryInternal? fromQuery, IList<SelectPart> selects, IList<JoinPart> joins, IList<ApplyPart> applies,
             IList<PredicatePart> predicates, IList<GroupPart> groups, IList<PredicatePart> having, IList<SortPart> sorts, bool distinct, int? skip, int? take, IList<object> parameters)
         {
             var sql = new StringBuilder();
@@ -43,7 +43,12 @@ namespace NPoco.FluentSql
             var translators = new TranslatorCache(database, parameters);
             sql.Append(string.Join(", ", selects.SelectMany(x => RenderSelect(database, x, parameters, translators))));
 
-            sql.Append("\nFROM ").Append(from.EscapedTableName).Append(' ').Append(from.EscapedAlias);
+            sql.Append("\nFROM ");
+            if (fromQuery == null)
+                sql.Append(from.EscapedTableName);
+            else
+                sql.Append("(\n").Append(Indent(fromQuery.Build(parameters))).Append("\n)");
+            sql.Append(' ').Append(from.EscapedAlias);
             foreach (var join in joins)
             {
                 sql.Append('\n').Append(JoinKeyword(join.Type)).Append(' ');

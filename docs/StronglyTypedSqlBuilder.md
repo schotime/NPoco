@@ -117,10 +117,36 @@ db.FluentQuery()
     .Select(() => new { user.Row.Name, totals.Row.Total });
 ```
 
-A plain join is not lateral, so the subquery cannot read the tables it is joined to - the condition
-is where the two meet, and reading an outer table inside the body is an error rather than silently
-valid SQL. Use `OUTER APPLY` where the body itself has to correlate. Like a CTE, what it projects
-must have mapped columns, since the reference is how its columns are named.
+A query can select from one the same way:
+
+```csharp
+db.FluentQuery()
+    .From<UserTotal>(out var totals, sub => sub
+        .From<Order>(out var order)
+        .GroupBy(() => order.Row.UserId)
+        .Select(() => new UserTotal { UserId = order.Row.UserId, Total = FSql.Sum(order.Row.Amount) }))
+    .Where(() => totals.Row.Total > 100);
+```
+
+A derived table cannot read the query it is written into - a plain join is not lateral, and neither
+is a subquery in a FROM - so the condition, or the outer WHERE, is where the two meet. It *can* read
+a query that one is nested in, which is what lets a derived table inside a correlated subquery carry
+the correlation down:
+
+```csharp
+var query = db.FluentQuery();
+var sources = query.Table<Source>();          // the derived table's alias
+
+query.From<User>(out var user)
+    .Select(() => new { user.Row.Name, All = FSql.Scalar(query.Subquery()
+        .From(sources, sub => sub. /* … reads user.Row.Id … */ )
+        .SelectScalar(() => FSql.Raw<string[]>("json_agg(DISTINCT {0})", sources.Row.Name))) });
+```
+
+Inside an expression the reference comes from `Table<T>()`, for the same reason a correlated
+subquery's tables do: C# allows no `out` argument in an expression tree. Use `OUTER APPLY` where the
+body has to correlate with the query it sits beside rather than one above. Like a CTE, what a derived
+table projects must have mapped columns, since the reference is how its columns are named.
 
 ## Grouping, ordering and paging
 

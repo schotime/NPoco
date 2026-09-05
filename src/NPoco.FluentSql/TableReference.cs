@@ -42,7 +42,7 @@ namespace NPoco.FluentSql
         public Type EntityType { get; }
         /// <summary>NPoco's mapping metadata for <see cref="EntityType"/>.</summary>
         public PocoData PocoData { get; }
-        internal bool IsDerived { get; }
+        internal bool IsDerived { get; set; }
         internal string? SourceName { get; }
         // The alias set the reference was reserved from, which every query in the statement shares.
         // Holding the set itself is what lets a reference handed out by Table<T> be recognised as

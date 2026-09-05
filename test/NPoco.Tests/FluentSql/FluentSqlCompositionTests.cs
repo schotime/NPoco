@@ -305,6 +305,108 @@ namespace NPoco.Tests.FluentSqlTests
             Assert.That(sql, Does.Contain(latest.Alias));
         }
 
+        [Test] public void AQueryCanSelectFromASubqueryWrittenWhereItIsUsed()
+        {
+            using var db = Db();
+
+            var rows = db.FluentQuery()
+                .From<SiteCount>(out var counts, sub => sub
+                    .From<RawSystem>(out var s).Where(() => s.Row.Active)
+                    .GroupBy(() => s.Row.SiteId)
+                    .Select(() => new SiteCount { SiteId = s.Row.SiteId, Active = FSql.Count() }))
+                .Where(() => counts.Row.Active > 1)
+                .Select(() => new { counts.Row.SiteId, counts.Row.Active });
+
+            Assert.That(rows.ToSql().SQL, Does.Contain("FROM (\n"));
+            Assert.That(rows.Fetch().Single().SiteId, Is.EqualTo(1));
+        }
+
+        [Test] public void ASubquerySelectedFromCarriesCorrelationDownFromAnEnclosingQuery()
+        {
+            using var db = Db();
+            var query = db.FluentQuery();
+            var named = query.Table<RawSystem>();
+            var system = query.Table<RawSystem>();
+
+            // The shape a UNION aggregate needs: a derived table inside a correlated subquery. It
+            // cannot read the query it is selected into, but it can read the one that query is
+            // nested in - here the site each row is being built for.
+            var rows = query
+                .From<RawSite>(out var site)
+                .OrderBy(() => site.Row.Id)
+                .Select(() => new
+                {
+                    site.Row.Name,
+                    Names = FSql.Scalar(query.Subquery()
+                        .From(named, inner => inner
+                            .From(system)
+                            .Where(() => system.Row.SiteId == site.Row.Id)
+                            .Select(system))
+                        .SelectScalar(() => FSql.Max(named.Row.Name)))
+                })
+                .Fetch();
+
+            Assert.That(rows.Select(x => x.Names), Is.EqualTo(new[] { "c", "d" }));
+        }
+
+        [Test] public void ASubquerySelectedFromCannotReadTheQueryItIsSelectedInto()
+        {
+            using var db = Db();
+
+            var query = db.FluentQuery();
+            var counts = query.Table<SiteCount>();
+
+            Assert.Throws<InvalidOperationException>(() => query
+                .From(counts, sub => sub
+                    .From<RawSystem>(out var s)
+                    .Where(() => s.Row.SiteId == counts.Row.SiteId)
+                    .GroupBy(() => s.Row.SiteId)
+                    .Select(() => new SiteCount { SiteId = s.Row.SiteId, Active = FSql.Count() }))
+                .Select(() => counts.Row.SiteId)
+                .ToSql());
+        }
+
+        [Test] public void AnAggregateOverACorrelatedUnionComposesInAProjection()
+        {
+            using var db = Db();
+            var query = db.FluentQuery();
+
+            // The whole shape at once: a scalar subquery, correlated to the row being built, whose
+            // FROM is a derived table, which is a UNION whose operands correlate to that same row.
+            // Every reference is declared up front, because none of it can carry an out argument
+            // inside the projection's expression tree.
+            var sources = query.Table<SourceRow>();
+            var active = query.Table<RawSystem>();
+            var inactive = query.Table<RawSystem>();
+
+            var rows = query
+                .From<RawSite>(out var site)
+                .OrderBy(() => site.Row.Id)
+                .Select(() => new
+                {
+                    site.Row.Name,
+                    Sources = FSql.Scalar(query.Subquery()
+                        .From(sources, sub => sub
+                            .From(active)
+                            .Where(() => active.Row.SiteId == site.Row.Id && active.Row.Active)
+                            .Select(() => new SourceRow { Src = "Direct" })
+                            .Union(operand => operand
+                                .From(inactive)
+                                .Where(() => inactive.Row.SiteId == site.Row.Id && !inactive.Row.Active)
+                                .Select(() => new SourceRow { Src = inactive.Row.Name })))
+                        .SelectScalar(() => FSql.Max(sources.Row.Src)))
+                })
+                .Fetch();
+
+
+            // north has two active systems and one inactive 'c', so the union is { Direct, c };
+            // south has only an active one, so it is { Direct } - and the operands correlate, or
+            // both rows would see every system.
+            Assert.That(rows.Select(x => x.Name), Is.EqualTo(new[] { "north", "south" }));
+            Assert.That(rows[0].Sources, Is.EqualTo("c"));
+            Assert.That(rows[1].Sources, Is.EqualTo("Direct"));
+        }
+
         [Test] public void ASubqueryCanBeJoinedWhereItIsWritten()
         {
             using var db = Db();
@@ -942,6 +1044,11 @@ namespace NPoco.Tests.FluentSqlTests
         {
             public int SiteId { get; set; }
             public int Active { get; set; }
+        }
+
+        public class SourceRow
+        {
+            public string Src { get; set; }
         }
 
         public class SiteMax
