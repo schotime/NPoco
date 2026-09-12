@@ -269,9 +269,15 @@ namespace NPoco.FluentSql
             }
             else
             {
+                // A member whose value came back null is left as the type initialised it, which is
+                // what NPoco does filling a poco from the row directly: an initialiser - an empty
+                // string, a new list, a starting number - survives rather than being overwritten.
                 instance = _create.Create(reader);
                 for (var i = 0; i < _children.Length; i++)
+                {
+                    if (!_children[i].HasData(values)) continue;
                     _setters[i].Set(instance, _children[i].Materialize(values, reader));
+                }
             }
 
             if (_notifyLoaded) NotifyLoaded(instance);

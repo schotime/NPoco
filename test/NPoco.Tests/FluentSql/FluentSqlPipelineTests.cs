@@ -525,6 +525,55 @@ namespace NPoco.Tests.FluentSqlTests
             }
         }
 
+        [Test]
+        public void MemberInitProjectionLeavesInitialisersInPlaceForNulls()
+        {
+            using (var database = CreateDatabase())
+            {
+                database.Execute("insert into pipelineusers values(4, null, null)");
+
+                var rows = database.FluentQuery()
+                    .From<PipelineUser>(out var user)
+                    .Where(user, x => x.UserId == 1 || x.UserId == 4)
+                    .OrderBy(user, x => x.UserId)
+                    .Select(() => new InitialisedProjection
+                    {
+                        Name = user.Row.Name,
+                        Page = user.Row.Age.Value,
+                        Nested = new InitialisedPart { Age = user.Row.Age }
+                    })
+                    .Fetch();
+
+                // A value still overwrites the initialiser.
+                Assert.That(rows[0].Name, Is.EqualTo("one"));
+                Assert.That(rows[0].Page, Is.EqualTo(11));
+                Assert.That(rows[0].Nested.Age, Is.EqualTo(11));
+
+                // A null leaves it alone.
+                Assert.That(rows[1].Name, Is.EqualTo("initial"));
+                Assert.That(rows[1].Page, Is.EqualTo(1));
+                Assert.That(rows[1].Nested, Is.Not.Null);
+                Assert.That(rows[1].Nested.Age, Is.EqualTo(99));
+
+                // The same as NPoco filling the poco from the row directly.
+                var plain = database.Fetch<InitialisedProjection>("select name as Name, age as Page from pipelineusers where userid = 4").Single();
+                Assert.That(rows[1].Name, Is.EqualTo(plain.Name));
+                Assert.That(rows[1].Page, Is.EqualTo(plain.Page));
+            }
+        }
+
+        public class InitialisedProjection
+        {
+            public string Name { get; set; } = "initial";
+            public int Page { get; set; } = 1;
+            public InitialisedPart Nested { get; set; } = new InitialisedPart { Age = 99 };
+        }
+
+        public class InitialisedPart
+        {
+            public int? Age { get; set; }
+        }
+
         public class ConstructedProjection
         {
             public ConstructedProjection(int id, string name)
