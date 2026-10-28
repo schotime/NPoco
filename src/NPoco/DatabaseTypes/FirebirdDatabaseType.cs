@@ -14,6 +14,11 @@ namespace NPoco.DatabaseTypes
         /// <inheritdoc cref="ISqlDialectProvider.SqlDialect"/>
         public override ISqlDialect SqlDialect => FirebirdSqlDialect.Instance;
 
+        public override bool SupportsMultiRowValues()
+        {
+            return false;
+        }
+
         public override string GetParameterPrefix(string connectionString)
         {
             return "@";

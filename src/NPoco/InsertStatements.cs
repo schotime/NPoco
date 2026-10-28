@@ -67,6 +67,8 @@ namespace NPoco
                 }
 
                 var sql = string.Empty;
+                string insertPrefix = null;
+                string valuesClause = null;
                 var outputClause = String.Empty;
                 if (autoIncrement || !string.IsNullOrEmpty(pd.TableInfo.SequenceName))
                 {
@@ -75,11 +77,12 @@ namespace NPoco
 
                 if (names.Count != 0)
                 {
-                    sql = string.Format("INSERT INTO {0} ({1}){2} VALUES ({3})",
+                    insertPrefix = string.Format("INSERT INTO {0} ({1}){2}",
                         database.DatabaseType.EscapeTableName(tableName),
                         string.Join(",", names.ToArray()),
-                        outputClause,
-                        string.Join(",", values.ToArray()));
+                        outputClause);
+                    valuesClause = string.Format("({0})", string.Join(",", values.ToArray()));
+                    sql = insertPrefix + " VALUES " + valuesClause;
                 }
                 else
                 {
@@ -91,7 +94,9 @@ namespace NPoco
                     PocoData = pd,
                     Sql = sql,
                     Rawvalues = rawvalues,
-                    VersionName = versionName
+                    VersionName = versionName,
+                    InsertPrefix = insertPrefix,
+                    ValuesClause = valuesClause
                 };
 
                 foreach (var item in pd.TableInfo.AlterStatementHooks)
@@ -100,6 +105,22 @@ namespace NPoco
                 }
 
                 return prep;
+            }
+
+            // Rows can only be combined into one multi-row VALUES statement if they have a values clause
+            // and any AlterStatementHook has only appended a parameterless suffix (e.g. ON CONFLICT DO NOTHING),
+            // which can then be applied once to the whole statement. Returns null if the row can't be combined.
+            public static string GetMultiRowValuesSuffix(PreparedInsertStatement preparedSql)
+            {
+                if (preparedSql.ValuesClause == null)
+                    return null;
+
+                var baseSql = preparedSql.InsertPrefix + " VALUES " + preparedSql.ValuesClause;
+                if (!preparedSql.Sql.StartsWith(baseSql, StringComparison.Ordinal))
+                    return null;
+
+                var suffix = preparedSql.Sql.Substring(baseSql.Length);
+                return suffix.Contains("@") ? null : suffix;
             }
 
             public static object AssignNonIncrementPrimaryKey<T>(string primaryKeyName, T poco, PreparedInsertStatement preparedSql)

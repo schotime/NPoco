@@ -8,5 +8,7 @@ namespace NPoco
         public string VersionName { get; set; }
         public string Sql { get; set; }
         public List<object> Rawvalues { get; set; }
+        public string InsertPrefix { get; set; }
+        public string ValuesClause { get; set; }
     }
 }

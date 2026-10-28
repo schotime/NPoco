@@ -267,6 +267,11 @@ namespace NPoco
             return false;
         }
 
+        public virtual bool SupportsMultiRowValues()
+        {
+            return true;
+        }
+
         /// <summary>
         /// Returns an SQL Statement that can check for the existance of a row in the database.
         /// </summary>

@@ -153,9 +153,28 @@ namespace NPoco
                     }).ToArray();
 
                     var sql = new Sql();
-                    foreach (var preparedInsertSql in preparedInserts)
+                    var suffixes = options.MultiRowValues && _dbType.SupportsMultiRowValues()
+                        ? preparedInserts.Select(InsertStatements.GetMultiRowValuesSuffix).Distinct().ToArray()
+                        : null;
+
+                    if (suffixes != null && suffixes.Length == 1 && suffixes[0] != null)
                     {
-                        sql.Append(preparedInsertSql.Sql + options.StatementSeperator, preparedInsertSql.Rawvalues.ToArray());
+                        for (var i = 0; i < preparedInserts.Length; i++)
+                        {
+                            var preparedInsertSql = preparedInserts[i];
+                            var rowSql = i == 0
+                                ? preparedInsertSql.InsertPrefix + " VALUES " + preparedInsertSql.ValuesClause
+                                : "," + preparedInsertSql.ValuesClause;
+                            sql.Append(rowSql, preparedInsertSql.Rawvalues.ToArray());
+                        }
+                        sql.Append(suffixes[0].TrimStart());
+                    }
+                    else
+                    {
+                        foreach (var preparedInsertSql in preparedInserts)
+                        {
+                            sql.Append(preparedInsertSql.Sql + options.StatementSeperator, preparedInsertSql.Rawvalues.ToArray());
+                        }
                     }
 
                     using (var cmd = CreateCommand(_sharedConnection, sql.SQL, sql.Arguments))

@@ -39,5 +39,6 @@ namespace NPoco
         object ProcessDefaultMappings(PocoColumn pocoColumn, object value);
         void SetParameterValue(DbParameter p, object value);
         bool UseColumnAliases();
+        bool SupportsMultiRowValues();
     }
 }

@@ -122,6 +122,22 @@ namespace NPoco.Tests.DecoratedTests.CRUDTests
         }
 
         [Test]
+        public void InsertBatchMultiRowValues()
+        {
+            var users = Enumerable.Range(0, 50).Select(x => new UserDecoratedWithNullable
+            {
+                Name = "Name" + x,
+                Age = x + 1
+            });
+
+            var inserted = Database.InsertBatch(users, new BatchOptions() {BatchSize = 22, MultiRowValues = true});
+
+            Assert.AreEqual(50, inserted);
+            Assert.AreEqual(65, Database.Query<UserDecorated>().Count());
+            Assert.AreEqual(1, Database.Query<UserDecorated>().Where(x => x.Name == "Name49").Count());
+        }
+
+        [Test]
         public void VerifyGuidGeneratedByDbIsSet()
         {
             var user = new GuidFromDb();
