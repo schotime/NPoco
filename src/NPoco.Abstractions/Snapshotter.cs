@@ -83,6 +83,19 @@ namespace NPoco
             return list;
         }
 
+        public bool HasChanges()
+        {
+            foreach (var pocoColumn in _originalValues)
+            {
+                var newValue = pocoColumn.Key.GetColumnValue(_pocoData, _trackedObject);
+                if (!AreEqual(pocoColumn.Value, newValue))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private bool AreEqual(object first, object second)
         {
             if (first == null && second == null) return true;
